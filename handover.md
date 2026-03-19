@@ -1,148 +1,74 @@
-# Handover Document - Migrasi Trainers SuperApp
+# Handover Dokumentasi - Trainer SuperApp
 
-## Status Proyek
-- **Fase Saat Ini:** Fase 4 (Polishing & UI/UX Premium) - Selesai, Menuju Fase 5 (Integrasi Supabase & RBAC) & Fase 6 (Modul Profiler)
-- **Terakhir Diperbarui:** 16 Maret 2026
-- **Status Migrasi:** Projek saat ini dalam tahap migrasi dari arsitektur SPA (Vite) ke Fullstack Framework (Next.js). Perubahan utama terletak pada perpindahan pengelolaan state dan routing ke server-side serta integrasi database relasional. Modul baru "Profiler Peserta" telah ditambahkan ke dalam roadmap.
+## Ringkasan Proyek
+Trainer SuperApp adalah aplikasi pelatihan interaktif yang mencakup berbagai modul simulasi seperti KETIK (Chat), PDKT (Email), TELEFUN (Telepon), dan PROFILER (Data Peserta).
 
-## Progress Checklist
+## Perubahan Terbaru (18 Maret 2026)
 
-### Fase 0: Preservasi & Pemisahan
-- [x] Membuat file `prd.md`
-- [x] Membuat file `handover.md`
-- [x] Membuat folder `reference-old-app`
-- [x] Memindahkan seluruh kode lama (`/src`, `.env.example`, `.gitignore`, `package.json`, dll) ke `reference-old-app`
-- [x] Memastikan folder `/src` di root sudah dihapus sepenuhnya (dipindahkan ke `/old-file`)
-- [x] Membuat `README-REFERENCE.md` di dalam folder referensi
+### 1. Perbaikan Bug & Optimasi Keseluruhan (Error Logic & Bug Check)
+- **Fix `useEffect` Dependencies**: Memperbaiki peringatan *missing dependency* pada `useEffect` di komponen `AddMemberPicker.tsx` dengan membungkus fungsi `loadPool` menggunakan `React.useCallback`.
+- **Optimasi Gambar (Next.js Image)**: Mengganti elemen `<img>` standar dengan komponen `<Image />` dari `next/image` di `analytics/page.tsx` untuk meningkatkan performa *Largest Contentful Paint* (LCP) dan pengoptimalan otomatis.
+- **Penyelesaian Isu Library**: Memastikan semua *library* yang dibutuhkan untuk visualisasi data dan ekspor (`recharts`, `xlsx`, `jspdf`, `html2canvas`, `pptxgenjs`, `exceljs`) telah terinstal dengan benar.
+- **Perbaikan Import Animasi**: Memperbaiki *import* dari `framer-motion` menjadi `motion/react` pada seluruh komponen di modul Profiler (`analytics`, `AddMemberPicker`, `YearSidebar`, `DuplicateFolderModal`, `table`, `slides`) agar sesuai dengan versi terbaru.
+- **Linting Lulus 100%**: Aplikasi telah dicek secara keseluruhan dan berhasil melewati proses linting tanpa *error* atau peringatan (*warning*).
 
-### Fase 1: Setup Next.js & Restrukturisasi
-- [x] Inisialisasi proyek Next.js di `trainers-superapp`
-- [x] Setup struktur folder `/app` (tanpa folder `src` untuk menghindari kebingungan dengan kode lama)
-- [x] Konfigurasi Tailwind CSS v4
+### 2. Dokumen PRD Baru
+- Menambahkan dokumen **Product Requirements Document (PRD)** baru untuk modul **QA Analyzer — "The Path to Zero"** (`prd.md`). Dokumen ini mencakup spesifikasi lengkap untuk pembuatan *QA Performance Dashboard*, termasuk *user stories*, spesifikasi teknis, dan *roadmap* MVP.
 
-### Fase 2: Migrasi Routing & Frontend
-- [x] Setup Landing Page Premium
-- [x] Setup Dashboard & Sidebar Navigation
-- [x] Setup Placeholder Pages untuk Ketik, PDKT, dan Telefun
-- [x] Implementasi UI Chat (Ketik)
-- [x] Implementasi UI Email (PDKT)
-- [x] Implementasi UI Telepon (Telefun)
+## Perubahan Sebelumnya (17 Maret 2026)
 
-### Fase 3: Pemisahan Backend & Keamanan AI
-- [x] Integrasi Google Gemini AI (Client-side dengan platform security)
-- [x] Implementasi Persona Konsumen (Ketik, PDKT, Telefun)
-- [x] Implementasi Voice Simulation (Telefun menggunakan Gemini TTS)
-- [x] Konsolidasi AI Logic di `/app/lib/ai.ts`
-- [x] Memindahkan API Gemini ke server-side (Server Actions)
+### 1. Konsistensi UI & Tema (Theming)
+- **Refactoring Tema Global**: Mengimplementasikan sistem tema yang konsisten menggunakan variabel CSS dan Tailwind CSS (`bg-background`, `bg-card`, `text-foreground`, `border-border`).
+- **History & Settings Modal**: Seluruh modal riwayat dan pengaturan di modul PDKT, KETIK, dan TELEFUN kini sepenuhnya mendukung mode gelap/terang secara otomatis mengikuti preferensi sistem atau toggle tema.
+- **Interface Refactoring**: Komponen `EmailInterface`, `ChatInterface`, dan `PhoneInterface` telah diperbarui untuk menggunakan variabel tema, menggantikan nilai warna hardcoded.
+- **Telefun UI Update**: Meningkatkan ukuran avatar pada modul Telefun dan memperluas tampilan agar lebih "full-screen" dan responsif.
 
-### Fase 4: Polishing & UI/UX Premium
-- [x] Refine UI/UX Ketik (ChatInterface)
-- [x] Refine UI/UX PDKT (EmailInterface)
-- [x] Refine UI/UX Telefun (CallInterface)
-- [x] Konsistensi Tema "Dark Luxury & Clean Utility"
+### 2. Optimasi & Perbaikan
+- **Dashboard QA Analysis**: Memperbarui dashboard utama untuk fokus pada "Analisis Temuan QA".
+    - Mengganti grafik skor menjadi "Tren Temuan QA" (Trend Line).
+    - Memperbarui ringkasan dengan metrik: Jumlah Temuan, Rata Temuan Pertim, dan Status Tren (Membaik/Memburuk).
+    - Mengganti daftar aktivitas sesi menjadi "Log Aktivitas User" (Login, Edit, Tambah data oleh Trainer/Leader/Agent).
+- **Fix Chart Warning**: Memperbaiki peringatan "width/height should be greater than 0" pada dashboard dengan menambahkan `minHeight={0}` dan `minWidth={0}` pada `ResponsiveContainer` Recharts.
+- **Next.js Image**: Mengganti tag `<img>` standar dengan komponen `<Image />` dari `next/image` di seluruh modul (Ketik, PDKT, Telefun, Profiler) untuk optimasi pemuatan gambar dan caching.
+- **useEffect Dependencies**: Memperbaiki peringatan dependensi `useEffect` yang hilang di beberapa komponen utama untuk mencegah potensi bug dan re-render yang tidak perlu.
+- **useCallback**: Menggunakan `useCallback` untuk fungsi-fungsi yang digunakan sebagai dependensi `useEffect` (seperti `handleSessionTimeout` di Ketik).
 
-### Fase 5: Integrasi Supabase & RBAC (Selesai)
-- [x] Implementasi fungsi pendaftaran yang otomatis memasukkan data ke tabel 'profiles'.
-- [x] Penyesuaian API Route untuk pencatatan skor simulasi ke tabel 'results' di Supabase.
-- [x] Implementasi Role-Based Access Control (RBAC) lengkap (SQL script disediakan).
+### 3. Modul QA Analyzer Dashboard (Baru)
+- **Executive Summary**: Menambahkan 4 KPI Cards (Total Temuan, Rata-rata Temuan per Audit, Fatal Error Rate, Kepatuhan SOP) dengan *sparkline* dan indikator delta (reverse logic).
+- **Team & Agent Performance**: Menambahkan grafik batang horizontal untuk perbandingan temuan antar tim dan tabel Top 5 Agen dengan temuan tertinggi.
+- **Root Cause Analysis**: Menambahkan Pareto Chart untuk mengidentifikasi kategori temuan terbanyak (80/20 rule) dan Donut Chart untuk proporsi Fatal vs Non-Fatal error.
+- **Filter Global**: Menambahkan filter dinamis berdasarkan Periode dan Tim/Folder yang memengaruhi seluruh komponen *dashboard*.
+- **Service Layer**: Membuat `qaService.ts` untuk menangani semua *query* ke Supabase terkait data QA (`qa_temuan`, `qa_indicators`, `qa_periods`, dll).
 
-### Fase 6: Modul Profiler Peserta (BARU - In Progress)
-- **Sub-Fase 6.1 (Paling Rumit): Database, Storage & Core UI**
-  - [x] Setup tabel Supabase (`profiler_folders`, `profiler_peserta`, `profiler_tim_list`) dengan RLS.
-  - [x] Implementasi `profilerService` untuk operasi CRUD kompleks (cascading delete/rename).
-  - [x] Pembuatan UI Halaman Index Profiler (`ProfilerIndex`) dengan sidebar folder dan action cards.
-  - [x] Pembuatan UI Tabel Interaktif dengan fitur *Drag-to-Reorder* (update `nomor_urut`), *Bulk Move* (Pindah Folder), dan *Inline Edit*.
-  - [x] Implementasi upload foto dengan kompresi (`browser-image-compression`) ke Supabase Storage.
-- **Sub-Fase 6.2 (Menengah): Import, Export & Presentation**
-  - [x] Implementasi Import Excel/CSV dengan validasi dan deteksi duplikat.
-  - [x] Implementasi Export ke format Excel, CSV, PowerPoint (PPTX), dan PDF.
-  - [x] Pembuatan UI Slide View untuk presentasi profil.
-- **Sub-Fase 6.3 (Sederhana): Dashboard & Utilities**
-  - [x] Pembuatan Widget Ulang Tahun (Birthday Countdown) di Halaman Index.
-  - [x] Manajemen Tim Kustom (CRUD untuk daftar tim).
+### 4. Modul Profiler (v1.1.0 - Planned)
+- **Hierarki Data**: Implementasi struktur 3 level: **Tahun → Folder → Sub-folder** untuk pengorganisasian data yang lebih baik.
+- **Manajemen Folder**: Fitur duplikat folder antar tahun, rename, dan hapus rekursif.
+- **Picker "Tambah Anggota"**: Memungkinkan trainer menyalin peserta dari folder lain tanpa input ulang data.
+- **Export & Output**: 
+    - Simpan slide profil sebagai gambar PNG (High Quality).
+    - Template Excel baru menggunakan `ExcelJS` dengan dropdown validasi nyata untuk meminimalisir kesalahan input.
+- **ThemeToggle**: Integrasi toggle mode gelap/terang pada title bar Profiler.
 
-## Konfigurasi Database (Supabase)
-Pastikan hal-hal berikut sudah terkonfigurasi pada dashboard Supabase:
+### 4. Perbaikan Bug & Linting
+- Memperbaiki kesalahan linting terkait tanda kutip ganda yang tidak di-escape di beberapa file.
+- Memastikan semua gambar memiliki `referrerPolicy="no-referrer"` untuk mencegah masalah pemuatan dari host tertentu.
 
-- **Tabel Profiles**
-  Kolom wajib: `id` (uuid), `email` (text), `role` (enum: 'Trainer', 'Leader', 'Agent').
+## Struktur Folder Utama
+- `/app`: Direktori utama Next.js App Router.
+- `/app/ketik`: Modul simulasi chat.
+- `/app/pdkt`: Modul simulasi email.
+- `/app/telefun`: Modul simulasi telepon.
+- `/app/profiler`: Modul manajemen data peserta.
+- `/app/dashboard`: Dashboard statistik dan ringkasan.
 
-- **Row Level Security (RLS)**
-  - **Trainer:** Policy ALL (SELECT, INSERT, UPDATE, DELETE).
-  - **Leader:** Policy SELECT only (untuk data agen/hasil), dan INSERT (untuk skor simulasi sendiri).
-  - **Agent:** Policy SELECT (on specific apps) dan INSERT (on scores).
-
-- **Proteksi Super Admin**
-  Pastikan email `fajarabr76@gmail.com` diberikan role 'Trainer'. Tambahkan constraint pada level database atau logic aplikasi agar akun ini tidak bisa dihapus melalui UI admin manapun.
-
-## Komponen Penting Next.js
-- **middleware.ts**
-  Bertanggung jawab atas proteksi rute. Jika user dengan role 'Agent' mencoba mengakses direktori `/trainer`, middleware harus melakukan redirect ke `/dashboard/agent`.
-- **lib/supabase.ts**
-  Inisialisasi Supabase Client untuk penggunaan di sisi Client maupun Server.
-- **Dashboard Logic**
-  Pemisahan view berdasarkan `session.user.role` yang didapat dari metadata JWT Supabase.
-
-## Daftar Tugas Tersisa (To-Do)
-- [x] Implementasi fungsi pendaftaran yang otomatis memasukkan data ke tabel 'profiles'.
-- [x] Migrasi logika simulasi 'Ketik' dari project Vite lama ke komponen React di Next.js.
-- [x] Penyesuaian API Route untuk pencatatan skor simulasi ke tabel 'results' di Supabase.
-- [x] Implementasi Blind Simulation (Waiting Screen) untuk modul Ketik, PDKT, dan Telefun.
-- [x] Implementasi Template Sapaan Otomatis untuk modul Ketik.
-
-### 2. Tabel `results` (Supabase Schema)
-Tabel ini menyimpan hasil simulasi dari Agent dan Leader.
-
-```sql
-create table public.results (
-  id uuid default gen_random_uuid() primary key,
-  user_id uuid references public.profiles(id) on delete cascade not null,
-  module text not null, -- 'ketik', 'pdkt', 'telefun'
-  scenario_title text not null,
-  score integer not null,
-  feedback text,
-  history jsonb,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
-
--- RLS Policies
-alter table public.results enable row level security;
-
--- Trainer bisa melihat semua hasil
-create policy "Trainer can view all results"
-  on public.results for select
-  using (
-    exists (
-      select 1 from public.profiles
-      where profiles.id = auth.uid() and profiles.role = 'trainer'
-    )
-  );
-
--- Leader bisa melihat hasil agent dan dirinya sendiri
-create policy "Leader can view agent and own results"
-  on public.results for select
-  using (
-    exists (
-      select 1 from public.profiles
-      where profiles.id = auth.uid() and profiles.role = 'leader'
-    )
-    OR
-    user_id = auth.uid()
-  );
-
--- Agent hanya bisa melihat hasil sendiri
-create policy "Agent can view own results"
-  on public.results for select
-  using (user_id = auth.uid());
-
--- Semua role bisa insert hasil simulasi mereka sendiri
-create policy "Users can insert own results"
-  on public.results for insert
-  with check (user_id = auth.uid());
-```
+## Teknologi yang Digunakan
+- **Framework**: Next.js 15+ (App Router)
+- **Styling**: Tailwind CSS
+- **Animasi**: Framer Motion
+- **Database/Auth**: Supabase
+- **Icons**: Lucide React
+- **Charts**: Recharts
 
 ## Catatan Penting
-- Folder `reference-old-app` berisi seluruh kode sumber lama yang terorganisir.
-- Folder `old-file` adalah cadangan tambahan untuk folder `/src` root yang telah dipindahkan.
-- Pengembangan aktif dilakukan di dalam `trainers-superapp`.
-- Aplikasi sudah sepenuhnya menggunakan Server Actions untuk pemanggilan Gemini API, sehingga API Key aman di sisi server.
+- Pastikan `NEXT_PUBLIC_GEMINI_API_KEY` dan variabel lingkungan Supabase terkonfigurasi dengan benar di AI Studio Settings.
+- Performa Next.js pada mode pengembangan mungkin terasa sedikit berbeda dengan Vite karena proses kompilasi on-demand, namun pada mode produksi (standalone) performanya akan sangat optimal.
