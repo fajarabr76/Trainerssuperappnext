@@ -1,13 +1,45 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowRight, Shield, Zap, Cpu, MessageSquare, Mail, Phone, ExternalLink, X, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Shield, Zap, Cpu, MessageSquare, Mail, Phone, ExternalLink, X, CheckCircle2, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ThemeToggle } from "./components/ThemeToggle";
+import AuthModal from "@/app/components/AuthModal";
+import { createClient } from "@/app/lib/supabase/client";
+
+function AuthTrigger({ onOpen }: { onOpen: (mode: 'login'|'register') => void }) {
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const authParam = searchParams.get('auth');
+    if (authParam === 'login' || authParam === 'register') {
+      onOpen(authParam);
+    }
+  }, [searchParams, onOpen]);
+  return null;
+}
 
 export default function LandingPage() {
   const [showAboutModal, setShowAboutModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session);
+      setIsCheckingAuth(false);
+    });
+  }, []);
+
+  const handleOpenAuth = (mode: 'login' | 'register') => {
+    setAuthMode(mode);
+    setShowAuthModal(true);
+  };
 
   return (
     <main className="min-h-screen bg-background relative overflow-hidden">
@@ -44,15 +76,31 @@ export default function LandingPage() {
             </p>
 
             <div className="flex flex-wrap gap-4 pt-4">
-              <Link 
-                href="/dashboard" 
-                className="group relative px-8 py-4 bg-primary text-primary-foreground rounded-2xl font-bold overflow-hidden transition-all hover:shadow-2xl hover:shadow-primary/30 active:scale-95"
-              >
-                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                <span className="relative flex items-center gap-2">
-                  Launch Dashboard <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                </span>
-              </Link>
+              {isCheckingAuth ? (
+                <div className="px-8 py-4 bg-primary/50 text-primary-foreground rounded-2xl font-bold flex items-center justify-center opacity-50 cursor-not-allowed min-w-[200px]">
+                  <Loader2 className="animate-spin w-5 h-5" />
+                </div>
+              ) : isLoggedIn ? (
+                <Link 
+                  href="/dashboard" 
+                  className="group relative px-8 py-4 bg-primary text-primary-foreground rounded-2xl font-bold overflow-hidden transition-all hover:shadow-2xl hover:shadow-primary/30 active:scale-95 flex items-center gap-2"
+                >
+                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                  <span className="relative flex items-center gap-2">
+                    Buka Dashboard <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                  </span>
+                </Link>
+              ) : (
+                <button 
+                  onClick={() => handleOpenAuth('login')}
+                  className="group relative px-8 py-4 bg-primary text-primary-foreground rounded-2xl font-bold overflow-hidden transition-all hover:shadow-2xl hover:shadow-primary/30 active:scale-95 flex items-center gap-2"
+                >
+                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                  <span className="relative flex items-center gap-2">
+                    Masuk / Daftar <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                  </span>
+                </button>
+              )}
               
               <button 
                 onClick={() => setShowAboutModal(true)}
@@ -122,6 +170,17 @@ export default function LandingPage() {
           <span className="text-[10px] font-black uppercase tracking-[0.3em]">Innovation</span>
         </div>
       </div>
+
+      <Suspense fallback={null}>
+        <AuthTrigger onOpen={handleOpenAuth} />
+      </Suspense>
+
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+        initialMode={authMode} 
+      />
+
       {/* About Modal */}
       <AnimatePresence>
         {showAboutModal && (

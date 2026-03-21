@@ -28,6 +28,29 @@ export const activityService = {
     return data || [];
   },
 
+  async logActivity(user_id: string, user_name: string, action: string, module: string, type: string) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('activity_logs')
+      .insert({
+        user_id,
+        user_name,
+        action,
+        module,
+        type
+      });
+    if (error) console.error('Error logging activity:', error);
+  },
+
+  async deleteActivity(id: string) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('activity_logs')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  },
+
   formatTimeAgo(dateString: string): string {
     const date = new Date(dateString);
     const now = new Date();

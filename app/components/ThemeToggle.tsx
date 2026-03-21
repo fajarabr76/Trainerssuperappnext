@@ -20,7 +20,7 @@ export function ThemeToggle() {
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
       onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-      className="relative p-2 rounded-full bg-border/50 hover:bg-border transition-colors border border-border"
+      className="relative p-2 rounded-full bg-foreground/5 hover:bg-foreground/10 transition-all duration-300 border border-border shadow-sm active:scale-95"
       aria-label="Toggle theme"
     >
       <div className="relative w-5 h-5">

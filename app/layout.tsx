@@ -1,7 +1,7 @@
 import './globals.css';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import { ThemeProvider } from './components/ThemeProvider';
-import { ClientOnly } from './components/ClientOnly';
+
 
 const inter = Inter({
   subsets: ['latin'],
@@ -32,9 +32,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <ClientOnly>
-            {children}
-          </ClientOnly>
+          {children}
         </ThemeProvider>
       </body>
     </html>

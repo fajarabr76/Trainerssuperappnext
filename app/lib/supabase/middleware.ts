@@ -45,8 +45,8 @@ export async function updateSession(request: NextRequest) {
 
   if (isProtectedRoute) {
     if (!user) {
-      const url = request.nextUrl.clone();
-      url.pathname = '/login';
+      const url = new URL('/', request.url);
+      url.searchParams.set('auth', 'login');
       return NextResponse.redirect(url);
     }
 
@@ -68,9 +68,11 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // Redirect logged in users away from auth pages
-  if ((path === '/login' || path === '/register') && user) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+  // Redirect legacy auth pages to landing page modal
+  if (path === '/login' || path === '/register') {
+    const url = new URL('/', request.url);
+    url.searchParams.set('auth', path === '/login' ? 'login' : 'register');
+    return NextResponse.redirect(url);
   }
 
   return supabaseResponse;

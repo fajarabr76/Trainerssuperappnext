@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { createClient } from '@/app/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 
@@ -10,7 +10,9 @@ export function useAuth(requireRole?: string[]) {
   const [role, setRole] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
+  const requireRoleRef = useRef(requireRole);
+  requireRoleRef.current = requireRole;
 
   useEffect(() => {
     async function fetchUser() {
@@ -27,9 +29,20 @@ export function useAuth(requireRole?: string[]) {
         .eq('id', user.id)
         .single();
 
+      if (profile?.status === 'pending') {
+        router.push('/pending');
+        return;
+      }
+
+      if (profile?.is_deleted) {
+        await supabase.auth.signOut();
+        router.push('/login');
+        return;
+      }
+
       const userRole = profile?.role || 'Agent';
       
-      if (requireRole && !requireRole.map(r => r.toLowerCase()).includes(userRole.toLowerCase())) {
+      if (requireRoleRef.current && !requireRoleRef.current.map(r => r.toLowerCase()).includes(userRole.toLowerCase())) {
         router.push('/dashboard');
         return;
       }
@@ -41,7 +54,8 @@ export function useAuth(requireRole?: string[]) {
     }
 
     fetchUser();
-  }, [router, supabase, requireRole]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return { user, profile, role, loading };
 }
