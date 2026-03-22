@@ -67,7 +67,7 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
       <aside 
         onMouseEnter={() => isSidebarCollapsed && setIsSidebarHovered(true)}
         onMouseLeave={() => setIsSidebarHovered(false)}
-        className={`${effectiveIsCollapsed ? 'w-20' : 'w-72'} border-r border-border/40 flex flex-col bg-card/40 backdrop-blur-2xl relative z-50 lg:z-20 transition-all duration-500 ease-in-out group shrink-0 ${isMobileMenuOpen ? 'translate-x-0 fixed inset-y-0 left-0' : '-translate-x-full fixed lg:static lg:translate-x-0 inset-y-0 left-0'}`}
+        className={`${effectiveIsCollapsed ? 'w-20' : 'w-72'} border-r border-border/40 flex flex-col bg-card/40 backdrop-blur-2xl relative z-50 lg:z-20 transition-all duration-500 ease-in-out group shrink-0 ${isMobileMenuOpen ? 'translate-x-0 fixed inset-y-0 left-0 flex' : '-translate-x-full fixed lg:static lg:translate-x-0 inset-y-0 left-0 hidden lg:flex'}`}
       >
         <div className="p-6 flex-1 flex flex-col overflow-hidden">
           <div className={`flex items-center ${effectiveIsCollapsed ? 'justify-center' : 'justify-between'} mb-8 overflow-hidden`}>

@@ -34,7 +34,7 @@ export default function MainLayoutClient({
         </button>
       </div>
 
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+      <div className="flex-1 flex flex-col h-full w-full overflow-hidden relative">
         {children}
       </div>
     </div>

@@ -576,17 +576,7 @@ export default function ProfilerSlidesClient({
                     </div>
                   )}
 
-                  <div className="h-12 flex-shrink-0 flex items-center justify-between px-8 bg-muted/20 border-t border-border/40">
-                    <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-foreground/20" />
-                      <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/40">
-                        Otoritas Jasa Keuangan — Kontak OJK 157
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-bold text-foreground/40 tracking-widest">
-                      {batchName.toUpperCase()} · {index + 1}/{initialPeserta.length}
-                    </span>
-                  </div>
+                  <div className="h-6 flex-shrink-0" />
                 </div>
               </div>
 

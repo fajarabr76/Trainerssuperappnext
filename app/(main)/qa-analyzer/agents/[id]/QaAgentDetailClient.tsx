@@ -3,9 +3,9 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft, TrendingUp, TrendingDown, Minus,
-  AlertTriangle, BarChart2, Download, Plus,
-  Sun, Moon, Activity, ExternalLink, ShieldCheck, Zap
+  Users, BarChart2, TrendingUp, AlertCircle, CheckCircle2, 
+  CalendarDays, ChevronDown, Plus, Download, ArrowLeft, Sun, Moon,
+  ExternalLink, Activity, ShieldCheck, TrendingDown, Minus, Zap, AlertTriangle
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useTheme } from 'next-themes';
@@ -247,13 +247,17 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
     <>
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <header className="h-20 flex items-center justify-between px-8 bg-background/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-40">
-          <div className="flex items-center gap-4">
-            <div>
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-foreground/30 leading-none mb-1">
-                <Activity className="w-3 h-3" /> QA Analyzer
-              </div>
-              <h1 className="text-xl font-black tracking-tight">Agent Performance Detail</h1>
+          <button 
+            onClick={() => router.push('/qa-analyzer/agents')} 
+            className="w-10 h-10 rounded-xl bg-foreground/5 hover:bg-primary hover:text-white flex items-center justify-center text-foreground/40 transition-all duration-300 shadow-sm group"
+          >
+            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+          </button>
+          <div>
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-foreground/30 leading-none mb-1">
+              <Activity className="w-3 h-3" /> QA Analyzer
             </div>
+            <h1 className="text-lg font-black tracking-tight">Agent Performance Detail</h1>
           </div>
           <div className="flex items-center gap-4">
             <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="w-10 h-10 rounded-xl hover:bg-foreground/5 text-foreground/40 border border-border/50 flex items-center justify-center transition-all bg-card/50">
@@ -265,15 +269,10 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
         <div className="flex-1 overflow-y-auto">
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Profile Bar */}
-            <div className="bg-card/40 border-b border-border/50 px-10 py-8 backdrop-blur-xl sticky top-20 z-30">
+            <div className="bg-card/40 border-b border-border/50 px-10 py-6 backdrop-blur-xl relative z-30">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 <div className="flex items-center gap-6">
-                  <button 
-                    onClick={() => router.push('/qa-analyzer/agents')} 
-                    className="w-12 h-12 rounded-2xl bg-foreground/5 hover:bg-primary hover:text-white flex items-center justify-center text-foreground/40 transition-all duration-300 shadow-sm group"
-                  >
-                    <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                  </button>
+                  <div className="h-12 w-4 flex-shrink-0" />
                   
                   <div className="relative">
                     {agent.foto_url ? (
@@ -355,15 +354,15 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
                 <>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2 space-y-6">
-                      {sortedPeriods.length > 1 && (
-                        <div className="bg-card/40 backdrop-blur-md rounded-2xl border border-border/50 p-2 flex gap-1 overflow-x-auto no-scrollbar shadow-inner">
+                      {sortedPeriods.length > 0 && (
+                        <div className="flex flex-wrap gap-2 bg-card/40 backdrop-blur-md rounded-2xl border border-border/50 p-3 shadow-inner">
                           {sortedPeriods.map(p => {
                             const isActive = periodKey(p.month, p.year) === periodKey(selectedPeriod?.month || 0, selectedPeriod?.year || 0);
                             return (
                               <button 
                                 key={periodKey(p.month, p.year)} 
                                 onClick={() => setSelectedPeriod(p)} 
-                                className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${isActive ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-105' : 'hover:bg-foreground/5 text-foreground/40'}`}
+                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${isActive ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-105' : 'hover:bg-foreground/5 text-foreground/40'}`}
                               >
                                 {p.label}
                               </button>

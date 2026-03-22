@@ -292,6 +292,11 @@ export default function ProfilerTableClient({
   const router = useRouter();
 
   const [peserta, setPeserta] = useState<Peserta[]>(initialPeserta);
+  
+  useEffect(() => {
+    setPeserta(initialPeserta);
+  }, [initialPeserta]);
+
   const [filterTim, setFilterTim] = useState<string>('all');
   const [selectedPeserta, setSelectedPeserta] = useState<Peserta | null>(null);
   const [showFolderDropdown, setShowFolderDropdown] = useState(false);
@@ -400,7 +405,7 @@ export default function ProfilerTableClient({
   const displayList = sortMode ? peserta : filtered;
 
   return (
-    <div className="min-h-screen bg-background p-4 pb-28">
+    <div className="h-full overflow-auto bg-background/50 backdrop-blur-sm relative flex flex-col">
       <div className="max-w-6xl mx-auto space-y-4">
 
         {/* ── Tabs Navigation ── */}

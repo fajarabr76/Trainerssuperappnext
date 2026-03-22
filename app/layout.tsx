@@ -28,7 +28,7 @@ export default function RootLayout({
       <body className="antialiased selection:bg-primary/20" suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
+          defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >
