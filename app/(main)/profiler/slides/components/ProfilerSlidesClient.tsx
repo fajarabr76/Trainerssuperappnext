@@ -580,23 +580,6 @@ export default function ProfilerSlidesClient({
                 </div>
               </div>
 
-              <div className="flex items-center justify-center gap-1.5 mt-4">
-              {initialPeserta.slice(0, 16).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => goTo(i)}
-                  className="rounded-full transition-all duration-300 border-0 cursor-pointer p-0"
-                  style={{
-                    height: 5,
-                    width: i === index ? 20 : 5,
-                    background: i === index ? theme.accent : 'rgba(0,0,0,0.15)',
-                  }}
-                />
-              ))}
-              {initialPeserta.length > 16 && (
-                <span className="text-[10px] text-gray-400 ml-1">+{initialPeserta.length - 16}</span>
-              )}
-            </div>
           </div>
         )}
       </div>
