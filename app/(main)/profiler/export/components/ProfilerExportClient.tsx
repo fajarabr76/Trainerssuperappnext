@@ -54,7 +54,7 @@ export default function ProfilerExportClient({
     list.map((p, i) => ({
       'No': i + 1, 'Nama': p.nama || '', 'Tim': p.tim || '',
       'Jabatan': labelJabatan[p.jabatan] || p.jabatan || '',
-      'NIK OJK': p.nik_ojk || '', 'Email OJK': p.email_ojk || '',
+      'NIP OJK': p.nip_ojk || '', 'Email OJK': p.email_ojk || '',
       'No. Telepon': p.no_telepon || '',
       'No. Telepon Darurat': p.no_telepon_darurat || '',
       'Nama Kontak Darurat': p.nama_kontak_darurat || '',
@@ -158,7 +158,7 @@ export default function ProfilerExportClient({
           // Sidebar Stats
           const statsY = 4.2;
           const stats = [
-            ['NIK OJK', p.nik_ojk],
+            ['NIP OJK', p.nip_ojk],
             ['Kelamin', p.jenis_kelamin],
             ['Agama', p.agama],
             ['Usia', p.tgl_lahir ? `${hitungUsia(p.tgl_lahir)} Tahun` : null],
@@ -286,7 +286,7 @@ export default function ProfilerExportClient({
           fieldCell('Email OJK', p.email_ojk, rightX, 3.9, colW);
           fieldCell('No. Telepon', p.no_telepon, rightX + colW + gap, 3.9, colW);
           fieldCell('Bergabung', p.bergabung_date ? formatTanggal(p.bergabung_date) : null, rightX, 4.4, colW);
-          fieldCell('NIK OJK', p.nik_ojk, rightX + colW + gap, 4.4, colW);
+          fieldCell('NIP OJK', p.nip_ojk, rightX + colW + gap, 4.4, colW);
           fieldCell('Kontak Darurat', p.nama_kontak_darurat, rightX, 4.9, colW);
           fieldCell('Telp. Darurat', p.no_telepon_darurat ? `${p.no_telepon_darurat} (${p.hubungan_kontak_darurat || '-'})` : null, rightX + colW + gap, 4.9, colW);
 
@@ -384,7 +384,7 @@ export default function ProfilerExportClient({
           <div style="flex:1;height:1px;background:#F3F4F6;"></div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px 32px;">
-          ${fields([['Email OJK', p.email_ojk], ['No. Telepon', p.no_telepon], ['Bergabung', p.bergabung_date ? formatTanggal(p.bergabung_date) : null], ['NIK OJK', p.nik_ojk], ['Kontak Darurat', p.nama_kontak_darurat], ['Telp. Darurat', p.no_telepon_darurat ? `${p.no_telepon_darurat} (${p.hubungan_kontak_darurat || '-'})` : null]])}
+          ${fields([['Email OJK', p.email_ojk], ['No. Telepon', p.no_telepon], ['Bergabung', p.bergabung_date ? formatTanggal(p.bergabung_date) : null], ['NIP OJK', p.nip_ojk], ['Kontak Darurat', p.nama_kontak_darurat], ['Telp. Darurat', p.no_telepon_darurat ? `${p.no_telepon_darurat} (${p.hubungan_kontak_darurat || '-'})` : null]])}
         </div>
       </div>
       <div>
@@ -442,7 +442,7 @@ export default function ProfilerExportClient({
         <div style="font-size:10px;color:#9CA3AF;margin-top:6px;">sejak ${formatTanggal(p.bergabung_date)}</div>
       </div>` : ''}
       <div style="width:100%;display:flex;flex-direction:column;gap:8px;margin-top:auto;">
-        ${([['NIK OJK', p.nik_ojk], ['Kelamin', p.jenis_kelamin], ['Agama', p.agama], ['Usia', p.tgl_lahir ? `${hitungUsia(p.tgl_lahir)} Tahun` : null], ['Status', p.status_perkawinan]] as Array<[string, string | null | undefined]>).filter(([, v]) => v).map(([label, value]) => `
+        ${([['NIP OJK', p.nip_ojk], ['Kelamin', p.jenis_kelamin], ['Agama', p.agama], ['Usia', p.tgl_lahir ? `${hitungUsia(p.tgl_lahir)} Tahun` : null], ['Status', p.status_perkawinan]] as Array<[string, string | null | undefined]>).filter(([, v]) => v).map(([label, value]) => `
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:0 4px;">
             <span style="font-size:8px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">${label}</span>
             <span style="font-size:11px;font-weight:700;color:#374151;text-align:right;">${value}</span>

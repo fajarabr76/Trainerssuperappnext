@@ -16,7 +16,7 @@ const TEMPLATE_COLUMNS = [
   { header: 'Nama Lengkap',            key: 'nama',                    required: true,  contoh: 'Budi Santoso', width: 25 },
   { header: 'Tim',                      key: 'tim',                     required: true,  contoh: 'Telepon',         width: 15, choices: DEFAULT_TIMS },
   { header: 'Jabatan',                  key: 'jabatan',                 required: true,  contoh: 'cca',             width: 20, choices: ['operation_manager', 'spv', 'team_leader', 'trainer', 'wfm', 'qa', 'cca_senior', 'cca', 'cso'] },
-  { header: 'NIK OJK',                  key: 'nik_ojk',                 required: false, contoh: '1234567',         width: 15 },
+  { header: 'NIP OJK',                  key: 'nip_ojk',                 required: false, contoh: '1234567',         width: 15 },
   { header: 'Tanggal Bergabung',        key: 'bergabung_date',          required: false, contoh: '2024-01-15',      width: 18, type: 'date' },
   { header: 'Email OJK',                key: 'email_ojk',               required: false, contoh: 'budi@ojk.go.id',  width: 25 },
   { header: 'No. Telepon',              key: 'no_telepon',              required: false, contoh: '08123456789',     width: 15 },
@@ -195,7 +195,7 @@ export default function ProfilerImportClient({
           <div className="mt-4 grid grid-cols-2 gap-2">
             {[
               { label: 'Identitas Utama', items: 'Nama, Tim, Jabatan' },
-              { label: 'Data Kerja', items: 'NIK, Bergabung, Email, Telepon' },
+              { label: 'Data Kerja', items: 'NIP, Bergabung, Email, Telepon' },
               { label: 'Data Pribadi', items: 'JK, Agama, Lahir, Pendidikan' },
               { label: 'Data Sensitif', items: 'KTP, NPWP, Rekening, Bank' },
             ].map(g => (

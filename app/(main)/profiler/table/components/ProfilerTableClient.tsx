@@ -148,20 +148,8 @@ const EditModal: React.FC<{
   useEffect(() => {
     async function fetchOriginal() {
       if (!peserta.id) return;
-      // If we see asterisks, fetch the real one
-      const isMasked = (form.no_ktp?.includes('*') || form.no_npwp?.includes('*') || form.nomor_rekening?.includes('*'));
-      if (isMasked) {
-        setLoadingRealData(true);
-        try {
-          const original = await getOriginalPeserta(peserta.id);
-          setForm(original);
-          setFotoPreview(original.foto_url || '');
-        } catch (err) {
-          console.error("Failed to fetch original data", err);
-        } finally {
-          setLoadingRealData(false);
-        }
-      }
+      // Since masking is now disabled at the server level, we don't need to re-fetch
+      // unless specifically needed for other reasons.
     }
     fetchOriginal();
   }, [peserta.id]);
@@ -230,7 +218,7 @@ const EditModal: React.FC<{
           <div className={sectionClass}>
             <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest pl-1 mb-3">Data Kerja</p>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className={labelClass}>NIK OJK</label><input type="text" className={inputClass} value={form.nik_ojk || ''} onChange={e => set('nik_ojk', e.target.value)} /></div>
+              <div><label className={labelClass}>NIP OJK</label><input type="text" className={inputClass} value={form.nip_ojk || ''} onChange={e => set('nip_ojk', e.target.value)} /></div>
               <div><label className={labelClass}>Bergabung di 157</label><input type="date" className={inputClass} value={form.bergabung_date || ''} onChange={e => set('bergabung_date', e.target.value)} /></div>
               <div className="col-span-2"><label className={labelClass}>Alamat Email OJK</label><input type="email" className={inputClass} value={form.email_ojk || ''} onChange={e => set('email_ojk', e.target.value)} /></div>
               <div><label className={labelClass}>No. Telepon Aktif</label><input type="text" className={inputClass} value={form.no_telepon || ''} onChange={e => set('no_telepon', e.target.value)} /></div>
@@ -252,13 +240,6 @@ const EditModal: React.FC<{
           <div className={sectionClass}>
             <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest pl-1 mb-3">🔒 Data Sensitif</p>
             <div className="grid grid-cols-2 gap-3 relative">
-              {loadingRealData && (
-                <div className="absolute inset-0 bg-background/40 backdrop-blur-[1px] flex items-center justify-center z-10 rounded-2xl">
-                  <div className="flex items-center gap-2 text-xs font-bold text-primary">
-                    <Loader2 className="w-3 h-3 animate-spin" /> Mengambil data asli...
-                  </div>
-                </div>
-              )}
               <div className="col-span-2"><label className={labelClass}>No. KTP</label><input type="text" placeholder="16 digit NIK" maxLength={16} className={inputClass} value={form.no_ktp || ''} onChange={e => set('no_ktp', e.target.value)} /></div>
               <div><label className={labelClass}>No. NPWP</label><input type="text" className={inputClass} value={form.no_npwp || ''} onChange={e => set('no_npwp', e.target.value)} /></div>
               <div><label className={labelClass}>Nomor Rekening</label><input type="text" className={inputClass} value={form.nomor_rekening || ''} onChange={e => set('nomor_rekening', e.target.value)} /></div>

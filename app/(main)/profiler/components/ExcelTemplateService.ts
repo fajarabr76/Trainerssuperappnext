@@ -15,7 +15,7 @@ export const ExcelTemplateService = {
       { header: 'Nama Lengkap*', key: 'nama', width: 30 },
       { header: 'Tim*', key: 'tim', width: 20 },
       { header: 'Jabatan*', key: 'jabatan', width: 20 },
-      { header: 'NIK OJK', key: 'nik_ojk', width: 15 },
+      { header: 'NIP OJK', key: 'nip_ojk', width: 15 },
       { header: 'Tgl Bergabung (YYYY-MM-DD)', key: 'bergabung_date', width: 25 },
       { header: 'Email OJK', key: 'email_ojk', width: 25 },
       { header: 'No Telepon', key: 'no_telepon', width: 20 },
@@ -122,7 +122,7 @@ export const ExcelTemplateService = {
       [2, 'Tim', 'Pilih dari dropdown.'],
       [3, 'Jabatan', 'Pilih dari dropdown.'],
       [4, 'Tgl Bergabung / Lahir', 'Format YYYY-MM-DD (Contoh: 1995-08-17).'],
-      [5, 'NIK OJK', 'Nomor Induk Karyawan OJK (jika ada).'],
+      [5, 'NIP OJK', 'Nomor Induk Pegawai OJK (jika ada).'],
       [6, 'Data Sensitif', 'KTP, NPWP, Rekening bersifat opsional namun disarankan.'],
     ]);
     

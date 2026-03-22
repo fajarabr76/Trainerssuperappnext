@@ -226,9 +226,9 @@ export default function ProfilerAddClient({ batchName, initialTimList }: Profile
           <h2 className="text-sm font-semibold text-foreground tracking-tight">Data Kerja</h2>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelClass}>NIK OJK</label>
-              <input type="text" placeholder="NIK OJK" className={inputClass}
-                value={form.nik_ojk || ''} onChange={e => set('nik_ojk', e.target.value)} />
+              <label className={labelClass}>NIP OJK</label>
+              <input type="text" placeholder="NIP OJK" className={inputClass}
+                value={form.nip_ojk || ''} onChange={e => set('nip_ojk', e.target.value)} />
             </div>
             <div>
               <label className={labelClass}>Bergabung di 157</label>

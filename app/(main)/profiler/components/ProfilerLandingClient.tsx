@@ -225,21 +225,6 @@ export default function ProfilerLandingClient({
       </div>
 
       <div className="flex flex-1 overflow-hidden p-6 gap-6">
-        <YearSidebar 
-          years={years}
-          folders={folders}
-          selectedYearId={selectedYearId}
-          selectedFolderId={selectedFolderId}
-          onSelectYear={setSelectedYearId}
-          onSelectFolder={selectFolder}
-          onAddYear={() => setShowAddYear(true)}
-          onAddFolder={(yearId, parentId) => setShowAddFolder({ yearId, parentId })}
-          onRenameFolder={(f) => { setRenamingFolder(f); setRenameValue(f.name); }}
-          onDeleteFolder={setConfirmDeleteFolder}
-          onDuplicateFolder={setDuplicateFolder}
-          counts={counts}
-        />
-
         <main className="flex-1 overflow-y-auto bg-card border border-border/40 rounded-[2rem] shadow-sm custom-scrollbar relative">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none overflow-hidden z-0 rounded-[2rem]">
             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px] animate-pulse" />
@@ -281,14 +266,14 @@ export default function ProfilerLandingClient({
                     className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-violet-600/20 hover:scale-105 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
                   >
                     <UserPlus size={18} />
-                    Tambah Anggota
+                    Pilih dari Batch Lain
                   </button>
                   <button 
                     onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(selectedBatch)}`)}
                     className="flex items-center gap-2 px-5 py-2.5 bg-accent text-foreground rounded-xl text-sm font-bold border border-border/40 hover:bg-accent/80 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
                   >
                     <Plus size={18} />
-                    Anggota Baru
+                    Input Baru
                   </button>
                 </div>
               </div>
@@ -414,6 +399,21 @@ export default function ProfilerLandingClient({
             </div>
           )}
         </main>
+
+        <YearSidebar 
+          years={years}
+          folders={folders}
+          selectedYearId={selectedYearId}
+          selectedFolderId={selectedFolderId}
+          onSelectYear={setSelectedYearId}
+          onSelectFolder={selectFolder}
+          onAddYear={() => setShowAddYear(true)}
+          onAddFolder={(yearId, parentId) => setShowAddFolder({ yearId, parentId })}
+          onRenameFolder={(f) => { setRenamingFolder(f); setRenameValue(f.name); }}
+          onDeleteFolder={setConfirmDeleteFolder}
+          onDuplicateFolder={setDuplicateFolder}
+          counts={counts}
+        />
       </div>
 
       {/* Modals */}

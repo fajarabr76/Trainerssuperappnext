@@ -393,7 +393,7 @@ export default function ProfilerSlidesClient({
 
                         <div className="w-full flex flex-col gap-2 flex-shrink-0 mt-auto">
                           {[
-                            ['NIK OJK', p.nik_ojk],
+                            ['NIP OJK', p.nip_ojk],
                             ['Kelamin', p.jenis_kelamin],
                             ['Agama', p.agama],
                             ['Usia', p.tgl_lahir ? `${hitungUsia(p.tgl_lahir)} Tahun` : null],
@@ -521,7 +521,7 @@ export default function ProfilerSlidesClient({
                             <Cell label="Email OJK" value={p.email_ojk} />
                             <Cell label="No. Telepon" value={p.no_telepon} />
                             <Cell label="Bergabung" value={p.bergabung_date ? formatTanggal(p.bergabung_date) : null} />
-                            <Cell label="NIK OJK" value={p.nik_ojk} />
+                            <Cell label="NIP OJK" value={p.nip_ojk} />
                             <Cell label="Nama Kontak Darurat" value={p.nama_kontak_darurat} />
                             <Cell label="Telepon Darurat" value={p.no_telepon_darurat ? `${p.no_telepon_darurat} (${p.hubungan_kontak_darurat || '-'})` : null} />
                           </div>

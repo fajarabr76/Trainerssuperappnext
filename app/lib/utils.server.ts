@@ -19,8 +19,8 @@ export function maskPesertaData(peserta: any) {
   
   return {
     ...peserta,
-    no_ktp: maskSensitiveData(peserta.no_ktp),
-    no_npwp: maskSensitiveData(peserta.no_npwp),
-    nomor_rekening: maskSensitiveData(peserta.nomor_rekening)
+    no_ktp: peserta.no_ktp,
+    no_npwp: peserta.no_npwp,
+    nomor_rekening: peserta.nomor_rekening
   };
 }

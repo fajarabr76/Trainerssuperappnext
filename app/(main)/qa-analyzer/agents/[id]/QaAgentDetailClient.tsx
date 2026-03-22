@@ -236,9 +236,9 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
 
   const handleTambahTemuan = () => {
     const params = new URLSearchParams({
-      folderID: agent.batch,
-      agentID: agentId,
-      ...(selectedPeriod?.id ? { periodID: selectedPeriod.id } : {}),
+      folder: agent.batch,
+      agentId: agentId,
+      ...(selectedPeriod?.id ? { periodId: selectedPeriod.id } : {}),
     });
     router.push(`/qa-analyzer/input?${params.toString()}`);
   };

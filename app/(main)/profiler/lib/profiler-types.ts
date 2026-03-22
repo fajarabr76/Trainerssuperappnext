@@ -36,7 +36,7 @@ export interface Peserta {
   nama: string;
   foto_url?: string;
   bergabung_date?: string;
-  nik_ojk?: string;
+  nip_ojk?: string;
   email_ojk?: string;
   no_telepon?: string;
   no_telepon_darurat?: string;

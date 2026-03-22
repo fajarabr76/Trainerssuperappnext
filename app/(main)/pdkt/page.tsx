@@ -257,7 +257,7 @@ const PdktPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6 transition-colors duration-500 font-sans selection:bg-primary/30 relative overflow-hidden">
+    <div className="h-full overflow-auto bg-background flex items-center justify-center p-6 transition-colors duration-500 font-sans selection:bg-primary/30 relative">
       {/* Background Decor */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px] animate-pulse delay-700" />
