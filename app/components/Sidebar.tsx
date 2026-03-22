@@ -12,6 +12,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/app/lib/supabase/client';
 import { useTheme } from 'next-themes';
 import { Sun, Moon, AlertCircle, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { useTelefunWarning } from '@/app/context/TelefunWarningContext';
 
 interface SidebarProps {
   user?: any;
@@ -25,6 +26,7 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
   const router = useRouter();
   const supabase = createClient();
   const { theme, setTheme } = useTheme();
+  const { openMaintenance } = useTelefunWarning();
   
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
@@ -122,10 +124,16 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
               <Mail className="w-4 h-4 shrink-0" /> 
               {!effectiveIsCollapsed && <span>PDKT</span>}
             </Link>
-            <Link href="/telefun" className={navItemClass(pathname === '/telefun')}>
+            <button 
+              onClick={(e) => {
+                e.preventDefault();
+                openMaintenance();
+              }}
+              className={navItemClass(pathname === '/telefun')}
+            >
               <Phone className="w-4 h-4 shrink-0" /> 
               {!effectiveIsCollapsed && <span>Telefun</span>}
-            </Link>
+            </button>
             <Link href="/profiler" className={navItemClass(pathname === '/profiler')}>
               <Users className="w-4 h-4 shrink-0" /> 
               {!effectiveIsCollapsed && <span>Profiler</span>}

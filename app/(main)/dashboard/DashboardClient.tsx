@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/app/components/ThemeToggle";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { useTheme } from 'next-themes';
 import { activityService } from "../../lib/services/activityService";
+import { useTelefunWarning } from "@/app/context/TelefunWarningContext";
 
 const modules = [
   {
@@ -90,6 +91,7 @@ export default function DashboardClient({
   const [qaTrendData, setQaTrendData] = useState<any[]>(initialTrendData);
 
   const [stats, setStats] = useState(initialStats);
+  const { openMaintenance } = useTelefunWarning();
 
   useEffect(() => {
     setIsMounted(true);
@@ -162,7 +164,16 @@ export default function DashboardClient({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.1, duration: 0.5 }}
               >
-                <Link href={module.href} className="group block h-full p-8 rounded-3xl border border-border/40 bg-card/30 backdrop-blur-md hover:border-primary/20 transition-all relative overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <Link 
+                  href={module.href} 
+                  onClick={(e) => {
+                    if (module.id === 'telefun') {
+                      e.preventDefault();
+                      openMaintenance();
+                    }
+                  }}
+                  className="group block h-full p-8 rounded-3xl border border-border/40 bg-card/30 backdrop-blur-md hover:border-primary/20 transition-all relative overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-8">
                       <div className={`w-12 h-12 ${module.bg} ${module.color} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500`}>

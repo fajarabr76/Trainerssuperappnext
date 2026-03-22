@@ -3,8 +3,12 @@
 import React, { useState } from 'react';
 import Sidebar from '@/app/components/Sidebar';
 import { Menu } from 'lucide-react';
+import { TelefunWarningProvider, useTelefunWarning } from '@/app/context/TelefunWarningContext';
+import { MaintenanceModal } from '@/app/(main)/telefun/components/MaintenanceModal';
 
-export default function MainLayoutClient({ 
+import { usePathname } from 'next/navigation';
+
+function MainLayoutContent({ 
   user, 
   role, 
   children 
@@ -14,6 +18,15 @@ export default function MainLayoutClient({
   children: React.ReactNode 
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const { isMaintenanceOpen, openMaintenance } = useTelefunWarning();
+
+  // Auto-trigger if someone tries to access /telefun directly
+  React.useEffect(() => {
+    if (pathname === '/telefun') {
+      openMaintenance();
+    }
+  }, [pathname, openMaintenance]);
 
   return (
     <div className="flex h-screen bg-background overflow-hidden font-sans text-foreground selection:bg-primary/20">
@@ -35,8 +48,27 @@ export default function MainLayoutClient({
       </div>
 
       <div className="flex-1 flex flex-col h-full w-full overflow-hidden relative">
-        {children}
+        {/* Hide content if we are on /telefun to ensure "tanpa masuk ke modul" */}
+        {pathname === '/telefun' ? (
+          <div className="flex-1 bg-background flex items-center justify-center">
+            <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+          </div>
+        ) : (
+          children
+        )}
       </div>
+
+      <MaintenanceModal 
+        isOpen={isMaintenanceOpen}
+      />
     </div>
+  );
+}
+
+export default function MainLayoutClient(props: any) {
+  return (
+    <TelefunWarningProvider>
+      <MainLayoutContent {...props} />
+    </TelefunWarningProvider>
   );
 }

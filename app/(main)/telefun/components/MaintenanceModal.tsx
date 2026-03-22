@@ -4,6 +4,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertTriangle, Home } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useTelefunWarning } from '@/app/context/TelefunWarningContext';
 
 interface MaintenanceModalProps {
   isOpen: boolean;
@@ -11,8 +12,10 @@ interface MaintenanceModalProps {
 
 export const MaintenanceModal = ({ isOpen }: MaintenanceModalProps) => {
   const router = useRouter();
+  const { closeMaintenance } = useTelefunWarning();
 
   const handleRedirect = () => {
+    closeMaintenance();
     router.push('/dashboard');
   };
 
