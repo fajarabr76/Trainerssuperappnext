@@ -471,53 +471,53 @@ export default function ProfilerSlidesClient({
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto px-10 py-8 gap-6 box-border pb-12">
+                    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto px-6 md:px-8 py-6 gap-5 box-border pb-12">
                       <div className="flex items-center gap-6 flex-shrink-0">
                         {p.foto_url ? (
-                          <div className="w-28 h-28 rounded-[2rem] overflow-hidden flex-shrink-0 shadow-lg relative ring-[6px] ring-card" style={{ boxShadow: `0 6px 15px ${theme.accent}30` }}>
+                          <div className="w-24 h-24 rounded-[1.75rem] overflow-hidden flex-shrink-0 shadow-lg relative ring-[5px] ring-card" style={{ boxShadow: `0 6px 15px ${theme.accent}30` }}>
                             <Image src={p.foto_url} alt={p.nama || ''} fill className="object-cover" referrerPolicy="no-referrer" />
                           </div>
                         ) : (
-                          <div className="w-28 h-28 rounded-[2rem] flex-shrink-0 flex items-center justify-center font-bold text-4xl shadow-md ring-[6px] ring-card" style={{ background: theme.light, color: theme.accent, border: `1px solid ${theme.accent}40` }}>
+                          <div className="w-24 h-24 rounded-[1.75rem] flex-shrink-0 flex items-center justify-center font-bold text-3xl shadow-md ring-[5px] ring-card" style={{ background: theme.light, color: theme.accent, border: `1px solid ${theme.accent}40` }}>
                             {p.nama?.charAt(0)}
                           </div>
                         )}
                         <div className="flex flex-col">
-                          <h2 className="text-[28px] font-black tracking-tight text-foreground leading-tight truncate">{p.nama}</h2>
-                          <p className="text-xs font-bold mt-1 uppercase tracking-widest opacity-80" style={{ color: theme.accent }}>{labelJabatan[p.jabatan] || p.jabatan}</p>
-                          <div className="inline-flex items-center gap-2 mt-2 font-bold rounded-full px-3 py-1 bg-card border border-border/40 shadow-sm w-fit" style={{ fontSize: '10px', color: theme.accent }}>
+                          <h2 className="text-2xl font-black tracking-tight text-foreground leading-tight truncate">{p.nama}</h2>
+                          <p className="text-[10px] font-bold mt-1 uppercase tracking-widest opacity-80" style={{ color: theme.accent }}>{labelJabatan[p.jabatan] || p.jabatan}</p>
+                          <div className="inline-flex items-center gap-2 mt-2 font-bold rounded-full px-2.5 py-1 bg-card border border-border/40 shadow-sm w-fit" style={{ fontSize: '9px', color: theme.accent }}>
                             <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: theme.accent }} />
                             {theme.label}
                           </div>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-4 gap-3 flex-shrink-0">
-                        <div className="bg-muted/30 border border-border/40 rounded-[24px] p-4 text-center shadow-sm">
-                          <p className="text-[9px] text-foreground/40 font-bold uppercase tracking-widest mb-1.5">Masa Dinas</p>
-                          <p className="text-xl font-black text-foreground tracking-tight leading-none">{p.bergabung_date ? hitungMasaDinas(p.bergabung_date) : '-'}</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-shrink-0">
+                        <div className="bg-muted/30 border border-border/40 rounded-[20px] p-3 text-center shadow-sm">
+                          <p className="text-[8px] text-foreground/40 font-bold uppercase tracking-widest mb-1">Masa Dinas</p>
+                          <p className="text-lg font-black text-foreground tracking-tight leading-none">{p.bergabung_date ? hitungMasaDinas(p.bergabung_date) : '-'}</p>
                         </div>
-                        <div className="bg-muted/30 border border-border/40 rounded-[24px] p-4 text-center shadow-sm">
-                          <p className="text-[9px] text-foreground/40 font-bold uppercase tracking-widest mb-1.5">Usia</p>
-                          <p className="text-xl font-black text-foreground tracking-tight leading-none">{p.tgl_lahir ? `${hitungUsia(p.tgl_lahir)} Thn` : '-'}</p>
+                        <div className="bg-muted/30 border border-border/40 rounded-[20px] p-3 text-center shadow-sm">
+                          <p className="text-[8px] text-foreground/40 font-bold uppercase tracking-widest mb-1">Usia</p>
+                          <p className="text-lg font-black text-foreground tracking-tight leading-none">{p.tgl_lahir ? `${hitungUsia(p.tgl_lahir)} Thn` : '-'}</p>
                         </div>
-                        <div className="bg-muted/30 border border-border/40 rounded-[24px] p-4 text-center shadow-sm">
-                          <p className="text-[9px] text-foreground/40 font-bold uppercase tracking-widest mb-1.5">Agama</p>
-                          <p className="text-sm font-black text-foreground tracking-tight leading-none mt-2">{p.agama || '-'}</p>
+                        <div className="bg-muted/30 border border-border/40 rounded-[20px] p-3 text-center shadow-sm">
+                          <p className="text-[8px] text-foreground/40 font-bold uppercase tracking-widest mb-1">Agama</p>
+                          <p className="text-xs font-black text-foreground tracking-tight leading-none mt-1">{p.agama || '-'}</p>
                         </div>
-                        <div className="bg-muted/30 border border-border/40 rounded-[24px] p-4 text-center shadow-sm">
-                          <p className="text-[9px] text-foreground/40 font-bold uppercase tracking-widest mb-1.5">Status</p>
-                          <p className="text-sm font-black text-foreground tracking-tight leading-none mt-2 truncate">{p.status_perkawinan || '-'}</p>
+                        <div className="bg-muted/30 border border-border/40 rounded-[20px] p-3 text-center shadow-sm">
+                          <p className="text-[8px] text-foreground/40 font-bold uppercase tracking-widest mb-1">Status</p>
+                          <p className="text-xs font-black text-foreground tracking-tight leading-none mt-1 truncate">{p.status_perkawinan || '-'}</p>
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-5 flex-1 overflow-hidden scrollbar-hide">
+                      <div className="flex flex-col gap-4 flex-1">
                         <div className="flex flex-col gap-3 flex-shrink-0">
                           <div className="flex items-center gap-3">
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">Data Pekerjaan</span>
                             <div className="flex-1 h-px bg-border/40" />
                           </div>
-                          <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                          <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                             <Cell label="Email OJK" value={p.email_ojk} />
                             <Cell label="No. Telepon" value={p.no_telepon} />
                             <Cell label="Bergabung" value={p.bergabung_date ? formatTanggal(p.bergabung_date) : null} />
@@ -532,7 +532,7 @@ export default function ProfilerSlidesClient({
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">Latar Belakang</span>
                             <div className="flex-1 h-px bg-border/40" />
                           </div>
-                          <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                          <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                             <Cell label="Pendidikan" value={p.pendidikan} />
                             <Cell label="Lembaga" value={p.nama_lembaga} />
                             <Cell label="Jurusan" value={p.jurusan} />
@@ -547,7 +547,7 @@ export default function ProfilerSlidesClient({
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-destructive">🔒 Data Sensitif</span>
                             <div className="flex-1 h-px bg-destructive/20" />
                           </div>
-                          <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                          <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                             <Cell label="No. KTP" value={p.no_ktp} />
                             <Cell label="No. NPWP" value={p.no_npwp} />
                             <Cell label="No. Rekening" value={p.nomor_rekening ? `${p.nomor_rekening}${p.nama_bank ? ` · ${p.nama_bank}` : ''}` : null} />
