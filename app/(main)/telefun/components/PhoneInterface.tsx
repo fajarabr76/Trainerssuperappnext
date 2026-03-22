@@ -377,8 +377,9 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
             </div>
         </div>
 
-        {/* Center Content */}
-        <div className="flex-1 flex flex-col items-center justify-center px-4 md:px-12 w-full mx-auto">
+        {/* Center Content - Wrapped in scrollable container */}
+        <div className="flex-1 overflow-y-auto px-4 md:px-12 w-full mx-auto pb-12">
+          <div className="flex flex-col items-center justify-center min-h-full py-8">
              {/* Avatar Container */}
             <div className="relative mb-8">
                 {/* Ring Animation (White Ripple when Ringing) */}
@@ -455,6 +456,7 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
              {isOnHold && holdTimer <= 0 && (
                  <p className="text-red-500 mt-2 font-bold uppercase tracking-wider bg-red-900/50 px-4 py-1 rounded">Batas Waktu Hold Habis</p>
             )}
+          </div>
         </div>
       </div>
 

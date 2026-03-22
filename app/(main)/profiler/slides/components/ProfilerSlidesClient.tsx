@@ -352,14 +352,14 @@ export default function ProfilerSlidesClient({
             >
               <div
                 ref={slideRef}
-                className="w-full h-full bg-card rounded-[2rem] overflow-hidden scrollbar-hide shadow-2xl dark:shadow-black/60 border border-border/40 flex flex-col"
+                className="w-full h-full bg-card rounded-[2rem] overflow-hidden shadow-2xl dark:shadow-black/60 border border-border/40 flex flex-col"
               >
                   <div className="h-[6px] w-full flex-shrink-0" style={{ background: theme.accent }} />
 
                   {orientation === 'landscape' ? (
                     <div className="flex flex-1 min-h-0 overflow-hidden">
                       {/* LEFT SIDEBAR 30% */}
-                      <div className="w-[30%] flex-shrink-0 bg-muted/20 border-r border-border/40 flex flex-col items-center px-6 py-8 gap-6 overflow-hidden scrollbar-hide box-border">
+                      <div className="w-[30%] flex-shrink-0 bg-muted/20 border-r border-border/40 flex flex-col items-center px-6 py-8 gap-6 overflow-y-auto box-border pb-12">
                         {p.foto_url ? (
                           <div className="w-32 h-32 rounded-[2rem] overflow-hidden flex-shrink-0 shadow-lg relative ring-[6px] ring-card" style={{ boxShadow: `0 8px 24px ${theme.accent}30` }}>
                             <Image src={p.foto_url} alt={p.nama || ''} fill className="object-cover" referrerPolicy="no-referrer" />
@@ -408,7 +408,7 @@ export default function ProfilerSlidesClient({
                       </div>
 
                       {/* RIGHT CONTENT 70% */}
-                      <div className="flex-1 flex flex-col min-w-0 overflow-hidden scrollbar-hide px-10 py-8 gap-6 box-border">
+                      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto px-10 py-8 gap-6 box-border pb-12">
                         <div className="flex flex-col gap-3 flex-shrink-0">
                           <div className="flex items-center gap-3">
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">Data Pekerjaan</span>
@@ -471,7 +471,7 @@ export default function ProfilerSlidesClient({
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col flex-1 min-h-0 overflow-hidden scrollbar-hide px-10 py-8 gap-6 box-border">
+                    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto px-10 py-8 gap-6 box-border pb-12">
                       <div className="flex items-center gap-6 flex-shrink-0">
                         {p.foto_url ? (
                           <div className="w-28 h-28 rounded-[2rem] overflow-hidden flex-shrink-0 shadow-lg relative ring-[6px] ring-card" style={{ boxShadow: `0 6px 15px ${theme.accent}30` }}>
