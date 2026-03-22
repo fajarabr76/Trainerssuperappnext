@@ -2,14 +2,20 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, Home } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface MaintenanceModalProps {
   isOpen: boolean;
-  onClose: () => void;
 }
 
-export const MaintenanceModal = ({ isOpen, onClose }: MaintenanceModalProps) => {
+export const MaintenanceModal = ({ isOpen }: MaintenanceModalProps) => {
+  const router = useRouter();
+
+  const handleRedirect = () => {
+    router.push('/dashboard');
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -18,8 +24,7 @@ export const MaintenanceModal = ({ isOpen, onClose }: MaintenanceModalProps) => 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-background/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-background/80 backdrop-blur-md"
           />
           
           <motion.div
@@ -36,26 +41,20 @@ export const MaintenanceModal = ({ isOpen, onClose }: MaintenanceModalProps) => 
             </div>
             
             <h3 className="text-xl font-black text-foreground mb-4 tracking-tight">
-              Peringatan Modul
+              Akses Dibatasi
             </h3>
             
-            <p className="text-sm text-foreground/60 leading-relaxed mb-8 font-medium">
+            <p className="text-sm text-foreground/60 leading-relaxed mb-8 font-medium px-4">
               Modul ini tidak berjalan dengan baik pada aplikasi ini. <br />
               <span className="text-destructive font-bold">Silakan menghubungi trainer</span> untuk informasi lebih lanjut.
             </p>
             
             <button
-              onClick={onClose}
-              className="w-full py-4 bg-foreground text-background rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg"
+              onClick={handleRedirect}
+              className="w-full py-4 bg-primary text-primary-foreground rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg flex items-center justify-center gap-3"
             >
-              Mengerti
-            </button>
-            
-            <button 
-              onClick={onClose}
-              className="absolute top-6 right-6 p-2 rounded-full hover:bg-muted transition-colors"
-            >
-              <X className="w-4 h-4 text-foreground/40" />
+              <Home className="w-5 h-5" />
+              Kembali ke Dashboard
             </button>
           </motion.div>
         </div>

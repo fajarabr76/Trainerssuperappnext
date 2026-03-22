@@ -263,7 +263,6 @@ export default function TelefunPage() {
       
       <MaintenanceModal 
         isOpen={isMaintenanceOpen}
-        onClose={() => setIsMaintenanceOpen(false)}
       />
 
     </div>
