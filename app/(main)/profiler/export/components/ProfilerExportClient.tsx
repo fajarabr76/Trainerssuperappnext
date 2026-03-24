@@ -107,7 +107,7 @@ export default function ProfilerExportClient({
       
       const isLandscape = orientation === 'landscape';
       if (isLandscape) {
-        prs.layout = 'LAYOUT_WIDE'; // 10 x 5.625 inches
+        prs.layout = 'LAYOUT_16x9'; // 10 x 5.625 inches
       } else {
         prs.defineLayout({ name: 'A4_PORTRAIT', width: 8.27, height: 11.69 });
         prs.layout = 'A4_PORTRAIT';
@@ -124,39 +124,39 @@ export default function ProfilerExportClient({
 
           // Left Sidebar (30% = 3.0 inches)
           const sidebarW = 3.0;
-          slide.addShape(prs.ShapeType.rect, { x: 0, y: 0.04, w: sidebarW, h: 5.29, fill: { color: 'F9FAFB' } });
-          slide.addShape(prs.ShapeType.rect, { x: sidebarW, y: 0.04, w: 0.01, h: 5.29, fill: { color: 'F3F4F6' } });
+          slide.addShape(prs.ShapeType.rect, { x: 0, y: 0.04, w: sidebarW, h: 5.585, fill: { color: 'F9FAFB' } });
+          slide.addShape(prs.ShapeType.rect, { x: sidebarW, y: 0.04, w: 0.01, h: 5.585, fill: { color: 'F3F4F6' } });
 
           // Profile Photo
           if (p.foto_url) {
             try {
-              slide.addImage({ path: p.foto_url, x: 0.75, y: 0.5, w: 1.5, h: 1.5, rounding: true });
+              slide.addImage({ path: p.foto_url, x: 0.75, y: 0.35, w: 1.5, h: 1.5, rounding: true });
             } catch (e) {
-              slide.addShape(prs.ShapeType.rect, { x: 0.75, y: 0.5, w: 1.5, h: 1.5, fill: { color: theme.light.replace('#', '') } });
-              slide.addText(p.nama?.charAt(0) || '?', { x: 0.75, y: 0.5, w: 1.5, h: 1.5, align: 'center', valign: 'middle', fontSize: 40, bold: true, color: accentColor });
+              slide.addShape(prs.ShapeType.rect, { x: 0.75, y: 0.35, w: 1.5, h: 1.5, fill: { color: theme.light.replace('#', '') } });
+              slide.addText(p.nama?.charAt(0) || '?', { x: 0.75, y: 0.35, w: 1.5, h: 1.5, align: 'center', valign: 'middle', fontSize: 40, bold: true, color: accentColor });
             }
           } else {
-            slide.addShape(prs.ShapeType.rect, { x: 0.75, y: 0.5, w: 1.5, h: 1.5, fill: { color: theme.light.replace('#', '') } });
-            slide.addText(p.nama?.charAt(0) || '?', { x: 0.75, y: 0.5, w: 1.5, h: 1.5, align: 'center', valign: 'middle', fontSize: 40, bold: true, color: accentColor });
+            slide.addShape(prs.ShapeType.rect, { x: 0.75, y: 0.35, w: 1.5, h: 1.5, fill: { color: theme.light.replace('#', '') } });
+            slide.addText(p.nama?.charAt(0) || '?', { x: 0.75, y: 0.35, w: 1.5, h: 1.5, align: 'center', valign: 'middle', fontSize: 40, bold: true, color: accentColor });
           }
 
           // Name & Jabatan
-          slide.addText(p.nama || '-', { x: 0.2, y: 2.1, w: 2.6, h: 0.4, align: 'center', fontSize: 16, bold: true, color: '111827' });
-          slide.addText(labelJabatan[p.jabatan] || p.jabatan || '-', { x: 0.2, y: 2.45, w: 2.6, h: 0.2, align: 'center', fontSize: 10, bold: true, color: accentColor });
+          slide.addText(p.nama || '-', { x: 0.2, y: 1.95, w: 2.6, h: 0.4, align: 'center', fontSize: 16, bold: true, color: '111827' });
+          slide.addText(labelJabatan[p.jabatan] || p.jabatan || '-', { x: 0.2, y: 2.3, w: 2.6, h: 0.2, align: 'center', fontSize: 10, bold: true, color: accentColor });
           
           // Team Badge
-          slide.addText(labelTim[p.tim] || p.tim || '-', { x: 0.8, y: 2.75, w: 1.4, h: 0.25, fontSize: 8, bold: true, color: accentColor, align: 'center', fill: { color: 'FFFFFF' }, line: { color: 'E5E7EB', pt: 1 } });
+          slide.addText(labelTim[p.tim] || p.tim || '-', { x: 0.8, y: 2.6, w: 1.4, h: 0.25, fontSize: 8, bold: true, color: accentColor, align: 'center', fill: { color: 'FFFFFF' }, line: { color: 'E5E7EB', pt: 1 } });
 
           // Masa Dinas Card
           if (p.bergabung_date) {
-            slide.addShape(prs.ShapeType.rect, { x: 0.4, y: 3.2, w: 2.2, h: 0.8, fill: { color: 'FFFFFF' }, line: { color: 'F3F4F6', pt: 1 } });
-            slide.addText('MASA DINAS', { x: 0.4, y: 3.25, w: 2.2, h: 0.15, align: 'center', fontSize: 7, bold: true, color: '9CA3AF' });
-            slide.addText(hitungMasaDinas(p.bergabung_date), { x: 0.4, y: 3.4, w: 2.2, h: 0.3, align: 'center', fontSize: 14, bold: true, color: '111827' });
-            slide.addText(`sejak ${formatTanggal(p.bergabung_date)}`, { x: 0.4, y: 3.75, w: 2.2, h: 0.15, align: 'center', fontSize: 8, color: '9CA3AF' });
+            slide.addShape(prs.ShapeType.rect, { x: 0.4, y: 3.05, w: 2.2, h: 0.8, fill: { color: 'FFFFFF' }, line: { color: 'F3F4F6', pt: 1 } });
+            slide.addText('MASA DINAS', { x: 0.4, y: 3.1, w: 2.2, h: 0.15, align: 'center', fontSize: 8, bold: true, color: '9CA3AF' });
+            slide.addText(hitungMasaDinas(p.bergabung_date), { x: 0.4, y: 3.25, w: 2.2, h: 0.3, align: 'center', fontSize: 14, bold: true, color: '111827' });
+            slide.addText(`sejak ${formatTanggal(p.bergabung_date)}`, { x: 0.4, y: 3.6, w: 2.2, h: 0.15, align: 'center', fontSize: 9, color: '9CA3AF' });
           }
 
           // Sidebar Stats
-          const statsY = 4.2;
+          const statsY = 4.05;
           const stats = [
             ['NIP OJK', p.nip_ojk],
             ['Kelamin', p.jenis_kelamin],
@@ -168,8 +168,8 @@ export default function ProfilerExportClient({
 
           stats.forEach(([label, value], i) => {
             const y = statsY + (i * 0.22);
-            slide.addText(label as string, { x: 0.4, y: y, w: 1.0, h: 0.2, fontSize: 7, bold: true, color: '9CA3AF' });
-            slide.addText(value as string, { x: 1.4, y: y, w: 1.2, h: 0.2, fontSize: 9, bold: true, color: '374151', align: 'right' });
+            slide.addText(label as string, { x: 0.4, y: y, w: 1.0, h: 0.2, fontSize: 8, bold: true, color: '9CA3AF' });
+            slide.addText(value as string, { x: 1.4, y: y, w: 1.2, h: 0.2, fontSize: 10, bold: true, color: '374151', align: 'right' });
           });
 
           // Right Content (70% = 7.0 inches)
@@ -179,56 +179,51 @@ export default function ProfilerExportClient({
           const gap = 0.2;
 
           const sectionHdr = (title: string, y: number, isSensitive = false) => {
-            slide.addText(title, { x: rightX, y: y, w: 2.0, h: 0.2, fontSize: 8, bold: true, color: isSensitive ? 'FCA5A5' : 'D1D5DB' });
+            slide.addText(title, { x: rightX, y: y, w: 2.0, h: 0.2, fontSize: 9, bold: true, color: isSensitive ? 'FCA5A5' : 'D1D5DB' });
             slide.addShape(prs.ShapeType.line, { x: rightX + 1.2, y: y + 0.1, w: rightW - 1.2, h: 0, line: { color: isSensitive ? 'FEE2E2' : 'F3F4F6', pt: 1 } });
           };
 
           const fieldCell = (label: string, value: string | null | undefined, x: number, y: number, w: number) => {
-            slide.addText(label, { x, y, w, h: 0.15, fontSize: 7, bold: true, color: '9CA3AF' });
-            slide.addText(value || '-', { x, y: y + 0.18, w, h: 0.2, fontSize: 10, bold: true, color: '111827' });
+            slide.addText(label, { x, y, w, h: 0.15, fontSize: 8, bold: true, color: '9CA3AF' });
+            slide.addText(value || '-', { x, y: y + 0.18, w, h: 0.2, fontSize: 11, bold: true, color: '111827' });
           };
 
-          sectionHdr('DATA PEKERJAAN', 0.5);
-          fieldCell('Email OJK', p.email_ojk, rightX, 0.8, colW);
-          fieldCell('No. Telepon', p.no_telepon, rightX + colW + gap, 0.8, colW);
-          fieldCell('Bergabung', p.bergabung_date ? formatTanggal(p.bergabung_date) : null, rightX + (colW + gap) * 2, 0.8, colW);
-          fieldCell('Telp. Darurat', p.no_telepon_darurat, rightX, 1.2, colW);
-          fieldCell('Kontak Darurat', p.nama_kontak_darurat, rightX + colW + gap, 1.2, colW);
-          fieldCell('Hubungan', p.hubungan_kontak_darurat, rightX + (colW + gap) * 2, 1.2, colW);
+          sectionHdr('DATA PEKERJAAN', 0.35);
+          fieldCell('Email OJK', p.email_ojk, rightX, 0.65, colW);
+          fieldCell('No. Telepon', p.no_telepon, rightX + colW + gap, 0.65, colW);
+          fieldCell('Bergabung', p.bergabung_date ? formatTanggal(p.bergabung_date) : null, rightX + (colW + gap) * 2, 0.65, colW);
+          fieldCell('Telp. Darurat', p.no_telepon_darurat, rightX, 1.05, colW);
+          fieldCell('Kontak Darurat', p.nama_kontak_darurat, rightX + colW + gap, 1.05, colW);
+          fieldCell('Hubungan', p.hubungan_kontak_darurat, rightX + (colW + gap) * 2, 1.05, colW);
 
-          sectionHdr('LATAR BELAKANG', 1.8);
-          fieldCell('Pendidikan', p.pendidikan, rightX, 2.1, colW);
-          fieldCell('Lembaga', p.nama_lembaga, rightX + colW + gap, 2.1, colW);
-          fieldCell('Jurusan', p.jurusan, rightX + (colW + gap) * 2, 2.1, colW);
-          fieldCell('Prev. Company', p.previous_company, rightX, 2.5, colW);
-          fieldCell('Pengalaman CC', p.pengalaman_cc, rightX + colW + gap, 2.5, colW);
+          sectionHdr('LATAR BELAKANG', 1.75);
+          fieldCell('Pendidikan', p.pendidikan, rightX, 2.05, colW);
+          fieldCell('Lembaga', p.nama_lembaga, rightX + colW + gap, 2.05, colW);
+          fieldCell('Jurusan', p.jurusan, rightX + (colW + gap) * 2, 2.05, colW);
+          fieldCell('Prev. Company', p.previous_company, rightX, 2.45, colW);
+          fieldCell('Pengalaman CC', p.pengalaman_cc, rightX + colW + gap, 2.45, colW);
 
-          sectionHdr('🔒 DATA SENSITIF', 3.0, true);
-          fieldCell('No. KTP', p.no_ktp, rightX, 3.3, colW);
-          fieldCell('No. NPWP', p.no_npwp, rightX + colW + gap, 3.3, colW);
-          fieldCell('No. Rekening', p.nomor_rekening ? `${p.nomor_rekening}${p.nama_bank ? ` · ${p.nama_bank}` : ''}` : null, rightX + (colW + gap) * 2, 3.3, colW);
-          fieldCell('Status Hunian', p.status_tempat_tinggal, rightX, 3.7, colW);
-          fieldCell('Alamat Tinggal', p.alamat_tinggal, rightX + colW + gap, 3.7, colW * 2 + gap);
+          sectionHdr('🔒 DATA SENSITIF', 3.15, true);
+          fieldCell('No. KTP', p.no_ktp, rightX, 3.45, colW);
+          fieldCell('No. NPWP', p.no_npwp, rightX + colW + gap, 3.45, colW);
+          fieldCell('No. Rekening', p.nomor_rekening ? `${p.nomor_rekening}${p.nama_bank ? ` · ${p.nama_bank}` : ''}` : null, rightX + (colW + gap) * 2, 3.45, colW);
+          fieldCell('Status Hunian', p.status_tempat_tinggal, rightX, 3.85, colW);
+          fieldCell('Alamat Tinggal', p.alamat_tinggal, rightX + colW + gap, 3.85, colW * 2 + gap);
 
-          const noteY = 4.4;
+          const noteY = 4.5;
           const noteW = (rightW - 0.2) / 2;
           if (p.catatan_tambahan) {
             slide.addShape(prs.ShapeType.rect, { x: rightX, y: noteY, w: noteW, h: 0.8, fill: { color: 'FFFBEB' }, line: { color: 'FEF3C7', pt: 1 } });
-            slide.addText('⭐ CATATAN', { x: rightX + 0.1, y: noteY + 0.1, w: noteW - 0.2, h: 0.15, fontSize: 7, color: 'D97706', bold: true });
-            slide.addText(p.catatan_tambahan, { x: rightX + 0.1, y: noteY + 0.25, w: noteW - 0.2, h: 0.5, fontSize: 9, color: '78350F', wrap: true });
+            slide.addText('⭐ CATATAN', { x: rightX + 0.1, y: noteY + 0.1, w: noteW - 0.2, h: 0.15, fontSize: 8, color: 'D97706', bold: true });
+            slide.addText(p.catatan_tambahan, { x: rightX + 0.1, y: noteY + 0.25, w: noteW - 0.2, h: 0.5, fontSize: 10, color: '78350F', wrap: true });
           }
           if (p.keterangan) {
             const noteX = p.catatan_tambahan ? rightX + noteW + 0.2 : rightX;
             slide.addShape(prs.ShapeType.rect, { x: noteX, y: noteY, w: noteW, h: 0.8, fill: { color: 'F9FAFB' }, line: { color: 'F3F4F6', pt: 1 } });
-            slide.addText('KETERANGAN', { x: noteX + 0.1, y: noteY + 0.1, w: noteW - 0.2, h: 0.15, fontSize: 7, color: '9CA3AF', bold: true });
-            slide.addText(p.keterangan, { x: noteX + 0.1, y: noteY + 0.25, w: noteW - 0.2, h: 0.5, fontSize: 9, color: '4B5563', wrap: true });
+            slide.addText('KETERANGAN', { x: noteX + 0.1, y: noteY + 0.1, w: noteW - 0.2, h: 0.15, fontSize: 8, color: '9CA3AF', bold: true });
+            slide.addText(p.keterangan, { x: noteX + 0.1, y: noteY + 0.25, w: noteW - 0.2, h: 0.5, fontSize: 10, color: '4B5563', wrap: true });
           }
 
-          // Footer
-          slide.addShape(prs.ShapeType.rect, { x: 0, y: 5.33, w: '100%', h: 0.3, fill: { color: 'F9FAFB' }, line: { type: 'none' } });
-          slide.addShape(prs.ShapeType.ellipse, { x: 0.2, y: 5.43, w: 0.06, h: 0.06, fill: { color: 'D1D5DB' } });
-          slide.addText('Otoritas Jasa Keuangan — Kontak OJK 157', { x: 0.35, y: 5.36, w: 5, h: 0.15, fontSize: 7, color: 'D1D5DB', bold: true });
-          slide.addText(`${selectedBatch.toUpperCase()} · ${p.nama?.toUpperCase()}`, { x: 5.2, y: 5.36, w: 4.6, h: 0.15, fontSize: 7, color: 'D1D5DB', align: 'right' });
         } else {
           // PORTRAIT LAYOUT
           // Top Accent Bar
