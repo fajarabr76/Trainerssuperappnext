@@ -59,7 +59,7 @@ ATURAN BALASAN:
       temperature: 0.7,
     });
 
-    return response.text || '[NO_RESPONSE]';
+    return response.success ? (response.text || '[NO_RESPONSE]') : 'Maaf, saya sedang tidak bisa membalas saat ini.';
   } catch (error) {
     console.error('[Ketik] Gemini Error:', error);
     return 'Maaf, saya sedang tidak bisa membalas saat ini.';
@@ -89,7 +89,7 @@ Langsung saja ke intinya, jangan terlalu banyak basa-basi.
       temperature: 0.9,
     });
 
-    return response.text || `Halo, saya ${config.identity.name}. Saya ingin bertanya tentang ${scenario.title}.`;
+    return response.success ? (response.text || `Halo, saya ${config.identity.name}. Saya ingin bertanya tentang ${scenario.title}.`) : `Halo, saya ${config.identity.name} dari ${config.identity.city}. Saya ingin bertanya tentang ${scenario.title}.`;
   } catch (error) {
     console.error("First message error:", error);
     return `Halo, saya ${config.identity.name} dari ${config.identity.city}. Saya ingin bertanya tentang ${scenario.title}.`;
@@ -131,6 +131,7 @@ OUTPUT: Berikan respon dalam format JSON:
       responseMimeType: "application/json",
     });
 
+    if (!response.success) throw new Error(response.error);
     const result = JSON.parse(response.text || "{}");
     return {
       score: result.score || 0,

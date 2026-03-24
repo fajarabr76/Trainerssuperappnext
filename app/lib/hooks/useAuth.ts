@@ -41,15 +41,16 @@ export function useAuth(requireRole?: string[]) {
       }
 
       const userRole = profile?.role || 'Agent';
-      
-      if (requireRoleRef.current && !requireRoleRef.current.map(r => r.toLowerCase()).includes(userRole.toLowerCase())) {
-        router.push('/dashboard');
-        return;
-      }
-
       setUser(user);
       setProfile(profile);
       setRole(userRole);
+      
+      if (requireRoleRef.current && !requireRoleRef.current.map(r => r.toLowerCase()).includes(userRole.toLowerCase())) {
+        router.push('/dashboard');
+        // Do not set loading to false to keep the loader while redirecting
+        return;
+      }
+
       setLoading(false);
     }
 

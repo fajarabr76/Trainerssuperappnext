@@ -67,8 +67,8 @@ export default function YearSidebar({
     folders.filter(f => f.parent_id === parentId);
 
   return (
-    <div className="w-72 border border-border/40 rounded-[2rem] bg-card/60 backdrop-blur-xl flex flex-col h-full overflow-hidden relative z-20 shadow-sm shrink-0">
-      <div className="p-6 border-b border-border/40 flex items-center justify-between">
+    <div className="w-64 border border-border/40 rounded-2xl bg-card/60 backdrop-blur-xl flex flex-col h-full overflow-hidden relative z-20 shadow-sm shrink-0">
+      <div className="p-4 border-b border-border/40 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
           <h2 className="text-xs font-black uppercase tracking-[0.2em] text-foreground/60">Hierarki Data</h2>

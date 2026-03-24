@@ -130,6 +130,8 @@ export const initializeEmailSession = async (config: SessionConfig): Promise<Ema
       responseMimeType: "application/json"
     });
 
+    if (!response.success) throw new Error(response.error);
+
     const responseText = response.text || "{}";
     const jsonResponse = JSON.parse(responseText);
 
@@ -141,8 +143,6 @@ export const initializeEmailSession = async (config: SessionConfig): Promise<Ema
     if (hasCustomImages) {
       attachmentBase64s = customAttachments;
     } else if (config.enableImageGeneration) {
-      // NOTE: Image generation on client side is currently disabled as it require browser SDK.
-      // We'll need a different approach for server-side image generation if needed.
       console.warn("[PDKT] Image generation skipped as it's not yet fully supported on server action.");
     }
 
@@ -207,6 +207,8 @@ export const evaluateAgentResponse = async (agentReplyBody: string, consumerCont
       contents: [{ role: 'user', parts: [{ text: evaluationPrompt }] }],
       responseMimeType: "application/json"
     });
+
+    if (!response.success) throw new Error(response.error);
 
     const evalText = response.text || "{}";
     const result = JSON.parse(evalText);

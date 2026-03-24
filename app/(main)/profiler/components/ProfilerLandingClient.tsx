@@ -224,15 +224,15 @@ export default function ProfilerLandingClient({
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden p-6 gap-6">
-        <main className="flex-1 overflow-y-auto bg-card border border-border/40 rounded-[2rem] shadow-sm custom-scrollbar relative">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none overflow-hidden z-0 rounded-[2rem]">
+      <div className="flex flex-1 overflow-hidden p-4 gap-4">
+        <main className="flex-1 overflow-y-auto bg-card border border-border/40 rounded-2xl shadow-sm custom-scrollbar relative">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none overflow-hidden z-0 rounded-2xl">
             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px] animate-pulse" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-violet-500/5 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
           </div>
 
           {!selectedBatch ? (
-            <div className="h-full flex items-center justify-center text-center p-12">
+            <div className="h-full flex items-center justify-center text-center p-6">
               <div className="max-w-xs">
                 <div className="w-20 h-20 rounded-3xl bg-foreground/5 flex items-center justify-center mx-auto mb-6">
                   <FolderOpen className="w-10 h-10 text-foreground/20" />
@@ -242,21 +242,21 @@ export default function ProfilerLandingClient({
               </div>
             </div>
           ) : (
-            <div className="p-12 h-full flex flex-col max-w-7xl mx-auto w-full relative z-10">
-              <div className="mb-12 flex items-start justify-between">
+            <div className="p-6 h-full flex flex-col max-w-7xl mx-auto w-full relative z-10">
+              <div className="mb-6 flex items-start justify-between">
                 <div>
-                  <div className="flex items-center gap-4 mb-4">
-                    <h2 className="text-4xl font-bold tracking-tight">{selectedBatch}</h2>
+                  <div className="flex items-center gap-4 mb-2">
+                    <h2 className="text-3xl font-bold tracking-tight">{selectedBatch}</h2>
                     {count > 0 && (
                       <span className="px-3 py-1 bg-foreground/5 text-foreground/60 text-[10px] font-bold uppercase tracking-widest rounded-full border border-border">
-                        {count} Agen Terdaftar
+                        {count} Agen
                       </span>
                     )}
                   </div>
-                  <p className="text-lg text-foreground/40 font-light">
+                  <p className="text-sm text-foreground/40 font-light">
                     {count > 0 
-                      ? 'Kelola profil, tim, dan ekspor data untuk batch ini secara efisien.' 
-                      : 'Batch ini masih kosong. Mulai dengan menambahkan data agen melalui opsi di bawah.'}
+                      ? 'Kelola profil, tim, dan ekspor data secara efisien.' 
+                      : 'Batch ini kosong. Tambahkan data agen di bawah.'}
                   </p>
                 </div>
 
@@ -278,120 +278,120 @@ export default function ProfilerLandingClient({
                 </div>
               </div>
 
-              <section className="mb-16">
-                <div className="flex items-center gap-3 mb-8 px-1">
-                  <div className="w-1 h-4 bg-primary rounded-full" />
+              <section className="mb-8">
+                <div className="flex items-center gap-3 mb-4 px-1">
+                  <div className="w-1 h-3 bg-primary rounded-full" />
                   <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40">Manajemen Data</p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <ActionCard
-                    icon={<Plus className="w-6 h-6" />}
+                    icon={<Plus className="w-5 h-5" />}
                     iconBg="bg-primary/10"
                     iconColor="text-primary"
                     title="Registrasi Manual"
-                    desc="Tambahkan data agen baru secara individual melalui formulir input yang terstandarisasi."
+                    desc="Tambahkan data agen baru secara individual melalui formulir input."
+                    className="md:col-span-2"
                     onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(selectedBatch)}`)}
                   />
                   <ActionCard
-                    icon={<Upload className="w-6 h-6" />}
+                    icon={<Upload className="w-5 h-5" />}
                     iconBg="bg-emerald-500/10"
                     iconColor="text-emerald-500"
                     title="Impor Kolektif"
-                    desc="Unggah dokumen Excel untuk memperbarui basis data agen dalam jumlah besar secara instan."
+                    desc="Unggah XLS untuk perbarui data massal."
                     onClick={() => router.push(`/profiler/import?batch=${encodeURIComponent(selectedBatch)}`)}
                   />
                 </div>
               </section>
 
-              <section className={`transition-all duration-500 mb-16 ${!hasPeserta ? 'opacity-30 grayscale pointer-events-none' : ''}`}>
-                <div className="flex items-center gap-3 mb-8 px-1">
-                  <div className="w-1 h-4 bg-blue-500 rounded-full" />
+              <section className={`transition-all duration-500 mb-8 ${!hasPeserta ? 'opacity-30 grayscale pointer-events-none' : ''}`}>
+                <div className="flex items-center gap-3 mb-4 px-1">
+                  <div className="w-1 h-3 bg-blue-500 rounded-full" />
                   <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40"> Analisis & Ekspor </p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <ActionCard
-                    icon={<Table2 className="w-6 h-6" />}
+                    icon={<Table2 className="w-5 h-5" />}
                     iconBg="bg-blue-500/10"
                     iconColor="text-blue-500"
-                    title="Database Peserta"
-                    desc="Kelola basis data agen secara komprehensif dalam format tabel yang efisien."
+                    title="Database"
+                    desc="Kelola data dalam format tabel."
                     onClick={() => router.push(`/profiler/table?batch=${encodeURIComponent(selectedBatch)}`)}
                   />
                   <ActionCard
-                    icon={<SlidersHorizontal className="w-6 h-6" />}
+                    icon={<SlidersHorizontal className="w-5 h-5" />}
                     iconBg="bg-purple-500/10"
                     iconColor="text-purple-500"
-                    title="Visualisasi Slide"
-                    desc="Tampilkan profil agen dalam format presentasi yang elegan dan profesional."
+                    title="Slides"
+                    desc="Profil agen format presentasi."
                     onClick={() => router.push(`/profiler/slides?batch=${encodeURIComponent(selectedBatch)}`)}
                   />
                   <ActionCard
-                    icon={<Download className="w-6 h-6" />}
+                    icon={<Download className="w-5 h-5" />}
                     iconBg="bg-orange-500/10"
                     iconColor="text-orange-500"
-                    title="Ekspor Laporan"
-                    desc="Konversi data agen ke format dokumen untuk kebutuhan administrasi."
+                    title="Ekspor"
+                    desc="Konversi ke PDF & Excel."
                     onClick={() => router.push(`/profiler/export?batch=${encodeURIComponent(selectedBatch)}`)}
                   />
                   <ActionCard
-                    icon={<PieChart className="w-6 h-6" />}
+                    icon={<PieChart className="w-5 h-5" />}
                     iconBg="bg-emerald-500/10"
                     iconColor="text-emerald-500"
-                    title="Statistik Batch"
-                    desc="Lihat dashboard distribusi jabatan, gender, dan pendidikan per folder."
+                    title="Statistik"
+                    desc="Dashboard distribusi batch."
                     onClick={() => router.push(`/profiler/analytics?batch=${encodeURIComponent(selectedBatch)}`)}
                   />
                 </div>
               </section>
 
-              <section className="mt-4 mb-16">
-                <div className="flex items-center gap-3 mb-8 px-1">
-                  <div className="w-1 h-4 bg-foreground/20 rounded-full" />
+              <section className="mt-2 mb-8">
+                <div className="flex items-center gap-3 mb-4 px-1">
+                  <div className="w-1 h-3 bg-foreground/20 rounded-full" />
                   <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40">Konfigurasi</p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <ActionCard
-                    icon={<Settings2 className="w-6 h-6" />}
+                    icon={<Settings2 className="w-5 h-5" />}
                     iconBg="bg-foreground/10"
                     iconColor="text-foreground/60"
                     title="Manajemen Tim"
-                    desc="Kustomisasi daftar tim untuk klasifikasi agen."
+                    desc="Kustomisasi daftar tim."
                     onClick={() => router.push('/profiler/teams')}
                   />
                 </div>
               </section>
 
               {hasPeserta && (
-                <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                   <StatCard label="Total Agen" value={String(count)} />
                   <StatCard label="Batch Aktif" value={selectedBatch} small />
                   <button
                     onClick={() => setShowBirthdayModal(true)}
-                    className="group relative overflow-hidden bg-primary/5 border border-primary/10 rounded-3xl p-6 text-left hover:shadow-lg hover:shadow-primary/5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+                    className="group relative overflow-hidden bg-primary/5 border border-primary/10 rounded-2xl p-4 text-left hover:shadow-lg hover:shadow-primary/5 transition-all"
                   >
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <Cake className="w-5 h-5 text-primary" />
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Cake className="w-4 h-4 text-primary" />
                       </div>
                       <p className="text-[10px] text-primary uppercase tracking-widest font-bold">Ulang Tahun</p>
                     </div>
                     {nearestBirthday ? (
                       <>
-                        <p className="text-lg font-bold truncate leading-tight mb-1">{nearestBirthday.nama}</p>
+                        <p className="text-base font-bold truncate leading-tight mb-1">{nearestBirthday.nama}</p>
                         <div className="flex items-baseline gap-2">
                           {nearestBirthday.days === 0 ? (
-                            <span className="text-xl font-bold text-primary">Hari ini! 🎉</span>
+                            <span className="text-lg font-bold text-primary">Hari ini! 🎉</span>
                           ) : (
                             <>
-                              <span className="text-3xl font-bold text-primary">{nearestBirthday.days}</span>
-                              <span className="text-xs text-foreground/40 font-light">hari lagi</span>
+                              <span className="text-2xl font-bold text-primary">{nearestBirthday.days}</span>
+                              <span className="text-[10px] text-foreground/40 font-light">hari lagi</span>
                             </>
                           )}
                         </div>
-                        <p className="text-[10px] text-foreground/30 mt-2 uppercase tracking-widest font-mono">{formatDate(nearestBirthday.tglLahir)}</p>
                       </>
                     ) : (
-                      <p className="text-sm text-foreground/40 font-light">Data tidak tersedia</p>
+                      <p className="text-xs text-foreground/40 font-light">Data tidak tersedia</p>
                     )}
                   </button>
                 </div>
@@ -557,21 +557,18 @@ export default function ProfilerLandingClient({
   );
 }
 
-function ActionCard({ icon, iconBg, iconColor, title, desc, onClick }: any) {
+function ActionCard({ icon, iconBg, iconColor, title, desc, onClick, className }: any) {
   return (
-    <button onClick={onClick} className="group flex flex-col gap-6 p-8 bg-card/40 backdrop-blur-sm border border-border/40 rounded-[2rem] text-left transition-all hover:bg-card hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1 relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background active:translate-y-0">
-      <div className={`w-14 h-14 rounded-2xl ${iconBg} flex items-center justify-center transition-transform group-hover:scale-110 group-hover:rotate-3 duration-500 flex-shrink-0`}>
+    <button onClick={onClick} className={`group flex flex-col gap-3 p-5 bg-card/40 backdrop-blur-sm border border-border/40 rounded-xl text-left transition-all hover:bg-card hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-0.5 relative overflow-hidden active:translate-y-0 ${className}`}>
+      <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center transition-transform group-hover:scale-110 duration-500 flex-shrink-0`}>
         <span className={iconColor}>{icon}</span>
       </div>
       <div className="relative z-10 flex-1">
-        <p className="text-xl font-bold mb-2 tracking-tight group-hover:text-primary transition-colors">{title}</p>
-        <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 font-light">{desc}</p>
-      </div>
-      <div className="mt-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 group-hover:text-primary transition-all duration-300">
-        Buka Modul <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+        <p className="text-base font-bold mb-1 tracking-tight group-hover:text-primary transition-colors">{title}</p>
+        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 font-light">{desc}</p>
       </div>
       {/* Decorative background icon */}
-      <div className="absolute -right-4 -bottom-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-700 rotate-12 scale-150 pointer-events-none">
+      <div className="absolute -right-2 -bottom-2 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity duration-700 rotate-12 scale-150 pointer-events-none">
         {icon}
       </div>
     </button>
@@ -580,10 +577,10 @@ function ActionCard({ icon, iconBg, iconColor, title, desc, onClick }: any) {
 
 function StatCard({ label, value, small = false }: any) {
   return (
-    <div className="bg-card/40 backdrop-blur-sm border border-border/40 rounded-[2rem] p-8 flex flex-col justify-between min-h-[160px] shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all">
+    <div className="bg-card/40 backdrop-blur-sm border border-border/40 rounded-xl p-4 flex flex-col justify-between shadow-sm hover:shadow-lg hover:shadow-primary/5 transition-all">
       <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-black">{label}</p>
       <p className={`font-black tracking-tighter ${
-        small ? 'text-2xl opacity-60 truncate' : 'text-6xl text-foreground'
+        small ? 'text-lg opacity-60 truncate' : 'text-3xl text-foreground'
       }`}>{value}</p>
     </div>
   );

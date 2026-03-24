@@ -21,15 +21,15 @@ export default async function QaDashboardPage({
 
   // Get profile and role
   const { data: profile } = await supabase
-    .from('profiler_peserta')
-    .select('role, tim')
+    .from('profiles')
+    .select('role')
     .eq('id', user.id)
     .single();
 
   const role = profile?.role || 'trainer';
 
-  // Allowed roles
-  const allowedRoles = ['trainer', 'trainers', 'leader', 'admin', 'superadmin'];
+  // Allowed roles - consistent with Level 1 Summary for all personas
+  const allowedRoles = ['trainer', 'trainers', 'leader', 'agent', 'admin', 'superadmin'];
   if (!allowedRoles.includes(role)) {
     redirect('/dashboard');
   }

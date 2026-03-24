@@ -56,14 +56,15 @@ export default function UsersClient({ user, role, profile }: { user: any, role: 
   const updateUserStatus = async (userId: string, status: 'approved' | 'pending') => {
     setUpdating(userId);
     try {
+      const lowerStatus = status.toLowerCase();
       const { error } = await supabase
         .from('profiles')
-        .update({ status })
+        .update({ status: lowerStatus })
         .eq('id', userId);
 
       if (error) throw error;
       
-      setUsers(users.map(u => u.id === userId ? { ...u, status } : u));
+      setUsers(users.map(u => u.id === userId ? { ...u, status: lowerStatus } : u));
     } catch (err) {
       console.error("Error updating user status:", err);
       alert("Gagal memperbarui status pengguna.");
@@ -75,14 +76,15 @@ export default function UsersClient({ user, role, profile }: { user: any, role: 
   const updateUserRole = async (userId: string, newRole: string) => {
     setUpdating(userId);
     try {
+      const lowerRole = newRole.toLowerCase();
       const { error } = await supabase
         .from('profiles')
-        .update({ role: newRole })
+        .update({ role: lowerRole })
         .eq('id', userId);
 
       if (error) throw error;
       
-      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
+      setUsers(users.map(u => u.id === userId ? { ...u, role: lowerRole } : u));
     } catch (err) {
       console.error("Error updating user role:", err);
       alert("Gagal memperbarui role pengguna.");

@@ -6,11 +6,29 @@ import { revalidatePath } from 'next/cache';
 
 export async function createYear(year: number) {
   const supabase = await createClient();
+
+  // 1. Validation for Range (22003 fix)
+  if (year < 2000 || year > 2100) {
+    throw new Error('Tahun harus antara 2000 dan 2100');
+  }
+
+  // 2. Check for existence (23505 fix)
+  const { data: existing } = await supabase
+    .from('profiler_years')
+    .select('year')
+    .eq('year', year)
+    .single();
+  
+  if (existing) {
+    throw new Error(`Tahun ${year} sudah ada.`);
+  }
+
   const { data, error } = await supabase
     .from('profiler_years')
     .insert({ year, label: `Tahun ${year}` })
     .select()
     .single();
+    
   if (error) throw error;
   revalidatePath('/profiler');
   return data;

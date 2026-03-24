@@ -42,11 +42,15 @@ export async function generateGeminiContent(options: {
     }
 
     return { 
+      success: true,
       text: response.text,
       audioData
     };
   } catch (error: any) {
     console.error("Gemini Server Action Error:", error);
-    throw new Error(error.message || "Failed to generate content");
+    return { 
+      success: false, 
+      error: error.message || "Failed to generate content" 
+    };
   }
 }
