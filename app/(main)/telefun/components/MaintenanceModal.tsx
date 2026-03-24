@@ -52,13 +52,27 @@ export const MaintenanceModal = ({ isOpen }: MaintenanceModalProps) => {
               <span className="text-destructive font-bold">Silakan menghubungi trainer</span> untuk informasi lebih lanjut.
             </p>
             
-            <button
-              onClick={handleRedirect}
-              className="w-full py-4 bg-primary text-primary-foreground rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg flex items-center justify-center gap-3"
-            >
-              <Home className="w-5 h-5" />
-              Kembali ke Dashboard
-            </button>
+            <div className="flex flex-col gap-3">
+              <a
+                href="https://ai.studio/apps/1a7e19a0-6d0e-4ce9-8092-d100b32abc59"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-4 bg-primary text-primary-foreground rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg flex items-center justify-center gap-3"
+              >
+                <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
+                  <span className="text-[10px] font-black">LITE</span>
+                </div>
+                Berpindah ke App Lite
+              </a>
+              
+              <button
+                onClick={handleRedirect}
+                className="w-full py-4 bg-secondary text-secondary-foreground rounded-2xl font-bold hover:bg-secondary/80 transition-all border border-border/50 flex items-center justify-center gap-3"
+              >
+                <Home className="w-5 h-5" />
+                Kembali ke Dashboard
+              </button>
+            </div>
           </motion.div>
         </div>
       )}
