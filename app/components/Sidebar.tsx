@@ -13,6 +13,7 @@ import { createClient } from '@/app/lib/supabase/client';
 import { useTheme } from 'next-themes';
 import { Sun, Moon, AlertCircle, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useTelefunWarning } from '@/app/context/TelefunWarningContext';
+import { useAccessDenied } from '@/app/context/AccessDeniedContext';
 
 interface SidebarProps {
   user?: any;
@@ -27,6 +28,7 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
   const supabase = createClient();
   const { theme, setTheme } = useTheme();
   const { openMaintenance } = useTelefunWarning();
+  const { openAccessDenied } = useAccessDenied();
   
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
@@ -45,7 +47,7 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/login');
+    router.push('/?auth=login');
     router.refresh();
   };
 
@@ -134,15 +136,28 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
               <Phone className="w-4 h-4 shrink-0" /> 
               {!effectiveIsCollapsed && <span>Telefun</span>}
             </button>
-            <Link href="/profiler" className={navItemClass(pathname === '/profiler')}>
+            <Link 
+              href="/profiler" 
+              className={navItemClass(pathname === '/profiler')}
+              onClick={(e) => {
+                if (role?.toLowerCase() === 'agent' || role?.toLowerCase() === 'agents') {
+                  e.preventDefault();
+                  openAccessDenied();
+                }
+              }}
+            >
               <Users className="w-4 h-4 shrink-0" /> 
-              {!effectiveIsCollapsed && <span>Profiler</span>}
+              {!effectiveIsCollapsed && <span>KTP</span>}
             </Link>
 
-            {/* QA Analyzer Accordion */}
+            {/* SIDAK Accordion */}
             <div>
               <button 
                 onClick={() => {
+                  if (role?.toLowerCase() === 'agent' || role?.toLowerCase() === 'agents') {
+                    openAccessDenied();
+                    return;
+                  }
                   if (effectiveIsCollapsed) setIsSidebarCollapsed(false);
                   setIsQaExpanded(!isQaExpanded);
                 }}
@@ -155,7 +170,7 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
                 <BarChart3 className="w-4 h-4 shrink-0" /> 
                 {!effectiveIsCollapsed && (
                   <>
-                    <span className="flex-1 text-left">QA Analyzer</span>
+                    <span className="flex-1 text-left">SIDAK</span>
                     <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isQaExpanded ? 'rotate-180' : ''}`} />
                   </>
                 )}
@@ -169,7 +184,7 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
                     className="overflow-hidden"
                   >
                       <div className="pl-11 pr-2 py-2 space-y-1">
-                        <Link href="/qa-analyzer/dashboard" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname === '/qa-analyzer/dashboard' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'}`}>Dashboard QA</Link>
+                        <Link href="/qa-analyzer/dashboard" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname === '/qa-analyzer/dashboard' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'}`}>Dashboard SIDAK</Link>
                         <Link href="/qa-analyzer/agents" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname === '/qa-analyzer/agents' || pathname?.startsWith('/qa-analyzer/agents/') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'}`}>Analisis Individu</Link>
                         <Link href="/qa-analyzer/input" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname?.startsWith('/qa-analyzer/input') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'}`}>Input Temuan</Link>
                         {(role?.toLowerCase() === 'trainer' || role?.toLowerCase() === 'trainers' || role?.toLowerCase() === 'leader') && (

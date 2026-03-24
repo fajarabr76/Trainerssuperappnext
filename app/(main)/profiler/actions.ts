@@ -66,7 +66,7 @@ export async function createFolder(name: string, yearId: string | null = null, p
     user_id: user.id,
     user_name: user.email,
     action: `Membuat Folder: ${name}`,
-    module: 'Profiler',
+    module: 'KTP',
     type: 'add'
   });
 
@@ -131,7 +131,7 @@ export async function deleteBatch(batchName: string) {
     user_id: user.id,
     user_name: user.email,
     action: `Menghapus Batch: ${batchName}`,
-    module: 'Profiler',
+    module: 'KTP',
     type: 'delete'
   });
 
@@ -262,7 +262,7 @@ export async function deletePeserta(id: string, path?: string) {
     user_id: user.id,
     user_name: user.email,
     action: `Menghapus Peserta ID: ${id}`,
-    module: 'Profiler',
+    module: 'KTP',
     type: 'delete'
   });
 
@@ -337,7 +337,7 @@ export async function createPeserta(data: Peserta) {
     user_id: user.id,
     user_name: user.email,
     action: `Menambah Peserta: ${data.nama}`,
-    module: 'Profiler',
+    module: 'KTP',
     type: 'add'
   });
 

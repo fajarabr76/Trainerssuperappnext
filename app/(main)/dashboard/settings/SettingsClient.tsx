@@ -100,51 +100,9 @@ export default function SettingsClient({ user, profile: initialProfile }: Settin
   };
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground transition-colors duration-500">
-      {/* Sidebar Navigation */}
-      <aside className="w-72 border-r border-border flex flex-col bg-card/50 backdrop-blur-xl relative z-20">
-        <div className="p-8">
-          <div className="flex items-center gap-3 mb-12">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-              <Phone className="text-primary-foreground w-5 h-5" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-bold tracking-widest uppercase text-sm text-balance">Trainers SuperApp</span>
-              <span className="font-mono text-[10px] tracking-widest uppercase opacity-50">Kontak OJK 157</span>
-            </div>
-          </div>
-
-          <nav className="space-y-1">
-             <div className="font-mono text-[10px] uppercase tracking-widest text-foreground/30 mb-4 ml-2">Navigasi Utama</div>
-             {[
-               { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-               { href: '/ketik', icon: MessageSquare, label: 'Ketik' },
-               { href: '/pdkt', icon: Mail, label: 'PDKT' },
-               { href: '/telefun', icon: Phone, label: 'Telefun' },
-               { href: '/profiler', icon: Users, label: 'Profiler' },
-               { href: '/qa-analyzer', icon: BarChart3, label: 'QA Analyzer' },
-             ].map((item) => (
-               <Link key={item.href} href={item.href} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${pathname === item.href ? 'bg-primary text-primary-foreground' : 'text-foreground/60 hover:bg-foreground/5'}`}>
-                 <item.icon className="w-4 h-4" /> {item.label}
-               </Link>
-             ))}
-             
-             <div className="font-mono text-[10px] uppercase tracking-widest text-foreground/30 mb-4 mt-8 ml-2">Manajemen</div>
-             <Link href="/dashboard/settings" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all bg-primary/10 text-primary border border-primary/20">
-               <Settings className="w-4 h-4" /> Pengaturan
-             </Link>
-          </nav>
-        </div>
-
-        <div className="mt-auto p-8 border-t border-border">
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-500/10 text-red-500/80 hover:text-red-500 rounded-xl text-sm font-medium transition-colors">
-            <LogOut className="w-4 h-4" /> Keluar
-          </button>
-        </div>
-      </aside>
-
+    <div className="h-full bg-background text-foreground transition-colors duration-500 overflow-hidden">
       {/* Settings Container */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+      <main className="h-full flex flex-col min-w-0 overflow-hidden relative">
         <div className="absolute top-0 right-0 p-6 z-50">
           <ThemeToggle />
         </div>

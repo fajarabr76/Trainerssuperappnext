@@ -209,8 +209,8 @@ export default function ProfilerLandingClient({
             <Users className="w-5 h-5 text-primary-foreground relative z-10" />
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-black tracking-tighter uppercase leading-none">PROFILER</span>
-            <span className="text-[10px] font-mono uppercase tracking-[0.2em] opacity-30">Intelligence Unit</span>
+            <span className="text-sm font-black tracking-tighter uppercase leading-none">KTP</span>
+            <span className="text-[10px] font-mono uppercase tracking-[0.2em] opacity-30">Kotak Tool Profil</span>
           </div>
         </div>
         

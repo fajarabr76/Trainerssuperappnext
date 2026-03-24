@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowRight, Shield, Zap, Cpu, MessageSquare, Mail, Phone, ExternalLink, X, CheckCircle2, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { ThemeToggle } from "./components/ThemeToggle";
 import AuthModal from "@/app/components/AuthModal";
 import { createClient } from "@/app/lib/supabase/client";
@@ -36,10 +36,19 @@ export default function LandingPage() {
     });
   }, []);
 
-  const handleOpenAuth = (mode: 'login' | 'register') => {
+  const router = useRouter();
+  const handleOpenAuth = useCallback((mode: 'login' | 'register') => {
     setAuthMode(mode);
     setShowAuthModal(true);
-  };
+  }, []);
+
+  const handleCloseAuth = useCallback(() => {
+    setShowAuthModal(false);
+    // Remove auth param from URL
+    const url = new URL(window.location.href);
+    url.searchParams.delete('auth');
+    router.replace(url.pathname, { scroll: false });
+  }, [router]);
 
   return (
     <main className="min-h-screen bg-background relative overflow-hidden">
@@ -119,11 +128,11 @@ export default function LandingPage() {
           >
             <div className="grid grid-cols-2 gap-6">
               {[
-                { title: 'KETIK', icon: <MessageSquare size={32} />, color: 'text-blue-500', bg: 'bg-blue-500/10', desc: 'Chat Simulation' },
-                { title: 'PDKT', icon: <Mail size={32} />, color: 'text-purple-500', bg: 'bg-purple-500/10', desc: 'Email Correspondence' },
-                { title: 'TELEFUN', icon: <Phone size={32} />, color: 'text-emerald-500', bg: 'bg-emerald-500/10', desc: 'Voice & Audio' },
-                { title: 'PROFILER', icon: <Shield size={32} />, color: 'text-orange-500', bg: 'bg-orange-500/10', desc: 'Agent Database' },
-                { title: 'QA ANALYZER', icon: <Cpu size={32} />, color: 'text-rose-500', bg: 'bg-rose-500/10', desc: 'Performance Dashboard' },
+                { title: 'KETIK', icon: <MessageSquare size={32} />, color: 'text-blue-500', bg: 'bg-blue-500/10', desc: 'Kelas Etika & Trik Komunikasi' },
+                { title: 'PDKT', icon: <Mail size={32} />, color: 'text-purple-500', bg: 'bg-purple-500/10', desc: 'Paham Dulu Kasih Tanggapan' },
+                { title: 'TELEFUN', icon: <Phone size={32} />, color: 'text-emerald-500', bg: 'bg-emerald-500/10', desc: 'Telephone Fun' },
+                { title: 'KTP', icon: <Shield size={32} />, color: 'text-orange-500', bg: 'bg-orange-500/10', desc: 'Kotak Tool Profil' },
+                { title: 'SIDAK', icon: <Cpu size={32} />, color: 'text-rose-500', bg: 'bg-rose-500/10', desc: 'Sistem Informasi Data Kualitas' },
               ].map((item, idx) => (
                 <motion.div
                   key={item.title}
@@ -177,7 +186,7 @@ export default function LandingPage() {
 
       <AuthModal 
         isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)} 
+        onClose={handleCloseAuth} 
         initialMode={authMode} 
       />
 
@@ -223,35 +232,35 @@ export default function LandingPage() {
                         <MessageSquare size={16} />
                         <span className="text-xs font-black uppercase tracking-widest">KETIK</span>
                       </div>
-                      <p className="text-[11px] text-muted-foreground">Simulasi chat interaktif untuk melatih kemampuan komunikasi tertulis agent.</p>
+                      <p className="text-[11px] text-muted-foreground">Kelas Etika & Trik Komunikasi — simulasi chat interaktif untuk melatih kemampuan komunikasi tertulis agent.</p>
                     </div>
                     <div className="p-4 rounded-2xl bg-accent/30 border border-border space-y-2">
                       <div className="flex items-center gap-2 text-purple-500">
                         <Mail size={16} />
                         <span className="text-xs font-black uppercase tracking-widest">PDKT</span>
                       </div>
-                      <p className="text-[11px] text-muted-foreground">Modul korespondensi email untuk standarisasi balasan layanan konsumen.</p>
+                      <p className="text-[11px] text-muted-foreground">Paham Dulu Kasih Tanggapan — modul korespondensi email untuk standarisasi balasan layanan konsumen.</p>
                     </div>
                     <div className="p-4 rounded-2xl bg-accent/30 border border-border space-y-2">
                       <div className="flex items-center gap-2 text-emerald-500">
                         <Phone size={16} />
                         <span className="text-xs font-black uppercase tracking-widest">TELEFUN</span>
                       </div>
-                      <p className="text-[11px] text-muted-foreground">Pelatihan komunikasi suara dan audio untuk meningkatkan kualitas panggilan.</p>
+                      <p className="text-[11px] text-muted-foreground">Telephone Fun — pelatihan komunikasi suara dan audio untuk meningkatkan kualitas panggilan.</p>
                     </div>
                     <div className="p-4 rounded-2xl bg-accent/30 border border-border space-y-2">
                       <div className="flex items-center gap-2 text-orange-500">
                         <Shield size={16} />
-                        <span className="text-xs font-black uppercase tracking-widest">PROFILER</span>
+                        <span className="text-xs font-black uppercase tracking-widest">KTP</span>
                       </div>
                       <p className="text-[11px] text-muted-foreground">Database pusat data agent untuk manajemen profil dan rekam jejak pelatihan.</p>
                     </div>
                     <div className="p-4 rounded-2xl bg-accent/30 border border-border space-y-2">
                       <div className="flex items-center gap-2 text-rose-500">
                         <Cpu size={16} />
-                        <span className="text-xs font-black uppercase tracking-widest">QA ANALYZER</span>
+                        <span className="text-xs font-black uppercase tracking-widest">SIDAK</span>
                       </div>
-                      <p className="text-[11px] text-muted-foreground">Dashboard performa QA dan root cause analysis untuk identifikasi masalah.</p>
+                      <p className="text-[11px] text-muted-foreground">Sistem Informasi Data Kualitas yang mengintegrasikan monitoring QA dan analisis data performa.</p>
                     </div>
                   </div>
                 </div>

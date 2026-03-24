@@ -126,60 +126,10 @@ export default function UsersClient({ user, role, profile }: { user: any, role: 
   const pendingCount = users.filter(u => u.status === 'pending').length;
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex transition-colors duration-500">
-      {/* Sidebar */}
-      <aside className="w-72 border-r border-border flex flex-col bg-card/50 backdrop-blur-xl relative z-20">
-        <div className="p-8">
-          <div className="flex items-center gap-3 mb-12">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-              <Phone className="text-primary-foreground w-5 h-5" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-bold tracking-widest uppercase text-sm">Trainers SuperApp</span>
-              <span className="font-mono text-[10px] tracking-widest uppercase opacity-50">Kontak OJK 157</span>
-            </div>
-          </div>
-
-          <nav className="space-y-2">
-            <div className="font-mono text-[10px] uppercase tracking-widest text-foreground/40 mb-4 ml-2">Menu Utama</div>
-            {[
-              { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-              { href: '/ketik', icon: MessageSquare, label: 'Ketik' },
-              { href: '/pdkt', icon: Mail, label: 'PDKT' },
-              { href: '/telefun', icon: Phone, label: 'Telefun' },
-              { href: '/profiler', icon: Users, label: 'Profiler' },
-              { href: '/qa-analyzer', icon: BarChart3, label: 'QA Analyzer' },
-            ].map((item) => (
-              <Link key={item.href} href={item.href} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${pathname === item.href ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'}`}>
-                <item.icon className="w-4 h-4" /> {item.label}
-              </Link>
-            ))}
-
-            <div className="font-mono text-[10px] uppercase tracking-widest text-foreground/40 mb-4 mt-8 ml-2">Manajemen</div>
-            <Link href="/dashboard/monitoring" className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${pathname === '/dashboard/monitoring' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'}`}>
-              <BarChart3 className="w-4 h-4" /> Monitoring
-            </Link>
-            <Link href="/dashboard/users" className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${pathname === '/dashboard/users' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'}`}>
-              <Users className="w-4 h-4" /> Kelola Pengguna
-            </Link>
-          </nav>
-        </div>
-
-        <div className="mt-auto p-8 border-t border-border">
-          <div className="px-4 py-3 text-sm font-medium text-foreground/60 mb-2">
-            Masuk sebagai <br/>
-            <span className="text-foreground font-bold capitalize">{role}</span>
-            <br/>
-            <span className="text-xs text-foreground/40 truncate block">{user?.email}</span>
-          </div>
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-500/10 text-red-500/80 hover:text-red-500 rounded-xl text-sm font-medium transition-colors">
-            <LogOut className="w-4 h-4" /> Keluar
-          </button>
-        </div>
-      </aside>
-
+    <div className="h-full bg-background text-foreground transition-colors duration-500 overflow-hidden">
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto relative">
+      <main className="h-full overflow-y-auto relative">
+
         <div className="sticky top-0 z-30 flex justify-end p-6 pointer-events-none">
           <div className="pointer-events-auto">
             <ThemeToggle />

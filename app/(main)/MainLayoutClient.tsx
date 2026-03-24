@@ -4,9 +4,11 @@ import React, { useState } from 'react';
 import Sidebar from '@/app/components/Sidebar';
 import { Menu } from 'lucide-react';
 import { TelefunWarningProvider, useTelefunWarning } from '@/app/context/TelefunWarningContext';
+import { AccessDeniedProvider, useAccessDenied } from '@/app/context/AccessDeniedContext';
 import { MaintenanceModal } from '@/app/(main)/telefun/components/MaintenanceModal';
+import { AccessDeniedModal } from '@/app/components/AccessDeniedModal';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 function MainLayoutContent({ 
   user, 
@@ -19,14 +21,24 @@ function MainLayoutContent({
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const { isMaintenanceOpen, openMaintenance } = useTelefunWarning();
+  const { isAccessDeniedOpen, openAccessDenied } = useAccessDenied();
 
   // Auto-trigger if someone tries to access /telefun directly
   React.useEffect(() => {
     if (pathname === '/telefun') {
       openMaintenance();
     }
-  }, [pathname, openMaintenance]);
+    
+    // Check for restricted modules for Agent role
+    if (role?.toLowerCase() === 'agent' || role?.toLowerCase() === 'agents') {
+      if (pathname?.startsWith('/profiler') || pathname?.startsWith('/qa-analyzer')) {
+        openAccessDenied();
+        router.push('/dashboard');
+      }
+    }
+  }, [pathname, openMaintenance, openAccessDenied, role, router]);
 
   return (
     <div className="flex h-screen bg-background overflow-hidden font-sans text-foreground selection:bg-primary/20">
@@ -61,14 +73,20 @@ function MainLayoutContent({
       <MaintenanceModal 
         isOpen={isMaintenanceOpen}
       />
+      
+      <AccessDeniedModal 
+        isOpen={isAccessDeniedOpen}
+      />
     </div>
   );
 }
 
 export default function MainLayoutClient(props: any) {
   return (
-    <TelefunWarningProvider>
-      <MainLayoutContent {...props} />
-    </TelefunWarningProvider>
+    <AccessDeniedProvider>
+      <TelefunWarningProvider>
+        <MainLayoutContent {...props} />
+      </TelefunWarningProvider>
+    </AccessDeniedProvider>
   );
 }

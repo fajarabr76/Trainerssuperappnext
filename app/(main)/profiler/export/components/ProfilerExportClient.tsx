@@ -162,6 +162,7 @@ export default function ProfilerExportClient({
             ['Kelamin', p.jenis_kelamin],
             ['Agama', p.agama],
             ['Usia', p.tgl_lahir ? `${hitungUsia(p.tgl_lahir)} Tahun` : null],
+            ['Tgl Lahir', p.tgl_lahir ? formatTanggal(p.tgl_lahir) : null],
             ['Status', p.status_perkawinan],
           ].filter(([, v]) => v);
 
@@ -251,20 +252,21 @@ export default function ProfilerExportClient({
           slide.addText(labelTim[p.tim] || p.tim || '-', { x: 2.3, y: 1.3, w: 1.5, h: 0.3, fontSize: 10, bold: true, color: accentColor, align: 'center', fill: { color: 'FFFFFF' }, line: { color: 'E5E7EB', pt: 1 } });
 
           // Quick Stats
-          const statW = 1.7;
-          const statGap = 0.15;
+          const statW = 1.35;
+          const statGap = 0.1;
           const statY = 2.4;
           
           const addStatBox = (x: number, label: string, val: string) => {
             slide.addShape(prs.ShapeType.rect, { x, y: statY, w: statW, h: 0.8, fill: { color: 'F9FAFB' }, line: { color: 'F3F4F6', pt: 1 } });
-            slide.addText(label, { x, y: statY + 0.1, w: statW, h: 0.2, align: 'center', fontSize: 8, bold: true, color: '9CA3AF' });
-            slide.addText(val, { x, y: statY + 0.35, w: statW, h: 0.3, align: 'center', fontSize: 14, bold: true, color: '111827' });
+            slide.addText(label, { x, y: statY + 0.1, w: statW, h: 0.2, align: 'center', fontSize: 7, bold: true, color: '9CA3AF' });
+            slide.addText(val, { x, y: statY + 0.35, w: statW, h: 0.3, align: 'center', fontSize: 11, bold: true, color: '111827' });
           };
 
           addStatBox(0.5, 'MASA DINAS', p.bergabung_date ? hitungMasaDinas(p.bergabung_date) : '-');
           addStatBox(0.5 + statW + statGap, 'USIA', p.tgl_lahir ? `${hitungUsia(p.tgl_lahir)} Thn` : '-');
-          addStatBox(0.5 + (statW + statGap) * 2, 'AGAMA', p.agama || '-');
-          addStatBox(0.5 + (statW + statGap) * 3, 'STATUS', p.status_perkawinan || '-');
+          addStatBox(0.5 + (statW + statGap) * 2, 'TGL LAHIR', p.tgl_lahir ? formatTanggal(p.tgl_lahir) : '-');
+          addStatBox(0.5 + (statW + statGap) * 3, 'AGAMA', p.agama || '-');
+          addStatBox(0.5 + (statW + statGap) * 4, 'STATUS', p.status_perkawinan || '-');
 
           // Details
           const rightX = 0.5;
@@ -357,22 +359,26 @@ export default function ProfilerExportClient({
     </div>
 
     <!-- Quick Stats -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;flex-shrink:0;">
-      <div style="background:#F9FAFB;border:1px solid #F3F4F6;border-radius:16px;padding:12px;text-align:center;">
-        <div style="font-size:9px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Masa Dinas</div>
-        <div style="font-size:18px;font-weight:900;color:#111827;line-height:1;">${p.bergabung_date ? hitungMasaDinas(p.bergabung_date) : '-'}</div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;flex-shrink:0;">
+      <div style="background:#F9FAFB;border:1px solid #F3F4F6;border-radius:12px;padding:10px 4px;text-align:center;">
+        <div style="font-size:8px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Masa Dinas</div>
+        <div style="font-size:12px;font-weight:900;color:#111827;line-height:1;">${p.bergabung_date ? hitungMasaDinas(p.bergabung_date) : '-'}</div>
       </div>
-      <div style="background:#F9FAFB;border:1px solid #F3F4F6;border-radius:16px;padding:12px;text-align:center;">
-        <div style="font-size:9px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Usia</div>
-        <div style="font-size:18px;font-weight:900;color:#111827;line-height:1;">${p.tgl_lahir ? `${hitungUsia(p.tgl_lahir)} Thn` : '-'}</div>
+      <div style="background:#F9FAFB;border:1px solid #F3F4F6;border-radius:12px;padding:10px 4px;text-align:center;">
+        <div style="font-size:8px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Usia</div>
+        <div style="font-size:12px;font-weight:900;color:#111827;line-height:1;">${p.tgl_lahir ? `${hitungUsia(p.tgl_lahir)} Thn` : '-'}</div>
       </div>
-      <div style="background:#F9FAFB;border:1px solid #F3F4F6;border-radius:16px;padding:12px;text-align:center;">
-        <div style="font-size:9px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Agama</div>
-        <div style="font-size:14px;font-weight:900;color:#111827;line-height:1.2;">${p.agama || '-'}</div>
+      <div style="background:#F9FAFB;border:1px solid #F3F4F6;border-radius:12px;padding:10px 4px;text-align:center;">
+        <div style="font-size:8px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Tgl Lahir</div>
+        <div style="font-size:10px;font-weight:900;color:#111827;line-height:1.2;">${p.tgl_lahir ? formatTanggal(p.tgl_lahir) : '-'}</div>
       </div>
-      <div style="background:#F9FAFB;border:1px solid #F3F4F6;border-radius:16px;padding:12px;text-align:center;">
-        <div style="font-size:9px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Status</div>
-        <div style="font-size:14px;font-weight:900;color:#111827;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.status_perkawinan || '-'}</div>
+      <div style="background:#F9FAFB;border:1px solid #F3F4F6;border-radius:12px;padding:10px 4px;text-align:center;">
+        <div style="font-size:8px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Agama</div>
+        <div style="font-size:12px;font-weight:900;color:#111827;line-height:1.2;">${p.agama || '-'}</div>
+      </div>
+      <div style="background:#F9FAFB;border:1px solid #F3F4F6;border-radius:12px;padding:10px 4px;text-align:center;">
+        <div style="font-size:8px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Status</div>
+        <div style="font-size:11px;font-weight:900;color:#111827;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.status_perkawinan || '-'}</div>
       </div>
     </div>
 
@@ -442,7 +448,7 @@ export default function ProfilerExportClient({
         <div style="font-size:10px;color:#9CA3AF;margin-top:6px;">sejak ${formatTanggal(p.bergabung_date)}</div>
       </div>` : ''}
       <div style="width:100%;display:flex;flex-direction:column;gap:8px;margin-top:auto;">
-        ${([['NIP OJK', p.nip_ojk], ['Kelamin', p.jenis_kelamin], ['Agama', p.agama], ['Usia', p.tgl_lahir ? `${hitungUsia(p.tgl_lahir)} Tahun` : null], ['Status', p.status_perkawinan]] as Array<[string, string | null | undefined]>).filter(([, v]) => v).map(([label, value]) => `
+        ${([['NIP OJK', p.nip_ojk], ['Kelamin', p.jenis_kelamin], ['Agama', p.agama], ['Usia', p.tgl_lahir ? `${hitungUsia(p.tgl_lahir)} Tahun` : null], ['Tgl Lahir', p.tgl_lahir ? formatTanggal(p.tgl_lahir) : null], ['Status', p.status_perkawinan]] as Array<[string, string | null | undefined]>).filter(([, v]) => v).map(([label, value]) => `
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:0 4px;">
             <span style="font-size:8px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">${label}</span>
             <span style="font-size:11px;font-weight:700;color:#374151;text-align:right;">${value}</span>
@@ -544,7 +550,7 @@ export default function ProfilerExportClient({
             className="flex items-center gap-1.5 text-sm text-foreground/60 hover:text-foreground transition-opacity font-medium">
             <ArrowLeft className="w-4 h-4" /> Kembali
           </button>
-          <h1 className="text-lg font-black tracking-tight text-foreground">Download Profiler</h1>
+          <h1 className="text-lg font-black tracking-tight text-foreground">Download Data KTP</h1>
         </div>
 
         {/* ── Folder Picker ── */}

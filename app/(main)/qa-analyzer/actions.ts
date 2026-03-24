@@ -194,7 +194,7 @@ export async function deleteIndicatorAction(id: string) {
     user_id: user.id,
     user_name: user.email,
     action: `Menghapus Indikator: ${indicator?.name || id}`,
-    module: 'QA Analyzer',
+    module: 'SIDAK',
     type: 'delete'
   });
 
@@ -229,8 +229,8 @@ export async function createTemuanAction(
   await supabase.from('activity_logs').insert({
     user_id: user.id,
     user_name: user.email,
-    action: `Input Temuan QA untuk Peserta ID: ${peserta_id}`,
-    module: 'QA Analyzer',
+    action: `Input Temuan SIDAK untuk Peserta ID: ${peserta_id}`,
+    module: 'SIDAK',
     type: 'add'
   });
 
@@ -279,8 +279,8 @@ export async function deleteTemuanAction(id: string) {
   await supabase.from('activity_logs').insert({
     user_id: user.id,
     user_name: user.email,
-    action: `Menghapus Temuan QA ID: ${id}`,
-    module: 'QA Analyzer',
+    action: `Menghapus Temuan SIDAK ID: ${id}`,
+    module: 'SIDAK',
     type: 'delete'
   });
   

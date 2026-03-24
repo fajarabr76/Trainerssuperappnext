@@ -126,10 +126,10 @@ export default function QaDashboardClient({
               <div className="flex items-center gap-2 text-sm text-foreground/60 mb-4">
                 <Link href="/dashboard" className="hover:text-primary transition-colors">Dashboard</Link>
                 <span>/</span>
-                <span className="text-foreground font-medium">QA Analyzer</span>
+                <span className="text-foreground font-medium">SIDAK</span>
               </div>
               <h1 className="text-4xl lg:text-5xl font-bold tracking-tighter mb-4 bg-gradient-to-r from-foreground to-foreground/50 bg-clip-text text-transparent">
-                QA Performance Dashboard
+                SIDAK Performance Dashboard
               </h1>
               <p className="text-lg text-foreground/40 font-light max-w-2xl leading-relaxed">
                 Pantau performa kualitas, analisis akar masalah, dan temukan area perbaikan untuk tim Anda.
@@ -152,7 +152,7 @@ export default function QaDashboardClient({
             {loading ? (
               <div className="flex flex-col items-center justify-center py-32 text-foreground/40">
                 <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
-                <p>Membarui data dashboard...</p>
+                <p>Membarui data SIDAK...</p>
               </div>
             ) : !initialData.summary ? (
               <div className="flex flex-col items-center justify-center py-32 text-foreground/40 bg-card rounded-2xl border border-dashed border-border">
@@ -242,22 +242,24 @@ export default function QaDashboardClient({
                   {initialData.paramTrend && <ParamTrendChart data={initialData.paramTrend} showParameters={selectedFolderId !== 'ALL'} />}
                 </section>
 
-                <section className="bg-card rounded-2xl border border-border p-5">
-                  <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                    <span className="w-1 h-5 bg-red-500 rounded-full"></span>
-                    Root Cause Analysis
-                  </h2>
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-2">
-                      <h3 className="text-sm font-medium text-foreground/60 mb-4">Pareto Kategori Temuan (80/20 Rule)</h3>
-                      <ParetoChart data={initialData.paretoData} />
+                {selectedFolderId !== 'ALL' && (
+                  <section className="bg-card rounded-2xl border border-border p-5">
+                    <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                      <span className="w-1 h-5 bg-red-500 rounded-full"></span>
+                      Root Cause Analysis
+                    </h2>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                      <div className="lg:col-span-2">
+                        <h3 className="text-sm font-medium text-foreground/60 mb-4">Pareto Kategori Temuan (80/20 Rule)</h3>
+                        <ParetoChart data={initialData.paretoData} />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-foreground/60 mb-4 text-center">Proporsi Fatal vs Non-Fatal</h3>
+                        {initialData.donutData && <FatalDonutChart data={initialData.donutData} />}
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-foreground/60 mb-4 text-center">Proporsi Fatal vs Non-Fatal</h3>
-                      {initialData.donutData && <FatalDonutChart data={initialData.donutData} />}
-                    </div>
-                  </div>
-                </section>
+                  </section>
+                )}
               </motion.div>
             )}
           </div>

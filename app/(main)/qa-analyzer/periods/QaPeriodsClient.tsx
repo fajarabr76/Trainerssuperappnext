@@ -82,7 +82,7 @@ export default function QaPeriodsClient({ user, role, initialPeriods }: QaPeriod
             onClick={() => router.push('/qa-analyzer/dashboard')}
             className="flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 font-medium transition-colors"
           >
-            ← QA Analyzer
+            ← SIDAK
           </button>
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">

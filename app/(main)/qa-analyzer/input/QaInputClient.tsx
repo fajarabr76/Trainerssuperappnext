@@ -151,7 +151,7 @@ function IndicatorDropdown({ value, indicators, open, onToggle, onSelect }: {
 // ── Excel template generator ───────────────────────────────────────────────────
 async function generateTemplate(indicators: QAIndicator[], agentName: string, periodLabel: string) {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'QA Analyzer';
+  wb.creator = 'SIDAK';
   wb.created = new Date();
 
   const HEADER_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF7C3AED' } };
@@ -244,7 +244,7 @@ async function generateTemplate(indicators: QAIndicator[], agentName: string, pe
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `Template_QA_${agentName.replace(/\s/g, '_')}_${periodLabel}.xlsx`;
+  a.href = url; a.download = `Template_SIDAK_${agentName.replace(/\s/g, '_')}_${periodLabel}.xlsx`;
   a.click(); URL.revokeObjectURL(url);
 }
 
@@ -527,7 +527,7 @@ export default function QaInputClient({
             <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2 rounded-lg hover:bg-foreground/5 text-foreground/60">
               <Menu className="w-5 h-5" />
             </button>
-            <h1 className="text-lg font-bold text-foreground">Input Temuan QA</h1>
+            <h1 className="text-lg font-bold text-foreground">Input Temuan SIDAK</h1>
           </div>
           <div className="flex items-center gap-3">
             {mounted && (

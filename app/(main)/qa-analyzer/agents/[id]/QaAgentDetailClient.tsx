@@ -27,7 +27,7 @@ async function exportToExcel(agentId: string) {
   const wb = XLSX.utils.book_new();
 
   const summaryRows: any[][] = [
-    ['Laporan QA Analyzer'], [''],
+    ['Laporan SIDAK'], [''],
     ['Nama Agent', agent.nama], ['Tim', agent.tim], ['Folder', agent.batch],
     ['Tanggal Export', new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})],
     [''], ['RINGKASAN SKOR PER PERIODE'],
@@ -255,7 +255,7 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
           </button>
           <div>
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-foreground/30 leading-none mb-1">
-              <Activity className="w-3 h-3" /> QA Analyzer
+              <Activity className="w-3 h-3" /> SIDAK
             </div>
             <h1 className="text-lg font-black tracking-tight">Agent Performance Detail</h1>
           </div>

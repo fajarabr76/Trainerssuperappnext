@@ -591,5 +591,43 @@ export const qaServiceServer = {
       });
 
     return { agent, periods };
+  },
+
+  async getUniqueAgentCountByTimeframe(timeframe: '3m' | '6m' | 'all'): Promise<number> {
+    const supabase = await createClient();
+    const limitMap = { '3m': 3, '6m': 6, 'all': 12 };
+    const { data: periods } = await supabase
+      .from('qa_periods').select('id')
+      .order('year', { ascending: false }).order('month', { ascending: false })
+      .limit(limitMap[timeframe]);
+    if (!periods || periods.length === 0) return 0;
+
+    const pIds = periods.map(p => p.id);
+    const { data } = await supabase
+      .from('qa_temuan')
+      .select('peserta_id')
+      .in('period_id', pIds)
+      .lt('nilai', 3);
+    if (!data) return 0;
+    return new Set(data.map(d => d.peserta_id)).size;
+  },
+
+  async getAuditCountByTimeframe(timeframe: '3m' | '6m' | 'all'): Promise<number> {
+    const supabase = await createClient();
+    const limitMap = { '3m': 3, '6m': 6, 'all': 12 };
+    const { data: periods } = await supabase
+      .from('qa_periods').select('id')
+      .order('year', { ascending: false }).order('month', { ascending: false })
+      .limit(limitMap[timeframe]);
+    if (!periods || periods.length === 0) return 0;
+
+    const pIds = periods.map(p => p.id);
+    const { data } = await supabase
+      .from('qa_temuan')
+      .select('no_tiket')
+      .in('period_id', pIds)
+      .lt('nilai', 3);
+    if (!data) return 0;
+    return new Set(data.map(d => d.no_tiket)).size;
   }
 };

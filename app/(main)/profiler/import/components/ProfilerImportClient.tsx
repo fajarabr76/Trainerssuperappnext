@@ -169,7 +169,7 @@ export default function ProfilerImportClient({
             <ArrowLeft className="w-4 h-4" /> Kembali
           </button>
           <h1 className="text-base font-semibold text-gray-900 dark:text-white">
-            Import Excel — <span className="text-gray-500 dark:text-gray-400 font-normal">{batchName}</span>
+            Import Data KTP — <span className="text-gray-500 dark:text-gray-400 font-normal">{batchName}</span>
           </h1>
         </div>
 

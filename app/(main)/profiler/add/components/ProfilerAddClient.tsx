@@ -127,7 +127,7 @@ export default function ProfilerAddClient({ batchName, initialTimList }: Profile
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Kembali
           </button>
           <div className="text-center">
-            <h1 className="text-xl font-bold tracking-tight text-foreground">Tambah Peserta</h1>
+            <h1 className="text-xl font-bold tracking-tight text-foreground">Tambah Data KTP</h1>
             <p className="text-[10px] font-mono uppercase tracking-widest text-foreground/30 mt-1">{batchName}</p>
           </div>
           <button onClick={handleSubmit} disabled={loading}
@@ -409,7 +409,7 @@ export default function ProfilerAddClient({ batchName, initialTimList }: Profile
         {/* Tombol Simpan */}
         <button onClick={handleSubmit} disabled={loading}
           className="w-full py-4 bg-primary hover:opacity-90 hover:shadow-lg disabled:opacity-50 text-primary-foreground rounded-2xl text-base font-bold shadow-md shadow-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background">
-          {loading ? 'Menyimpan...' : '✓ Simpan Peserta'}
+          {loading ? 'Menyimpan...' : '✓ Simpan Data'}
         </button>
 
       </div>

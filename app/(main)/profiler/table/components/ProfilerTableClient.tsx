@@ -453,7 +453,7 @@ export default function ProfilerTableClient({
                     {peserta.length}
                   </span>
                 </h1>
-                <p className="text-[10px] font-mono text-foreground/40 uppercase tracking-widest">Database Peserta</p>
+                <p className="text-[10px] font-mono text-foreground/40 uppercase tracking-widest">Database KTP</p>
               </button>
 
               <AnimatePresence>

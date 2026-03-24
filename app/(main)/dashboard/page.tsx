@@ -22,21 +22,38 @@ export default async function DashboardPage() {
 
   const role = profile?.role || 'trainer';
 
-  // Fetch initial data server-side
-  const currentYear = new Date().getFullYear();
-  const timeframe = 'all'; // default
-
-  const [trend, summary, activities] = await Promise.all([
-    qaServiceServer.getKpiSparkline([], null, 'total', timeframe),
-    qaServiceServer.getDashboardSummary([], 'ytd'),
+  // Fetch trend data for ALL timeframes + unique agent counts in parallel
+  const [trend3m, trend6m, trendAll, agentCount3m, agentCount6m, agentCountAll, auditCount3m, auditCount6m, auditCountAll, activities] = await Promise.all([
+    qaServiceServer.getKpiSparkline([], null, 'total', '3m'),
+    qaServiceServer.getKpiSparkline([], null, 'total', '6m'),
+    qaServiceServer.getKpiSparkline([], null, 'total', 'all'),
+    qaServiceServer.getUniqueAgentCountByTimeframe('3m'),
+    qaServiceServer.getUniqueAgentCountByTimeframe('6m'),
+    qaServiceServer.getUniqueAgentCountByTimeframe('all'),
+    qaServiceServer.getAuditCountByTimeframe('3m'),
+    qaServiceServer.getAuditCountByTimeframe('6m'),
+    qaServiceServer.getAuditCountByTimeframe('all'),
     activityServiceServer.getRecentActivities(5)
   ]);
 
-  const initialTrendData = trend.map(t => ({ name: t.label, findings: t.value }));
-  
-  const lastVal = trend.length > 0 ? trend[trend.length - 1].value : 0;
-  const prevVal = trend.length > 1 ? trend[trend.length - 2].value : 0;
-  
+  const trendDataMap = {
+    '3m': trend3m.map(t => ({ name: t.label, findings: t.value })),
+    '6m': trend6m.map(t => ({ name: t.label, findings: t.value })),
+    'all': trendAll.map(t => ({ name: t.label, findings: t.value })),
+  };
+
+  const agentCountMap = {
+    '3m': agentCount3m,
+    '6m': agentCount6m,
+    'all': agentCountAll,
+  };
+
+  const auditCountMap = {
+    '3m': auditCount3m,
+    '6m': auditCount6m,
+    'all': auditCountAll,
+  };
+
   const formattedLogs = activities.map(act => ({
     id: act.id,
     user: act.user_name || 'Hamba Allah',
@@ -45,20 +62,15 @@ export default async function DashboardPage() {
     type: act.type
   }));
 
-  const initialStats = {
-    totalFindings: summary.totalDefects,
-    avgFindingsPerTeam: Number(summary.avgDefectsPerAudit.toFixed(1)),
-    trendStatus: trend.length < 2 ? "Stabil" : (lastVal < prevVal ? "Tren Membaik" : lastVal > prevVal ? "Tren Menurun" : "Stabil"),
-    recentLogs: formattedLogs
-  };
-
   return (
     <DashboardClient 
       user={user} 
       role={role} 
       profile={profile} 
-      initialTrendData={initialTrendData}
-      initialStats={initialStats}
+      trendDataMap={trendDataMap}
+      agentCountMap={agentCountMap}
+      auditCountMap={auditCountMap}
+      initialRecentLogs={formattedLogs}
     />
   );
 }

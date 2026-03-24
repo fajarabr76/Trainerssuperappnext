@@ -96,7 +96,7 @@ export default function ProfilerAnalyticsClient({
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">Statistik Batch</h1>
+            <h1 className="text-xl font-bold tracking-tight">Statistik KTP</h1>
             <p className="text-xs text-foreground/50 font-medium">{selectedBatch} • {peserta.length} Total Peserta</p>
           </div>
         </div>
@@ -197,7 +197,7 @@ export default function ProfilerAnalyticsClient({
             <p className="text-foreground/50 font-medium">Tidak ada data peserta untuk folder ini.</p>
             <button onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(selectedBatch)}`)}
               className="mt-4 px-6 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-bold shadow-sm hover:opacity-90">
-              Tambah Peserta Pertama
+              Tambah Data Pertama
             </button>
           </div>
         ) : (

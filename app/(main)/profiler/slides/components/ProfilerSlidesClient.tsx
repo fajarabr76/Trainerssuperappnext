@@ -397,6 +397,7 @@ export default function ProfilerSlidesClient({
                             ['Kelamin', p.jenis_kelamin],
                             ['Agama', p.agama],
                             ['Usia', p.tgl_lahir ? `${hitungUsia(p.tgl_lahir)} Tahun` : null],
+                            ['Tgl Lahir', p.tgl_lahir ? formatTanggal(p.tgl_lahir) : null],
                             ['Status', p.status_perkawinan],
                           ].filter(([, v]) => v).map(([label, value]) => (
                             <div key={label as string} className="flex items-center justify-between gap-2 px-1">
@@ -492,7 +493,7 @@ export default function ProfilerSlidesClient({
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-shrink-0">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 flex-shrink-0">
                         <div className="bg-muted/30 border border-border/40 rounded-[20px] p-3 text-center shadow-sm">
                           <p className="text-[8px] text-foreground/40 font-bold uppercase tracking-widest mb-1">Masa Dinas</p>
                           <p className="text-lg font-black text-foreground tracking-tight leading-none">{p.bergabung_date ? hitungMasaDinas(p.bergabung_date) : '-'}</p>
@@ -500,6 +501,10 @@ export default function ProfilerSlidesClient({
                         <div className="bg-muted/30 border border-border/40 rounded-[20px] p-3 text-center shadow-sm">
                           <p className="text-[8px] text-foreground/40 font-bold uppercase tracking-widest mb-1">Usia</p>
                           <p className="text-lg font-black text-foreground tracking-tight leading-none">{p.tgl_lahir ? `${hitungUsia(p.tgl_lahir)} Thn` : '-'}</p>
+                        </div>
+                        <div className="bg-muted/30 border border-border/40 rounded-[20px] p-3 text-center shadow-sm">
+                          <p className="text-[8px] text-foreground/40 font-bold uppercase tracking-widest mb-1">Tgl Lahir</p>
+                          <p className="text-[10px] font-black text-foreground tracking-tight leading-none mt-1">{p.tgl_lahir ? formatTanggal(p.tgl_lahir) : '-'}</p>
                         </div>
                         <div className="bg-muted/30 border border-border/40 rounded-[20px] p-3 text-center shadow-sm">
                           <p className="text-[8px] text-foreground/40 font-bold uppercase tracking-widest mb-1">Agama</p>

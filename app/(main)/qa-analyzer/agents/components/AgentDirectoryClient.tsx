@@ -41,7 +41,7 @@ export default function AgentDirectoryClient({
         <header className="h-28 px-10 border-b border-border/50 bg-background/80 backdrop-blur-xl flex items-center justify-between shrink-0 relative z-20">
           <div>
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-foreground/40 mb-1">
-              <Users className="w-3 h-3" /> QA Analyzer
+              <Users className="w-3 h-3" /> SIDAK
             </div>
             <h1 className="text-3xl font-black tracking-tighter text-foreground">Direktori Agent</h1>
           </div>

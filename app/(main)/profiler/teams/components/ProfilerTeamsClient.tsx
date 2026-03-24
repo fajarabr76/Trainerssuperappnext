@@ -64,7 +64,7 @@ export default function ProfilerTeamsClient({
           </button>
           <div>
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">Manajemen Tim</h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Kelola daftar tim kustom untuk peserta</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Kelola daftar tim kustom</p>
           </div>
         </div>
 
