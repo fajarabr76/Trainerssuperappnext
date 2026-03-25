@@ -2,17 +2,17 @@ import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { motion } from 'motion/react';
 
-interface FatalVsNonFatalData {
-  fatal: number;
-  nonFatal: number;
+interface CriticalVsNonCriticalData {
+  critical: number;
+  nonCritical: number;
   total: number;
 }
 
 interface FatalDonutChartProps {
-  data: FatalVsNonFatalData;
+  data: CriticalVsNonCriticalData;
 }
 
-const DONUT_COLORS = ['#f43f5e', '#f59e0b']; // Rose for fatal, Amber for non-fatal
+const DONUT_COLORS = ['#f43f5e', '#64748b']; // Rose for critical, Slate for non-critical
 
 export default function FatalDonutChart({ data }: FatalDonutChartProps) {
   if (!data || data.total === 0) {
@@ -27,8 +27,8 @@ export default function FatalDonutChart({ data }: FatalDonutChartProps) {
   }
 
   const chartData = [
-    { name: 'Fatal Error', value: data.fatal },
-    { name: 'Non-Fatal', value: data.nonFatal },
+    { name: 'Critical Parameter', value: data.critical },
+    { name: 'Non-Critical', value: data.nonCritical },
   ];
 
   return (
@@ -79,7 +79,11 @@ export default function FatalDonutChart({ data }: FatalDonutChartProps) {
         >
           {data.total}
         </motion.span>
-        <span className="text-[10px] font-black uppercase tracking-widest text-foreground/30">Total Temuan</span>
+        <span className="text-[10px] font-black uppercase tracking-widest text-foreground/30 mb-1">Total Temuan</span>
+        <div className="flex gap-3">
+          <span className="text-[9px] font-black text-rose-500 bg-rose-500/10 px-1.5 py-0.5 rounded-md">CRITICAL: {data.critical}</span>
+          <span className="text-[9px] font-black text-slate-500 bg-slate-500/10 px-1.5 py-0.5 rounded-md">NON: {data.nonCritical}</span>
+        </div>
       </div>
     </div>
   );

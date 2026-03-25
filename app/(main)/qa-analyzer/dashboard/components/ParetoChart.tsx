@@ -1,5 +1,5 @@
 import React from 'react';
-import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 import { motion } from 'motion/react';
 
 interface ParetoItem {
@@ -93,6 +93,21 @@ export default function ParetoChart({ data }: ParetoChartProps) {
             activeDot={{ r: 6, strokeWidth: 0 }}
             type="monotone" 
             animationDuration={2000}
+          />
+          <ReferenceLine
+            yAxisId="right"
+            y={80}
+            stroke="var(--foreground)"
+            strokeOpacity={0.3}
+            strokeDasharray="6 4"
+            label={{ 
+              value: '80%', 
+              position: 'right', 
+              fontSize: 10, 
+              fill: 'currentColor', 
+              opacity: 0.4,
+              fontWeight: 'bold'
+            }}
           />
         </ComposedChart>
       </ResponsiveContainer>

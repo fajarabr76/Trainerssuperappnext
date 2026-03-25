@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import DashboardClient from './DashboardClient';
 import { qaServiceServer } from '../qa-analyzer/services/qaService.server';
 import { activityServiceServer } from '@/app/lib/services/activityService.server';
+import { normalizeActionText } from '@/app/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,7 +58,7 @@ export default async function DashboardPage() {
   const formattedLogs = activities.map(act => ({
     id: act.id,
     user: act.user_name || 'Hamba Allah',
-    action: act.action,
+    action: normalizeActionText(act.action),
     time: activityServiceServer.formatTimeAgo(act.created_at),
     type: act.type
   }));

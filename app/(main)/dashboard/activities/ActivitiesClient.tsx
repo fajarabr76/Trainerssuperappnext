@@ -8,6 +8,7 @@ import { createClient } from '@/app/lib/supabase/client';
 import { ThemeToggle } from "@/app/components/ThemeToggle";
 import { useEffect, useState } from "react";
 import { activityService, ActivityLog } from "@/app/lib/services/activityService";
+import { normalizeModuleName, normalizeActionText } from "@/app/lib/utils";
 
 export default function ActivitiesClient({ user, role, profile }: { user: any, role: string, profile: any }) {
   const pathname = usePathname();
@@ -171,10 +172,10 @@ export default function ActivitiesClient({ user, role, profile }: { user: any, r
                               </span>
                           </div>
                       </td>
-                      <td className="px-6 py-5 text-sm font-bold tracking-tight text-foreground/80">{log.action}</td>
+                      <td className="px-6 py-5 text-sm font-bold tracking-tight text-foreground/80">{normalizeActionText(log.action)}</td>
                       <td className="px-6 py-5">
                           <span className="px-2 py-0.5 rounded bg-foreground/5 text-[10px] font-black uppercase tracking-widest opacity-60">
-                              {log.module}
+                              {normalizeModuleName(log.module)}
                           </span>
                       </td>
                       <td className="px-6 py-5">

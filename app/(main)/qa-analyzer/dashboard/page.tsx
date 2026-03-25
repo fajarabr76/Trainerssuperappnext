@@ -61,7 +61,7 @@ export default async function QaDashboardPage({
     qaServiceServer.getTeamComparison(folderIds, period),
     qaServiceServer.getTopAgentsWithDefects(folderIds, period, 5),
     qaServiceServer.getParetoData(folderIds, period),
-    qaServiceServer.getFatalVsNonFatal(folderIds, period),
+    qaServiceServer.getCriticalVsNonCritical(folderIds, period),
     qaServiceServer.getKpiSparkline(folderIds, null, 'total', timeframe),
     qaServiceServer.getKpiSparkline(folderIds, null, 'avg', timeframe),
     qaServiceServer.getKpiSparkline(folderIds, null, 'fatal', timeframe),
@@ -81,7 +81,7 @@ export default async function QaDashboardPage({
     sparklines: {
       total: spark1,
       avg: spark2,
-      fatal: spark3,
+      critical: spark3,
       compliance: spark4
     }
   };

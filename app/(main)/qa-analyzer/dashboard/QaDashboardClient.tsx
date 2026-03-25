@@ -12,7 +12,7 @@ import {
   DashboardSummary, 
   TrendPoint as SparklineData
 } from '../lib/qa-types';
-import type { TeamComparisonData, TopAgentData, ParetoData, FatalVsNonFatalData } from '../services/qaService';
+import type { TeamComparisonData, TopAgentData, ParetoData, CriticalVsNonCriticalData } from '../services/qaService';
 
 import DashboardFilters from './components/DashboardFilters';
 import KpiCard from './components/KpiCard';
@@ -33,7 +33,7 @@ interface QaDashboardClientProps {
     teamData: TeamComparisonData[];
     topAgents: TopAgentData[];
     paretoData: ParetoData[];
-    donutData: FatalVsNonFatalData | null;
+    donutData: CriticalVsNonCriticalData | null;
     paramTrend: any;
     sparklines: Record<string, SparklineData[]>;
   };
@@ -181,7 +181,7 @@ export default function QaDashboardClient({
                       sparklineData={initialData.sparklines.total || []}
                     />
                     <KpiCard 
-                      label="Rata-rata Temuan / Audit"
+                      label="Rata-rata Temuan / Agen"
                       value={initialData.summary.avgDefectsPerAudit.toFixed(1)}
                       delta={-5}
                       target="Target: < 1.0"
@@ -189,16 +189,16 @@ export default function QaDashboardClient({
                       sparklineData={initialData.sparklines.avg || []}
                     />
                     <KpiCard 
-                      label="Fatal Error Rate"
+                      label="Critical Case Rate"
                       value={initialData.summary.fatalErrorRate.toFixed(1)}
                       unit="%"
                       delta={2}
                       target="Target: < 1%"
                       reverseLogic={true}
-                      sparklineData={initialData.sparklines.fatal || []}
+                      sparklineData={initialData.sparklines.critical || []}
                     />
                     <KpiCard 
-                      label="Kepatuhan SOP"
+                      label="Kepatuhan (Skor ≥ 95%)"
                       value={initialData.summary.complianceRate.toFixed(1)}
                       unit="%"
                       delta={4}
@@ -254,7 +254,7 @@ export default function QaDashboardClient({
                         <ParetoChart data={initialData.paretoData} />
                       </div>
                       <div>
-                        <h3 className="text-sm font-medium text-foreground/60 mb-4 text-center">Proporsi Fatal vs Non-Fatal</h3>
+                        <h3 className="text-sm font-medium text-foreground/60 mb-4 text-center">Proporsi Critical vs Non-Critical</h3>
                         {initialData.donutData && <FatalDonutChart data={initialData.donutData} />}
                       </div>
                     </div>

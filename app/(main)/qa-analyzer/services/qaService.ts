@@ -48,9 +48,9 @@ export interface ParetoData {
   category: 'critical' | 'non_critical';
 }
 
-export interface FatalVsNonFatalData {
-  fatal: number;
-  nonFatal: number;
+export interface CriticalVsNonCriticalData {
+  critical: number;
+  nonCritical: number;
   total: number;
 }
 
@@ -693,7 +693,7 @@ export const qaService = {
       });
   },
 
-  async getFatalVsNonFatal(folderIds: string[], periodId: string): Promise<FatalVsNonFatalData> {
+  async getCriticalVsNonCritical(folderIds: string[], periodId: string): Promise<CriticalVsNonCriticalData> {
     const pIds = await this.resolvePeriodIds(periodId);
     let query = supabase
       .from('qa_temuan')
@@ -706,21 +706,21 @@ export const qaService = {
     }
 
     const { data, error } = await query;
-    if (error || !data) return { fatal: 0, nonFatal: 0, total: 0 };
+    if (error || !data) return { critical: 0, nonCritical: 0, total: 0 };
 
-    let fatal = 0;
-    let nonFatal = 0;
+    let critical = 0;
+    let nonCritical = 0;
 
     data.forEach(d => {
       const ind = d.qa_indicators as any;
-      if (d.nilai === 0 && ind?.category === 'critical') {
-        fatal += 1;
+      if (ind?.category === 'critical') {
+        critical += 1;
       } else {
-        nonFatal += 1;
+        nonCritical += 1;
       }
     });
 
-    return { fatal, nonFatal, total: fatal + nonFatal };
+    return { critical, nonCritical, total: critical + nonCritical };
   },
 
   async getPersonalTrendWithParameters(peserta_id: string, timeframe: '3m' | '6m' | 'all' = '3m') {
