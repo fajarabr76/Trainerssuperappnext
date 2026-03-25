@@ -262,7 +262,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   return (
     <div className="flex flex-col h-full w-full bg-background overflow-hidden relative">
       {/* 1. Premium Header */}
-      <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 shrink-0 bg-card/50 backdrop-blur-2xl w-full z-50 relative">
+      <div className="px-8 py-6 flex items-center justify-between border-b border-border/50 shrink-0 bg-card/50 backdrop-blur-2xl w-full z-50 relative">
         <div className="flex items-center gap-4 w-1/4">
             {isReviewMode && (
                 <button 
@@ -380,17 +380,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     className={`flex w-full ${isAgent ? 'justify-end' : 'justify-start'}`}
                 >
                     <div 
-                        className={`max-w-[80%] px-5 py-3 relative text-[15px] leading-relaxed shadow-sm
+                        className={`max-w-[80%] px-6 py-4 relative text-[15px] leading-relaxed shadow-sm
                         ${isAgent 
-                            ? 'bg-primary text-primary-foreground rounded-[1.5rem] rounded-tr-none shadow-primary/20' 
-                            : 'bg-card border border-border/50 text-foreground rounded-[1.5rem] rounded-tl-none'
+                            ? 'bg-primary text-primary-foreground rounded-[2rem] rounded-tr-none shadow-primary/20' 
+                            : 'bg-card border border-border/50 text-foreground rounded-[2rem] rounded-tl-none'
                         }`}
                     >
                         <div className="font-medium">
                             {renderMessageContent(msg.text)}
                         </div>
                         {/* Timestamp */}
-                        <div className={`text-[9px] font-black uppercase tracking-widest flex items-center justify-end gap-2 mt-2 ${isAgent ? 'text-white/60' : 'text-foreground/30'}`}>
+                        <div className={`text-[9px] font-black uppercase tracking-widest flex items-center justify-end gap-2 mt-2 ${isAgent ? 'text-white/80' : 'text-foreground/60'}`}>
                              <span>
                                 {!isNaN(new Date(msg.timestamp).getTime()) 
                                     ? new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
@@ -440,14 +440,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
           <div className="max-w-4xl mx-auto flex items-end gap-4">
               <div className="flex-1 bg-background/50 rounded-[2rem] border-2 border-border/50 flex flex-col px-6 py-2.5 focus-within:border-primary focus-within:bg-background transition-all shadow-inner">
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/20 mb-1 ml-1 select-none">Pesan Baru</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/50 mb-1 ml-1 select-none">Pesan Baru</span>
                   <textarea
                       ref={textareaRef}
                       value={inputText}
                       onChange={(e) => setInputText(e.target.value)}
                       onKeyDown={handleKeyPress}
                       placeholder="Tulis pesan Anda..."
-                      className="w-full bg-transparent border-none outline-none resize-none max-h-48 min-h-[40px] py-1 text-base text-foreground placeholder-foreground/20 font-medium"
+                      className="w-full bg-transparent border-none outline-none resize-none max-h-48 min-h-[40px] py-1 text-base text-foreground placeholder-foreground/50 font-medium"
                       rows={1}
                   />
               </div>
@@ -456,7 +456,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   whileHover={{ scale: 1.05 }}
                   onClick={handleSend}
                   disabled={!inputText.trim()}
-                  className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center transition-all ${
+                  className={`w-14 h-14 rounded-[2rem] flex items-center justify-center transition-all ${
                       inputText.trim() 
                       ? 'bg-primary text-white shadow-2xl shadow-primary/20' 
                       : 'bg-foreground/5 text-foreground/20'

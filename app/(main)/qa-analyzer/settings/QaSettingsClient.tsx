@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { QAIndicator, TeamType, Category } from '../lib/qa-types';
 import { createIndicatorAction, updateIndicatorAction, deleteIndicatorAction } from '../actions';
 
-const TEAMS: TeamType[] = ['Telepon', 'Chat', 'Email'];
+const TEAMS: TeamType[] = ['Telepon', 'Chat', 'Email', 'CSO'];
 const CAT_LABEL: Record<Category, string> = {
   non_critical: 'Non-Critical Error',
   critical: 'Critical Error',

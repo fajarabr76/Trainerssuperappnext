@@ -307,19 +307,26 @@ export async function createPerfectScoreSessionAction(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Tidak terautentikasi');
 
-  // get pesertas tim
+  // get pesertas info
   const { data: agent, error: agentErr } = await supabase
     .from('profiler_peserta')
-    .select('tim')
+    .select('tim, jabatan')
     .eq('id', peserta_id)
     .single();
   if (agentErr || !agent) throw new Error('Agent tidak ditemukan');
+
+  let teamToFetch = agent.tim;
+  const isMix = agent.tim?.toLowerCase().trim() === 'mix';
+  const isCso = agent.jabatan?.toLowerCase().trim() === 'cso';
+  if (isMix && isCso) {
+    teamToFetch = 'CSO';
+  }
 
   // get indicators
   const { data: inds, error: indsErr } = await supabase
     .from('qa_indicators')
     .select('id')
-    .eq('team_type', agent.tim);
+    .eq('team_type', teamToFetch);
   if (indsErr || !inds) throw new Error('Gagal mengambil parameter untuk agent ini');
 
   if (inds.length === 0) throw new Error('Tidak ada parameter untuk tim agent ini');

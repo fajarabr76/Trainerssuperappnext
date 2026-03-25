@@ -124,7 +124,7 @@ export default function YearSidebar({
                           className={`flex-1 flex items-center gap-3 p-2.5 rounded-xl text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
                             selectedFolderId === folder.id
                               ? 'bg-primary text-primary-foreground font-bold shadow-sm'
-                              : 'hover:bg-accent/50 text-foreground/50'
+                              : 'hover:bg-accent/50 text-foreground/70'
                           }`}
                         >
                           <div className="flex-shrink-0">
@@ -137,7 +137,7 @@ export default function YearSidebar({
                             )}
                           </div>
                           <span className="flex-1 text-left truncate tracking-tight">{folder.name}</span>
-                          <span className={`text-[10px] font-mono ${selectedFolderId === folder.id ? 'opacity-100' : 'opacity-40'}`}>
+                          <span className={`text-[10px] font-mono ${selectedFolderId === folder.id ? 'opacity-100' : 'opacity-70'}`}>
                             {counts[folder.name] || 0}
                           </span>
                         </button>

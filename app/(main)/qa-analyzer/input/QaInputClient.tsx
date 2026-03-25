@@ -35,7 +35,7 @@ const supabase = createClient();
 
 const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 type Step = 'folder' | 'agent' | 'period' | 'list';
-interface Agent { id: string; nama: string; tim: string; batch: string; }
+interface Agent { id: string; nama: string; tim: string; batch: string; jabatan: string; }
 
 const NILAI_OPTIONS = [
   { v: 0, sub: 'Sangat Tidak Sesuai', active: 'bg-red-500 text-white border-transparent',    inactive: 'bg-gray-50 dark:bg-white/[0.04] border-gray-200 dark:border-white/10 text-gray-400 dark:text-gray-500' },
@@ -383,11 +383,13 @@ export default function QaInputClient({
 
   const handleSelectAgent = async (agent: Agent) => {
     setSelectedAgent(agent); setSelectedPeriod(null); setTemuan([]);
-    // indicators are now fetched via server-side props if agent is initial, 
-    // but if we just selected an agent, we might need to fetch them.
-    // However, since we might switch teams, let's just fetch them client-side for now 
-    // OR use a server action. Let's use the existing supabase client for this since it's just a simple read.
-    const { data: inds } = await supabase.from('qa_indicators').select('*').eq('team_type', agent.tim).order('category').order('bobot', { ascending: false });
+    let teamToFetch = agent.tim;
+    const isMix = agent.tim?.toLowerCase().trim() === 'mix';
+    const isCso = agent.jabatan?.toLowerCase().trim() === 'cso';
+    if (isMix && isCso) {
+      teamToFetch = 'CSO';
+    }
+    const { data: inds } = await supabase.from('qa_indicators').select('*').eq('team_type', teamToFetch).order('category').order('bobot', { ascending: false });
     setIndicators(inds || []);
     setStep('period');
   };

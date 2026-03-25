@@ -15,11 +15,12 @@ import { ArrowLeft, History, Settings, Play, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { createClient } from '@/app/lib/supabase/client';
 
+const supabase = createClient();
+
 const PdktPage: React.FC = () => {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [view, setView] = useState<'home' | 'email'>('home');
-  const supabase = createClient();
 
   // ── Helper aman untuk konversi date ──────────────────────
   const safeDate = (val: any): Date => {
@@ -70,7 +71,15 @@ const PdktPage: React.FC = () => {
         .eq('user_id', user.id)
         .order('timestamp', { ascending: false });
 
-      if (error) { console.error('Error fetching PDKT history:', error); return; }
+      if (error) { 
+        console.error('Error fetching PDKT history:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        }); 
+        return; 
+      }
 
       if (data) {
         setHistory(data.map(item => ({
@@ -269,7 +278,7 @@ const PdktPage: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="max-w-xl w-full bg-card/40 backdrop-blur-3xl rounded-[3rem] p-12 md:p-16 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] border border-white/10 relative z-10"
+            className="max-w-xl w-full bg-card/40 backdrop-blur-3xl rounded-[2rem] p-6 md:p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] border border-white/10 relative z-10"
           >
             <div className="absolute top-8 left-8 z-20">
               <Link href="/dashboard" className="w-14 h-14 flex items-center justify-center rounded-2xl bg-foreground/5 text-foreground/40 hover:text-foreground hover:bg-foreground/10 transition-all group border border-transparent hover:border-border/50">
@@ -277,24 +286,24 @@ const PdktPage: React.FC = () => {
               </Link>
             </div>
 
-            <div className="text-center mb-16 mt-10">
+            <div className="text-center mb-8 mt-4">
               <motion.div 
                 initial={{ rotate: -15, scale: 0.8, opacity: 0 }} 
                 animate={{ rotate: 0, scale: 1, opacity: 1 }} 
                 transition={{ delay: 0.2, type: 'spring', stiffness: 150 }} 
-                className="w-32 h-32 bg-gradient-to-br from-primary to-primary/80 rounded-[3rem] mx-auto mb-12 flex items-center justify-center shadow-[0_20px_40px_-10px_rgba(var(--primary),0.3)] relative group cursor-default"
+                className="w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-[0_20px_40px_-10px_rgba(var(--primary),0.3)] relative group cursor-default"
               >
-                <div className="absolute inset-0 bg-white/20 rounded-[3rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                <Mail className="h-16 w-16 text-primary-foreground relative z-10" />
+                <div className="absolute inset-0 bg-white/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Mail className="h-10 w-10 text-primary-foreground relative z-10" />
               </motion.div>
               
-              <h1 className="text-6xl font-black text-foreground mb-4 tracking-tighter">PDKT</h1>
-              <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-8">
+              <h1 className="text-4xl font-black text-foreground mb-2 tracking-tighter">PDKT</h1>
+              <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-4">
                 <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
                 <h2 className="text-[10px] font-black text-primary uppercase tracking-[0.4em]">Paham Dulu Kasih Tanggapan</h2>
               </div>
               
-              <p className="text-foreground/40 text-base leading-relaxed max-w-sm mx-auto font-medium">
+              <p className="text-foreground/70 text-[13px] leading-relaxed max-w-sm mx-auto font-medium">
                 Asah kemampuan penulisan komunikasi formal Anda melalui simulasi email yang cerdas dan responsif.
               </p>
             </div>
@@ -324,7 +333,7 @@ const PdktPage: React.FC = () => {
                   whileHover={{ scale: 1.02, y: -2 }} 
                   whileTap={{ scale: 0.98 }} 
                   onClick={() => setIsSettingsOpen(true)} 
-                  className="bg-foreground/5 hover:bg-foreground/10 text-foreground/60 h-20 rounded-[1.5rem] font-extrabold flex items-center justify-center gap-3 transition-all border border-border/50 hover:border-border "
+                  className="bg-foreground/5 hover:bg-foreground/10 text-foreground/60 h-20 rounded-[2rem] font-extrabold flex items-center justify-center gap-3 transition-all border border-border/50 hover:border-border "
                 >
                   <Settings className="w-5 h-5" />
                   <span className="text-[11px] uppercase tracking-widest">Pengaturan</span>
@@ -333,7 +342,7 @@ const PdktPage: React.FC = () => {
                   whileHover={{ scale: 1.02, y: -2 }} 
                   whileTap={{ scale: 0.98 }} 
                   onClick={() => setIsHistoryOpen(true)} 
-                  className="bg-foreground/5 hover:bg-foreground/10 text-foreground/60 h-20 rounded-[1.5rem] font-extrabold flex items-center justify-center gap-3 transition-all border border-border/50 hover:border-border "
+                  className="bg-foreground/5 hover:bg-foreground/10 text-foreground/60 h-20 rounded-[2rem] font-extrabold flex items-center justify-center gap-3 transition-all border border-border/50 hover:border-border "
                 >
                   <History className="w-5 h-5" />
                   <span className="text-[11px] uppercase tracking-widest">Riwayat</span>
@@ -341,13 +350,9 @@ const PdktPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="mt-16 pt-8 border-t border-border/50 flex flex-col items-center gap-4">
-              <div className="flex items-center gap-6 opacity-20 grayscale brightness-0 inversion-filter dark:invert transition-all hover:opacity-40">
-                <div className="text-[10px] font-black tracking-[0.3em]">GOOGLE GEMINI</div>
-                <div className="w-1.5 h-1.5 bg-foreground rounded-full" />
-                <div className="text-[10px] font-black tracking-[0.3em]">KONTAK OJK 157</div>
-              </div>
-              <p className="text-[9px] font-bold text-foreground/20 uppercase tracking-[0.2em]">Trainers SuperApp · Simulation Module v2.0</p>
+            <div className="mt-16 pt-8 border-t border-border/50 flex flex-col items-center gap-1.5">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground/60">Powered by Google Gemini</p>
+              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-foreground/40">Trainers SuperApp | Made by Fajar & Ratna</p>
             </div>
           </motion.div>
         ) : (

@@ -51,7 +51,7 @@ export default async function QaInputPage({ searchParams }: PageProps) {
     if (agentIdParam) {
       try {
         initialAgent = await qaServiceServer.getAgentMiniProfile(agentIdParam);
-        initialIndicators = await qaServiceServer.getIndicators(initialAgent.tim as TeamType);
+        initialIndicators = await qaServiceServer.getIndicators(initialAgent.tim, initialAgent.jabatan);
         initialStep = 'period';
 
         if (periodIdParam) {

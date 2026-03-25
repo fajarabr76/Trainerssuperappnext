@@ -34,7 +34,8 @@ export default function AppKetik() {
   // Get user on mount
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) console.error('Error getting user:', error);
       setUser(user);
     };
     getUser();
@@ -60,7 +61,15 @@ export default function AppKetik() {
         .eq('user_id', user.id)
         .order('date', { ascending: false });
 
-      if (error) { console.error('Error fetching history:', error); return; }
+      if (error) { 
+        console.error('Error fetching history:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        }); 
+        return; 
+      }
 
       if (data) {
         setHistory(data.map(item => ({
@@ -223,7 +232,7 @@ export default function AppKetik() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.05 }}
-            className="max-w-xl w-full bg-card/40 backdrop-blur-3xl rounded-[3rem] p-12 md:p-16 shadow-3xl border border-border/50 relative z-10 overflow-hidden"
+            className="max-w-xl w-full bg-card/40 backdrop-blur-3xl rounded-[2rem] p-6 md:p-8 shadow-3xl border border-border/50 relative z-10 overflow-hidden"
           >
             {/* Background Glow */}
             <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 rounded-full blur-[80px] -mr-24 -mt-24 pointer-events-none" />
@@ -235,19 +244,19 @@ export default function AppKetik() {
               </Link>
             </div>
 
-            <div className="text-center mb-12 mt-8 relative z-10">
+            <div className="text-center mb-8 mt-4 relative z-10">
               <motion.div 
                 initial={{ rotate: -10, scale: 0.8 }} 
                 animate={{ rotate: 0, scale: 1 }} 
                 transition={{ delay: 0.2, type: 'spring', stiffness: 200 }} 
-                className="w-28 h-28 bg-primary rounded-[2.5rem] mx-auto mb-10 flex items-center justify-center shadow-2xl shadow-primary/30 relative"
+                className="w-20 h-20 bg-primary rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-2xl shadow-primary/30 relative"
               >
-                <MessageSquare className="w-14 h-14 text-white" />
-                <div className="absolute inset-0 bg-white/20 rounded-[2.5rem] blur-xl opacity-0 hover:opacity-100 transition-opacity duration-500" />
+                <MessageSquare className="w-10 h-10 text-white" />
+                <div className="absolute inset-0 bg-white/20 rounded-2xl blur-xl opacity-0 hover:opacity-100 transition-opacity duration-500" />
               </motion.div>
-              <h1 className="text-6xl font-black text-foreground mb-4 tracking-tighter text-center">Ketik</h1>
-              <h2 className="text-[10px] font-black text-primary uppercase tracking-[0.4em] mb-6 opacity-60">Kelas Etika & Trik Komunikasi</h2>
-              <p className="text-foreground/40 text-sm leading-relaxed max-w-sm mx-auto font-medium">
+              <h1 className="text-4xl font-black text-foreground mb-2 tracking-tighter text-center">Ketik</h1>
+              <h2 className="text-[10px] font-black text-primary uppercase tracking-[0.4em] mb-4 opacity-80">Kelas Etika & Trik Komunikasi</h2>
+              <p className="text-foreground/70 text-xs leading-relaxed max-w-sm mx-auto font-medium">
                 Asah kemampuan penanganan chat Anda. Tingkatkan kualitas layanan melalui komunikasi tulis yang empatik, profesional, dan solutif.
               </p>
             </div>
@@ -258,7 +267,7 @@ export default function AppKetik() {
                 whileTap={{ scale: 0.98 }} 
                 onClick={startSimulation} 
                 disabled={isLoading} 
-                className="w-full bg-primary text-white h-16 rounded-[1.5rem] font-black text-xs uppercase tracking-widest shadow-2xl shadow-primary/20 flex items-center justify-center gap-3 transition-all hover:bg-primary/90"
+                className="w-full bg-primary text-white h-20 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl shadow-primary/20 flex items-center justify-center gap-3 transition-all hover:bg-primary/90"
               >
                 {isLoading ? <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Play className="w-4 h-4 fill-current" /><span>Mulai Simulasi</span></>}
               </motion.button>
@@ -268,7 +277,7 @@ export default function AppKetik() {
                   whileHover={{ scale: 1.02, y: -1 }} 
                   whileTap={{ scale: 0.98 }} 
                   onClick={() => setIsSettingsOpen(true)} 
-                  className="bg-foreground/5 hover:bg-foreground/10 text-foreground/60 h-16 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 transition-all border border-border/50"
+                  className="bg-foreground/5 hover:bg-foreground/10 text-foreground/60 h-20 rounded-[2rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 transition-all border border-border/50"
                 >
                   <Settings className="w-4 h-4 opacity-40" /><span>Opsi</span>
                 </motion.button>
@@ -276,18 +285,16 @@ export default function AppKetik() {
                   whileHover={{ scale: 1.02, y: -1 }} 
                   whileTap={{ scale: 0.98 }} 
                   onClick={() => setIsHistoryOpen(true)} 
-                  className="bg-foreground/5 hover:bg-foreground/10 text-foreground/60 h-16 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 transition-all border border-border/50"
+                  className="bg-foreground/5 hover:bg-foreground/10 text-foreground/60 h-20 rounded-[2rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 transition-all border border-border/50"
                 >
                   <History className="w-4 h-4 opacity-40" /><span>Riwayat</span>
                 </motion.button>
               </div>
             </div>
 
-            <div className="mt-12 flex flex-col items-center gap-2">
-              <div className="text-[9px] text-foreground/20 font-black uppercase tracking-[0.2em] flex flex-col gap-1 items-center text-center">
-                <span className="text-foreground/10 font-black tracking-[0.4em] mb-1">POWERED BY GOOGLE GEMINI</span>
-                <span className="opacity-30">TRAINERS SUPERAPP · KONTAK OJK 157 EDITION</span>
-              </div>
+            <div className="mt-12 flex flex-col items-center gap-1.5">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground/60">Powered by Google Gemini</p>
+              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-foreground/40">Trainers SuperApp | Made by Fajar & Ratna</p>
             </div>
           </motion.div>
         ) : (

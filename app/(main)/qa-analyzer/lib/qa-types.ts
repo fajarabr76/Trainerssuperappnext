@@ -1,5 +1,5 @@
 // ── Team & Category ───────────────────────────────────────────
-export type TeamType = 'Telepon' | 'Chat' | 'Email' | 'telepon' | 'chat' | 'email';
+export type TeamType = 'Telepon' | 'Chat' | 'Email' | 'CSO' | 'telepon' | 'chat' | 'email' | 'cso';
 export type Category = 'critical' | 'non_critical';
 
 // ── Interfaces ────────────────────────────────────────────────

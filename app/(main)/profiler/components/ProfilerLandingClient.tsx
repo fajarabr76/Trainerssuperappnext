@@ -194,7 +194,7 @@ export default function ProfilerLandingClient({
         <div className="flex-1">
           <button
             onClick={() => router.push('/dashboard')}
-            className="flex items-center gap-3 text-xs font-black uppercase tracking-[0.2em] text-foreground/40 hover:text-primary transition-all group"
+            className="flex items-center gap-3 text-xs font-black uppercase tracking-[0.2em] text-foreground/70 hover:text-primary transition-all group"
           >
             <div className="w-8 h-8 rounded-xl bg-accent/50 flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-all">
               <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
@@ -210,14 +210,14 @@ export default function ProfilerLandingClient({
           </div>
           <div className="flex flex-col">
             <span className="text-sm font-black tracking-tighter uppercase leading-none">KTP</span>
-            <span className="text-[10px] font-mono uppercase tracking-[0.2em] opacity-30">Kotak Tool Profil</span>
+            <span className="text-[10px] font-mono uppercase tracking-[0.2em] opacity-70">Kotak Tool Profil</span>
           </div>
         </div>
         
         <div className="flex-1 flex justify-end">
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="w-10 h-10 flex items-center justify-center rounded-2xl bg-accent/30 text-foreground/40 hover:text-primary transition-all border border-border/40 hover:shadow-lg hover:shadow-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+            className="w-10 h-10 flex items-center justify-center rounded-2xl bg-accent/30 text-foreground/70 hover:text-primary transition-all border border-border/40 hover:shadow-lg hover:shadow-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
           >
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>

@@ -187,7 +187,7 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
                 className={`flex w-full ${email.isAgent ? 'justify-end' : 'justify-start'}`}
               >
                 <div className={`flex flex-col w-full max-w-[98%] md:max-w-3xl mx-auto`}>
-                  <div className={`rounded-[2rem] border p-6 md:p-8 shadow-xl backdrop-blur-sm bg-card/40 border-border/30 transition-all hover:border-primary/20 ${email.isAgent ? 'rounded-tr-none border-r-primary/20' : 'rounded-tl-none border-l-primary/20'}`}>
+                  <div className={`rounded-[2rem] border px-8 py-8 shadow-xl backdrop-blur-sm bg-card/40 border-border/30 transition-all hover:border-primary/20 ${email.isAgent ? 'rounded-tr-none border-r-primary/20' : 'rounded-tl-none border-l-primary/20'}`}>
                     
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-6 border-b border-border/30 pb-6">
                       <div className="flex items-center gap-5 min-w-0">
@@ -202,12 +202,12 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
                           <div className="font-black text-foreground text-xl tracking-tighter truncate">
                             {email.isAgent ? 'Customer Service (Anda)' : config.identity.name}
                           </div>
-                          <div className="text-[10px] font-black uppercase tracking-widest text-foreground/30 truncate mt-1">
+                          <div className="text-[10px] font-black uppercase tracking-widest text-foreground/60 truncate mt-1">
                             {email.isAgent ? 'cc.ojk@ojk.go.id' : email.from}
                           </div>
                         </div>
                       </div>
-                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/20 whitespace-nowrap text-left sm:text-right">
+                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/50 whitespace-nowrap text-left sm:text-right">
                         <div className="flex items-center sm:justify-end gap-2 mb-1">
                           <Clock className="w-3 h-3" />
                           <span>{safeDate(email.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
@@ -222,7 +222,7 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
                       </h3>
                     </div>
 
-                    <div className="text-base text-foreground/80 whitespace-pre-wrap font-medium leading-relaxed font-sans">
+                    <div className="text-base text-foreground whitespace-pre-wrap font-medium leading-relaxed font-sans">
                       {email.body}
                     </div>
 

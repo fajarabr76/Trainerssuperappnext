@@ -41,12 +41,18 @@ export interface CriticalVsNonCriticalData {
 
 export const qaServiceServer = {
   // ── Indicators ───────────────────────────────────────────────
-  async getIndicators(team_type?: TeamType): Promise<QAIndicator[]> {
+  async getIndicators(team_type?: string, jabatan?: string): Promise<QAIndicator[]> {
     const supabase = await createClient();
     let query = supabase
       .from('qa_indicators').select('*')
       .order('category').order('bobot', { ascending: false }).order('created_at', { ascending: true });
-    if (team_type) query = query.eq('team_type', team_type);
+    
+    let targetTeam = team_type;
+    if (team_type?.toLowerCase().trim() === 'mix' && jabatan?.toLowerCase().trim() === 'cso') {
+      targetTeam = 'CSO';
+    }
+
+    if (targetTeam) query = query.eq('team_type', targetTeam);
     const { data, error } = await query;
     if (error) throw error;
     return data ?? [];
@@ -216,7 +222,7 @@ export const qaServiceServer = {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('profiler_peserta')
-      .select('id, nama, tim, batch_name')
+      .select('id, nama, tim, batch_name, jabatan')
       .eq('batch_name', batch)
       .order('nama');
     if (error) throw error;
@@ -224,7 +230,8 @@ export const qaServiceServer = {
       id: a.id,
       nama: a.nama,
       tim: a.tim,
-      batch: a.batch_name
+      batch: a.batch_name,
+      jabatan: a.jabatan
     }));
   },
 

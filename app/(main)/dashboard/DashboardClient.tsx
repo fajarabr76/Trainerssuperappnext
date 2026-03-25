@@ -132,7 +132,7 @@ export default function DashboardClient({
         <div className="sticky top-0 z-30 flex items-center justify-between px-8 py-5 bg-background/60 backdrop-blur-xl border-b border-border/40">
           <div className="flex items-center gap-4">
             <div className="hidden md:flex flex-col">
-              <span className="text-[10px] font-mono uppercase tracking-widest opacity-40">Status Sesi</span>
+              <span className="text-[10px] font-mono uppercase tracking-widest opacity-70">Status Sesi</span>
               <span className="text-xs font-bold text-emerald-500 flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Aktif & Terenkripsi
@@ -158,7 +158,7 @@ export default function DashboardClient({
               transition={{ duration: 0.5 }}
             >
               <h1 className="text-4xl lg:text-5xl font-bold tracking-tight mb-4">Dashboard</h1>
-              <p className="text-lg text-foreground/50 font-light max-w-2xl leading-relaxed">
+              <p className="text-lg text-foreground/70 font-light max-w-2xl leading-relaxed">
                 Selamat datang di pusat kendali pelatihan <span className="text-foreground font-medium">Kontak OJK 157</span>. 
                 Kelola simulasi, pantau performa, dan tingkatkan kualitas layanan melalui modul terintegrasi kami.
               </p>
@@ -193,7 +193,7 @@ export default function DashboardClient({
                       </div>
                     </div>
                     <h3 className="text-lg font-bold mb-1 tracking-tight group-hover:text-primary transition-colors">{module.title}</h3>
-                    <p className="text-sm text-foreground/50 leading-relaxed font-light mb-6">
+                    <p className="text-sm text-foreground/70 leading-relaxed font-light mb-6">
                       {module.description}
                     </p>
                     <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-primary opacity-0 group-hover:opacity-100 transition-all duration-300">
