@@ -27,7 +27,8 @@ import {
   createTemuanAction, 
   updateTemuanAction, 
   deleteTemuanAction,
-  getAgentsByFolderAction
+  getAgentsByFolderAction,
+  createPerfectScoreSessionAction
 } from '../actions';
 
 const supabase = createClient();
@@ -489,6 +490,24 @@ export default function QaInputClient({
     } catch (err: any) { setErrorMsg(err.message); } finally { setImporting(false); }
   };
 
+  const handlePerfectScore = async () => {
+    if (!selectedAgent || !selectedPeriod) return;
+    const ticket = prompt('Masukkan No. Tiket (Opsional, biarkan kosong untuk sesi internal):');
+    if (ticket === null) return; // cancelled
+    
+    setSaving(true); setErrorMsg(null);
+    try {
+      const created = await createPerfectScoreSessionAction(selectedAgent.id, selectedPeriod.id, ticket);
+      setTemuan(prev => [...created.reverse(), ...prev]);
+      setSuccessMsg(`Sesi Tanpa Temuan berhasil ditambahkan! (${created.length} parameter)`);
+      setTimeout(() => setSuccessMsg(null), 3000);
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const resetToStep = (target: Step) => {
     setErrorMsg(null); setSuccessMsg(null); resetForm(); setDeletingId(null); setEditingId(null);
     if (target === 'folder') { setSelectedFolder(null); setSelectedAgent(null); setSelectedPeriod(null); setTemuan([]); }
@@ -627,6 +646,7 @@ export default function QaInputClient({
                   {!showForm && !showImport && (
                     <div className="flex items-center gap-2">
                       <button onClick={() => { setShowImport(true); setImportTab('download'); setImportRows([]); setImportFile(null); }} className="flex items-center gap-2 px-4 py-2.5 bg-card border border-border hover:border-primary/40 rounded-xl text-sm font-semibold transition-all"><FileSpreadsheet className="w-4 h-4"/>Import</button>
+                      <button onClick={handlePerfectScore} disabled={saving} className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 text-white hover:bg-emerald-600 rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-500/20"><Check className="w-4 h-4"/>Sesi Tanpa Temuan</button>
                       <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold transition-all shadow-lg shadow-primary/20"><Plus className="w-4 h-4"/>Tambah</button>
                     </div>
                   )}

@@ -241,9 +241,17 @@ export const qaServiceServer = {
     const supabase = await createClient();
     const pIds = await this.resolvePeriodIds(periodId);
 
+    // 1. Fetch Population (All Agents in selected folders)
+    let agentQuery = supabase.from('profiler_peserta').select('id, tim');
+    if (folderIds.length > 0) agentQuery = agentQuery.in('batch_name', folderIds);
+    const { data: allAgentsData } = await agentQuery;
+    const allAgents = allAgentsData || [];
+    const totalAgents = allAgents.length;
+
+    // 2. Fetch Findings
     let query = supabase
       .from('qa_temuan')
-      .select('*, qa_indicators(category), profiler_peserta!inner(batch_name)')
+      .select('*, qa_indicators(category), profiler_peserta!inner(batch_name, tim)')
       .in('period_id', pIds);
 
     if (folderIds.length > 0) {
@@ -252,39 +260,40 @@ export const qaServiceServer = {
 
     const { data, error } = await query;
     if (error || !data) {
-      return { totalDefects: 0, avgDefectsPerAudit: 0, fatalErrorRate: 0, complianceRate: 0 };
+      return { totalDefects: 0, avgDefectsPerAudit: 0, zeroErrorRate: totalAgents > 0 ? 100 : 0, complianceRate: totalAgents > 0 ? 100 : 0, complianceCount: totalAgents, totalAgents };
     }
 
-    // 1. Fetch all indicators (needed for scoring)
+    // 3. Fetch all indicators (needed for scoring)
     const { data: indicators } = await supabase.from('qa_indicators').select('*');
     const allIndicators = (indicators || []) as QAIndicator[];
-
-    const totalAudits = new Set(data.map(d => d.no_tiket)).size;
-    const uniqueAgents = new Set(data.map(d => d.peserta_id));
-    const totalAgents = uniqueAgents.size;
     
     const defects = data.filter(d => d.nilai < 3);
-    const fatalErrors = data.filter(d => d.nilai === 0 && d.qa_indicators?.category === 'critical');
 
-    // 2. Calculate Compliance Rate: % of agents with overall score >= 95%
+    // 4. Calculate Zero Error Rate & Compliance Rate over ENTIRE POPULATION
+    let agentsWithZeroError = 0;
     let agentsWithPassScore = 0;
     
     if (totalAgents > 0) {
       const agentTemuanMap: Record<string, any[]> = {};
-      const agentTimMap: Record<string, string> = {};
 
       data.forEach(d => {
         if (!agentTemuanMap[d.peserta_id]) {
           agentTemuanMap[d.peserta_id] = [];
-          agentTimMap[d.peserta_id] = (d.profiler_peserta as any)?.tim || 'Telepon';
         }
         agentTemuanMap[d.peserta_id].push({ indicator_id: d.indicator_id, nilai: d.nilai, no_tiket: d.no_tiket });
       });
 
-      uniqueAgents.forEach(agentId => {
-        const temuanList = agentTemuanMap[agentId] || [];
-        const agentTim = agentTimMap[agentId];
-        const teamInds = allIndicators.filter(i => i.team_type === agentTim);
+      allAgents.forEach(agent => {
+        const temuanList = agentTemuanMap[agent.id] || [];
+        
+        // Zero Error Check
+        const hasDefect = temuanList.some(t => t.nilai < 3);
+        if (!hasDefect) {
+          agentsWithZeroError++;
+        }
+
+        // Compliance Check
+        const teamInds = allIndicators.filter(i => i.team_type === agent.tim);
         const result = calculateQAScoreFromTemuan(teamInds, temuanList);
         if (result.finalScore >= 95) {
           agentsWithPassScore++;
@@ -295,12 +304,14 @@ export const qaServiceServer = {
     return {
       totalDefects: defects.length,
       avgDefectsPerAudit: totalAgents > 0 ? defects.length / totalAgents : 0,
-      fatalErrorRate: totalAgents > 0 ? (fatalErrors.length / totalAgents) * 100 : 0,
-      complianceRate: totalAgents > 0 ? (agentsWithPassScore / totalAgents) * 100 : 0
+      zeroErrorRate: totalAgents > 0 ? (agentsWithZeroError / totalAgents) * 100 : 0,
+      complianceRate: totalAgents > 0 ? (agentsWithPassScore / totalAgents) * 100 : 0,
+      complianceCount: agentsWithPassScore,
+      totalAgents: totalAgents
     };
   },
 
-  async getKpiSparkline(folderIds: string[], periodId: string | undefined | null, metric: 'total' | 'avg' | 'fatal' | 'compliance', timeframe: '3m' | '6m' | 'all' = '3m'): Promise<TrendPoint[]> {
+  async getKpiSparkline(folderIds: string[], periodId: string | undefined | null, metric: 'total' | 'avg' | 'zero_error' | 'compliance', timeframe: '3m' | '6m' | 'all' = '3m'): Promise<TrendPoint[]> {
     const supabase = await createClient();
     // 1. Fetch recent periods
     let periodQuery = supabase.from('qa_periods').select('*').order('year', { ascending: false }).order('month', { ascending: false });
@@ -319,7 +330,7 @@ export const qaServiceServer = {
 
     let temuanQuery = supabase
       .from('qa_temuan')
-      .select('nilai, no_tiket, period_id, qa_indicators(category), profiler_peserta!inner(batch_name)')
+      .select('nilai, no_tiket, period_id, peserta_id, indicator_id, qa_indicators(category), profiler_peserta!inner(batch_name, tim)')
       .in('period_id', pIds);
 
     if (folderIds.length > 0) {
@@ -328,6 +339,20 @@ export const qaServiceServer = {
 
     const { data: temuan, error: tError } = await temuanQuery;
     if (tError) return sortedPeriods.map(p => ({ label: `${MONTHS_SHORT[p.month - 1]} ${String(p.year).slice(-2)}`, value: 0 }));
+
+    let allIndicators: QAIndicator[] = [];
+    if (metric === 'compliance') {
+      const { data: inds } = await supabase.from('qa_indicators').select('*');
+      allIndicators = (inds || []) as QAIndicator[];
+    }
+
+    // Fetch population of agents for the exact selected folders
+    // We assume the population is relatively constant.
+    let agentQuery = supabase.from('profiler_peserta').select('id, tim');
+    if (folderIds.length > 0) agentQuery = agentQuery.in('batch_name', folderIds);
+    const { data: allAgentsData } = await agentQuery;
+    const allAgents = allAgentsData || [];
+    const totalAgents = allAgents.length;
 
     const temuanByPeriod = (temuan || []).reduce((acc: any, t: any) => {
       if (!acc[t.period_id]) acc[t.period_id] = [];
@@ -340,39 +365,36 @@ export const qaServiceServer = {
     return sortedPeriods.map(p => {
       const pTemuan = temuanByPeriod[p.id] || [];
       let value = 0;
-      const totalAudits = new Set(pTemuan.map((t: any) => t.no_tiket)).size;
 
-      if (metric === 'total') value = pTemuan.filter((t: any) => t.nilai < 3).length;
-      else if (metric === 'avg') {
-        const uniqueAgents = new Set(pTemuan.map((t: any) => t.peserta_id)).size;
-        value = uniqueAgents > 0 ? pTemuan.filter((t: any) => t.nilai < 3).length / uniqueAgents : 0;
+      if (metric === 'total') {
+        value = pTemuan.filter((t: any) => t.nilai < 3).length;
       }
-      else if (metric === 'fatal') {
-        const uniqueAgents = new Set(pTemuan.map((t: any) => t.peserta_id)).size;
-        value = uniqueAgents > 0 ? (pTemuan.filter((t: any) => t.nilai === 0 && t.qa_indicators?.category === 'critical').length / uniqueAgents) * 100 : 0;
+      else if (metric === 'avg') {
+        value = totalAgents > 0 ? pTemuan.filter((t: any) => t.nilai < 3).length / totalAgents : 0;
+      }
+      else if (metric === 'zero_error') {
+        if (totalAgents > 0) {
+          let zeroErrorCount = 0;
+          allAgents.forEach(agent => {
+            const hasDefect = pTemuan.some((t: any) => t.peserta_id === agent.id && t.nilai < 3);
+            if (!hasDefect) zeroErrorCount++;
+          });
+          value = (zeroErrorCount / totalAgents) * 100;
+        }
       }
       else if (metric === 'compliance') {
-        const uniqueAgents = Array.from(new Set(pTemuan.map((t: any) => t.peserta_id)));
-        const totalAgents = uniqueAgents.length;
-        
         if (totalAgents > 0) {
-          // We need all indicators for scoring
-          // In a real app we might cache this, but for sparkline we'll do it here
-          // We'll need a way to get indicators efficiently. For now let's assume we can fetch them.
-          // Note: This might be slightly slow for multi-period sparklines if not optimized.
-          const agentTemuanMap: Record<string, any[]> = {};
-          pTemuan.forEach((t: any) => {
-            if (!agentTemuanMap[t.peserta_id]) agentTemuanMap[t.peserta_id] = [];
-            agentTemuanMap[t.peserta_id].push(t);
-          });
-
           let passCount = 0;
-          // Note: allIndicators is not available in this loop scope easily without fetching.
-          // Let's assume for now we use a simpler compliance check or we fetch indicators once.
-          // To be safe, let's just use the previous logic for sparkline if re-fetching is too complex
-          // BUT the user wants consistency. Let's fix it properly.
-          // Actually, let's fetch indicators once outside this loop in getKpiSparkline.
-          value = pTemuan.length > 0 ? (pTemuan.filter((t: any) => t.nilai === 3).length / pTemuan.length) * 100 : 0;
+          allAgents.forEach(agent => {
+            const agentTemuans = pTemuan.filter((t: any) => t.peserta_id === agent.id);
+            const teamInds = allIndicators.filter(i => i.team_type === agent.tim);
+            const result = calculateQAScoreFromTemuan(
+              teamInds,
+              agentTemuans.map((t: any) => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket }))
+            );
+            if (result.finalScore >= 95) passCount++;
+          });
+          value = passCount;
         }
       }
 
@@ -500,7 +522,7 @@ export const qaServiceServer = {
       return { agentId: id, nama: info.nama, batch: info.batch_name, defects, score: result.finalScore, hasCritical };
     });
 
-    return agentStats.sort((a, b) => a.score - b.score).slice(0, limit);
+    return agentStats.sort((a, b) => b.defects - a.defects).slice(0, limit);
   },
 
   async getParetoData(folderIds: string[], periodId: string): Promise<ParetoData[]> {

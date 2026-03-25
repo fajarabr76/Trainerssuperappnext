@@ -295,3 +295,61 @@ export async function getAgentsByFolderAction(batch: string) {
   const { qaServiceServer } = await import('./services/qaService.server');
   return await qaServiceServer.getAgentsByFolder(batch);
 }
+
+export async function createPerfectScoreSessionAction(
+  peserta_id: string,
+  period_id: string,
+  no_tiket?: string
+) {
+  const { createClient } = await import('@/app/lib/supabase/server');
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Tidak terautentikasi');
+
+  // get pesertas tim
+  const { data: agent, error: agentErr } = await supabase
+    .from('profiler_peserta')
+    .select('tim')
+    .eq('id', peserta_id)
+    .single();
+  if (agentErr || !agent) throw new Error('Agent tidak ditemukan');
+
+  // get indicators
+  const { data: inds, error: indsErr } = await supabase
+    .from('qa_indicators')
+    .select('id')
+    .eq('team_type', agent.tim);
+  if (indsErr || !inds) throw new Error('Gagal mengambil parameter untuk agent ini');
+
+  if (inds.length === 0) throw new Error('Tidak ada parameter untuk tim agent ini');
+
+  const insertData = inds.map((ind: any) => ({
+    peserta_id,
+    period_id,
+    indicator_id: ind.id,
+    no_tiket: no_tiket || undefined,
+    nilai: 3
+  }));
+
+  const { data, error } = await supabase
+    .from('qa_temuan')
+    .insert(insertData)
+    .select('*, qa_indicators(id, name, category, bobot, has_na, team_type), qa_periods(id, month, year)');
+  
+  if (error) throw error;
+
+  await supabase.from('activity_logs').insert({
+    user_id: user.id,
+    user_name: user.email,
+    action: `Input Sesi Tanpa Temuan SIDAK untuk Peserta ID: ${peserta_id}`,
+    module: 'SIDAK',
+    type: 'add'
+  });
+
+  revalidatePath('/qa-analyzer/input');
+  revalidatePath('/qa-analyzer/dashboard');
+  revalidatePath(`/qa-analyzer/agents/${peserta_id}`);
+  
+  return data ?? [];
+}

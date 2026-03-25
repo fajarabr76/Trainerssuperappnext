@@ -14,7 +14,15 @@ const TREND_COLORS = [
   '#06B6D4'  // Cyan
 ];
 
-export default function ParamTrendChart({ data, showParameters = true }: { data: { labels: string[], datasets: any[] }, showParameters?: boolean }) {
+export default function ParamTrendChart({ 
+  data, 
+  showParameters = true,
+  filterLabel = 'all'
+}: { 
+  data: { labels: string[], datasets: any[] }, 
+  showParameters?: boolean,
+  filterLabel?: string
+}) {
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
@@ -31,10 +39,12 @@ export default function ParamTrendChart({ data, showParameters = true }: { data:
     return point;
   });
 
-  if (!mounted) return <div className="h-[350px] w-full bg-muted/10 animate-pulse rounded-3xl" />;
+  if (!mounted) return <div className="h-full w-full bg-muted/10 animate-pulse rounded-3xl" />;
+
+  const isFiltered = filterLabel !== 'all';
 
   return (
-    <div className="h-[350px] w-full animate-in fade-in duration-700">
+    <div className="h-full w-full animate-in fade-in duration-700">
       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
           <defs>
@@ -68,32 +78,31 @@ export default function ParamTrendChart({ data, showParameters = true }: { data:
               borderWidth: '1px'
             }}
           />
-          <Legend 
-            verticalAlign="top" 
-            align="right" 
-            iconType="circle"
-            wrapperStyle={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', paddingBottom: '20px' }}
-          />
           {showParameters && data.datasets.map((ds: any, i: number) => {
             if (ds.isTotal) return null;
+            if (isFiltered && ds.label !== filterLabel) return null;
+            
             const color = TREND_COLORS[i % TREND_COLORS.length];
             return (
               <Area
                 key={ds.label}
                 type="monotone"
                 dataKey={ds.label}
-                stackId="1"
+                stackId={isFiltered ? undefined : "1"}
                 stroke={color}
-                strokeWidth={2}
+                strokeWidth={isFiltered ? 4 : 2}
                 fill={color}
-                fillOpacity={0.15}
+                fillOpacity={isFiltered ? 0.3 : 0.15}
                 isAnimationActive={true}
                 animationDuration={1000}
+                dot={isFiltered ? { r: 4, fill: 'hsl(var(--card))', strokeWidth: 2, stroke: color } : false}
               />
             );
           })}
           {data.datasets.map((ds: any, i: number) => {
             if (!ds.isTotal) return null;
+            if (isFiltered && ds.label !== filterLabel) return null;
+            
             return (
               <Area
                 key={ds.label}

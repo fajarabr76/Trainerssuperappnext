@@ -71,8 +71,10 @@ export interface ScoreDetail {
 export interface DashboardSummary {
   totalDefects: number;
   avgDefectsPerAudit: number;
-  fatalErrorRate: number;
+  zeroErrorRate: number;
   complianceRate: number;
+  complianceCount: number;
+  totalAgents: number;
 }
 
 export interface ParameterStat {

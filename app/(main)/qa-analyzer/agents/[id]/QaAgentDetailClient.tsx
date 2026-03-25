@@ -108,6 +108,15 @@ interface QaAgentDetailClientProps {
   };
 }
 
+const TREND_COLORS = [
+  '#A855F7', // Purple
+  '#EC4899', // Pink
+  '#3B82F6', // Blue
+  '#10B981', // Emerald
+  '#F59E0B', // Amber
+  '#06B6D4'  // Cyan
+];
+
 export default function QaAgentDetailClient({ agentId, user, role, initialAgent, initialData }: QaAgentDetailClientProps) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -117,6 +126,7 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
   const [exporting, setExporting] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<{ month: number; year: number; label: string; id?: string } | null>(null);
   const [timeframe, setTimeframe] = useState<'3m' | '6m' | 'all'>('3m');
+  const [activeTrendFilter, setActiveTrendFilter] = useState<string>('all');
   
   const [agent, setAgent] = useState(initialAgent);
   const [data, setData] = useState(initialData);
@@ -352,8 +362,8 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 space-y-6">
+                  <div className="flex flex-col gap-8">
+                    <div className="w-full space-y-8">
                       {sortedPeriods.length > 0 && (
                         <div className="flex flex-wrap gap-2 bg-card/40 backdrop-blur-md rounded-2xl border border-border/50 p-3 shadow-inner">
                           {sortedPeriods.map(p => {
@@ -495,35 +505,47 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
                                 ))}
                               </div>
                             </div>
-                            <div className="h-[300px] w-full">
+                            <div className="w-full">
                               {loadingData ? (
-                                <div className="w-full h-full flex items-center justify-center"><div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin" /></div>
-                              ) : personalTrend && <ParamTrendChart data={personalTrend} />}
+                                <div className="w-full h-[350px] flex items-center justify-center"><div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin" /></div>
+                              ) : personalTrend && (
+                                <>
+                                  <div className="flex flex-wrap gap-1.5 mb-8">
+                                    <button
+                                      onClick={() => setActiveTrendFilter('all')}
+                                      className={`px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all duration-300 border ${activeTrendFilter === 'all' ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105' : 'bg-card/50 text-foreground/40 border-border/50 hover:bg-card hover:text-foreground hover:border-border'}`}
+                                    >
+                                      All
+                                    </button>
+                                    {personalTrend.datasets.map((ds: any, i: number) => {
+                                      const labelDisplay = ds.label.length > 25 ? ds.label.substring(0, 22) + '...' : ds.label;
+                                      const color = ds.isTotal ? 'hsl(var(--primary))' : TREND_COLORS[i % TREND_COLORS.length];
+                                      const isActive = activeTrendFilter === ds.label;
+                                      
+                                      return (
+                                        <button
+                                          key={ds.label}
+                                          onClick={() => setActiveTrendFilter(ds.label)}
+                                          title={ds.label}
+                                          className={`group px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all duration-300 border flex items-center gap-2 ${isActive ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105' : 'bg-card/50 text-foreground/40 border-border/50 hover:bg-card hover:text-foreground hover:border-border'}`}
+                                        >
+                                          <span 
+                                            className="w-1.5 h-1.5 rounded-full transition-transform group-hover:scale-125" 
+                                            style={{ backgroundColor: isActive ? 'white' : color }} 
+                                          />
+                                          {labelDisplay}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                  <div className="h-[350px] w-full mt-4">
+                                    <ParamTrendChart data={personalTrend} filterLabel={activeTrendFilter} />
+                                  </div>
+                                </>
+                              )}
                             </div>
                           </div>
                         </>
-                      )}
-                    </div>
-
-                    <div className="space-y-6">
-                      {isAtRisk && (
-                        <div className="bg-rose-600 rounded-[2.5rem] p-10 text-white shadow-3xl shadow-rose-600/40 overflow-hidden relative group">
-                          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-[100px] group-hover:scale-110 transition-transform duration-1000" />
-                          <div className="absolute -left-8 -bottom-8 opacity-[0.05] rotate-12 group-hover:rotate-0 transition-all duration-700"><AlertTriangle className="w-64 h-64" /></div>
-                          
-                          <div className="relative z-10">
-                            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 mb-8 shadow-xl">
-                              <AlertTriangle className="w-7 h-7 text-white" />
-                            </div>
-                            <h3 className="text-3xl font-black tracking-tighter mb-4 leading-none text-white">Critical Case Alert</h3>
-                            <p className="text-white/80 text-sm leading-relaxed mb-10 font-medium">
-                              This agent requires immediate attention. Performance has deviated below the acceptable threshold or a fatal compliance error has been recorded in the current period.
-                            </p>
-                            <button className="w-full h-14 bg-white text-rose-600 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-rose-900/40 hover:scale-[1.02] active:scale-95 transition-all duration-300">
-                              Launch Coaching Session
-                            </button>
-                          </div>
-                        </div>
                       )}
                     </div>
                   </div>

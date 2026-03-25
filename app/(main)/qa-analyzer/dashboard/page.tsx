@@ -64,7 +64,7 @@ export default async function QaDashboardPage({
     qaServiceServer.getCriticalVsNonCritical(folderIds, period),
     qaServiceServer.getKpiSparkline(folderIds, null, 'total', timeframe),
     qaServiceServer.getKpiSparkline(folderIds, null, 'avg', timeframe),
-    qaServiceServer.getKpiSparkline(folderIds, null, 'fatal', timeframe),
+    qaServiceServer.getKpiSparkline(folderIds, null, 'zero_error', timeframe),
     qaServiceServer.getKpiSparkline(folderIds, null, 'compliance', timeframe),
     qaServiceServer.getTrendWithParameters(folderIds, timeframe)
   ]);

@@ -181,7 +181,7 @@ export default function QaDashboardClient({
                       sparklineData={initialData.sparklines.total || []}
                     />
                     <KpiCard 
-                      label="Rata-rata Temuan / Agen"
+                      label="Rata-rata temuan parameter / agent"
                       value={initialData.summary.avgDefectsPerAudit.toFixed(1)}
                       delta={-5}
                       target="Target: < 1.0"
@@ -189,18 +189,18 @@ export default function QaDashboardClient({
                       sparklineData={initialData.sparklines.avg || []}
                     />
                     <KpiCard 
-                      label="Critical Case Rate"
-                      value={initialData.summary.fatalErrorRate.toFixed(1)}
+                      label="Zero Error Rate"
+                      value={initialData.summary.zeroErrorRate.toFixed(1)}
                       unit="%"
                       delta={2}
-                      target="Target: < 1%"
-                      reverseLogic={true}
+                      target="Target: > 90%"
+                      reverseLogic={false}
                       sparklineData={initialData.sparklines.critical || []}
                     />
                     <KpiCard 
                       label="Kepatuhan (Skor ≥ 95%)"
-                      value={initialData.summary.complianceRate.toFixed(1)}
-                      unit="%"
+                      value={initialData.summary.complianceCount}
+                      unit={` agent (${initialData.summary.complianceRate.toFixed(1)}%)`}
                       delta={4}
                       target="Target: > 95%"
                       reverseLogic={false}
@@ -239,7 +239,11 @@ export default function QaDashboardClient({
                       </span>
                     </div>
                   </div>
-                  {initialData.paramTrend && <ParamTrendChart data={initialData.paramTrend} showParameters={selectedFolderId !== 'ALL'} />}
+                  {initialData.paramTrend && (
+                    <div className="h-[350px] w-full">
+                      <ParamTrendChart data={initialData.paramTrend} showParameters={selectedFolderId !== 'ALL'} />
+                    </div>
+                  )}
                 </section>
 
                 {selectedFolderId !== 'ALL' && (
