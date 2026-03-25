@@ -181,19 +181,19 @@ export default function DashboardClient({
                       openMaintenance();
                     }
                   }}
-                  className="group block h-full p-8 rounded-3xl border border-border/40 bg-card/30 backdrop-blur-md hover:border-primary/20 transition-all relative overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="group block h-full p-6 rounded-3xl border border-border/40 bg-card/30 backdrop-blur-md hover:border-primary/20 transition-all relative overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <div className="relative z-10">
-                    <div className="flex items-center justify-between mb-8">
-                      <div className={`w-12 h-12 ${module.bg} ${module.color} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500`}>
-                        <module.icon className="w-6 h-6" />
+                    <div className="flex items-center justify-between mb-6">
+                      <div className={`w-10 h-10 ${module.bg} ${module.color} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500`}>
+                        <module.icon className="w-5 h-5" />
                       </div>
                       <div className="w-8 h-8 rounded-full border border-border/40 flex items-center justify-center opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 bg-background">
                         <ChevronRight className="w-4 h-4" />
                       </div>
                     </div>
-                    <h3 className="text-xl font-bold mb-2 tracking-tight group-hover:text-primary transition-colors">{module.title}</h3>
-                    <p className="text-sm text-foreground/50 leading-relaxed font-light mb-8">
+                    <h3 className="text-lg font-bold mb-1 tracking-tight group-hover:text-primary transition-colors">{module.title}</h3>
+                    <p className="text-sm text-foreground/50 leading-relaxed font-light mb-6">
                       {module.description}
                     </p>
                     <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-primary opacity-0 group-hover:opacity-100 transition-all duration-300">
@@ -201,7 +201,7 @@ export default function DashboardClient({
                     </div>
                   </div>
                   <div className="absolute -right-6 -bottom-6 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity duration-500 rotate-12 pointer-events-none">
-                    <module.icon className="w-40 h-40" />
+                    <module.icon className="w-32 h-32" />
                   </div>
                 </Link>
               </motion.div>
