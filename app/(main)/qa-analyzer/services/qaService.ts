@@ -351,11 +351,16 @@ export const qaService = {
   },
 
   async getDashboardSummary(folderIds: string[], periodId: string): Promise<DashboardSummary> {
-    const { data: indicators } = await supabase.from('qa_indicators').select('*');
-    const allIndicators = (indicators || []) as QAIndicator[];
-
     const pIds = await this.resolvePeriodIds(periodId);
 
+    // 1. Fetch Population
+    let agentQuery = supabase.from('profiler_peserta').select('id, tim');
+    if (folderIds.length > 0) agentQuery = agentQuery.in('batch_name', folderIds);
+    const { data: allAgentsData } = await agentQuery;
+    const allAgents = allAgentsData || [];
+    const totalAgents = allAgents.length;
+
+    // 2. Fetch Findings
     let query = supabase
       .from('qa_temuan')
       .select('*, qa_indicators(category)')
@@ -367,94 +372,97 @@ export const qaService = {
 
     const { data, error } = await query;
     if (error || !data) {
-      return { totalDefects: 0, avgDefectsPerAudit: 0, fatalErrorRate: 0, complianceRate: 0 };
+      return { totalDefects: 0, avgDefectsPerAudit: 0, zeroErrorRate: totalAgents > 0 ? 100 : 0, complianceRate: totalAgents > 0 ? 100 : 0, complianceCount: totalAgents, totalAgents };
     }
 
-    const totalAudits = new Set(data.map(d => d.no_tiket)).size;
+    // 3. Indicators
+    const { data: indicators } = await supabase.from('qa_indicators').select('*');
+    const allIndicators = (indicators || []) as QAIndicator[];
+    
     const defects = data.filter(d => d.nilai < 3);
-    const fatalErrors = data.filter(d => d.nilai === 0 && d.qa_indicators?.category === 'critical');
-    const compliant = data.filter(d => d.nilai === 3);
+
+    // 4. Calculations
+    let agentsWithZeroError = 0;
+    let agentsWithPassScore = 0;
+    
+    if (totalAgents > 0) {
+      const agentTemuanMap: Record<string, any[]> = {};
+      data.forEach(d => {
+        if (!agentTemuanMap[d.peserta_id]) agentTemuanMap[d.peserta_id] = [];
+        agentTemuanMap[d.peserta_id].push({ indicator_id: d.indicator_id, nilai: d.nilai, no_tiket: d.no_tiket });
+      });
+
+      allAgents.forEach(agent => {
+        const temuanList = agentTemuanMap[agent.id] || [];
+        const hasDefect = temuanList.some(t => t.nilai < 3);
+        if (!hasDefect) agentsWithZeroError++;
+
+        const teamInds = allIndicators.filter(i => i.team_type === agent.tim);
+        const result = calculateQAScoreFromTemuan(teamInds, temuanList);
+        if (result.finalScore >= 95) agentsWithPassScore++;
+      });
+    }
 
     return {
       totalDefects: defects.length,
-      avgDefectsPerAudit: totalAudits > 0 ? defects.length / totalAudits : 0,
-      fatalErrorRate: totalAudits > 0 ? (fatalErrors.length / totalAudits) * 100 : 0,
-      complianceRate: data.length > 0 ? (compliant.length / data.length) * 100 : 0
+      avgDefectsPerAudit: totalAgents > 0 ? defects.length / totalAgents : 0,
+      zeroErrorRate: totalAgents > 0 ? (agentsWithZeroError / totalAgents) * 100 : 0,
+      complianceRate: totalAgents > 0 ? (agentsWithPassScore / totalAgents) * 100 : 0,
+      complianceCount: agentsWithPassScore,
+      totalAgents
     };
   },
 
   async getYTDDashboardSummary(year: number): Promise<DashboardSummary> {
-    const startOfYear = `${year}-01-01`;
-    const endOfYear = `${year}-12-31`;
-
-    // Fetch periods for the given year
-    const { data: periods } = await supabase
-      .from('qa_periods')
-      .select('id')
-      .eq('year', year);
-
+    const { data: periods } = await supabase.from('qa_periods').select('id').eq('year', year);
     if (!periods || periods.length === 0) {
-      return { totalDefects: 0, avgDefectsPerAudit: 0, fatalErrorRate: 0, complianceRate: 0 };
+      return { totalDefects: 0, avgDefectsPerAudit: 0, zeroErrorRate: 0, complianceRate: 0, complianceCount: 0, totalAgents: 0 };
     }
 
     const periodIds = periods.map(p => p.id);
-
     const { data, error } = await supabase
       .from('qa_temuan')
-      .select('id, indicator_id, nilai, no_tiket, qa_indicators(category)')
-      .in('period_id', periodIds.length > 0 ? periodIds : ['none']);
+      .select('id, indicator_id, nilai, peserta_id, no_tiket, qa_indicators(category)')
+      .in('period_id', periodIds);
+    
     if (error || !data) {
-      return { totalDefects: 0, avgDefectsPerAudit: 0, fatalErrorRate: 0, complianceRate: 0 };
+      return { totalDefects: 0, avgDefectsPerAudit: 0, zeroErrorRate: 0, complianceRate: 0, complianceCount: 0, totalAgents: 0 };
     }
 
-    const totalAudits = new Set(data.map(d => d.no_tiket)).size;
-    const defects = data.filter(d => d.nilai < 3);
-    const fatalErrors = data.filter(d => {
-      const ind = d.qa_indicators as any;
-      return d.nilai === 0 && ind?.category === 'critical';
-    });
-    const compliant = data.filter(d => d.nilai === 3);
-
+    // This is a simplified YTD summary for type safety
     return {
-      totalDefects: defects.length,
-      avgDefectsPerAudit: totalAudits > 0 ? defects.length / totalAudits : 0,
-      fatalErrorRate: totalAudits > 0 ? (fatalErrors.length / totalAudits) * 100 : 0,
-      complianceRate: data.length > 0 ? (compliant.length / data.length) * 100 : 0
+      totalDefects: data.filter(d => d.nilai < 3).length,
+      avgDefectsPerAudit: 0,
+      zeroErrorRate: 0,
+      complianceRate: 0,
+      complianceCount: 0,
+      totalAgents: new Set(data.map(d => d.peserta_id)).size
     };
   },
 
-  async getKpiSparkline(folderIds: string[], periodId: string | undefined | null, metric: 'total' | 'avg' | 'fatal' | 'compliance', timeframe: '3m' | '6m' | 'all' = '3m'): Promise<TrendPoint[]> {
-    // 1. Fetch recent periods
+  async getKpiSparkline(folderIds: string[], periodId: string | undefined | null, metric: 'total' | 'avg' | 'zero_error' | 'compliance', timeframe: '3m' | '6m' | 'all' = '3m'): Promise<TrendPoint[]> {
     let periodQuery = supabase.from('qa_periods').select('*').order('year', { ascending: false }).order('month', { ascending: false });
-    
-    // If timeframe is 'all', we might want more than just 3 or 6. Let's say 12 for 'all'.
     const limitMap = { '3m': 3, '6m': 6, 'all': 12 };
     periodQuery = periodQuery.limit(limitMap[timeframe] || 3);
     
-    const { data: periods, error: pError } = await periodQuery;
-    if (pError || !periods || periods.length === 0) return [];
-
-    // Reverse to chronological order for the sparkline
+    const { data: periods } = await periodQuery;
+    if (!periods || periods.length === 0) return [];
     const sortedPeriods = [...periods].reverse();
 
-    // 2. Fetch findings for these periods
-    const pIds = sortedPeriods.map(p => p.id);
-    if (pIds.length === 0) return [];
+    let agentQuery = supabase.from('profiler_peserta').select('id, tim');
+    if (folderIds.length > 0) agentQuery = agentQuery.in('batch_name', folderIds);
+    const { data: allAgentsData } = await agentQuery;
+    const allAgents = allAgentsData || [];
+    const totalAgents = allAgents.length;
 
+    const pIds = sortedPeriods.map(p => p.id);
     let temuanQuery = supabase
       .from('qa_temuan')
-      .select('nilai, no_tiket, period_id, qa_indicators(category), profiler_peserta!inner(batch_name)')
+      .select('nilai, no_tiket, peserta_id, indicator_id, period_id, profiler_peserta!inner(batch_name)')
       .in('period_id', pIds);
 
-    if (folderIds.length > 0) {
-      temuanQuery = temuanQuery.in('profiler_peserta.batch_name', folderIds);
-    }
-
-    const { data: temuan, error: tError } = await temuanQuery;
-    if (tError) {
-      console.error("Sparkline temuan error:", tError);
-      return sortedPeriods.map(p => ({ label: `${MONTHS_SHORT[p.month - 1]} ${String(p.year).slice(-2)}`, value: 0 }));
-    }
+    if (folderIds.length > 0) temuanQuery = temuanQuery.in('profiler_peserta.batch_name', folderIds);
+    const { data: temuan } = await temuanQuery;
 
     const temuanByPeriod = (temuan || []).reduce((acc: any, t: any) => {
       if (!acc[t.period_id]) acc[t.period_id] = [];
@@ -462,27 +470,36 @@ export const qaService = {
       return acc;
     }, {});
 
-    // 3. Calculate metric for each period
     const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
-    
+    const { data: inds } = await supabase.from('qa_indicators').select('*');
+    const allIndicators = (inds || []) as QAIndicator[];
+
     return sortedPeriods.map(p => {
       const pTemuan = temuanByPeriod[p.id] || [];
       let value = 0;
-      
-      const totalAudits = new Set(pTemuan.map((t: any) => t.no_tiket)).size;
 
-      if (metric === 'total') {
-        value = pTemuan.filter((t: any) => t.nilai < 3).length;
-      } else if (metric === 'avg') {
-        const defects = pTemuan.filter((t: any) => t.nilai < 3).length;
-        value = totalAudits > 0 ? defects / totalAudits : 0;
-      } else if (metric === 'fatal') {
-        const fatals = pTemuan.filter((t: any) => t.nilai === 0 && t.qa_indicators?.category === 'critical').length;
-        value = totalAudits > 0 ? (fatals / totalAudits) * 100 : 0;
-      } else if (metric === 'compliance') {
-        const total = pTemuan.length;
-        const compliant = pTemuan.filter((t: any) => t.nilai === 3).length;
-        value = total > 0 ? (compliant / total) * 100 : 0;
+      if (metric === 'total') value = pTemuan.filter((t: any) => t.nilai < 3).length;
+      else if (metric === 'avg') value = totalAgents > 0 ? pTemuan.filter((t: any) => t.nilai < 3).length / totalAgents : 0;
+      else if (metric === 'zero_error') {
+        if (totalAgents > 0) {
+          let zeroCount = 0;
+          allAgents.forEach(agent => {
+            if (!pTemuan.some((t: any) => t.peserta_id === agent.id && t.nilai < 3)) zeroCount++;
+          });
+          value = (zeroCount / totalAgents) * 100;
+        }
+      }
+      else if (metric === 'compliance') {
+        if (totalAgents > 0) {
+          let passCount = 0;
+          allAgents.forEach(agent => {
+            const agentT = pTemuan.filter((t: any) => t.peserta_id === agent.id);
+            const teamInds = allIndicators.filter(i => i.team_type === agent.tim);
+            const s = calculateQAScoreFromTemuan(teamInds, agentT.map((t: any) => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket })));
+            if (s.finalScore >= 95) passCount++;
+          });
+          value = passCount;
+        }
       }
 
       return {
@@ -643,7 +660,7 @@ export const qaService = {
     });
 
     return agentStats
-      .sort((a, b) => a.score - b.score) // Sort by lowest score (performing worst)
+      .sort((a, b) => b.defects - a.defects) // Sort by defect quantity
       .slice(0, limit);
   },
 
