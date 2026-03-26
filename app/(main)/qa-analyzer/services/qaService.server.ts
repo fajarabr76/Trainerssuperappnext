@@ -8,37 +8,13 @@ import {
   calculateQAScoreFromTemuan,
   ServiceType,
   Category,
-  TIM_TO_DEFAULT_SERVICE
+  TIM_TO_DEFAULT_SERVICE,
+  SharedContext,
+  TeamComparisonData,
+  TopAgentData,
+  ParetoData,
+  CriticalVsNonCriticalData
 } from '../lib/qa-types';
-
-export interface TeamComparisonData {
-  name: string;
-  total: number;
-  severity: 'Critical' | 'High' | 'Medium' | 'Low';
-}
-
-export interface TopAgentData {
-  agentId: string;
-  nama: string;
-  batch: string;
-  defects: number;
-  score: number;
-  hasCritical: boolean;
-}
-
-export interface ParetoData {
-  name: string;
-  fullName: string;
-  count: number;
-  cumulative: number;
-  category: 'critical' | 'non_critical';
-}
-
-export interface CriticalVsNonCriticalData {
-  critical: number;
-  nonCritical: number;
-  total: number;
-}
 
 export const qaServiceServer = {
   // ── Indicators ───────────────────────────────────────────────
@@ -245,15 +221,22 @@ export const qaServiceServer = {
     return data && data.length > 0 ? data.map(p => p.id) : ['none'];
   },
 
-  async getDashboardSummary(folderIds: string[], periodId: string, serviceType?: string): Promise<DashboardSummary> {
+  async getDashboardSummary(folderIds: string[], periodId: string, serviceType?: string, context?: SharedContext): Promise<DashboardSummary> {
     const supabase = await createClient();
     const pIds = await this.resolvePeriodIds(periodId);
 
     // 1. Fetch Population (All Agents in selected folders)
-    let agentQuery = supabase.from('profiler_peserta').select('id, tim');
-    if (folderIds.length > 0) agentQuery = agentQuery.in('batch_name', folderIds);
-    const { data: allAgentsData } = await agentQuery;
-    const allAgents = allAgentsData || [];
+    let allAgents: any[] = [];
+    if (context?.agents) {
+      allAgents = folderIds.length > 0 
+        ? context.agents.filter(a => folderIds.includes(a.batch_name))
+        : context.agents;
+    } else {
+      let agentQuery = supabase.from('profiler_peserta').select('id, tim, batch_name');
+      if (folderIds.length > 0) agentQuery = agentQuery.in('batch_name', folderIds);
+      const { data: allAgentsData } = await agentQuery;
+      allAgents = allAgentsData || [];
+    }
     const totalAgents = allAgents.length;
 
     // 2. Fetch Findings
@@ -282,8 +265,7 @@ export const qaServiceServer = {
     }
 
     // 3. Fetch all indicators (needed for scoring)
-    const { data: indicators } = await supabase.from('qa_indicators').select('*');
-    const allIndicators = (indicators || []) as QAIndicator[];
+    const allIndicators = context?.indicators || (await this.getIndicators()) as QAIndicator[];
     
     const defects = data.filter(d => d.nilai < 3);
 
@@ -328,18 +310,21 @@ export const qaServiceServer = {
     };
   },
 
-  async getKpiSparkline(folderIds: string[], periodId: string | undefined | null, metric: 'total' | 'avg' | 'zero_error' | 'compliance', timeframe: '3m' | '6m' | 'all' = '3m', serviceType?: string): Promise<TrendPoint[]> {
+  async getKpiSparkline(folderIds: string[], periodId: string | undefined | null, metric: 'total' | 'avg' | 'zero_error' | 'compliance', timeframe: '3m' | '6m' | 'all' = '3m', serviceType?: string, context?: SharedContext): Promise<TrendPoint[]> {
     const supabase = await createClient();
     // 1. Fetch recent periods
-    let periodQuery = supabase.from('qa_periods').select('*').order('year', { ascending: false }).order('month', { ascending: false });
-    
     const limitMap = { '3m': 3, '6m': 6, 'all': 12 };
-    periodQuery = periodQuery.limit(limitMap[timeframe] || 3);
+    const limit = limitMap[timeframe] || 3;
     
-    const { data: periods, error: pError } = await periodQuery;
-    if (pError || !periods || periods.length === 0) return [];
-
-    const sortedPeriods = [...periods].reverse();
+    let sortedPeriods: QAPeriod[] = [];
+    if (context?.periods) {
+      sortedPeriods = [...context.periods].slice(0, limit).reverse();
+    } else {
+      let periodQuery = supabase.from('qa_periods').select('*').order('year', { ascending: false }).order('month', { ascending: false }).limit(limit);
+      const { data: periods, error: pError } = await periodQuery;
+      if (pError || !periods || periods.length === 0) return [];
+      sortedPeriods = [...periods].reverse();
+    }
 
     // 2. Fetch findings for these periods
     const pIds = sortedPeriods.map(p => p.id);
@@ -359,16 +344,22 @@ export const qaServiceServer = {
 
     let allIndicators: QAIndicator[] = [];
     if (metric === 'compliance') {
-      const { data: inds } = await supabase.from('qa_indicators').select('*');
-      allIndicators = (inds || []) as QAIndicator[];
+      allIndicators = context?.indicators || (await this.getIndicators()) as QAIndicator[];
     }
 
     // Fetch population of agents for the exact selected folders
     // We assume the population is relatively constant.
-    let agentQuery = supabase.from('profiler_peserta').select('id, tim');
-    if (folderIds.length > 0) agentQuery = agentQuery.in('batch_name', folderIds);
-    const { data: allAgentsData } = await agentQuery;
-    const allAgents = allAgentsData || [];
+    let allAgents: any[] = [];
+    if (context?.agents) {
+      allAgents = folderIds.length > 0 
+        ? context.agents.filter(a => folderIds.includes(a.batch_name))
+        : context.agents;
+    } else {
+      let agentQuery = supabase.from('profiler_peserta').select('id, tim, batch_name');
+      if (folderIds.length > 0) agentQuery = agentQuery.in('batch_name', folderIds);
+      const { data: allAgentsData } = await agentQuery;
+      allAgents = allAgentsData || [];
+    }
     const totalAgents = allAgents.length;
 
     const temuanByPeriod = (temuan || []).reduce((acc: any, t: any) => {
@@ -423,14 +414,20 @@ export const qaServiceServer = {
     });
   },
 
-  async getTrendWithParameters(folderIds: string[], timeframe: '3m' | '6m' | 'all' = '3m', serviceType?: string) {
+  async getTrendWithParameters(folderIds: string[], timeframe: '3m' | '6m' | 'all' = '3m', serviceType?: string, context?: SharedContext) {
     const supabase = await createClient();
-    const periodQuery = supabase.from('qa_periods').select('*').order('year', { ascending: false }).order('month', { ascending: false });
     const limitMap = { '3m': 3, '6m': 6, 'all': 12 };
-    const { data: periods } = await periodQuery.limit(limitMap[timeframe]);
-    if (!periods) return { labels: [], datasets: [] };
+    const limit = limitMap[timeframe] || 3;
 
-    const sortedPeriods = [...periods].reverse();
+    let sortedPeriods: QAPeriod[] = [];
+    if (context?.periods) {
+      sortedPeriods = [...context.periods].slice(0, limit).reverse();
+    } else {
+      const { data: periods } = await supabase.from('qa_periods').select('*').order('year', { ascending: false }).order('month', { ascending: false }).limit(limit);
+      if (!periods) return { labels: [], datasets: [] };
+      sortedPeriods = [...periods].reverse();
+    }
+    
     const pIds = sortedPeriods.map(p => p.id);
     const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
     const labels = sortedPeriods.map(p => `${MONTHS_SHORT[p.month - 1]} ${String(p.year).slice(-2)}`);
@@ -471,7 +468,7 @@ export const qaServiceServer = {
     return { labels, datasets };
   },
 
-  async getTeamComparison(folderIds: string[], periodId: string, serviceType?: string): Promise<TeamComparisonData[]> {
+  async getTeamComparison(folderIds: string[], periodId: string, serviceType?: string, context?: SharedContext): Promise<TeamComparisonData[]> {
     const supabase = await createClient();
     const pIds = await this.resolvePeriodIds(periodId);
     let query = supabase
@@ -500,10 +497,9 @@ export const qaServiceServer = {
       .sort((a, b) => b.total - a.total);
   },
 
-  async getTopAgentsWithDefects(folderIds: string[], periodId: string, limit: number = 5, serviceType?: string): Promise<TopAgentData[]> {
+  async getTopAgentsWithDefects(folderIds: string[], periodId: string, limit: number = 5, serviceType?: string, context?: SharedContext): Promise<TopAgentData[]> {
     const supabase = await createClient();
-    const { data: indicators } = await supabase.from('qa_indicators').select('*');
-    const allIndicators = (indicators || []) as QAIndicator[];
+    const allIndicators = context?.indicators || (await this.getIndicators()) as QAIndicator[];
     const pIds = await this.resolvePeriodIds(periodId);
 
     let query = supabase
@@ -548,7 +544,7 @@ export const qaServiceServer = {
     return agentStats.sort((a, b) => b.defects - a.defects).slice(0, limit);
   },
 
-  async getParetoData(folderIds: string[], periodId: string, serviceType?: string): Promise<ParetoData[]> {
+  async getParetoData(folderIds: string[], periodId: string, serviceType?: string, context?: SharedContext): Promise<ParetoData[]> {
     const supabase = await createClient();
     const pIds = await this.resolvePeriodIds(periodId);
     let query = supabase
@@ -591,7 +587,7 @@ export const qaServiceServer = {
       });
   },
 
-  async getCriticalVsNonCritical(folderIds: string[], periodId: string, serviceType?: string): Promise<CriticalVsNonCriticalData> {
+  async getCriticalVsNonCritical(folderIds: string[], periodId: string, serviceType?: string, context?: SharedContext): Promise<CriticalVsNonCriticalData> {
     const supabase = await createClient();
     const pIds = await this.resolvePeriodIds(periodId);
     let query = supabase
@@ -706,14 +702,23 @@ export const qaServiceServer = {
     return { agent, periods };
   },
 
-  async getUniqueAgentCountByTimeframe(timeframe: '3m' | '6m' | 'all'): Promise<number> {
+  async getUniqueAgentCountByTimeframe(timeframe: '3m' | '6m' | 'all', context?: SharedContext): Promise<number> {
     const supabase = await createClient();
     const limitMap = { '3m': 3, '6m': 6, 'all': 12 };
-    const { data: periods } = await supabase
-      .from('qa_periods').select('id')
-      .order('year', { ascending: false }).order('month', { ascending: false })
-      .limit(limitMap[timeframe]);
-    if (!periods || periods.length === 0) return 0;
+    const limit = limitMap[timeframe] || 3;
+    
+    let periods: any[] = [];
+    if (context?.periods) {
+      periods = [...context.periods].slice(0, limit);
+    } else {
+      const { data } = await supabase
+        .from('qa_periods').select('id')
+        .order('year', { ascending: false }).order('month', { ascending: false })
+        .limit(limit);
+      periods = data || [];
+    }
+    
+    if (periods.length === 0) return 0;
 
     const pIds = periods.map(p => p.id);
     const { data } = await supabase
@@ -725,14 +730,23 @@ export const qaServiceServer = {
     return new Set(data.map(d => d.peserta_id)).size;
   },
 
-  async getAuditCountByTimeframe(timeframe: '3m' | '6m' | 'all'): Promise<number> {
+  async getAuditCountByTimeframe(timeframe: '3m' | '6m' | 'all', context?: SharedContext): Promise<number> {
     const supabase = await createClient();
     const limitMap = { '3m': 3, '6m': 6, 'all': 12 };
-    const { data: periods } = await supabase
-      .from('qa_periods').select('id')
-      .order('year', { ascending: false }).order('month', { ascending: false })
-      .limit(limitMap[timeframe]);
-    if (!periods || periods.length === 0) return 0;
+    const limit = limitMap[timeframe] || 3;
+
+    let periods: any[] = [];
+    if (context?.periods) {
+      periods = [...context.periods].slice(0, limit);
+    } else {
+      const { data } = await supabase
+        .from('qa_periods').select('id')
+        .order('year', { ascending: false }).order('month', { ascending: false })
+        .limit(limit);
+      periods = data || [];
+    }
+    
+    if (periods.length === 0) return 0;
 
     const pIds = periods.map(p => p.id);
     const { data } = await supabase

@@ -187,13 +187,18 @@ export async function duplicateFolder(folderId: string, targetYearId: string) {
         trainer_id: user.id
       };
     });
-    const { error: insErr } = await supabase
+    const { data: insertedData, error: insErr } = await supabase
       .from('profiler_peserta')
-      .insert(newParticipants);
+      .insert(newParticipants)
+      .select();
     if (insErr) throw insErr;
+
+    revalidatePath('/profiler');
+    return { folder: newFolder, participants: insertedData };
   }
   
   revalidatePath('/profiler');
+  return { folder: newFolder, participants: [] };
 }
 
 export async function copyPesertaToFolder(pesertaIds: string[], targetBatch: string) {
@@ -216,13 +221,16 @@ export async function copyPesertaToFolder(pesertaIds: string[], targetBatch: str
         trainer_id: user.id
       };
     });
-    const { error: insErr } = await supabase
+      const { data: insertedData, error: insErr } = await supabase
       .from('profiler_peserta')
-      .insert(newPeserta);
+      .insert(newPeserta)
+      .select();
     if (insErr) throw insErr;
+    
+    revalidatePath('/profiler');
+    return insertedData;
   }
-  
-  revalidatePath('/profiler');
+  return [];
 }
 
 export async function getOriginalPeserta(id: string) {

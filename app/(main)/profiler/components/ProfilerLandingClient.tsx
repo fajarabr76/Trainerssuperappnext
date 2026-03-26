@@ -16,8 +16,10 @@ import {
   createYear, 
   createFolder as createFolderAction, 
   renameBatch as renameBatchAction, 
-  deleteBatch as deleteBatchAction
+  deleteBatch as deleteBatchAction,
+  getPesertaByBatch
 } from '../actions';
+import { Loader2 } from 'lucide-react';
 
 interface ProfilerLandingClientProps {
   initialYears: ProfilerYear[];
@@ -90,6 +92,28 @@ export default function ProfilerLandingClient({
   
   const [deleting, setDeleting] = useState(false);
   const [showBirthdayModal, setShowBirthdayModal] = useState(false);
+  const [loadingPeserta, setLoadingPeserta] = useState(false);
+
+  // Lazy Load Peserta when batch changes
+  React.useEffect(() => {
+    if (!selectedBatch) return;
+    
+    // Only fetch if not already in map
+    if (!pesertaMap[selectedBatch]) {
+      const fetchPeserta = async () => {
+        setLoadingPeserta(true);
+        try {
+          const data = await getPesertaByBatch(selectedBatch);
+          setPesertaMap(prev => ({ ...prev, [selectedBatch]: data }));
+        } catch (err) {
+          console.error("Failed to fetch peserta:", err);
+        } finally {
+          setLoadingPeserta(false);
+        }
+      };
+      fetchPeserta();
+    }
+  }, [selectedBatch, pesertaMap]);
 
   const handleAddYear = async () => {
     try {
@@ -248,7 +272,8 @@ export default function ProfilerLandingClient({
                   <div className="flex items-center gap-4 mb-2">
                     <h2 className="text-3xl font-bold tracking-tight">{selectedBatch}</h2>
                     {count > 0 && (
-                      <span className="px-3 py-1 bg-foreground/5 text-foreground/60 text-[10px] font-bold uppercase tracking-widest rounded-full border border-border">
+                      <span className="px-3 py-1 bg-foreground/5 text-foreground/60 text-[10px] font-bold uppercase tracking-widest rounded-full border border-border flex items-center gap-2">
+                        {loadingPeserta ? <Loader2 size={10} className="animate-spin" /> : null}
                         {count} Agen
                       </span>
                     )}
@@ -490,7 +515,7 @@ export default function ProfilerLandingClient({
               <button onClick={handleDeleteFolder} disabled={deleting} className="w-full py-3 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white rounded-2xl font-bold text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background">
                 {deleting ? 'Menghapus...' : 'Ya, Hapus Permanen'}
               </button>
-              <button onClick={() => setConfirmDeleteFolder(null)} disabled={deleting} className="w-full py-3 bg-accent border border-border/40 hover:bg-accent/80 rounded-2xl font-bold text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Batal</button>
+              <button onClick={() => setConfirmDeleteFolder(null)} disabled={deleting} className="w-full py-3 bg-accent border border-border/40 hover:bg-accent/80 rounded-2xl font-bold text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-2 focus-visible:ring-ring">Batal</button>
             </div>
           </div>
         </div>
@@ -500,7 +525,13 @@ export default function ProfilerLandingClient({
         isOpen={showPicker}
         onClose={() => setShowPicker(false)}
         targetBatch={selectedBatch}
-        onSuccess={() => router.refresh()}
+        onSuccess={(newList) => {
+          setPesertaMap(prev => ({ 
+            ...prev, 
+            [selectedBatch]: [...(prev[selectedBatch] || []), ...newList] 
+          }));
+          setCounts(prev => ({ ...prev, [selectedBatch]: (prev[selectedBatch] || 0) + newList.length }));
+        }}
       />
 
       <DuplicateFolderModal 
@@ -508,7 +539,11 @@ export default function ProfilerLandingClient({
         onClose={() => setDuplicateFolder(null)}
         folder={duplicateFolder}
         years={years}
-        onSuccess={() => router.refresh()}
+        onSuccess={(newF, newP) => {
+          setFolders(prev => [...prev, newF]);
+          setCounts(prev => ({ ...prev, [newF.name]: newP.length }));
+          setPesertaMap(prev => ({ ...prev, [newF.name]: newP }));
+        }}
       />
 
       {showBirthdayModal && (

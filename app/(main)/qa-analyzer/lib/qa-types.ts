@@ -95,6 +95,41 @@ export interface DashboardSummary {
   totalAgents: number;
 }
 
+export interface TeamComparisonData {
+  name: string;
+  total: number;
+  severity: 'Critical' | 'High' | 'Medium' | 'Low';
+}
+
+export interface TopAgentData {
+  agentId: string;
+  nama: string;
+  batch: string;
+  defects: number;
+  score: number;
+  hasCritical: boolean;
+}
+
+export interface ParetoData {
+  name: string;
+  fullName: string;
+  count: number;
+  cumulative: number;
+  category: 'critical' | 'non_critical';
+}
+
+export interface CriticalVsNonCriticalData {
+  critical: number;
+  nonCritical: number;
+  total: number;
+}
+
+export interface SharedContext {
+  indicators: QAIndicator[];
+  periods: QAPeriod[];
+  agents: any[];
+}
+
 export interface ParameterStat {
   indicator_id: string;
   name: string;

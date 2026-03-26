@@ -11,7 +11,7 @@ interface DuplicateFolderModalProps {
   onClose: () => void;
   folder: ProfilerFolder | null;
   years: ProfilerYear[];
-  onSuccess: () => void;
+  onSuccess: (newFolder: ProfilerFolder, newPeserta: any[]) => void;
 }
 
 export default function DuplicateFolderModal({ isOpen, onClose, folder, years, onSuccess }: DuplicateFolderModalProps) {
@@ -22,13 +22,13 @@ export default function DuplicateFolderModal({ isOpen, onClose, folder, years, o
   if (!isOpen || !folder) return null;
 
   const handleDuplicate = async () => {
-    if (!targetYearId) return;
+    if (!targetYearId || !folder) return;
     setLoading(true);
     try {
-      await duplicateFolder(folder.id, targetYearId);
+      const result = await duplicateFolder(folder.id, targetYearId);
       setSuccess(true);
       setTimeout(() => {
-        onSuccess();
+        onSuccess((result as any).folder, (result as any).participants);
         onClose();
       }, 1500);
     } catch (err) {

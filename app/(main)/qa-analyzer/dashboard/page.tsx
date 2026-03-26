@@ -44,10 +44,21 @@ export default async function QaDashboardPage({
 
   const folderIds = folder === 'ALL' ? [] : [folder];
 
-  // Fetch initial data
-  const [
+  // 1. Fetch Shared Context Data (Pre-load common metadata)
+  const [periods, foldersData, indicators] = await Promise.all([
+    qaServiceServer.getPeriods(),
+    profilerServiceServer.getFolders(),
+    qaServiceServer.getIndicators(service)
+  ]);
+
+  const context = {
     periods,
-    foldersData,
+    indicators,
+    agents: [] // Not pre-filling agents for now to keep context size manageable
+  };
+
+  // 2. Fetch Dashboard Aggregations using Shared Context
+  const [
     summary,
     teamData,
     topAgents,
@@ -56,18 +67,16 @@ export default async function QaDashboardPage({
     spark1, spark2, spark3, spark4,
     paramTrend
   ] = await Promise.all([
-    qaServiceServer.getPeriods(),
-    profilerServiceServer.getFolders(),
-    qaServiceServer.getDashboardSummary(folderIds, period, service),
-    qaServiceServer.getTeamComparison(folderIds, period, service),
-    qaServiceServer.getTopAgentsWithDefects(folderIds, period, 5, service),
-    qaServiceServer.getParetoData(folderIds, period, service),
-    qaServiceServer.getCriticalVsNonCritical(folderIds, period, service),
-    qaServiceServer.getKpiSparkline(folderIds, null, 'total', timeframe, service),
-    qaServiceServer.getKpiSparkline(folderIds, null, 'avg', timeframe, service),
-    qaServiceServer.getKpiSparkline(folderIds, null, 'zero_error', timeframe, service),
-    qaServiceServer.getKpiSparkline(folderIds, null, 'compliance', timeframe, service),
-    qaServiceServer.getTrendWithParameters(folderIds, timeframe, service)
+    qaServiceServer.getDashboardSummary(folderIds, period, service, context),
+    qaServiceServer.getTeamComparison(folderIds, period, service, context),
+    qaServiceServer.getTopAgentsWithDefects(folderIds, period, 5, service, context),
+    qaServiceServer.getParetoData(folderIds, period, service, context),
+    qaServiceServer.getCriticalVsNonCritical(folderIds, period, service, context),
+    qaServiceServer.getKpiSparkline(folderIds, null, 'total', timeframe, service, context),
+    qaServiceServer.getKpiSparkline(folderIds, null, 'avg', timeframe, service, context),
+    qaServiceServer.getKpiSparkline(folderIds, null, 'zero_error', timeframe, service, context),
+    qaServiceServer.getKpiSparkline(folderIds, null, 'compliance', timeframe, service, context),
+    qaServiceServer.getTrendWithParameters(folderIds, timeframe, service, context)
   ]);
 
   const initialData = {

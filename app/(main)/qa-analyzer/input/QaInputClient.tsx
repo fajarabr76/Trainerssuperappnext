@@ -26,6 +26,7 @@ import type { QAIndicator, QAPeriod, QATemuan, ServiceType } from '../lib/qa-typ
 import { TIM_TO_DEFAULT_SERVICE, SERVICE_LABELS } from '../lib/qa-types';
 import { 
   createTemuanAction, 
+  createTemuanBatchAction, 
   updateTemuanAction, 
   deleteTemuanAction,
   getAgentsByFolderAction,
@@ -470,18 +471,20 @@ export default function QaInputClient({
     }
     setSaving(true); setErrorMsg(null);
     try {
-      const created: QATemuan[] = [];
-      for (const entry of entries) {
-        const t = await createTemuanAction(selectedAgent.id, selectedPeriod.id, {
-          indicator_id: entry.indicator_id, no_tiket: noTiket || undefined,
-          nilai: entry.nilai, ketidaksesuaian: entry.ketidaksesuaian || undefined, sebaiknya: entry.sebaiknya || undefined,
-          service_type: selectedService,
-        });
-        created.push(t);
-      }
-      setTemuan(prev => [...created.reverse(), ...prev]);
+      const temuanList = entries.map(entry => ({
+        indicator_id: entry.indicator_id,
+        no_tiket: noTiket || undefined,
+        nilai: entry.nilai,
+        ketidaksesuaian: entry.ketidaksesuaian || undefined,
+        sebaiknya: entry.sebaiknya || undefined,
+        service_type: selectedService,
+      }));
+
+      const created = await createTemuanBatchAction(selectedAgent.id, selectedPeriod.id, temuanList);
+      
+      setTemuan(prev => [...(created as QATemuan[]).reverse(), ...prev]);
       resetForm();
-      setSuccessMsg(`${created.length} temuan berhasil disimpan!`);
+      setSuccessMsg(`${(created as QATemuan[]).length} temuan berhasil disimpan!`);
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err: any) { setErrorMsg(err.message); } finally { setSaving(false); }
   };
@@ -523,18 +526,20 @@ export default function QaInputClient({
     if (!selectedAgent || !selectedPeriod || validImportRows.length === 0) return;
     setImporting(true); setErrorMsg(null);
     try {
-      const created: QATemuan[] = [];
-      for (const row of validImportRows) {
-        const t = await createTemuanAction(selectedAgent.id, selectedPeriod.id, {
-          indicator_id: row.indicator_id!, no_tiket: row.no_tiket || undefined,
-          nilai: row.nilai!, ketidaksesuaian: row.ketidaksesuaian || undefined, sebaiknya: row.sebaiknya || undefined,
-          service_type: selectedService,
-        });
-        created.push(t);
-      }
-      setTemuan(prev => [...created.reverse(), ...prev]);
+      const temuanList = validImportRows.map(row => ({
+        indicator_id: row.indicator_id!,
+        no_tiket: row.no_tiket || undefined,
+        nilai: row.nilai!,
+        ketidaksesuaian: row.ketidaksesuaian || undefined,
+        sebaiknya: row.sebaiknya || undefined,
+        service_type: selectedService,
+      }));
+
+      const created = await createTemuanBatchAction(selectedAgent.id, selectedPeriod.id, temuanList);
+
+      setTemuan(prev => [...(created as QATemuan[]).reverse(), ...prev]);
       setShowImport(false); setImportRows([]); setImportFile(null);
-      setSuccessMsg(`${created.length} temuan berhasil diimport!`);
+      setSuccessMsg(`${(created as QATemuan[]).length} temuan berhasil diimport!`);
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err: any) { setErrorMsg(err.message); } finally { setImporting(false); }
   };

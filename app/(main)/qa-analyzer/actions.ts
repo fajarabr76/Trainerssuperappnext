@@ -242,6 +242,53 @@ export async function createTemuanAction(
   return data;
 }
 
+export async function createTemuanBatchAction(
+  peserta_id: string,
+  period_id: string,
+  temuanList: {
+    indicator_id: string;
+    no_tiket?: string;
+    nilai: number;
+    ketidaksesuaian?: string;
+    sebaiknya?: string;
+    service_type: ServiceType;
+  }[]
+) {
+  const { createClient } = await import('@/app/lib/supabase/server');
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Tidak terautentikasi');
+
+  const insertData = temuanList.map(t => ({
+    peserta_id,
+    period_id,
+    ...t
+  }));
+
+  const { data, error } = await supabase
+    .from('qa_temuan')
+    .insert(insertData)
+    .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)');
+  
+  if (error) throw error;
+  
+  // Log Activity once for the batch
+  await supabase.from('activity_logs').insert({
+    user_id: user.id,
+    user_name: user.email,
+    action: `Input ${temuanList.length} Temuan SIDAK untuk Peserta ID: ${peserta_id}`,
+    module: 'SIDAK',
+    type: 'add'
+  });
+
+  revalidatePath('/qa-analyzer/input');
+  revalidatePath('/qa-analyzer/dashboard');
+  revalidatePath(`/qa-analyzer/agents/${peserta_id}`);
+  
+  return data ?? [];
+}
+
 export async function updateTemuanAction(
   id: string,
   patch: { nilai: number; ketidaksesuaian?: string; sebaiknya?: string }

@@ -38,6 +38,23 @@ export const profilerServiceServer = {
     return (data || []).map(d => d.name);
   },
 
+  getFolderCounts: async (): Promise<Record<string, number>> => {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('profiler_peserta')
+      .select('batch_name');
+    
+    if (error) throw error;
+    
+    const counts: Record<string, number> = {};
+    (data || []).forEach(p => {
+      if (p.batch_name) {
+        counts[p.batch_name] = (counts[p.batch_name] || 0) + 1;
+      }
+    });
+    return counts;
+  },
+
   getByBatch: async (batchName: string): Promise<Peserta[]> => {
     const supabase = await createClient();
     const { data, error } = await supabase

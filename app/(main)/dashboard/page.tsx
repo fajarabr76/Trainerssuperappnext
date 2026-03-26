@@ -23,17 +23,26 @@ export default async function DashboardPage() {
 
   const role = profile?.role || 'trainer';
 
-  // Fetch trend data for ALL timeframes + unique agent counts in parallel
-  const [trend3m, trend6m, trendAll, agentCount3m, agentCount6m, agentCountAll, auditCount3m, auditCount6m, auditCountAll, activities] = await Promise.all([
-    qaServiceServer.getKpiSparkline([], null, 'total', '3m'),
-    qaServiceServer.getKpiSparkline([], null, 'total', '6m'),
-    qaServiceServer.getKpiSparkline([], null, 'total', 'all'),
-    qaServiceServer.getUniqueAgentCountByTimeframe('3m'),
-    qaServiceServer.getUniqueAgentCountByTimeframe('6m'),
-    qaServiceServer.getUniqueAgentCountByTimeframe('all'),
-    qaServiceServer.getAuditCountByTimeframe('3m'),
-    qaServiceServer.getAuditCountByTimeframe('6m'),
-    qaServiceServer.getAuditCountByTimeframe('all'),
+  // 1. Fetch periods first to share as context
+  const periods = await qaServiceServer.getPeriods();
+  const context = { periods, indicators: [], agents: [] };
+
+  // 2. Fetch all other dashboard data in parallel using the shared context
+  const [
+    trend3m, trend6m, trendAll, 
+    agentCount3m, agentCount6m, agentCountAll, 
+    auditCount3m, auditCount6m, auditCountAll, 
+    activities
+  ] = await Promise.all([
+    qaServiceServer.getKpiSparkline([], null, 'total', '3m', undefined, context),
+    qaServiceServer.getKpiSparkline([], null, 'total', '6m', undefined, context),
+    qaServiceServer.getKpiSparkline([], null, 'total', 'all', undefined, context),
+    qaServiceServer.getUniqueAgentCountByTimeframe('3m', context),
+    qaServiceServer.getUniqueAgentCountByTimeframe('6m', context),
+    qaServiceServer.getUniqueAgentCountByTimeframe('all', context),
+    qaServiceServer.getAuditCountByTimeframe('3m', context),
+    qaServiceServer.getAuditCountByTimeframe('6m', context),
+    qaServiceServer.getAuditCountByTimeframe('all', context),
     activityServiceServer.getRecentActivities(5)
   ]);
 

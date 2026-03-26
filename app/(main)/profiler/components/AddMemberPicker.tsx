@@ -10,7 +10,7 @@ interface AddMemberPickerProps {
   isOpen: boolean;
   onClose: () => void;
   targetBatch: string;
-  onSuccess: () => void;
+  onSuccess: (newPeserta: Peserta[]) => void;
 }
 
 export default function AddMemberPicker({ isOpen, onClose, targetBatch, onSuccess }: AddMemberPickerProps) {
@@ -57,10 +57,10 @@ export default function AddMemberPicker({ isOpen, onClose, targetBatch, onSucces
     if (selectedIds.length === 0) return;
     setSaving(true);
     try {
-      await copyPesertaToFolder(selectedIds, targetBatch);
+      const newPeserta = await copyPesertaToFolder(selectedIds, targetBatch);
       setSuccess(true);
       setTimeout(() => {
-        onSuccess();
+        onSuccess(newPeserta as Peserta[]);
         onClose();
       }, 1500);
     } catch (err) {

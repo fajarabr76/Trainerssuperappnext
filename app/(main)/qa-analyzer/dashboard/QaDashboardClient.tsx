@@ -10,9 +10,12 @@ import { createClient } from '@/app/lib/supabase/client';
 import { 
   QAPeriod, 
   DashboardSummary, 
-  TrendPoint as SparklineData
+  TrendPoint as SparklineData,
+  TeamComparisonData, 
+  TopAgentData, 
+  ParetoData, 
+  CriticalVsNonCriticalData
 } from '../lib/qa-types';
-import type { TeamComparisonData, TopAgentData, ParetoData, CriticalVsNonCriticalData } from '../services/qaService';
 
 import DashboardFilters from './components/DashboardFilters';
 import KpiCard from './components/KpiCard';
