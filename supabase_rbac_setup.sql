@@ -150,22 +150,22 @@ WITH CHECK (auth.uid() = user_id);
 DROP POLICY IF EXISTS "Trainers and Leaders can manage years" ON public.profiler_years;
 CREATE POLICY "Trainers and Leaders can manage years" 
 ON public.profiler_years FOR ALL 
-USING (public.get_auth_role() IN ('Trainer', 'Leader'));
+USING (LOWER(public.get_auth_role()) IN ('trainer', 'leader'));
 
 DROP POLICY IF EXISTS "Trainers and Leaders can manage folders" ON public.profiler_folders;
 CREATE POLICY "Trainers and Leaders can manage folders" 
 ON public.profiler_folders FOR ALL 
-USING (public.get_auth_role() IN ('Trainer', 'Leader'));
+USING (LOWER(public.get_auth_role()) IN ('trainer', 'leader'));
 
 DROP POLICY IF EXISTS "Trainers and Leaders can manage peserta" ON public.profiler_peserta;
 CREATE POLICY "Trainers and Leaders can manage peserta" 
 ON public.profiler_peserta FOR ALL 
-USING (public.get_auth_role() IN ('Trainer', 'Leader'));
+USING (LOWER(public.get_auth_role()) IN ('trainer', 'leader'));
 
 DROP POLICY IF EXISTS "Trainers and Leaders can manage tim list" ON public.profiler_tim_list;
 CREATE POLICY "Trainers and Leaders can manage tim list" 
 ON public.profiler_tim_list FOR ALL 
-USING (public.get_auth_role() IN ('Trainer', 'Leader'));
+USING (LOWER(public.get_auth_role()) IN ('trainer', 'leader'));
 
 -- 6. Storage Setup (profiler-foto bucket)
 
@@ -178,33 +178,23 @@ WHERE NOT EXISTS (
 
 -- Policy: Allow public to read files
 DROP POLICY IF EXISTS "Public Access" ON storage.objects;
-CREATE POLICY "Public Access"
+DROP POLICY IF EXISTS "Public Read for Profiler" ON storage.objects;
+CREATE POLICY "Public Read for Profiler"
 ON storage.objects FOR SELECT
 USING ( bucket_id = 'profiler-foto' );
 
--- Policy: Allow Trainers and Leaders to upload files
+-- Policy: Allow Trainers and Leaders to manage files (INSERT, UPDATE, DELETE)
 DROP POLICY IF EXISTS "Trainer and Leader Upload" ON storage.objects;
-CREATE POLICY "Trainer and Leader Upload"
-ON storage.objects FOR INSERT
+DROP POLICY IF EXISTS "Trainer and Leader Update" ON storage.objects;
+DROP POLICY IF EXISTS "Trainer and Leader Delete" ON storage.objects;
+DROP POLICY IF EXISTS "Manage Profiler Foto" ON storage.objects;
+CREATE POLICY "Manage Profiler Foto"
+ON storage.objects FOR ALL
+USING (
+  bucket_id = 'profiler-foto' AND
+  LOWER(public.get_auth_role()) IN ('trainer', 'leader')
+)
 WITH CHECK (
   bucket_id = 'profiler-foto' AND
-  (public.get_auth_role() IN ('Trainer', 'Leader'))
-);
-
--- Policy: Allow Trainers and Leaders to update files
-DROP POLICY IF EXISTS "Trainer and Leader Update" ON storage.objects;
-CREATE POLICY "Trainer and Leader Update"
-ON storage.objects FOR UPDATE
-USING (
-  bucket_id = 'profiler-foto' AND
-  (public.get_auth_role() IN ('Trainer', 'Leader'))
-);
-
--- Policy: Allow Trainers and Leaders to delete files
-DROP POLICY IF EXISTS "Trainer and Leader Delete" ON storage.objects;
-CREATE POLICY "Trainer and Leader Delete"
-ON storage.objects FOR DELETE
-USING (
-  bucket_id = 'profiler-foto' AND
-  (public.get_auth_role() IN ('Trainer', 'Leader'))
+  LOWER(public.get_auth_role()) IN ('trainer', 'leader')
 );
