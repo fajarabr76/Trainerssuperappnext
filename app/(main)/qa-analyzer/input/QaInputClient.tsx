@@ -306,6 +306,9 @@ interface QaInputClientProps {
   initialTemuan?: QATemuan[];
   initialStep?: Step;
   initialFolder?: string;
+  initialService?: ServiceType;
+  initialTeam?: string;
+  initialPeriod?: QAPeriod | null;
 }
 
 export default function QaInputClient({ 
@@ -313,7 +316,10 @@ export default function QaInputClient({
   initialFolders, initialPeriods, 
   initialAgents, initialAgent, initialIndicators, initialTemuan,
   initialStep = 'folder',
-  initialFolder
+  initialFolder,
+  initialService,
+  initialTeam,
+  initialPeriod
 }: QaInputClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -329,9 +335,9 @@ export default function QaInputClient({
 
   const [selectedFolder, setSelectedFolder] = useState<string | null>(initialFolder ?? null);
   const [selectedAgent, setSelectedAgent]   = useState<Agent | null>(initialAgent ?? null);
-  const [selectedPeriod, setSelectedPeriod] = useState<QAPeriod | null>(null);
-  const [selectedService, setSelectedService] = useState<ServiceType>('call');
-  const [selectedTeam, setSelectedTeam] = useState<string>('');
+  const [selectedPeriod, setSelectedPeriod] = useState<QAPeriod | null>(initialPeriod ?? null);
+  const [selectedService, setSelectedService] = useState<ServiceType>(initialService ?? 'call');
+  const [selectedTeam, setSelectedTeam] = useState<string>(initialTeam ?? '');
 
   const [showForm, setShowForm]   = useState(false);
   const [noTiket, setNoTiket]     = useState('');

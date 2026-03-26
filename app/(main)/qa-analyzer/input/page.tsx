@@ -2,7 +2,7 @@ import { createClient } from '@/app/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import QaInputClient from './QaInputClient';
 import { qaServiceServer } from '../services/qaService.server';
-import { ServiceType } from '../lib/qa-types';
+import { ServiceType, QAPeriod } from '../lib/qa-types';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,6 +46,9 @@ export default async function QaInputPage({ searchParams }: PageProps) {
   let initialIndicators = [];
   let initialTemuan = [];
   let initialStep: 'folder' | 'agent' | 'period' | 'list' = 'folder';
+  let initialService: ServiceType | undefined;
+  let initialTeam: string | undefined;
+  let initialPeriod: QAPeriod | null = null;
 
   if (folderParam) {
     try {
@@ -58,15 +61,22 @@ export default async function QaInputPage({ searchParams }: PageProps) {
     if (agentIdParam) {
       try {
         initialAgent = await qaServiceServer.getAgentMiniProfile(agentIdParam);
-        let defaultService = 'call';
-        const normalizedTim = initialAgent.tim?.toLowerCase()?.trim() || '';
+        let defaultService: ServiceType = 'call';
+        const team = initialAgent.tim || '';
+        const normalizedTim = team.toLowerCase().trim();
         if (normalizedTim.includes('mix')) defaultService = 'cso';
         else if (normalizedTim.includes('chat')) defaultService = 'chat';
         else if (normalizedTim.includes('email')) defaultService = 'email';
+        
         initialIndicators = await qaServiceServer.getIndicators(defaultService);
         initialStep = 'period';
+        
+        // Pass these to client for initialization
+        initialService = defaultService;
+        initialTeam = team;
 
         if (periodIdParam) {
+          initialPeriod = initialPeriods.find(p => p.id === periodIdParam) || null;
           initialTemuan = await qaServiceServer.getTemuanByAgentPeriod(agentIdParam, periodIdParam);
           initialStep = 'list';
         }
@@ -89,6 +99,9 @@ export default async function QaInputPage({ searchParams }: PageProps) {
       initialTemuan={initialTemuan}
       initialStep={initialStep}
       initialFolder={folderParam}
+      initialService={initialService}
+      initialTeam={initialTeam}
+      initialPeriod={initialPeriod}
     />
   );
 }
