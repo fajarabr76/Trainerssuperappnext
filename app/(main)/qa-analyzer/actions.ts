@@ -5,11 +5,11 @@ import { ServiceType, Category } from './lib/qa-types';
 import { revalidatePath } from 'next/cache';
 
 export async function createIndicator(
-  team_type: ServiceType, name: string, category: Category, bobot: number, has_na: boolean
+  service_type: ServiceType, name: string, category: Category, bobot: number, has_na: boolean
 ) {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('qa_indicators').insert({ team_type, name, category, bobot, has_na }).select().single();
+    .from('qa_indicators').insert({ service_type, name, category, bobot, has_na }).select().single();
   if (error) throw error;
   revalidatePath('/qa-analyzer/settings');
   return data;

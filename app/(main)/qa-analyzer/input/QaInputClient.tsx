@@ -416,7 +416,7 @@ export default function QaInputClient({
     try { 
       const { data: found } = await supabase
         .from('qa_temuan')
-        .select('*, qa_indicators(id, name, category, bobot, has_na, team_type), qa_periods(id, month, year)')
+        .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
         .eq('peserta_id', selectedAgent.id)
         .eq('period_id', period.id)
         .order('created_at', { ascending: false });

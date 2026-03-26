@@ -58,21 +58,21 @@ export interface CriticalVsNonCriticalData {
 
 export const qaService = {
   // ── Indicators ───────────────────────────────────────────────
-  async getIndicators(team_type?: ServiceType): Promise<QAIndicator[]> {
+  async getIndicators(service_type?: ServiceType): Promise<QAIndicator[]> {
     let query = supabase
       .from('qa_indicators').select('*')
       .order('category').order('bobot', { ascending: false }).order('created_at', { ascending: true });
-    if (team_type) query = query.eq('team_type', team_type);
+    if (service_type) query = query.eq('service_type', service_type);
     const { data, error } = await query;
     if (error) throw error;
     return data ?? [];
   },
 
   async createIndicator(
-    team_type: ServiceType, name: string, category: Category, bobot: number, has_na: boolean
+    service_type: ServiceType, name: string, category: Category, bobot: number, has_na: boolean
   ): Promise<QAIndicator> {
     const { data, error } = await supabase
-      .from('qa_indicators').insert({ team_type, name, category, bobot, has_na }).select().single();
+      .from('qa_indicators').insert({ service_type, name, category, bobot, has_na }).select().single();
     if (error) throw error;
     return data;
   },
@@ -128,7 +128,7 @@ export const qaService = {
   ): Promise<QATemuan[]> {
     const { data, error } = await supabase
       .from('qa_temuan')
-      .select('*, qa_indicators(id, name, category, bobot, has_na, team_type), qa_periods(id, month, year)')
+      .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
       .eq('peserta_id', peserta_id)
       .eq('period_id', period_id)
       .order('created_at', { ascending: false });
@@ -150,7 +150,7 @@ export const qaService = {
     const { data, error } = await supabase
       .from('qa_temuan')
       .insert({ peserta_id, period_id, ...temuan })
-      .select('*, qa_indicators(id, name, category, bobot, has_na, team_type), qa_periods(id, month, year)')
+      .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
       .single();
     if (error) throw error;
     return data;
@@ -164,7 +164,7 @@ export const qaService = {
       .from('qa_temuan')
       .update(patch)
       .eq('id', id)
-      .select('*, qa_indicators(id, name, category, bobot, has_na, team_type), qa_periods(id, month, year)')
+      .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
       .single();
     if (error) throw error;
     return data;
@@ -208,7 +208,7 @@ export const qaService = {
     // 2. Fetch all indicators
     const { data: indsData, error: indsError } = await supabase
       .from('qa_indicators')
-      .select('id, name, category, bobot, has_na, team_type');
+      .select('id, name, category, bobot, has_na, service_type');
     if (indsError) throw indsError;
     const allIndicators: QAIndicator[] = indsData ?? [];
 
@@ -295,7 +295,7 @@ export const qaService = {
 
     const { data: temuan, error: temuanError } = await supabase
       .from('qa_temuan')
-      .select('*, qa_indicators(id, name, category, bobot, has_na, team_type), qa_periods(id, month, year)')
+      .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
       .eq('peserta_id', peserta_id)
       .order('created_at', { ascending: false });
     if (temuanError) throw temuanError;
@@ -307,7 +307,7 @@ export const qaService = {
     const { agent, temuan } = await this.getAgentWithTemuan(peserta_id);
 
     const { data: indsData } = await supabase
-      .from('qa_indicators').select('*').eq('team_type', agent.tim);
+      .from('qa_indicators').select('*').eq('service_type', (TIM_TO_DEFAULT_SERVICE[agent.tim] || 'call'));
     const indicators: QAIndicator[] = indsData ?? [];
 
     const periodMap = new Map<string, {
