@@ -122,10 +122,10 @@ export const qaServiceServer = {
     if (indsError) throw indsError;
     const allIndicators: QAIndicator[] = indsData ?? [];
 
-    // 3. Fetch all temuan with period info
+    // 3. Fetch all temuan with period info and metadata
     const { data: temuanData, error: temuanError } = await supabase
       .from('qa_temuan')
-      .select('peserta_id, indicator_id, nilai, no_tiket, qa_periods(id, month, year)');
+      .select('peserta_id, indicator_id, nilai, no_tiket, service_type, ketidaksesuaian, sebaiknya, qa_periods(id, month, year)');
     if (temuanError) throw temuanError;
     const allTemuan = temuanData ?? [];
 
@@ -164,13 +164,15 @@ export const qaServiceServer = {
       const latestPeriodKey = sortedPeriods[0];
       const prevPeriodKey = sortedPeriods.length > 1 ? sortedPeriods[1] : null;
 
-      const teamInds = allIndicators.filter(i => i.service_type === (TIM_TO_DEFAULT_SERVICE[agentObj.tim] || 'call'));
+      const latestTemuan = periodsMap.get(latestPeriodKey)!;
+      // Use service_type from the latest audits if available, otherwise fallback to team mapping
+      const activeService = latestTemuan[0]?.service_type || TIM_TO_DEFAULT_SERVICE[agentObj.tim] || 'call';
+      const teamInds = allIndicators.filter(i => i.service_type === activeService);
 
       // Latest Score
-      const latestTemuan = periodsMap.get(latestPeriodKey)!;
       const latestScore = calculateQAScoreFromTemuan(
         teamInds,
-        latestTemuan.map(t => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket }))
+        latestTemuan.map(t => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket, ketidaksesuaian: t.ketidaksesuaian, sebaiknya: t.sebaiknya }))
       );
 
       agentObj.avgScore = latestScore.finalScore;
@@ -180,9 +182,12 @@ export const qaServiceServer = {
       // Previous Score for Trend
       if (prevPeriodKey) {
         const prevTemuan = periodsMap.get(prevPeriodKey)!;
+        const prevActiveService = prevTemuan[0]?.service_type || activeService; // Use previous period's service type if available
+        const prevTeamInds = allIndicators.filter(i => i.service_type === prevActiveService);
+        
         const prevScore = calculateQAScoreFromTemuan(
-          teamInds,
-          prevTemuan.map(t => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket }))
+          prevTeamInds,
+          prevTemuan.map(t => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket, ketidaksesuaian: t.ketidaksesuaian, sebaiknya: t.sebaiknya }))
         );
         
         agentObj.trendValue = latestScore.finalScore - prevScore.finalScore;
@@ -264,7 +269,16 @@ export const qaServiceServer = {
 
     const { data, error } = await query;
     if (error || !data) {
-      return { totalDefects: 0, avgDefectsPerAudit: 0, zeroErrorRate: totalAgents > 0 ? 100 : 0, complianceRate: totalAgents > 0 ? 100 : 0, complianceCount: totalAgents, totalAgents };
+      return { totalDefects: 0, avgDefectsPerAudit: 0, zeroErrorRate: 0, complianceRate: 0, complianceCount: 0, totalAgents: 0 };
+    }
+
+    // Filter agents to only those who were actually audited in the selected criteria
+    const auditedAgentIds = new Set(data.map(d => d.peserta_id));
+    const auditedAgents = allAgents.filter(a => auditedAgentIds.has(a.id));
+    const totalAuditedAgents = auditedAgents.length;
+    
+    if (totalAuditedAgents === 0) {
+      return { totalDefects: 0, avgDefectsPerAudit: 0, zeroErrorRate: 0, complianceRate: 0, complianceCount: 0, totalAgents: 0 };
     }
 
     // 3. Fetch all indicators (needed for scoring)
@@ -273,45 +287,44 @@ export const qaServiceServer = {
     
     const defects = data.filter(d => d.nilai < 3);
 
-    // 4. Calculate Zero Error Rate & Compliance Rate over ENTIRE POPULATION
+    // 4. Calculate Zero Error Rate & Compliance Rate over AUDITED POPULATION
     let agentsWithZeroError = 0;
     let agentsWithPassScore = 0;
     
-    if (totalAgents > 0) {
-      const agentTemuanMap: Record<string, any[]> = {};
+    const agentTemuanMap: Record<string, any[]> = {};
 
-      data.forEach(d => {
-        if (!agentTemuanMap[d.peserta_id]) {
-          agentTemuanMap[d.peserta_id] = [];
-        }
-        agentTemuanMap[d.peserta_id].push({ indicator_id: d.indicator_id, nilai: d.nilai, no_tiket: d.no_tiket });
-      });
+    data.forEach(d => {
+      if (!agentTemuanMap[d.peserta_id]) {
+        agentTemuanMap[d.peserta_id] = [];
+      }
+      agentTemuanMap[d.peserta_id].push({ indicator_id: d.indicator_id, nilai: d.nilai, no_tiket: d.no_tiket, service_type: d.service_type });
+    });
 
-      allAgents.forEach(agent => {
-        const temuanList = agentTemuanMap[agent.id] || [];
-        
-        // Zero Error Check
-        const hasDefect = temuanList.some(t => t.nilai < 3);
-        if (!hasDefect) {
-          agentsWithZeroError++;
-        }
+    auditedAgents.forEach(agent => {
+      const temuanList = agentTemuanMap[agent.id] || [];
+      
+      // Zero Error Check
+      const hasDefect = temuanList.some(t => t.nilai < 3);
+      if (!hasDefect) {
+        agentsWithZeroError++;
+      }
 
-        // Compliance Check
-        const teamInds = allIndicators.filter(i => i.service_type === temuanList[0]?.service_type);
-        const result = calculateQAScoreFromTemuan(teamInds, temuanList);
-        if (result.finalScore >= 95) {
-          agentsWithPassScore++;
-        }
-      });
-    }
+      // Compliance Check
+      const activeServiceType = temuanList[0]?.service_type || serviceType;
+      const teamInds = allIndicators.filter(i => i.service_type === activeServiceType);
+      const result = calculateQAScoreFromTemuan(teamInds, temuanList);
+      if (result.finalScore >= 95) {
+        agentsWithPassScore++;
+      }
+    });
 
     return {
       totalDefects: defects.length,
-      avgDefectsPerAudit: totalAgents > 0 ? defects.length / totalAgents : 0,
-      zeroErrorRate: totalAgents > 0 ? (agentsWithZeroError / totalAgents) * 100 : 0,
-      complianceRate: totalAgents > 0 ? (agentsWithPassScore / totalAgents) * 100 : 0,
+      avgDefectsPerAudit: totalAuditedAgents > 0 ? defects.length / totalAuditedAgents : 0,
+      zeroErrorRate: totalAuditedAgents > 0 ? (agentsWithZeroError / totalAuditedAgents) * 100 : 0,
+      complianceRate: totalAuditedAgents > 0 ? (agentsWithPassScore / totalAuditedAgents) * 100 : 0,
       complianceCount: agentsWithPassScore,
-      totalAgents: totalAgents
+      totalAgents: totalAuditedAgents
     };
   },
 
@@ -334,7 +347,7 @@ export const qaServiceServer = {
 
     let temuanQuery = supabase
       .from('qa_temuan')
-      .select('nilai, no_tiket, period_id, peserta_id, indicator_id, qa_indicators(category), profiler_peserta!inner(batch_name, tim)')
+      .select('nilai, ketidaksesuaian, sebaiknya, no_tiket, period_id, peserta_id, indicator_id, qa_indicators(category), profiler_peserta!inner(batch_name, tim)')
       .in('period_id', pIds);
 
     if (folderIds.length > 0) {
@@ -371,10 +384,11 @@ export const qaServiceServer = {
       let value = 0;
 
       if (metric === 'total') {
-        value = pTemuan.filter((t: any) => t.nilai < 3).length;
+        value = pTemuan.filter((t: any) => t.nilai < 3 || t.ketidaksesuaian || t.sebaiknya).length;
       }
       else if (metric === 'avg') {
-        value = totalAgents > 0 ? pTemuan.filter((t: any) => t.nilai < 3).length / totalAgents : 0;
+        const auditedInPeriod = new Set(pTemuan.map((t: any) => t.peserta_id)).size;
+        value = auditedInPeriod > 0 ? pTemuan.filter((t: any) => t.nilai < 3 || t.ketidaksesuaian || t.sebaiknya).length / auditedInPeriod : 0;
       }
       else if (metric === 'zero_error') {
         if (totalAgents > 0) {
@@ -423,19 +437,21 @@ export const qaServiceServer = {
 
     let query = supabase
       .from('qa_temuan')
-      .select('nilai, period_id, qa_indicators(name), profiler_peserta!inner(batch_name)')
-      .in('period_id', pIds)
-      .lt('nilai', 3);
+      .select('nilai, ketidaksesuaian, sebaiknya, period_id, qa_indicators(name), profiler_peserta!inner(batch_name)')
+      .in('period_id', pIds);
 
     if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
 
     const { data: temuan } = await query;
     if (!temuan) return { labels, datasets: [] };
 
+    // Filter "Concerns": Score < 3 OR Score 3 with notes
+    const findings = temuan.filter((t: any) => t.nilai < 3 || t.ketidaksesuaian || t.sebaiknya);
+
     const counts: Record<string, Record<string, number>> = {};
     const totalByPeriod: Record<string, number> = {};
 
-    temuan.forEach((t: any) => {
+    findings.forEach((t: any) => {
       const pName = t.qa_indicators?.name || 'Unknown';
       const pid = t.period_id;
       if (!counts[pName]) counts[pName] = {};
@@ -615,14 +631,16 @@ export const qaServiceServer = {
 
     let temuanQuery = supabase
       .from('qa_temuan')
-      .select('nilai, period_id, qa_indicators(name)')
+      .select('nilai, ketidaksesuaian, sebaiknya, period_id, qa_indicators(name)')
       .eq('peserta_id', agentId)
-      .in('period_id', pIds)
-      .lt('nilai', 3);
+      .in('period_id', pIds);
     if (serviceType) temuanQuery = temuanQuery.eq('service_type', serviceType);
-    const { data: temuan } = await temuanQuery;
+    const { data: temuanRaw } = await temuanQuery;
 
-    if (!temuan) return { labels, datasets: [] };
+    if (!temuanRaw) return { labels, datasets: [] };
+
+    // Filter "Concerns": Score < 3 OR Score 3 with notes
+    const temuan = temuanRaw.filter((t: any) => t.nilai < 3 || t.ketidaksesuaian || t.sebaiknya);
 
     const counts: Record<string, Record<string, number>> = {};
     const totalByPeriod: Record<string, number> = {};
