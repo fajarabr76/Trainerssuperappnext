@@ -7,7 +7,8 @@ import {
   TrendPoint, 
   calculateQAScoreFromTemuan,
   ServiceType,
-  Category
+  Category,
+  TIM_TO_DEFAULT_SERVICE
 } from '../lib/qa-types';
 
 export interface TeamComparisonData {
@@ -163,7 +164,7 @@ export const qaServiceServer = {
       const latestPeriodKey = sortedPeriods[0];
       const prevPeriodKey = sortedPeriods.length > 1 ? sortedPeriods[1] : null;
 
-      const teamInds = allIndicators.filter(i => i.service_type === agentObj.tim);
+      const teamInds = allIndicators.filter(i => i.service_type === (TIM_TO_DEFAULT_SERVICE[agentObj.tim] || 'call'));
 
       // Latest Score
       const latestTemuan = periodsMap.get(latestPeriodKey)!;
