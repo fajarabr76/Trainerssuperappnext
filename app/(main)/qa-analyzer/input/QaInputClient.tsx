@@ -330,6 +330,7 @@ export default function QaInputClient({
   const [selectedAgent, setSelectedAgent]   = useState<Agent | null>(initialAgent ?? null);
   const [selectedPeriod, setSelectedPeriod] = useState<QAPeriod | null>(null);
   const [selectedService, setSelectedService] = useState<ServiceType>('call');
+  const [selectedTeam, setSelectedTeam] = useState<string>('');
 
   const [showForm, setShowForm]   = useState(false);
   const [noTiket, setNoTiket]     = useState('');
@@ -397,6 +398,7 @@ export default function QaInputClient({
       defaultService = 'email';
     }
     setSelectedService(defaultService);
+    setSelectedTeam(agent.tim || '');
     
     const { data: inds } = await supabase.from('qa_indicators').select('*').eq('service_type', defaultService).order('category').order('bobot', { ascending: false });
     setIndicators(inds || []);
@@ -647,6 +649,40 @@ export default function QaInputClient({
 
             {!loading && step === 'list' && selectedAgent && selectedPeriod && (
               <div className="space-y-6">
+                {/* ── Layanan & Tim Dropdowns ─────────────────── */}
+                <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
+                  <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider mb-4">Konfigurasi Audit</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Layanan Dropdown */}
+                    <div>
+                      <label className="text-xs font-semibold text-foreground/60 mb-1.5 block">Layanan Audit</label>
+                      <select
+                        value={selectedService}
+                        onChange={(e) => handleServiceChange(e.target.value as ServiceType)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-card text-foreground text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none cursor-pointer"
+                        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
+                      >
+                        {(Object.entries(SERVICE_LABELS) as [ServiceType, string][]).map(([val, lbl]) => (
+                          <option key={val} value={val}>{lbl}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {/* Tim Dropdown */}
+                    <div>
+                      <label className="text-xs font-semibold text-foreground/60 mb-1.5 block">Tim Agent</label>
+                      <select
+                        value={selectedTeam}
+                        onChange={(e) => setSelectedTeam(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-card text-foreground text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none cursor-pointer"
+                        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
+                      >
+                        {Object.keys(TIM_TO_DEFAULT_SERVICE).map(tim => (
+                          <option key={tim} value={tim}>{tim}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
                 {liveScore && (
                   <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
