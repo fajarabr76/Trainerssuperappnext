@@ -41,6 +41,7 @@ interface QaDashboardClientProps {
     period: string;
     folder: string;
     timeframe: '3m' | '6m' | 'all';
+    service: string;
   };
 }
 
@@ -61,13 +62,15 @@ export default function QaDashboardClient({
   const [selectedPeriodId, setSelectedPeriodId] = useState(initialFilters.period);
   const [selectedFolderId, setSelectedFolderId] = useState(initialFilters.folder);
   const [timeframe, setTimeframe] = useState(initialFilters.timeframe);
+  const [selectedService, setSelectedService] = useState(initialFilters.service);
 
   // Update URL when filters change
-  const updateFilters = (newPeriod: string, newFolder: string, newTimeframe: string) => {
+  const updateFilters = (newPeriod: string, newFolder: string, newTimeframe: string, newService: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('period', newPeriod);
     params.set('folder', newFolder);
     params.set('timeframe', newTimeframe);
+    params.set('service', newService);
     setLoading(true);
     router.push(`?${params.toString()}`);
   };
@@ -78,6 +81,7 @@ export default function QaDashboardClient({
     setSelectedPeriodId(initialFilters.period);
     setSelectedFolderId(initialFilters.folder);
     setTimeframe(initialFilters.timeframe);
+    setSelectedService(initialFilters.service);
   }, [initialData]);
 
   const selectedFolderName = useMemo(() => {
@@ -141,12 +145,14 @@ export default function QaDashboardClient({
             <DashboardFilters 
               periods={initialData.periods}
               selectedPeriodId={selectedPeriodId}
-              onPeriodChange={(v) => { setSelectedPeriodId(v); updateFilters(v, selectedFolderId, timeframe); }}
+              onPeriodChange={(v) => { setSelectedPeriodId(v); updateFilters(v, selectedFolderId, timeframe, selectedService); }}
               folders={initialData.folders}
               selectedFolderId={selectedFolderId}
-              onFolderChange={(v) => { setSelectedFolderId(v); updateFilters(selectedPeriodId, v, timeframe); }}
+              onFolderChange={(v) => { setSelectedFolderId(v); updateFilters(selectedPeriodId, v, timeframe, selectedService); }}
               timeframe={timeframe}
-              onTimeframeChange={(v) => { setTimeframe(v); updateFilters(selectedPeriodId, selectedFolderId, v); }}
+              onTimeframeChange={(v) => { setTimeframe(v); updateFilters(selectedPeriodId, selectedFolderId, v, selectedService); }}
+              serviceType={selectedService}
+              onServiceChange={(v) => { setSelectedService(v); updateFilters(selectedPeriodId, selectedFolderId, timeframe, v); }}
             />
 
             {loading ? (

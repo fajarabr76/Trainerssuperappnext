@@ -22,7 +22,8 @@ import {
   scoreBg,
   NILAI_LABELS 
 } from '../lib/qa-types';
-import type { QAIndicator, QAPeriod, QATemuan, TeamType } from '../lib/qa-types';
+import type { QAIndicator, QAPeriod, QATemuan, ServiceType } from '../lib/qa-types';
+import { TIM_TO_DEFAULT_SERVICE, SERVICE_LABELS } from '../lib/qa-types';
 import { 
   createTemuanAction, 
   updateTemuanAction, 
@@ -328,6 +329,7 @@ export default function QaInputClient({
   const [selectedFolder, setSelectedFolder] = useState<string | null>(initialFolder ?? null);
   const [selectedAgent, setSelectedAgent]   = useState<Agent | null>(initialAgent ?? null);
   const [selectedPeriod, setSelectedPeriod] = useState<QAPeriod | null>(null);
+  const [selectedService, setSelectedService] = useState<ServiceType>('call');
 
   const [showForm, setShowForm]   = useState(false);
   const [noTiket, setNoTiket]     = useState('');
@@ -383,15 +385,29 @@ export default function QaInputClient({
 
   const handleSelectAgent = async (agent: Agent) => {
     setSelectedAgent(agent); setSelectedPeriod(null); setTemuan([]);
-    let teamToFetch = agent.tim;
-    const isMix = agent.tim?.toLowerCase().trim() === 'mix';
-    const isCso = agent.jabatan?.toLowerCase().trim() === 'cso';
-    if (isMix && isCso) {
-      teamToFetch = 'CSO';
+    
+    // Default service for the team
+    let defaultService: ServiceType = 'call';
+    const normalizedTim = agent.tim?.toLowerCase()?.trim() || '';
+    if (normalizedTim.includes('mix')) {
+      defaultService = 'cso';
+    } else if (normalizedTim.includes('chat')) {
+      defaultService = 'chat';
+    } else if (normalizedTim.includes('email')) {
+      defaultService = 'email';
     }
-    const { data: inds } = await supabase.from('qa_indicators').select('*').eq('team_type', teamToFetch).order('category').order('bobot', { ascending: false });
+    setSelectedService(defaultService);
+    
+    const { data: inds } = await supabase.from('qa_indicators').select('*').eq('service_type', defaultService).order('category').order('bobot', { ascending: false });
     setIndicators(inds || []);
     setStep('period');
+  };
+
+  const handleServiceChange = async (newService: ServiceType) => {
+    setSelectedService(newService);
+    const { data: inds } = await supabase.from('qa_indicators').select('*').eq('service_type', newService).order('category').order('bobot', { ascending: false });
+    setIndicators(inds || []);
+    setEntries([newEntry()]); // reset form to avoid invalid indicator ids
   };
 
   const handleSelectPeriod = async (period: QAPeriod) => {
@@ -430,6 +446,7 @@ export default function QaInputClient({
         const t = await createTemuanAction(selectedAgent.id, selectedPeriod.id, {
           indicator_id: entry.indicator_id, no_tiket: noTiket || undefined,
           nilai: entry.nilai, ketidaksesuaian: entry.ketidaksesuaian || undefined, sebaiknya: entry.sebaiknya || undefined,
+          service_type: selectedService,
         });
         created.push(t);
       }
@@ -482,6 +499,7 @@ export default function QaInputClient({
         const t = await createTemuanAction(selectedAgent.id, selectedPeriod.id, {
           indicator_id: row.indicator_id!, no_tiket: row.no_tiket || undefined,
           nilai: row.nilai!, ketidaksesuaian: row.ketidaksesuaian || undefined, sebaiknya: row.sebaiknya || undefined,
+          service_type: selectedService,
         });
         created.push(t);
       }
@@ -499,7 +517,7 @@ export default function QaInputClient({
     
     setSaving(true); setErrorMsg(null);
     try {
-      const created = await createPerfectScoreSessionAction(selectedAgent.id, selectedPeriod.id, ticket);
+      const created = await createPerfectScoreSessionAction(selectedAgent.id, selectedPeriod.id, selectedService as ServiceType, ticket);
       setTemuan(prev => [...created.reverse(), ...prev]);
       setSuccessMsg(`Sesi Tanpa Temuan berhasil ditambahkan! (${created.length} parameter)`);
       setTimeout(() => setSuccessMsg(null), 3000);
@@ -604,7 +622,7 @@ export default function QaInputClient({
                   {agents.map(agent => (
                     <button key={agent.id} onClick={() => handleSelectAgent(agent)} className="flex items-center gap-4 px-5 py-4 bg-card border border-border hover:border-primary/40 rounded-2xl text-left transition-all group">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0"><span className="font-black text-primary">{agent.nama.charAt(0)}</span></div>
-                      <div className="flex-1 min-w-0"><p className="font-semibold truncate">{agent.nama}</p><p className="text-xs text-foreground/40">Tim {agent.tim}</p></div>
+                      <div className="flex-1 min-w-0"><p className="font-semibold truncate">{agent.nama}</p><p className="text-xs text-foreground/40">{agent.tim}</p></div>
                       <ChevronRight className="w-5 h-5 text-foreground/20 group-hover:text-primary"/>
                     </button>
                   ))}

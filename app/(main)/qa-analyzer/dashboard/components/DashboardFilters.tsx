@@ -1,6 +1,6 @@
 import React from 'react';
-import { Calendar, Users, Filter, ChevronRight } from 'lucide-react';
-import { QAPeriod } from '../../lib/qa-types';
+import { Calendar, Users, Filter, ChevronRight, Headset } from 'lucide-react';
+import { QAPeriod, SERVICE_LABELS } from '../../lib/qa-types';
 
 const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
@@ -13,6 +13,8 @@ interface DashboardFiltersProps {
   onFolderChange: (id: string) => void;
   timeframe: '3m' | '6m' | 'all';
   onTimeframeChange: (tf: '3m' | '6m' | 'all') => void;
+  serviceType: string;
+  onServiceChange: (val: string) => void;
 }
 
 export default function DashboardFilters({
@@ -23,7 +25,9 @@ export default function DashboardFilters({
   selectedFolderId,
   onFolderChange,
   timeframe,
-  onTimeframeChange
+  onTimeframeChange,
+  serviceType,
+  onServiceChange
 }: DashboardFiltersProps) {
 
   return (
@@ -44,6 +48,24 @@ export default function DashboardFilters({
       <div className="h-8 w-px bg-border mx-2 hidden lg:block" />
       
       <div className="flex-1 flex flex-col md:flex-row gap-4 w-full relative z-10">
+        <div className="relative flex-1 group/select">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <Headset className="h-4 w-4 text-foreground/40 group-focus-within/select:text-primary transition-colors" />
+          </div>
+          <select
+            value={serviceType}
+            onChange={(e) => onServiceChange(e.target.value)}
+            className="block w-full pl-12 pr-10 py-3.5 text-sm bg-background/50 border-border/50 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all appearance-none border hover:border-primary/30 font-semibold text-primary"
+          >
+            {Object.entries(SERVICE_LABELS).map(([val, label]) => (
+              <option key={val} value={val}>{label}</option>
+            ))}
+          </select>
+          <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-foreground/20">
+            <ChevronRight className="w-4 h-4 rotate-90" />
+          </div>
+        </div>
+
         <div className="relative flex-1 group/select">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Calendar className="h-4 w-4 text-foreground/40 group-focus-within/select:text-primary transition-colors" />

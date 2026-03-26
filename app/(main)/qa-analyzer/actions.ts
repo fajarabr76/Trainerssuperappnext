@@ -1,11 +1,11 @@
 'use server'
 
 import { createClient } from '@/app/lib/supabase/server';
-import { TeamType, Category } from './lib/qa-types';
+import { ServiceType, Category } from './lib/qa-types';
 import { revalidatePath } from 'next/cache';
 
 export async function createIndicator(
-  team_type: TeamType, name: string, category: Category, bobot: number, has_na: boolean
+  team_type: ServiceType, name: string, category: Category, bobot: number, has_na: boolean
 ) {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -70,13 +70,14 @@ export async function createTemuan(
     nilai: number;
     ketidaksesuaian?: string;
     sebaiknya?: string;
+    service_type: ServiceType;
   }
 ) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('qa_temuan')
     .insert({ peserta_id, period_id, ...temuan })
-    .select('*, qa_indicators(id, name, category, bobot, has_na, team_type), qa_periods(id, month, year)')
+    .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
     .single();
   if (error) throw error;
   revalidatePath('/qa-analyzer/dashboard');
@@ -94,7 +95,7 @@ export async function updateTemuan(
     .from('qa_temuan')
     .update(patch)
     .eq('id', id)
-    .select('*, qa_indicators(id, name, category, bobot, has_na, team_type), qa_periods(id, month, year)')
+    .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
     .single();
   if (error) throw error;
   revalidatePath('/qa-analyzer/dashboard');
@@ -150,11 +151,11 @@ export async function deletePeriodAction(id: string) {
 }
 
 export async function createIndicatorAction(
-  team_type: TeamType, name: string, category: Category, bobot: number, has_na: boolean
+  service_type: ServiceType, name: string, category: Category, bobot: number, has_na: boolean
 ) {
   const { createClient } = await import('@/app/lib/supabase/server');
   const supabase = await createClient();
-  const { data, error } = await supabase.from('qa_indicators').insert({ team_type, name, category, bobot, has_na }).select().single();
+  const { data, error } = await supabase.from('qa_indicators').insert({ service_type, name, category, bobot, has_na }).select().single();
   if (error) throw error;
   revalidatePath('/qa-analyzer/settings');
   return data;
@@ -210,6 +211,7 @@ export async function createTemuanAction(
     nilai: number;
     ketidaksesuaian?: string;
     sebaiknya?: string;
+    service_type: ServiceType;
   }
 ) {
   const { createClient } = await import('@/app/lib/supabase/server');
@@ -221,7 +223,7 @@ export async function createTemuanAction(
   const { data, error } = await supabase
     .from('qa_temuan')
     .insert({ peserta_id, period_id, ...temuan })
-    .select('*, qa_indicators(id, name, category, bobot, has_na, team_type), qa_periods(id, month, year)')
+    .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
     .single();
   if (error) throw error;
   
@@ -250,7 +252,7 @@ export async function updateTemuanAction(
     .from('qa_temuan')
     .update(patch)
     .eq('id', id)
-    .select('*, qa_indicators(id, name, category, bobot, has_na, team_type), qa_periods(id, month, year)')
+    .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
     .single();
   if (error) throw error;
   
@@ -299,6 +301,7 @@ export async function getAgentsByFolderAction(batch: string) {
 export async function createPerfectScoreSessionAction(
   peserta_id: string,
   period_id: string,
+  service_type: ServiceType,
   no_tiket?: string
 ) {
   const { createClient } = await import('@/app/lib/supabase/server');
@@ -315,18 +318,13 @@ export async function createPerfectScoreSessionAction(
     .single();
   if (agentErr || !agent) throw new Error('Agent tidak ditemukan');
 
-  let teamToFetch = agent.tim;
-  const isMix = agent.tim?.toLowerCase().trim() === 'mix';
-  const isCso = agent.jabatan?.toLowerCase().trim() === 'cso';
-  if (isMix && isCso) {
-    teamToFetch = 'CSO';
-  }
+  
 
   // get indicators
   const { data: inds, error: indsErr } = await supabase
     .from('qa_indicators')
     .select('id')
-    .eq('team_type', teamToFetch);
+    .eq('service_type', service_type);
   if (indsErr || !inds) throw new Error('Gagal mengambil parameter untuk agent ini');
 
   if (inds.length === 0) throw new Error('Tidak ada parameter untuk tim agent ini');
@@ -342,7 +340,7 @@ export async function createPerfectScoreSessionAction(
   const { data, error } = await supabase
     .from('qa_temuan')
     .insert(insertData)
-    .select('*, qa_indicators(id, name, category, bobot, has_na, team_type), qa_periods(id, month, year)');
+    .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)');
   
   if (error) throw error;
 

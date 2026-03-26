@@ -1,11 +1,28 @@
-// ── Team & Category ───────────────────────────────────────────
-export type TeamType = 'Telepon' | 'Chat' | 'Email' | 'CSO' | 'telepon' | 'chat' | 'email' | 'cso';
+// ── Service & Category ───────────────────────────────────────────
+export type ServiceType = 'call' | 'chat' | 'email' | 'cso' | 'pencatatan' | 'bko' | 'slik';
 export type Category = 'critical' | 'non_critical';
+
+export const SERVICE_LABELS: Record<ServiceType, string> = {
+  call: 'Layanan Call',
+  chat: 'Layanan Chat',
+  email: 'Layanan Email',
+  cso: 'Layanan CSO',
+  pencatatan: 'Pencatatan',
+  bko: 'BKO',
+  slik: 'SLIK'
+};
+
+export const TIM_TO_DEFAULT_SERVICE: Record<string, ServiceType> = {
+  'Telepon': 'call',
+  'Chat': 'chat',
+  'Email': 'email',
+  'Mix': 'cso'
+};
 
 // ── Interfaces ────────────────────────────────────────────────
 export interface QAIndicator {
   id: string;
-  team_type: TeamType;
+  service_type: ServiceType;
   name: string;
   category: Category;
   bobot: number;
@@ -38,6 +55,7 @@ export interface QATemuan {
   peserta_id: string;
   period_id: string;
   indicator_id: string;
+  service_type: ServiceType;
   no_tiket?: string | null;
   nilai: number;
   ketidaksesuaian?: string | null;

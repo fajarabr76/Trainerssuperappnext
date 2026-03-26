@@ -7,10 +7,11 @@ import {
   Pencil, Check, ArrowLeftRight, AlertTriangle, Menu
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { QAIndicator, TeamType, Category } from '../lib/qa-types';
+import type { QAIndicator, ServiceType, Category } from '../lib/qa-types';
+import { SERVICE_LABELS } from '../lib/qa-types';
 import { createIndicatorAction, updateIndicatorAction, deleteIndicatorAction } from '../actions';
 
-const TEAMS: TeamType[] = ['Telepon', 'Chat', 'Email', 'CSO'];
+const TEAMS: ServiceType[] = ['call', 'chat', 'email', 'cso', 'pencatatan', 'bko', 'slik'];
 const CAT_LABEL: Record<Category, string> = {
   non_critical: 'Non-Critical Error',
   critical: 'Critical Error',
@@ -37,7 +38,7 @@ interface QaSettingsClientProps {
 export default function QaSettingsClient({ user, role, initialIndicators }: QaSettingsClientProps) {
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [activeTeam, setActiveTeam] = useState<TeamType>('Telepon');
+  const [activeTeam, setActiveTeam] = useState<ServiceType>('call');
   const [indicators, setIndicators] = useState<QAIndicator[]>(initialIndicators);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -60,7 +61,7 @@ export default function QaSettingsClient({ user, role, initialIndicators }: QaSe
   const [confirmDelete, setConfirmDelete] = useState<QAIndicator | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const teamIndicators = indicators.filter(i => i.team_type === activeTeam);
+  const teamIndicators = indicators.filter(i => i.service_type === activeTeam);
   const nc = teamIndicators.filter(i => i.category === 'non_critical');
   const cr = teamIndicators.filter(i => i.category === 'critical');
   const ncTotal = nc.reduce((s, i) => s + Number(i.bobot), 0);
@@ -76,7 +77,7 @@ export default function QaSettingsClient({ user, role, initialIndicators }: QaSe
     const bobotNew = parseFloat(edit.bobot) / 100;
     
     // Filter to current team only for accurate preview
-    const currentTeamInds = indicators.filter(i => i.team_type === activeTeam);
+    const currentTeamInds = indicators.filter(i => i.service_type === activeTeam);
     const ncTeam = currentTeamInds.filter(i => i.category === 'non_critical');
     const crTeam = currentTeamInds.filter(i => i.category === 'critical');
     
@@ -436,16 +437,16 @@ export default function QaSettingsClient({ user, role, initialIndicators }: QaSe
         </header>
 
         <div className="flex-1 overflow-y-auto px-4 lg:px-8 py-8 space-y-6">
-          <div className="flex gap-1.5 p-1 bg-card rounded-2xl border border-border shadow-sm">
+          <div className="flex gap-1.5 p-1 bg-card rounded-2xl border border-border shadow-sm overflow-x-auto">
             {TEAMS.map(team => (
               <button key={team}
                 onClick={() => { setActiveTeam(team); setShowForm(false); setErrorMsg(null); cancelEdit(); setConfirmDelete(null); }}
-                className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                className={`flex-none px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
                   activeTeam === team
                     ? 'bg-primary text-white shadow-lg shadow-primary/20'
                     : 'text-foreground/40 hover:text-foreground/60 hover:bg-foreground/5'
                 }`}>
-                {team}
+                {SERVICE_LABELS[team] || team}
               </button>
             ))}
           </div>

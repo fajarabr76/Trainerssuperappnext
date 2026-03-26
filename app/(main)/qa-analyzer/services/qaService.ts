@@ -6,10 +6,11 @@ import {
   DashboardSummary, 
   TrendPoint, 
   calculateQAScoreFromTemuan,
-  TeamType,
+  ServiceType,
   Category,
   MAX_SAMPLING,
-  ParameterStat
+  ParameterStat,
+  TIM_TO_DEFAULT_SERVICE
 } from '../lib/qa-types';
 
 const supabase = createClient();
@@ -20,7 +21,7 @@ export type {
   QATemuan, 
   DashboardSummary, 
   TrendPoint,
-  TeamType,
+  ServiceType,
   Category,
   ParameterStat
 };
@@ -57,7 +58,7 @@ export interface CriticalVsNonCriticalData {
 
 export const qaService = {
   // ── Indicators ───────────────────────────────────────────────
-  async getIndicators(team_type?: TeamType): Promise<QAIndicator[]> {
+  async getIndicators(team_type?: ServiceType): Promise<QAIndicator[]> {
     let query = supabase
       .from('qa_indicators').select('*')
       .order('category').order('bobot', { ascending: false }).order('created_at', { ascending: true });
@@ -68,7 +69,7 @@ export const qaService = {
   },
 
   async createIndicator(
-    team_type: TeamType, name: string, category: Category, bobot: number, has_na: boolean
+    team_type: ServiceType, name: string, category: Category, bobot: number, has_na: boolean
   ): Promise<QAIndicator> {
     const { data, error } = await supabase
       .from('qa_indicators').insert({ team_type, name, category, bobot, has_na }).select().single();
@@ -253,7 +254,7 @@ export const qaService = {
       const latestPeriodKey = sortedPeriods[0];
       const prevPeriodKey = sortedPeriods.length > 1 ? sortedPeriods[1] : null;
 
-      const teamInds = allIndicators.filter(i => i.team_type === agentObj.tim);
+      const teamInds = allIndicators.filter(i => i.service_type === (TIM_TO_DEFAULT_SERVICE[agentObj.tim] || 'call'));
 
       // Latest Score
       const latestTemuan = periodsMap.get(latestPeriodKey)!;
@@ -397,7 +398,7 @@ export const qaService = {
         const hasDefect = temuanList.some(t => t.nilai < 3);
         if (!hasDefect) agentsWithZeroError++;
 
-        const teamInds = allIndicators.filter(i => i.team_type === agent.tim);
+        const teamInds = allIndicators.filter(i => i.service_type === (TIM_TO_DEFAULT_SERVICE[agent.tim] || 'call'));
         const result = calculateQAScoreFromTemuan(teamInds, temuanList);
         if (result.finalScore >= 95) agentsWithPassScore++;
       });
@@ -494,7 +495,7 @@ export const qaService = {
           let passCount = 0;
           allAgents.forEach(agent => {
             const agentT = pTemuan.filter((t: any) => t.peserta_id === agent.id);
-            const teamInds = allIndicators.filter(i => i.team_type === agent.tim);
+            const teamInds = allIndicators.filter(i => i.service_type === (TIM_TO_DEFAULT_SERVICE[agent.tim] || 'call'));
             const s = calculateQAScoreFromTemuan(teamInds, agentT.map((t: any) => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket })));
             if (s.finalScore >= 95) passCount++;
           });

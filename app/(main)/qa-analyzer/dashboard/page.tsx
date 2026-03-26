@@ -40,6 +40,7 @@ export default async function QaDashboardPage({
   const timeframe = (resolvedParams.timeframe === '3m' || resolvedParams.timeframe === '6m' || resolvedParams.timeframe === 'all') 
     ? (resolvedParams.timeframe as '3m' | '6m' | 'all') 
     : '3m';
+  const service = typeof resolvedParams.service === 'string' ? resolvedParams.service : 'call';
 
   const folderIds = folder === 'ALL' ? [] : [folder];
 
@@ -57,16 +58,16 @@ export default async function QaDashboardPage({
   ] = await Promise.all([
     qaServiceServer.getPeriods(),
     profilerServiceServer.getFolders(),
-    qaServiceServer.getDashboardSummary(folderIds, period),
-    qaServiceServer.getTeamComparison(folderIds, period),
-    qaServiceServer.getTopAgentsWithDefects(folderIds, period, 5),
-    qaServiceServer.getParetoData(folderIds, period),
-    qaServiceServer.getCriticalVsNonCritical(folderIds, period),
-    qaServiceServer.getKpiSparkline(folderIds, null, 'total', timeframe),
-    qaServiceServer.getKpiSparkline(folderIds, null, 'avg', timeframe),
-    qaServiceServer.getKpiSparkline(folderIds, null, 'zero_error', timeframe),
-    qaServiceServer.getKpiSparkline(folderIds, null, 'compliance', timeframe),
-    qaServiceServer.getTrendWithParameters(folderIds, timeframe)
+    qaServiceServer.getDashboardSummary(folderIds, period, service),
+    qaServiceServer.getTeamComparison(folderIds, period, service),
+    qaServiceServer.getTopAgentsWithDefects(folderIds, period, 5, service),
+    qaServiceServer.getParetoData(folderIds, period, service),
+    qaServiceServer.getCriticalVsNonCritical(folderIds, period, service),
+    qaServiceServer.getKpiSparkline(folderIds, null, 'total', timeframe, service),
+    qaServiceServer.getKpiSparkline(folderIds, null, 'avg', timeframe, service),
+    qaServiceServer.getKpiSparkline(folderIds, null, 'zero_error', timeframe, service),
+    qaServiceServer.getKpiSparkline(folderIds, null, 'compliance', timeframe, service),
+    qaServiceServer.getTrendWithParameters(folderIds, timeframe, service)
   ]);
 
   const initialData = {
@@ -89,7 +90,8 @@ export default async function QaDashboardPage({
   const filters = {
     period,
     folder,
-    timeframe
+    timeframe,
+    service
   };
 
   return (

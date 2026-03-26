@@ -2,7 +2,7 @@ import { createClient } from '@/app/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import QaInputClient from './QaInputClient';
 import { qaServiceServer } from '../services/qaService.server';
-import { TeamType } from '../lib/qa-types';
+import { ServiceType } from '../lib/qa-types';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,7 +51,12 @@ export default async function QaInputPage({ searchParams }: PageProps) {
     if (agentIdParam) {
       try {
         initialAgent = await qaServiceServer.getAgentMiniProfile(agentIdParam);
-        initialIndicators = await qaServiceServer.getIndicators(initialAgent.tim, initialAgent.jabatan);
+        let defaultService = 'call';
+        const normalizedTim = initialAgent.tim?.toLowerCase()?.trim() || '';
+        if (normalizedTim.includes('mix')) defaultService = 'cso';
+        else if (normalizedTim.includes('chat')) defaultService = 'chat';
+        else if (normalizedTim.includes('email')) defaultService = 'email';
+        initialIndicators = await qaServiceServer.getIndicators(defaultService);
         initialStep = 'period';
 
         if (periodIdParam) {

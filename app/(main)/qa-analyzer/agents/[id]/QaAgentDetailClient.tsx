@@ -11,7 +11,7 @@ import * as XLSX from 'xlsx';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
-import { scoreColor, scoreBg, scoreLabel, NILAI_LABELS, calculateQAScoreFromTemuan } from '../../lib/qa-types';
+import { scoreColor, scoreBg, scoreLabel, NILAI_LABELS, calculateQAScoreFromTemuan, SERVICE_LABELS, ServiceType } from '../../lib/qa-types';
 import type { QAIndicator, QATemuan } from '../../lib/qa-types';
 import ParamTrendChart from '../../dashboard/components/ParamTrendChart';
 import { getAgentExportDataAction, getPersonalTrendAction } from '../../actions';
@@ -124,7 +124,7 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
   const [loadingData, setLoadingData] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState<{ month: number; year: number; label: string; id?: string } | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<{ month: number; year: number; label: string; serviceType: string; id?: string } | null>(null);
   const [timeframe, setTimeframe] = useState<'3m' | '6m' | 'all'>('3m');
   const [activeTrendFilter, setActiveTrendFilter] = useState<string>('all');
   
@@ -136,44 +136,48 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
   const personalTrend = data.personalTrend;
 
   const sortedPeriods = useMemo(() => {
-    const map = new Map<string, { month: number; year: number; label: string; id?: string }>();
+    const map = new Map<string, { month: number; year: number; label: string; serviceType: string; id?: string }>();
     temuan.forEach(t => {
       if (!t.qa_periods) return;
-      const key = periodKey(t.qa_periods.month, t.qa_periods.year);
+      const key = `${periodKey(t.qa_periods.month, t.qa_periods.year)}_${t.service_type}`;
       if (!map.has(key)) map.set(key, {
         month: t.qa_periods.month,
         year: t.qa_periods.year,
-        label: pLabel(t.qa_periods.month, t.qa_periods.year),
+        serviceType: t.service_type,
+        label: `${pLabel(t.qa_periods.month, t.qa_periods.year)} - ${SERVICE_LABELS[t.service_type as keyof typeof SERVICE_LABELS] || t.service_type}`,
         id: t.qa_periods.id,
       });
     });
-    return [...map.entries()].sort(([a],[b]) => a.localeCompare(b)).map(([,v]) => v);
+    return [...map.entries()].sort(([a],[b]) => b.localeCompare(a)).map(([,v]) => v); // Reverse chronological
   }, [temuan]);
 
   useEffect(() => {
     if (sortedPeriods.length === 0) return;
-    const latest = sortedPeriods[sortedPeriods.length - 1];
+    const latest = sortedPeriods[0];
     setSelectedPeriod(prev => {
-      if (prev && sortedPeriods.some(p => periodKey(p.month, p.year) === periodKey(prev.month, prev.year))) return prev;
+      if (prev && sortedPeriods.some(p => periodKey(p.month, p.year) === periodKey(prev.month, prev.year) && p.serviceType === prev.serviceType)) return prev;
       return latest;
     });
   }, [sortedPeriods]);
 
-  const getScore = useCallback((month: number, year: number) => {
+  const getScore = useCallback((month: number, year: number, serviceType: string) => {
     const key = periodKey(month, year);
-    const pt = temuan.filter(t => t.qa_periods && periodKey(t.qa_periods.month, t.qa_periods.year) === key);
-    return calculateQAScoreFromTemuan(indicators, pt.map(t => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket })));
+    const pt = temuan.filter(t => t.qa_periods && periodKey(t.qa_periods.month, t.qa_periods.year) === key && t.service_type === serviceType);
+    const serviceInds = indicators.filter(i => i.service_type === serviceType);
+    return calculateQAScoreFromTemuan(serviceInds, pt.map(t => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket })));
   }, [temuan, indicators]);
 
-  const selectedScore = useMemo(() => selectedPeriod ? getScore(selectedPeriod.month, selectedPeriod.year) : null, [selectedPeriod, getScore]);
+  const selectedScore = useMemo(() => selectedPeriod ? getScore(selectedPeriod.month, selectedPeriod.year, selectedPeriod.serviceType) : null, [selectedPeriod, getScore]);
 
   const prevPeriod = useMemo(() => {
     if (!selectedPeriod || sortedPeriods.length < 2) return null;
-    const idx = sortedPeriods.findIndex(p => periodKey(p.month, p.year) === periodKey(selectedPeriod.month, selectedPeriod.year));
-    return idx > 0 ? sortedPeriods[idx - 1] : null;
+    // Find the previous period with the SAME service type
+    const sameServicePeriods = sortedPeriods.filter(p => p.serviceType === selectedPeriod.serviceType);
+    const idx = sameServicePeriods.findIndex(p => periodKey(p.month, p.year) === periodKey(selectedPeriod.month, selectedPeriod.year));
+    return idx < sameServicePeriods.length - 1 ? sameServicePeriods[idx + 1] : null;
   }, [selectedPeriod, sortedPeriods]);
 
-  const prevScore = useMemo(() => prevPeriod ? getScore(prevPeriod.month, prevPeriod.year) : null, [prevPeriod, getScore]);
+  const prevScore = useMemo(() => prevPeriod ? getScore(prevPeriod.month, prevPeriod.year, prevPeriod.serviceType) : null, [prevPeriod, getScore]);
 
   const trendDir = useMemo(() => selectedScore && prevScore
     ? (selectedScore.finalScore > prevScore.finalScore ? 'up' : selectedScore.finalScore < prevScore.finalScore ? 'down' : 'same')
@@ -182,7 +186,7 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
   const selectedTemuan = useMemo(() => {
     if (!selectedPeriod) return [];
     const key = periodKey(selectedPeriod.month, selectedPeriod.year);
-    return temuan.filter(t => t.qa_periods && periodKey(t.qa_periods.month, t.qa_periods.year) === key);
+    return temuan.filter(t => t.qa_periods && periodKey(t.qa_periods.month, t.qa_periods.year) === key && t.service_type === selectedPeriod.serviceType);
   }, [selectedPeriod, temuan]);
 
   const automatedCoaching = useMemo(() => {
@@ -367,10 +371,10 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
                       {sortedPeriods.length > 0 && (
                         <div className="flex flex-wrap gap-2 bg-card/40 backdrop-blur-md rounded-2xl border border-border/50 p-3 shadow-inner">
                           {sortedPeriods.map(p => {
-                            const isActive = periodKey(p.month, p.year) === periodKey(selectedPeriod?.month || 0, selectedPeriod?.year || 0);
+                            const isActive = periodKey(p.month, p.year) === periodKey(selectedPeriod?.month || 0, selectedPeriod?.year || 0) && p.serviceType === selectedPeriod?.serviceType;
                             return (
                               <button 
-                                key={periodKey(p.month, p.year)} 
+                                key={`${periodKey(p.month, p.year)}_${p.serviceType}`} 
                                 onClick={() => setSelectedPeriod(p)} 
                                 className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${isActive ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-105' : 'hover:bg-foreground/5 text-foreground/40'}`}
                               >

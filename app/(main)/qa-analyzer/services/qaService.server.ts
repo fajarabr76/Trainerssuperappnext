@@ -6,7 +6,7 @@ import {
   DashboardSummary, 
   TrendPoint, 
   calculateQAScoreFromTemuan,
-  TeamType,
+  ServiceType,
   Category
 } from '../lib/qa-types';
 
@@ -41,18 +41,13 @@ export interface CriticalVsNonCriticalData {
 
 export const qaServiceServer = {
   // ── Indicators ───────────────────────────────────────────────
-  async getIndicators(team_type?: string, jabatan?: string): Promise<QAIndicator[]> {
+  async getIndicators(service_type?: string): Promise<QAIndicator[]> {
     const supabase = await createClient();
     let query = supabase
       .from('qa_indicators').select('*')
       .order('category').order('bobot', { ascending: false }).order('created_at', { ascending: true });
     
-    let targetTeam = team_type;
-    if (team_type?.toLowerCase().trim() === 'mix' && jabatan?.toLowerCase().trim() === 'cso') {
-      targetTeam = 'CSO';
-    }
-
-    if (targetTeam) query = query.eq('team_type', targetTeam);
+    if (service_type) query = query.eq('service_type', service_type);
     const { data, error } = await query;
     if (error) throw error;
     return data ?? [];
@@ -86,7 +81,7 @@ export const qaServiceServer = {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('qa_temuan')
-      .select('*, qa_indicators(id, name, category, bobot, has_na, team_type), qa_periods(id, month, year)')
+      .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
       .eq('peserta_id', peserta_id)
       .eq('period_id', period_id)
       .order('created_at', { ascending: false });
@@ -122,7 +117,7 @@ export const qaServiceServer = {
     // 2. Fetch all indicators
     const { data: indsData, error: indsError } = await supabase
       .from('qa_indicators')
-      .select('id, name, category, bobot, has_na, team_type');
+      .select('id, name, category, bobot, has_na, service_type');
     if (indsError) throw indsError;
     const allIndicators: QAIndicator[] = indsData ?? [];
 
@@ -168,7 +163,7 @@ export const qaServiceServer = {
       const latestPeriodKey = sortedPeriods[0];
       const prevPeriodKey = sortedPeriods.length > 1 ? sortedPeriods[1] : null;
 
-      const teamInds = allIndicators.filter(i => i.team_type === agentObj.tim);
+      const teamInds = allIndicators.filter(i => i.service_type === agentObj.tim);
 
       // Latest Score
       const latestTemuan = periodsMap.get(latestPeriodKey)!;
@@ -210,7 +205,7 @@ export const qaServiceServer = {
 
     const { data: temuan, error: temuanError } = await supabase
       .from('qa_temuan')
-      .select('*, qa_indicators(id, name, category, bobot, has_na, team_type), qa_periods(id, month, year)')
+      .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
       .eq('peserta_id', peserta_id)
       .order('created_at', { ascending: false });
     if (temuanError) throw temuanError;
@@ -244,7 +239,7 @@ export const qaServiceServer = {
     return data && data.length > 0 ? data.map(p => p.id) : ['none'];
   },
 
-  async getDashboardSummary(folderIds: string[], periodId: string): Promise<DashboardSummary> {
+  async getDashboardSummary(folderIds: string[], periodId: string, serviceType?: string): Promise<DashboardSummary> {
     const supabase = await createClient();
     const pIds = await this.resolvePeriodIds(periodId);
 
@@ -260,6 +255,7 @@ export const qaServiceServer = {
       .from('qa_temuan')
       .select('*, qa_indicators(category), profiler_peserta!inner(batch_name, tim)')
       .in('period_id', pIds);
+    if (serviceType) query = query.eq('service_type', serviceType);
 
     if (folderIds.length > 0) {
       query = query.in('profiler_peserta.batch_name', folderIds);
@@ -300,7 +296,7 @@ export const qaServiceServer = {
         }
 
         // Compliance Check
-        const teamInds = allIndicators.filter(i => i.team_type === agent.tim);
+        const teamInds = allIndicators.filter(i => i.service_type === temuanList[0]?.service_type);
         const result = calculateQAScoreFromTemuan(teamInds, temuanList);
         if (result.finalScore >= 95) {
           agentsWithPassScore++;
@@ -318,7 +314,7 @@ export const qaServiceServer = {
     };
   },
 
-  async getKpiSparkline(folderIds: string[], periodId: string | undefined | null, metric: 'total' | 'avg' | 'zero_error' | 'compliance', timeframe: '3m' | '6m' | 'all' = '3m'): Promise<TrendPoint[]> {
+  async getKpiSparkline(folderIds: string[], periodId: string | undefined | null, metric: 'total' | 'avg' | 'zero_error' | 'compliance', timeframe: '3m' | '6m' | 'all' = '3m', serviceType?: string): Promise<TrendPoint[]> {
     const supabase = await createClient();
     // 1. Fetch recent periods
     let periodQuery = supabase.from('qa_periods').select('*').order('year', { ascending: false }).order('month', { ascending: false });
@@ -394,7 +390,7 @@ export const qaServiceServer = {
           let passCount = 0;
           allAgents.forEach(agent => {
             const agentTemuans = pTemuan.filter((t: any) => t.peserta_id === agent.id);
-            const teamInds = allIndicators.filter(i => i.team_type === agent.tim);
+            const teamInds = allIndicators.filter(i => i.service_type === agentTemuans[0]?.service_type);
             const result = calculateQAScoreFromTemuan(
               teamInds,
               agentTemuans.map((t: any) => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket }))
@@ -412,7 +408,7 @@ export const qaServiceServer = {
     });
   },
 
-  async getTrendWithParameters(folderIds: string[], timeframe: '3m' | '6m' | 'all' = '3m') {
+  async getTrendWithParameters(folderIds: string[], timeframe: '3m' | '6m' | 'all' = '3m', serviceType?: string) {
     const supabase = await createClient();
     const periodQuery = supabase.from('qa_periods').select('*').order('year', { ascending: false }).order('month', { ascending: false });
     const limitMap = { '3m': 3, '6m': 6, 'all': 12 };
@@ -458,7 +454,7 @@ export const qaServiceServer = {
     return { labels, datasets };
   },
 
-  async getTeamComparison(folderIds: string[], periodId: string): Promise<TeamComparisonData[]> {
+  async getTeamComparison(folderIds: string[], periodId: string, serviceType?: string): Promise<TeamComparisonData[]> {
     const supabase = await createClient();
     const pIds = await this.resolvePeriodIds(periodId);
     let query = supabase
@@ -487,7 +483,7 @@ export const qaServiceServer = {
       .sort((a, b) => b.total - a.total);
   },
 
-  async getTopAgentsWithDefects(folderIds: string[], periodId: string, limit: number = 5): Promise<TopAgentData[]> {
+  async getTopAgentsWithDefects(folderIds: string[], periodId: string, limit: number = 5, serviceType?: string): Promise<TopAgentData[]> {
     const supabase = await createClient();
     const { data: indicators } = await supabase.from('qa_indicators').select('*');
     const allIndicators = (indicators || []) as QAIndicator[];
@@ -497,6 +493,7 @@ export const qaServiceServer = {
       .from('qa_temuan')
       .select('nilai, no_tiket, indicator_id, qa_indicators(category), profiler_peserta!inner(id, nama, batch_name)')
       .in('period_id', pIds);
+    if (serviceType) query = query.eq('service_type', serviceType);
 
     if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
 
@@ -532,7 +529,7 @@ export const qaServiceServer = {
     return agentStats.sort((a, b) => b.defects - a.defects).slice(0, limit);
   },
 
-  async getParetoData(folderIds: string[], periodId: string): Promise<ParetoData[]> {
+  async getParetoData(folderIds: string[], periodId: string, serviceType?: string): Promise<ParetoData[]> {
     const supabase = await createClient();
     const pIds = await this.resolvePeriodIds(periodId);
     let query = supabase
@@ -575,7 +572,7 @@ export const qaServiceServer = {
       });
   },
 
-  async getCriticalVsNonCritical(folderIds: string[], periodId: string): Promise<CriticalVsNonCriticalData> {
+  async getCriticalVsNonCritical(folderIds: string[], periodId: string, serviceType?: string): Promise<CriticalVsNonCriticalData> {
     const supabase = await createClient();
     const pIds = await this.resolvePeriodIds(periodId);
     let query = supabase
@@ -603,7 +600,7 @@ export const qaServiceServer = {
   },
 
 
-  async getPersonalTrendWithParameters(agentId: string, timeframe: '3m' | '6m' | 'all' = '3m') {
+  async getPersonalTrendWithParameters(agentId: string, timeframe: '3m' | '6m' | 'all' = '3m', serviceType?: string) {
     const supabase = await createClient();
     const periodQuery = supabase.from('qa_periods').select('*').order('year', { ascending: false }).order('month', { ascending: false });
     const limitMap = { '3m': 3, '6m': 6, 'all': 12 };
@@ -615,12 +612,14 @@ export const qaServiceServer = {
     const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
     const labels = sortedPeriods.map(p => `${MONTHS_SHORT[p.month - 1]} ${String(p.year).slice(-2)}`);
 
-    const { data: temuan } = await supabase
+    let temuanQuery = supabase
       .from('qa_temuan')
       .select('nilai, period_id, qa_indicators(name)')
       .eq('peserta_id', agentId)
       .in('period_id', pIds)
       .lt('nilai', 3);
+    if (serviceType) temuanQuery = temuanQuery.eq('service_type', serviceType);
+    const { data: temuan } = await temuanQuery;
 
     if (!temuan) return { labels, datasets: [] };
 
@@ -667,7 +666,7 @@ export const qaServiceServer = {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([pk, pTemuan]) => {
         const p = pTemuan[0].qa_periods;
-        const teamInds = allIndicators.filter(i => i.team_type === agent.tim);
+        const teamInds = allIndicators.filter(i => i.service_type === pTemuan[0]?.service_type);
         const scoreResult = calculateQAScoreFromTemuan(
           teamInds,
           pTemuan.map(t => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket }))
