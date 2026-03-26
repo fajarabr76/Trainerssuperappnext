@@ -116,9 +116,9 @@ export async function getAgentExportDataAction(agentId: string) {
   return await qaServiceServer.getAgentExportData(agentId);
 }
 
-export async function getPersonalTrendAction(agentId: string, timeframe: '3m' | '6m' | 'all') {
+export async function getPersonalTrendAction(agentId: string, timeframe: '3m' | '6m' | 'all', serviceType?: string) {
   const { qaServiceServer } = await import('./services/qaService.server');
-  return await qaServiceServer.getPersonalTrendWithParameters(agentId, timeframe);
+  return await qaServiceServer.getPersonalTrendWithParameters(agentId, timeframe, serviceType);
 }
 
 export async function createPeriodAction(month: number, year: number) {

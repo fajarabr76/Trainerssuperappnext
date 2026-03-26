@@ -284,7 +284,7 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
     setTimeframe(tf);
     setLoadingData(true);
     try {
-      const trend = await getPersonalTrendAction(agentId, tf);
+      const trend = await getPersonalTrendAction(agentId, tf, selectedPeriod?.serviceType);
       setData(prev => ({ ...prev, personalTrend: trend }));
     } catch (err) {
       console.error(err);
@@ -292,6 +292,24 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
       setLoadingData(false);
     }
   };
+
+  useEffect(() => {
+    if (!selectedPeriod) return;
+    
+    const refreshTrend = async () => {
+      setLoadingData(true);
+      try {
+        const trend = await getPersonalTrendAction(agentId, timeframe, selectedPeriod.serviceType);
+        setData(prev => ({ ...prev, personalTrend: trend }));
+      } catch (err) {
+        console.error("Error refreshing trend:", err);
+      } finally {
+        setLoadingData(false);
+      }
+    };
+    
+    refreshTrend();
+  }, [selectedPeriod?.serviceType, agentId, timeframe]);
 
   const handleExport = async () => {
     setExporting(true);
@@ -304,7 +322,6 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
     const params = new URLSearchParams({
       folder: agent.batch,
       agentId: agentId,
-      ...(selectedPeriod?.id ? { periodId: selectedPeriod.id } : {}),
     });
     router.push(`/qa-analyzer/input?${params.toString()}`);
   };

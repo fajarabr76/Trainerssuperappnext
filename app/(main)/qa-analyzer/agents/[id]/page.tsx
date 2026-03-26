@@ -42,7 +42,7 @@ export default async function QaAgentDetailPage({ params }: { params: Promise<{ 
     }
 
     const { agent, temuan } = agentResult;
-    const indicators = await qaServiceServer.getIndicators(agent.tim);
+    const indicators = await qaServiceServer.getIndicators();
 
     const initialData = {
       temuan,
