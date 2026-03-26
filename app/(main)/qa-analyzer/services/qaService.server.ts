@@ -533,10 +533,12 @@ export const qaServiceServer = {
     const agentStats = Object.keys(agentTemuanMap).map(id => {
       const info = agentInfoMap[id];
       const temuanList = agentTemuanMap[id];
-      const result = calculateQAScoreFromTemuan(allIndicators, temuanList);
+      const activeService = temuanList[0]?.service_type || serviceType || 'call';
+      const serviceInds = allIndicators.filter(i => i.service_type === activeService);
+      const result = calculateQAScoreFromTemuan(serviceInds, temuanList);
       const defects = temuanList.filter(t => t.nilai < 3).length;
       const hasCritical = temuanList.some(t => {
-        const ind = allIndicators.find(i => i.id === t.indicator_id);
+        const ind = serviceInds.find(i => i.id === t.indicator_id);
         return t.nilai === 0 && ind?.category === 'critical';
       });
 
@@ -678,7 +680,7 @@ export const qaServiceServer = {
       if (!t.qa_periods) return;
       const pk = `${t.qa_periods.year}-${String(t.qa_periods.month).padStart(2, '0')}`;
       if (!periodsMap.has(pk)) periodsMap.set(pk, []);
-      periodsMap.get(pk)!.push(t);
+      periodsMap.get(pk)!.push({ ...t, service_type: t.service_type || t.qa_indicators?.service_type });
     });
 
     const periods = [...periodsMap.entries()]
