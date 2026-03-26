@@ -300,6 +300,7 @@ interface QaInputClientProps {
   profile: any;
   initialFolders: string[];
   initialPeriods: QAPeriod[];
+  initialAgents?: any[];
   initialAgent?: any;
   initialIndicators?: QAIndicator[];
   initialTemuan?: QATemuan[];
@@ -310,7 +311,7 @@ interface QaInputClientProps {
 export default function QaInputClient({ 
   user, role, profile, 
   initialFolders, initialPeriods, 
-  initialAgent, initialIndicators, initialTemuan,
+  initialAgents, initialAgent, initialIndicators, initialTemuan,
   initialStep = 'folder',
   initialFolder
 }: QaInputClientProps) {
@@ -321,7 +322,7 @@ export default function QaInputClient({
 
   const [step, setStep]         = useState<Step>(initialStep);
   const [folders, setFolders]   = useState<string[]>(initialFolders);
-  const [agents, setAgents]     = useState<Agent[]>([]);
+  const [agents, setAgents]     = useState<Agent[]>(initialAgents ?? []);
   const [periods, setPeriods]   = useState<QAPeriod[]>(initialPeriods);
   const [indicators, setIndicators] = useState<QAIndicator[]>(initialIndicators ?? []);
   const [temuan, setTemuan]     = useState<QATemuan[]>(initialTemuan ?? []);
@@ -410,6 +411,25 @@ export default function QaInputClient({
     const { data: inds } = await supabase.from('qa_indicators').select('*').eq('service_type', newService).order('category').order('bobot', { ascending: false });
     setIndicators(inds || []);
     setEntries([newEntry()]); // reset form to avoid invalid indicator ids
+    
+    // Bug 2 Fix: If a period is already selected, re-fetch temuan for the new service to ensure accurate score calculation
+    if (selectedAgent && selectedPeriod) {
+      setLoading(true);
+      try {
+        const { data: found } = await supabase
+          .from('qa_temuan')
+          .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
+          .eq('peserta_id', selectedAgent.id)
+          .eq('period_id', selectedPeriod.id)
+          .eq('service_type', newService)
+          .order('created_at', { ascending: false });
+        setTemuan(found || []);
+      } catch (err: any) { 
+        setErrorMsg(err.message); 
+      } finally { 
+        setLoading(false); 
+      }
+    }
   };
 
   const handleSelectPeriod = async (period: QAPeriod) => {
@@ -421,6 +441,7 @@ export default function QaInputClient({
         .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
         .eq('peserta_id', selectedAgent.id)
         .eq('period_id', period.id)
+        .eq('service_type', selectedService) // Bug 2 Fix: Only fetch temuan for the relevant service
         .order('created_at', { ascending: false });
       setTemuan(found || []); 
       setStep('list'); 
@@ -699,13 +720,16 @@ export default function QaInputClient({
 
                 <div className="flex items-center justify-between">
                   <div><h3 className="font-bold">Daftar Temuan</h3><p className="text-xs text-foreground/40">{temuan.length} temuan · {groupedTemuan.length} sesi</p></div>
-                  {!showForm && !showImport && (
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => { setShowImport(true); setImportTab('download'); setImportRows([]); setImportFile(null); }} className="flex items-center gap-2 px-4 py-2.5 bg-card border border-border hover:border-primary/40 rounded-xl text-sm font-semibold transition-all"><FileSpreadsheet className="w-4 h-4"/>Import</button>
-                      <button onClick={handlePerfectScore} disabled={saving} className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 text-white hover:bg-emerald-600 rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-500/20"><Check className="w-4 h-4"/>Sesi Tanpa Temuan</button>
-                      <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold transition-all shadow-lg shadow-primary/20"><Plus className="w-4 h-4"/>Tambah</button>
-                    </div>
-                  )}
+                  {!showForm && !showImport && (() => {
+                    const hasBadFindings = temuan.some(t => t.nilai < 3);
+                    return (
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => { setShowImport(true); setImportTab('download'); setImportRows([]); setImportFile(null); }} className="flex items-center gap-2 px-4 py-2.5 bg-card border border-border hover:border-primary/40 rounded-xl text-sm font-semibold transition-all"><FileSpreadsheet className="w-4 h-4"/>Import</button>
+                        <button onClick={handlePerfectScore} disabled={saving || hasBadFindings} className={`flex items-center gap-2 px-4 py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-500/20 ${hasBadFindings ? 'opacity-50 cursor-not-allowed' : 'hover:bg-emerald-600'}`} title={hasBadFindings ? "Sesi tanpa temuan hanya bisa dibuat jika belum ada laporan temuan buruk." : ""}><Check className="w-4 h-4"/>{hasBadFindings ? 'Sudah Ada Temuan' : 'Sesi Tanpa Temuan'}</button>
+                        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold transition-all shadow-lg shadow-primary/20"><Plus className="w-4 h-4"/>Tambah</button>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {showImport && (

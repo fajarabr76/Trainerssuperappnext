@@ -334,7 +334,8 @@ export async function createPerfectScoreSessionAction(
     period_id,
     indicator_id: ind.id,
     no_tiket: no_tiket || undefined,
-    nilai: 3
+    nilai: 3,
+    service_type
   }));
 
   const { data, error } = await supabase

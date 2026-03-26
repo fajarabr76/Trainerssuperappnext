@@ -41,12 +41,19 @@ export default async function QaInputPage({ searchParams }: PageProps) {
   const initialPeriods = await qaServiceServer.getPeriods();
 
   // Selective pre-fetching based on params
+  let initialAgents: any[] = [];
   let initialAgent = null;
   let initialIndicators = [];
   let initialTemuan = [];
   let initialStep: 'folder' | 'agent' | 'period' | 'list' = 'folder';
 
   if (folderParam) {
+    try {
+      initialAgents = await qaServiceServer.getAgentsByFolder(folderParam);
+    } catch (e) {
+      console.error("Error pre-fetching agents list:", e);
+    }
+    
     initialStep = 'agent';
     if (agentIdParam) {
       try {
@@ -76,6 +83,7 @@ export default async function QaInputPage({ searchParams }: PageProps) {
       profile={profile}
       initialFolders={initialFolders}
       initialPeriods={initialPeriods}
+      initialAgents={initialAgents}
       initialAgent={initialAgent}
       initialIndicators={initialIndicators}
       initialTemuan={initialTemuan}
