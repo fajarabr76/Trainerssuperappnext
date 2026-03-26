@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import {
   Users, BarChart2, TrendingUp, AlertCircle, CheckCircle2, 
   CalendarDays, ChevronDown, Plus, Download, ArrowLeft, Sun, Moon,
-  ExternalLink, Activity, ShieldCheck, TrendingDown, Minus, Zap, AlertTriangle
+  ExternalLink, Activity, ShieldCheck, TrendingDown, Minus, Zap, AlertTriangle,
+  Edit2, Trash2, X, Save, Loader2
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useTheme } from 'next-themes';
@@ -14,7 +15,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { scoreColor, scoreBg, scoreLabel, NILAI_LABELS, calculateQAScoreFromTemuan, SERVICE_LABELS, ServiceType } from '../../lib/qa-types';
 import type { QAIndicator, QATemuan } from '../../lib/qa-types';
 import ParamTrendChart from '../../dashboard/components/ParamTrendChart';
-import { getAgentExportDataAction, getPersonalTrendAction } from '../../actions';
+import { getAgentExportDataAction, getPersonalTrendAction, updateTemuanAction, deleteTemuanAction } from '../../actions';
 
 const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
 const MONTHS_FULL  = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
@@ -130,6 +131,57 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
   
   const [agent, setAgent] = useState(initialAgent);
   const [data, setData] = useState(initialData);
+
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
+
+  const [editingTemuan, setEditingTemuan] = useState<any>(null);
+  const [editForm, setEditForm] = useState({ nilai: 3, ketidaksesuaian: '', sebaiknya: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const startEdit = (t: any) => {
+    setEditingTemuan(t);
+    setEditForm({
+      nilai: t.nilai,
+      ketidaksesuaian: t.ketidaksesuaian || '',
+      sebaiknya: t.sebaiknya || ''
+    });
+  };
+
+  const handleEditSave = async () => {
+    if (!editingTemuan) return;
+    setIsSubmitting(true);
+    try {
+      const updated = await updateTemuanAction(editingTemuan.id, editForm);
+      setData(prev => ({
+        ...prev,
+        temuan: prev.temuan.map(t => t.id === updated.id ? updated : t)
+      }));
+      setEditingTemuan(null);
+    } catch (err: any) {
+      alert('Gagal menyimpan: ' + err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Yakin ingin menghapus temuan ini?')) return;
+    setDeletingId(id);
+    try {
+      await deleteTemuanAction(id);
+      setData(prev => ({
+        ...prev,
+        temuan: prev.temuan.filter(t => t.id !== id)
+      }));
+    } catch (err: any) {
+      alert('Gagal menghapus: ' + err.message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const temuan = data.temuan;
   const indicators = data.indicators;
@@ -598,7 +650,7 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
                               {group.items.map((t: any) => {
                                 const isCritical = t.qa_indicators?.category === 'critical';
                                 return (
-                                  <div key={t.id} className="px-10 py-10 flex items-start gap-10 hover:bg-foreground/[0.01] transition-all duration-300">
+                                  <div key={t.id} className="px-10 py-10 flex items-start gap-10 hover:bg-foreground/[0.01] transition-all duration-300 group">
                                     <NilaiBadge nilai={t.nilai} />
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-start justify-between gap-4 mb-6">
@@ -610,6 +662,14 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
                                             </span>
                                           </div>
                                           <h4 className="text-xl font-black tracking-tight text-foreground/80">{t.qa_indicators?.name}</h4>
+                                        </div>
+                                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                          <button onClick={() => startEdit(t)} className="text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded-xl transition-colors" title="Edit Temuan">
+                                            <Edit2 className="w-4 h-4" />
+                                          </button>
+                                          <button onClick={() => handleDelete(t.id)} disabled={deletingId === t.id} className="text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 p-2 rounded-xl transition-colors disabled:opacity-50" title="Hapus Temuan">
+                                            {deletingId === t.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                          </button>
                                         </div>
                                       </div>
                                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
@@ -638,6 +698,82 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
           </div>
         </div>
       </main>
+
+      {/* Edit Modal */}
+      <AnimatePresence>
+        {editingTemuan && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => !isSubmitting && setEditingTemuan(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-2xl bg-card border border-border/50 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="px-8 py-6 border-b border-border/50 flex items-center justify-between bg-foreground/[0.02]">
+                <div>
+                  <h3 className="text-xl font-black tracking-tight">Edit Temuan</h3>
+                  <p className="text-xs text-foreground/50 mt-1 font-medium">{editingTemuan.qa_indicators?.name}</p>
+                </div>
+                <button onClick={() => !isSubmitting && setEditingTemuan(null)} className="w-8 h-8 rounded-full bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center text-foreground/50 transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="p-8 overflow-y-auto flex-1 space-y-6">
+                <div className="space-y-3">
+                  <label className="text-xs font-black uppercase tracking-widest text-foreground/50">Nilai</label>
+                  <div className="grid grid-cols-4 gap-3">
+                    {[3, 2, 1, 0].map(val => (
+                      <button
+                        key={val}
+                        onClick={() => setEditForm(prev => ({ ...prev, nilai: val }))}
+                        className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 ${
+                          editForm.nilai === val 
+                            ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20 scale-105' 
+                            : 'bg-background hover:bg-foreground/5 border-border/50'
+                        }`}
+                      >
+                        <span className="text-2xl font-black">{val}</span>
+                        <span className="text-[9px] font-black uppercase tracking-widest opacity-80">{val === 3 ? 'EXCELLENT' : val === 2 ? 'GOOD' : val === 1 ? 'DEFICIT' : 'CRITICAL'}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <label className="text-xs font-black uppercase tracking-widest text-foreground/50">Ketidaksesuaian</label>
+                  <textarea
+                    value={editForm.ketidaksesuaian}
+                    onChange={e => setEditForm(prev => ({ ...prev, ketidaksesuaian: e.target.value }))}
+                    className="w-full h-24 bg-background border border-border/50 rounded-xl p-4 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="Deskripsikan gap atau isu..."
+                  />
+                </div>
+                <div className="space-y-3">
+                  <label className="text-xs font-black uppercase tracking-widest text-foreground/50">Sebaiknya</label>
+                  <textarea
+                    value={editForm.sebaiknya}
+                    onChange={e => setEditForm(prev => ({ ...prev, sebaiknya: e.target.value }))}
+                    className="w-full h-24 bg-background border border-border/50 rounded-xl p-4 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="Saran perbaikan..."
+                  />
+                </div>
+              </div>
+              <div className="px-8 py-6 border-t border-border/50 bg-foreground/[0.02] flex justify-end gap-3">
+                <button
+                  onClick={() => setEditingTemuan(null)}
+                  disabled={isSubmitting}
+                  className="px-6 py-2.5 rounded-xl text-sm font-bold bg-background border border-border/50 hover:bg-foreground/5 transition-colors disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleEditSave}
+                  disabled={isSubmitting}
+                  className="px-6 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0 flex items-center gap-2"
+                >
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {isSubmitting ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
