@@ -33,6 +33,7 @@ export default function ParetoChart({ data }: ParetoChartProps) {
           <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="currentColor" opacity={0.05} />
           <XAxis 
             dataKey="name" 
+            tickFormatter={(value) => value.length > 15 ? `${value.substring(0, 15)}...` : value}
             tick={{ fontSize: 9, fill: 'currentColor', opacity: 0.4, fontWeight: 'bold' }} 
             angle={-30} 
             textAnchor="end"

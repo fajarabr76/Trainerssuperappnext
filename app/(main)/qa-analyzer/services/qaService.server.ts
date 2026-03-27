@@ -535,38 +535,42 @@ export const qaServiceServer = {
     const pIds = await this.resolvePeriodIds(periodId);
     let query = supabase
       .from('qa_temuan')
-      .select('nilai, qa_indicators!inner(name, category), profiler_peserta!inner(batch_name)')
+      .select('nilai, qa_indicators!inner(id, name, category), profiler_peserta!inner(batch_name)')
       .in('period_id', pIds)
       .eq('service_type', serviceType)
-      .lt('nilai', 3);
+      .lt('nilai', 3)
+      .order('created_at', { ascending: true });
 
     if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
 
     const { data, error } = await query;
     if (error || !data) return [];
 
-    const paramCounts: Record<string, { count: number, category: string }> = {};
+    const paramCounts: Record<string, { count: number, name: string, category: string }> = {};
     let totalDefects = 0;
 
     data.forEach(d => {
       const ind = d.qa_indicators as any;
       if (!ind) return;
-      const name = ind.name;
-      if (!paramCounts[name]) paramCounts[name] = { count: 0, category: ind.category };
-      paramCounts[name].count += 1;
+      const id = ind.id;
+      if (!paramCounts[id]) paramCounts[id] = { count: 0, name: ind.name.trim(), category: ind.category };
+      paramCounts[id].count += 1;
       totalDefects += 1;
     });
 
     let cumulativeCount = 0;
     return Object.entries(paramCounts)
-      .map(([fullName, info]) => ({
-        name: fullName.length > 15 ? fullName.substring(0, 15) + '...' : fullName,
-        fullName,
+      .map(([id, info]) => ({
+        name: info.name.trim(),
+        fullName: info.name.trim(),
         count: info.count,
         category: info.category as 'critical' | 'non_critical',
         cumulative: 0
       }))
-      .sort((a, b) => b.count - a.count)
+      .sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        return a.fullName.localeCompare(b.fullName);
+      })
       .map(item => {
         cumulativeCount += item.count;
         item.cumulative = totalDefects > 0 ? Number(((cumulativeCount / totalDefects) * 100).toFixed(1)) : 0;
