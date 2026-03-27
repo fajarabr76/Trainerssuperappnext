@@ -222,9 +222,14 @@ export function calculateQAScoreFromTemuan(
   const sortedScores = [...sessionScoresArr].sort((a, b) => a - b);
   const selectedScores = sortedScores.slice(0, MAX_SAMPLING);
   
-  const finalScore = selectedScores.length > 0 
-    ? selectedScores.reduce((a, b) => a + b, 0) / selectedScores.length 
-    : 100;
+  // Phantom padding: if tickets < 5, fill the rest with 100 (no findings)
+  // This ensures the average is always divided by MAX_SAMPLING (5)
+  const paddedScores = [...selectedScores];
+  while (paddedScores.length < MAX_SAMPLING) {
+    paddedScores.push(100);
+  }
+
+  const finalScore = paddedScores.reduce((a, b) => a + b, 0) / MAX_SAMPLING;
 
   const buildDetail = (cat: Category) => {
     return indicators
