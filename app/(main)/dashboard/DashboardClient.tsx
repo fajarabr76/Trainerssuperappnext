@@ -69,15 +69,40 @@ interface DashboardClientProps {
   user: any;
   role: string;
   profile: any;
-  trendDataMap: Record<'3m' | '6m' | 'all', any[]>;
-  agentCountMap: Record<'3m' | '6m' | 'all', number>;
-  auditCountMap: Record<'3m' | '6m' | 'all', number>;
+  serviceTrendMap: Record<'3m' | '6m' | 'all', {
+    labels: string[];
+    totalData: number[];
+    serviceData: Record<string, number[]>;
+    activeServices: string[];
+    serviceSummary: Record<string, { totalDefects: number, auditedAgents: number }>;
+    totalSummary: { totalDefects: number, auditedAgents: number, activeServiceCount: number };
+  }>;
   initialRecentLogs: Array<{ id: string | number, user: string, action: string, time: string, type: string }>;
 }
 
+const SERVICE_COLORS: Record<string, string> = {
+  call: '#3B82F6',       // Blue
+  chat: '#10B981',       // Emerald
+  email: '#F59E0B',      // Amber
+  cso: '#8B5CF6',        // Violet
+  pencatatan: '#EC4899', // Pink
+  bko: '#06B6D4',        // Cyan
+  slik: '#F97316',       // Orange
+};
+
+const SERVICE_LABELS: Record<string, string> = {
+  call: 'Layanan Call',
+  chat: 'Layanan Chat',
+  email: 'Layanan Email',
+  cso: 'Layanan CSO',
+  pencatatan: 'Pencatatan',
+  bko: 'BKO',
+  slik: 'SLIK'
+};
+
 export default function DashboardClient({ 
   user, role, profile, 
-  trendDataMap, agentCountMap, auditCountMap, initialRecentLogs 
+  serviceTrendMap, initialRecentLogs 
 }: DashboardClientProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -85,6 +110,7 @@ export default function DashboardClient({
   const [loading, setLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [timeframe, setTimeframe] = useState<'3m' | '6m' | 'all'>('all');
+  const [selectedService, setSelectedService] = useState<string>('all');
 
   const { openMaintenance } = useTelefunWarning();
 
@@ -92,18 +118,60 @@ export default function DashboardClient({
     setIsMounted(true);
   }, []);
 
-  // Derive stats dynamically from the selected timeframe
-  const qaTrendData = trendDataMap[timeframe] || [];
-  const totalFindings = qaTrendData.reduce((sum: number, d: any) => sum + d.findings, 0);
-  const avgPerAgent = agentCountMap[timeframe] > 0
-    ? Number((totalFindings / agentCountMap[timeframe]).toFixed(1))
-    : 0;
-  const avgPerAudit = auditCountMap[timeframe] > 0
-    ? Number((totalFindings / auditCountMap[timeframe]).toFixed(1))
-    : 0;
-  const lastVal = qaTrendData.length > 0 ? qaTrendData[qaTrendData.length - 1].findings : 0;
-  const prevVal = qaTrendData.length > 1 ? qaTrendData[qaTrendData.length - 2].findings : 0;
-  const trendStatus = qaTrendData.length < 2 ? "Stabil" : (lastVal < prevVal ? "Tren Membaik" : lastVal > prevVal ? "Tren Menurun" : "Stabil");
+  // Bug #7 Fix: Reset selectedService to 'all' if the new timeframe doesn't have the current service
+  useEffect(() => {
+    const currentTrend = serviceTrendMap[timeframe];
+    if (selectedService !== 'all' && !currentTrend.activeServices.includes(selectedService)) {
+      setSelectedService('all');
+    }
+  }, [timeframe, serviceTrendMap]);
+
+  // Derive stats dynamically from the selected timeframe and service
+  const currentTrend = serviceTrendMap[timeframe];
+  
+  const totalFindings = selectedService === 'all'
+    ? currentTrend.totalSummary.totalDefects
+    : currentTrend.serviceSummary[selectedService]?.totalDefects ?? 0;
+
+  const auditedAgents = selectedService === 'all'
+    ? currentTrend.totalSummary.auditedAgents
+    : currentTrend.serviceSummary[selectedService]?.auditedAgents ?? 0;
+
+  const avgPerService = selectedService === 'all'
+    ? currentTrend.totalSummary.activeServiceCount > 0
+      ? (totalFindings / currentTrend.totalSummary.activeServiceCount).toFixed(1)
+      : '0'
+    : null;
+
+  const avgPerAgent = auditedAgents > 0
+    ? (totalFindings / auditedAgents).toFixed(1)
+    : '0';
+
+  const qaTrendPoints = currentTrend.labels.map((label, i) => {
+    const point: any = { name: label };
+    
+    // Bug #9 Fix: Tooltip only shows visible fields
+    if (selectedService === 'all') {
+      point['Total'] = currentTrend.totalData[i];
+      Object.entries(currentTrend.serviceData).forEach(([svc, data]) => {
+        point[SERVICE_LABELS[svc] || svc] = data[i];
+      });
+    } else {
+      const svcLabel = SERVICE_LABELS[selectedService] || selectedService;
+      point[svcLabel] = (currentTrend.serviceData[selectedService] || [])[i] || 0;
+    }
+    
+    return point;
+  });
+
+  const trendDataPoints = selectedService === 'all' 
+    ? currentTrend.totalData 
+    : (currentTrend.serviceData[selectedService] || currentTrend.labels.map(() => 0));
+
+  const lastVal = trendDataPoints.length > 0 ? trendDataPoints[trendDataPoints.length - 1] : 0;
+  const prevVal = trendDataPoints.length > 1 ? trendDataPoints[trendDataPoints.length - 2] : 0;
+  
+  const trendStatus = trendDataPoints.length < 2 ? "Stabil" : (lastVal < prevVal ? "Tren Membaik" : lastVal > prevVal ? "Tren Menurun" : "Stabil");
   const timeframeLabel = timeframe === '3m' ? '3 bulan terakhir' : timeframe === '6m' ? '6 bulan terakhir' : 'semua periode';
 
   // We could use searchParams to re-fetch trend data server-side
@@ -223,26 +291,54 @@ export default function DashboardClient({
                       </div>
                       <h2 className="text-lg font-bold tracking-tight">Tren Temuan QA</h2>
                     </div>
-                    <div className="flex items-center gap-3">
+                    
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex items-center bg-background/50 border border-border/40 rounded-xl p-1 gap-1">
+                        <button
+                          onClick={() => setSelectedService('all')}
+                          className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                            selectedService === 'all' 
+                              ? 'bg-primary text-primary-foreground shadow-sm' 
+                              : 'hover:bg-foreground/5 text-foreground/50'
+                          }`}
+                        >
+                          Semua
+                        </button>
+                        {currentTrend.activeServices.map(svc => (
+                          <button
+                            key={svc}
+                            onClick={() => setSelectedService(selectedService === svc ? 'all' : svc)}
+                            className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 ${
+                              selectedService === svc
+                                ? 'bg-foreground/10 text-foreground shadow-sm'
+                                : 'hover:bg-foreground/5 text-foreground/50'
+                            }`}
+                          >
+                            <span 
+                              className="w-1.5 h-1.5 rounded-full" 
+                              style={{ backgroundColor: SERVICE_COLORS[svc] || '#ccc' }} 
+                            />
+                            {SERVICE_LABELS[svc] || svc}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="h-4 w-px bg-border/40 hidden sm:block" />
+
                       <div className="flex items-center bg-background/50 border border-border/40 rounded-xl p-1">
                         {(['3m', '6m', 'all'] as const).map((tf) => (
                           <button
                             key={tf}
                             onClick={() => setTimeframe(tf)}
-                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                            className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                               timeframe === tf 
                               ? 'bg-primary text-primary-foreground shadow-sm' 
                               : 'hover:bg-foreground/5 text-foreground/50'
                             }`}
                           >
-                            {tf === '3m' ? '3 Bln' : tf === '6m' ? '6 Bln' : 'Semua'}
+                            {tf === '3m' ? '3 B' : tf === '6m' ? '6 B' : 'All'}
                           </button>
                         ))}
-                      </div>
-                      <div className="h-4 w-px bg-border/40 hidden sm:block" />
-                      <div className="hidden sm:flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-primary" />
-                        <span className="text-[10px] font-mono uppercase tracking-widest text-foreground/40">Data Real-time</span>
                       </div>
                     </div>
                   </div>
@@ -250,7 +346,7 @@ export default function DashboardClient({
                   <div className="h-[300px] w-full">
                     {isMounted && (
                       <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={qaTrendData}>
+                        <AreaChart data={qaTrendPoints}>
                           <defs>
                             <linearGradient id="colorFindings" x1="0" y1="0" x2="0" y2="1">
                               <stop offset="5%" stopColor={chartColor} stopOpacity={0.3}/>
@@ -281,20 +377,48 @@ export default function DashboardClient({
                               boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
                               color: 'var(--foreground)'
                             }}
-                            itemStyle={{ color: chartColor }}
                           />
-                          <Area 
-                            type="monotone" 
-                            dataKey="findings" 
-                            name="Temuan"
-                            stroke={chartColor} 
-                            fillOpacity={1} 
-                            fill="url(#colorFindings)" 
-                            strokeWidth={4}
-                            animationDuration={1500}
-                            dot={{ r: 4, fill: 'var(--card)', strokeWidth: 2, stroke: chartColor }}
-                            activeDot={{ r: 6, fill: chartColor, strokeWidth: 0 }}
-                          />
+                          
+                          {/* Total line - only show if all is selected or it is the total */}
+                          {(selectedService === 'all') && (
+                            <Area 
+                              type="monotone" 
+                              dataKey="Total" 
+                              name="Total Temuan"
+                              stroke={chartColor} 
+                              fillOpacity={1} 
+                              fill="url(#colorFindings)" 
+                              strokeWidth={4}
+                              animationDuration={1500}
+                              dot={{ r: 4, fill: 'var(--card)', strokeWidth: 2, stroke: chartColor }}
+                              activeDot={{ r: 6, fill: chartColor, strokeWidth: 0 }}
+                            />
+                          )}
+
+                          {/* Individual service lines */}
+                          {Object.entries(SERVICE_COLORS).map(([svc, color]) => {
+                            const label = SERVICE_LABELS[svc] || svc;
+                            const isSelected = selectedService === svc;
+                            const shouldShow = selectedService === 'all' || isSelected;
+                            
+                            if (!shouldShow || !currentTrend.serviceData[svc]) return null;
+
+                            return (
+                              <Area
+                                key={svc}
+                                type="monotone"
+                                dataKey={label}
+                                name={label}
+                                stroke={color}
+                                fill={color}
+                                fillOpacity={isSelected ? 0.3 : 0}
+                                strokeWidth={isSelected ? 4 : 2}
+                                dot={isSelected ? { r: 4, fill: 'var(--card)', strokeWidth: 2, stroke: color } : false}
+                                activeDot={{ r: 6, fill: color, strokeWidth: 0 }}
+                                animationDuration={1000}
+                              />
+                            );
+                          })}
                         </AreaChart>
                       </ResponsiveContainer>
                     )}
@@ -322,15 +446,17 @@ export default function DashboardClient({
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10">
-                        <Target className="w-6 h-6" />
+                    {selectedService === 'all' && (
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10">
+                          <Target className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-mono uppercase tracking-widest opacity-70 mb-1">Rata-rata / Layanan</div>
+                          <div className="text-4xl font-bold tracking-tight">{avgPerService}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="text-[10px] font-mono uppercase tracking-widest opacity-70 mb-1">Rata-rata / Tim</div>
-                        <div className="text-4xl font-bold tracking-tight">{avgPerAudit}</div>
-                      </div>
-                    </div>
+                    )}
 
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10">

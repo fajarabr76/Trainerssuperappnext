@@ -53,37 +53,39 @@ export default async function QaDashboardPage({
 
   const context = {
     periods,
-    indicators,
-    agents: [] // Not pre-filling agents for now to keep context size manageable
+    indicators
   };
 
   // 2. Fetch Dashboard Aggregations using Shared Context
   const [
     summary,
-    teamData,
+    serviceData,
     topAgents,
     paretoData,
     donutData,
     spark1, spark2, spark3, spark4,
     paramTrend
   ] = await Promise.all([
-    qaServiceServer.getDashboardSummary(folderIds, period, service, context),
-    qaServiceServer.getTeamComparison(folderIds, period, service, context),
-    qaServiceServer.getTopAgentsWithDefects(folderIds, period, 5, service, context),
-    qaServiceServer.getParetoData(folderIds, period, service, context),
-    qaServiceServer.getCriticalVsNonCritical(folderIds, period, service, context),
-    qaServiceServer.getKpiSparkline(folderIds, null, 'total', timeframe, service, context),
-    qaServiceServer.getKpiSparkline(folderIds, null, 'avg', timeframe, service, context),
-    qaServiceServer.getKpiSparkline(folderIds, null, 'zero_error', timeframe, service, context),
-    qaServiceServer.getKpiSparkline(folderIds, null, 'compliance', timeframe, service, context),
-    qaServiceServer.getTrendWithParameters(folderIds, timeframe, service, context)
+    qaServiceServer.getDashboardSummary(period, service, folderIds, context),
+    qaServiceServer.getServiceComparison(period, folderIds, context),
+    qaServiceServer.getTopAgentsWithDefects(period, service, 5, folderIds, context),
+    qaServiceServer.getParetoData(period, service, folderIds, context),
+    qaServiceServer.getCriticalVsNonCritical(period, service, folderIds, context),
+    qaServiceServer.getKpiSparkline(null, 'total', timeframe, service, folderIds, context),
+    qaServiceServer.getKpiSparkline(null, 'avg', timeframe, service, folderIds, context),
+    qaServiceServer.getKpiSparkline(null, 'zero_error', timeframe, service, folderIds, context),
+    qaServiceServer.getKpiSparkline(null, 'compliance', timeframe, service, folderIds, context),
+    qaServiceServer.getTrendWithParameters(period, service, folderIds, timeframe, context)
   ]);
 
   const initialData = {
     periods,
-    folders: foldersData.map(f => ({ id: f.name, name: f.name })),
+    folders: foldersData.map((f: any) => ({ 
+      id: typeof f === 'string' ? f : f.name, 
+      name: typeof f === 'string' ? f : f.name 
+    })),
     summary,
-    teamData,
+    serviceData,
     topAgents,
     paretoData,
     donutData,

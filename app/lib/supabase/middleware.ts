@@ -47,7 +47,7 @@ export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
   // Protect dashboard and simulation routes
-  const protectedRoutes = ['/dashboard', '/trainer', '/leader', '/agent', '/ketik', '/pdkt', '/telefun'];
+  const protectedRoutes = ['/dashboard', '/ketik', '/pdkt', '/telefun', '/profiler', '/qa-analyzer'];
   const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route));
 
   if (isProtectedRoute) {
@@ -56,25 +56,7 @@ export async function updateSession(request: NextRequest) {
       url.searchParams.set('auth', 'login');
       return NextResponse.redirect(url);
     }
-
-    // Fetch user profile to get role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    const role = profile?.role || 'Agent';
-
-    // Redirect based on role
-    if (path.startsWith('/trainer') && role !== 'Trainer') {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
-    }
-    if (path.startsWith('/leader') && role !== 'Leader' && role !== 'Trainer') {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
-    }
   }
-
   // Redirect legacy auth pages to landing page modal
   if (path === '/login' || path === '/register') {
     const url = new URL('/', request.url);

@@ -95,8 +95,9 @@ export interface DashboardSummary {
   totalAgents: number;
 }
 
-export interface TeamComparisonData {
+export interface ServiceComparisonData {
   name: string;
+  serviceType: string;
   total: number;
   severity: 'Critical' | 'High' | 'Medium' | 'Low';
 }
@@ -127,7 +128,6 @@ export interface CriticalVsNonCriticalData {
 export interface SharedContext {
   indicators: QAIndicator[];
   periods: QAPeriod[];
-  agents: any[];
 }
 
 export interface ParameterStat {

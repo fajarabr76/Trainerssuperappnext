@@ -97,7 +97,7 @@ export default function DashboardFilters({
             onChange={(e) => onFolderChange(e.target.value)}
             className="block w-full pl-12 pr-10 py-3.5 text-sm bg-background/50 border-border/50 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all appearance-none border hover:border-primary/30"
           >
-            <option value="ALL">Seluruh Tim (Global)</option>
+            <option value="ALL">Semua Tim (Opsional)</option>
             {folders.map(f => (
               <option key={f.id} value={f.id}>
                 Team {f.name}

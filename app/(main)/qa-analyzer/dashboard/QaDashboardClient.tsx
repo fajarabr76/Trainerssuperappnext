@@ -1,17 +1,16 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { motion } from 'motion/react';
 import Link from 'next/link';
-import { createClient } from '@/app/lib/supabase/client';
 
 import { 
   QAPeriod, 
   DashboardSummary, 
   TrendPoint as SparklineData,
-  TeamComparisonData, 
+  ServiceComparisonData, 
   TopAgentData, 
   ParetoData, 
   CriticalVsNonCriticalData
@@ -19,7 +18,7 @@ import {
 
 import DashboardFilters from './components/DashboardFilters';
 import KpiCard from './components/KpiCard';
-import TeamBarChart from './components/TeamBarChart';
+import ServiceBarChart from './components/ServiceBarChart';
 import TopAgentsTable from './components/TopAgentsTable';
 import ParetoChart from './components/ParetoChart';
 import FatalDonutChart from './components/FatalDonutChart';
@@ -33,7 +32,7 @@ interface QaDashboardClientProps {
     periods: QAPeriod[];
     folders: {id: string, name: string}[];
     summary: DashboardSummary | null;
-    teamData: TeamComparisonData[];
+    serviceData: ServiceComparisonData[];
     topAgents: TopAgentData[];
     paretoData: ParetoData[];
     donutData: CriticalVsNonCriticalData | null;
@@ -57,7 +56,6 @@ export default function QaDashboardClient({
 }: QaDashboardClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const supabase = createClient();
   
   const [loading, setLoading] = useState(false);
   
@@ -86,19 +84,6 @@ export default function QaDashboardClient({
     setTimeframe(initialFilters.timeframe);
     setSelectedService(initialFilters.service);
   }, [initialData]);
-
-  const selectedFolderName = useMemo(() => {
-    if (selectedFolderId === 'ALL') return 'Semua Tim';
-    return initialData.folders.find(f => f.id === selectedFolderId)?.name || 'Tim';
-  }, [selectedFolderId, initialData.folders]);
-
-  const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-
-  const selectedPeriodName = useMemo(() => {
-    if (selectedPeriodId === 'ytd') return `YTD ${new Date().getFullYear()}`;
-    const p = initialData.periods.find(p => p.id === selectedPeriodId);
-    return p ? `${MONTHS[p.month - 1]} ${p.year}` : 'Periode';
-  }, [selectedPeriodId, initialData.periods]);
 
   return (
     <>
@@ -222,9 +207,9 @@ export default function QaDashboardClient({
                   <section className="bg-card rounded-2xl border border-border p-5">
                     <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
                       <span className="w-1 h-5 bg-blue-500 rounded-full"></span>
-                      Total Temuan per Tim
+                      Total Temuan per Layanan
                     </h2>
-                    <TeamBarChart data={initialData.teamData} />
+                    <ServiceBarChart data={initialData.serviceData} />
                   </section>
 
                   <section className="bg-card rounded-2xl border border-border p-5">
@@ -250,29 +235,27 @@ export default function QaDashboardClient({
                   </div>
                   {initialData.paramTrend && (
                     <div className="h-[350px] w-full">
-                      <ParamTrendChart data={initialData.paramTrend} showParameters={selectedFolderId !== 'ALL'} />
+                      <ParamTrendChart data={initialData.paramTrend} showParameters={true} />
                     </div>
                   )}
                 </section>
 
-                {selectedFolderId !== 'ALL' && (
-                  <section className="bg-card rounded-2xl border border-border p-5">
-                    <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                      <span className="w-1 h-5 bg-red-500 rounded-full"></span>
-                      Root Cause Analysis
-                    </h2>
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                      <div className="lg:col-span-2">
-                        <h3 className="text-sm font-medium text-foreground/60 mb-4">Pareto Kategori Temuan (80/20 Rule)</h3>
-                        <ParetoChart data={initialData.paretoData} />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-medium text-foreground/60 mb-4 text-center">Proporsi Critical vs Non-Critical</h3>
-                        {initialData.donutData && <FatalDonutChart data={initialData.donutData} />}
-                      </div>
+                <section className="bg-card rounded-2xl border border-border p-5">
+                  <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                    <span className="w-1 h-5 bg-red-500 rounded-full"></span>
+                    Root Cause Analysis
+                  </h2>
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="lg:col-span-2">
+                      <h3 className="text-sm font-medium text-foreground/60 mb-4">Pareto Kategori Temuan (80/20 Rule)</h3>
+                      <ParetoChart data={initialData.paretoData} />
                     </div>
-                  </section>
-                )}
+                    <div>
+                      <h3 className="text-sm font-medium text-foreground/60 mb-4 text-center">Proporsi Critical vs Non-Critical</h3>
+                      {initialData.donutData && <FatalDonutChart data={initialData.donutData} />}
+                    </div>
+                  </div>
+                </section>
               </motion.div>
             )}
           </div>
