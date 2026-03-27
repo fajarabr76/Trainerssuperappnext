@@ -261,10 +261,7 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
     };
   }, [selectedScore, selectedTemuan]);
 
-  const isAtRisk = useMemo(() => {
-    if (!selectedScore) return false;
-    return selectedScore.finalScore < 75 || selectedScore.criticalDetail.some(d => d.nilai < 3);
-  }, [selectedScore]);
+
 
   const groupedTemuan = useMemo(() => {
     const map = new Map<string, any[]>();

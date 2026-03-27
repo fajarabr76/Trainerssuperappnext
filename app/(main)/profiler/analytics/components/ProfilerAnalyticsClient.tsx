@@ -85,7 +85,7 @@ export default function ProfilerAnalyticsClient({
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col relative">
+    <div className="h-full bg-background flex flex-col relative overflow-y-auto custom-scrollbar">
       {/* Top Bar */}
       <div className="flex items-center justify-between px-8 py-4 bg-card/30 backdrop-blur-2xl border-b border-border sticky top-0 z-50">
         <div className="flex items-center gap-4">

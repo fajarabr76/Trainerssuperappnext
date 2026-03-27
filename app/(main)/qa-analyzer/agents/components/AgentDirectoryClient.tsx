@@ -101,12 +101,17 @@ export default function AgentDirectoryClient({
                   </div>
                   
                   <div className="flex flex-col items-end gap-2">
-                      {agent.atRisk && (
+                      {agent.atRisk ? (
                         <div className="px-2.5 py-1 bg-rose-500/10 border border-rose-500/20 rounded-full flex items-center gap-1.5">
                           <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
                           <span className="text-[9px] font-black uppercase tracking-widest text-rose-500">At Risk</span>
                         </div>
-                      )}
+                      ) : agent.avgScore !== null ? (
+                        <div className="px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center gap-1.5">
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500">Compliant</span>
+                        </div>
+                      ) : null}
                       {agent.avgScore !== null ? (
                         <div className={`text-xl font-black tabular-nums tracking-tighter ${scoreColor(agent.avgScore).includes('green') ? 'text-emerald-500' : scoreColor(agent.avgScore).includes('amber') ? 'text-amber-500' : 'text-rose-500'}`}>
                           {agent.avgScore.toFixed(1)}%

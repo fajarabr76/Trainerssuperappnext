@@ -266,7 +266,7 @@ export default function ProfilerLandingClient({
               </div>
             </div>
           ) : (
-            <div className="p-6 h-full flex flex-col max-w-7xl mx-auto w-full relative z-10">
+            <div className="p-6 flex flex-col max-w-7xl mx-auto w-full relative z-10">
               <div className="mb-6 flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-4 mb-2">

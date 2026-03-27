@@ -155,8 +155,7 @@ export const qaServiceServer = {
       );
 
       agentObj.avgScore = latestScore.finalScore;
-      const hasCriticalFatal = latestScore.criticalDetail.some(d => d.nilai < 3);
-      agentObj.atRisk = latestScore.finalScore < 75 || hasCriticalFatal;
+      agentObj.atRisk = latestScore.finalScore < 95;
 
       // Previous Score for Trend
       if (prevPeriodKey) {
