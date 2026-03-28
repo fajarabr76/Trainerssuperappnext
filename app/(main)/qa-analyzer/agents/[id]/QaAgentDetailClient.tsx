@@ -15,7 +15,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { scoreColor, scoreBg, scoreLabel, NILAI_LABELS, calculateQAScoreFromTemuan, SERVICE_LABELS, ServiceType } from '../../lib/qa-types';
 import type { QAIndicator, QATemuan } from '../../lib/qa-types';
 import ParamTrendChart from '../../dashboard/components/ParamTrendChart';
-import { getAgentExportDataAction, getPersonalTrendAction, updateTemuanAction, deleteTemuanAction } from '../../actions';
+import { YearSelector } from '../../dashboard/components/YearSelector';
+import { getAgentExportDataAction, getPersonalTrendAction, updateTemuanAction, deleteTemuanAction, getAgentTemuanAction } from '../../actions';
 
 const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
 const MONTHS_FULL  = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
@@ -106,6 +107,7 @@ interface QaAgentDetailClientProps {
     temuan: QATemuan[];
     indicators: QAIndicator[];
     personalTrend: any;
+    availableYears?: number[];
   };
 }
 
@@ -131,9 +133,13 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
   
   const [agent, setAgent] = useState(initialAgent);
   const [data, setData] = useState(initialData);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [currentPage, setCurrentPage] = useState(0);
+  const [hasMore, setHasMore] = useState(initialData.temuan.length === 50);
 
   useEffect(() => {
     setData(initialData);
+    setHasMore(initialData.temuan.length === 50);
   }, [initialData]);
 
   const [editingTemuan, setEditingTemuan] = useState<any>(null);
@@ -180,6 +186,43 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
       alert('Gagal menghapus: ' + err.message);
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleYearChange = async (year: number) => {
+    setSelectedYear(year);
+    if (year === selectedYear) return;
+    setCurrentPage(0);
+    setLoadingData(true);
+    try {
+      const result = await getAgentTemuanAction(agentId, year, 0);
+      setData(prev => ({
+        ...prev,
+        temuan: result.temuan
+      }));
+      setHasMore(result.temuan.length === 50);
+    } catch (err) {
+      console.error('Failed to fetch agent temuan:', err);
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
+  const handlePageChange = async (newPage: number) => {
+    if (newPage < 0) return;
+    setCurrentPage(newPage);
+    setLoadingData(true);
+    try {
+      const result = await getAgentTemuanAction(agentId, selectedYear, newPage);
+      setData(prev => ({
+        ...prev,
+        temuan: result.temuan
+      }));
+      setHasMore(result.temuan.length === 50);
+    } catch (err) {
+      console.error('Failed to fetch paginated temuan:', err);
+    } finally {
+      setLoadingData(false);
     }
   };
 
@@ -404,6 +447,14 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
                 </div>
 
                 <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 bg-card/50 border border-border/50 rounded-2xl p-1.5 px-4 h-12">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-foreground/30">Tahun:</span>
+                    <YearSelector 
+                      years={data.availableYears || [new Date().getFullYear()]} 
+                      selectedYear={selectedYear} 
+                      onYearChange={handleYearChange} 
+                    />
+                  </div>
                   <button 
                     onClick={handleTambahTemuan} 
                     className="flex-1 lg:flex-none h-12 px-8 bg-primary text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-primary/30 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center gap-2"
@@ -704,6 +755,29 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
                           </div>
                         ))
                       )}
+                    </div>
+                    
+                    {/* Pagination Controls */}
+                    <div className="px-10 py-6 bg-card border-t border-border/50 flex items-center justify-between">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/30">
+                        Page {currentPage + 1}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 0 || loadingData}
+                          className="px-4 py-2 border border-border/50 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-foreground/5 disabled:opacity-30 transition-all"
+                        >
+                          Previous
+                        </button>
+                        <button
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={!hasMore || loadingData}
+                          className="px-4 py-2 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 disabled:opacity-30 disabled:scale-100 transition-all"
+                        >
+                          Next
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </>

@@ -13,7 +13,8 @@ import {
   ServiceComparisonData, 
   TopAgentData, 
   ParetoData, 
-  CriticalVsNonCriticalData
+  CriticalVsNonCriticalData,
+  DashboardData
 } from '../lib/qa-types';
 
 import DashboardFilters from './components/DashboardFilters';
@@ -23,22 +24,14 @@ import TopAgentsTable from './components/TopAgentsTable';
 import ParetoChart from './components/ParetoChart';
 import FatalDonutChart from './components/FatalDonutChart';
 import ParamTrendChart from './components/ParamTrendChart';
+import { YearSelector } from './components/YearSelector';
+import { getDashboardDataAction } from '../actions';
 
 interface QaDashboardClientProps {
   user: any;
   role: string;
   profile: any;
-  initialData: {
-    periods: QAPeriod[];
-    folders: {id: string, name: string}[];
-    summary: DashboardSummary | null;
-    serviceData: ServiceComparisonData[];
-    topAgents: TopAgentData[];
-    paretoData: ParetoData[];
-    donutData: CriticalVsNonCriticalData | null;
-    paramTrend: any;
-    sparklines: Record<string, SparklineData[]>;
-  };
+  initialData: DashboardData;
   filters: {
     period: string;
     folder: string;
@@ -58,6 +51,8 @@ export default function QaDashboardClient({
   const searchParams = useSearchParams();
   
   const [loading, setLoading] = useState(false);
+  const [displayData, setDisplayData] = useState(initialData);
+  const [selectedYear, setSelectedYear] = useState(initialData.currentYear || new Date().getFullYear());
   
   // Use state for filters to handle immediate UI updates before navigation completes
   const [selectedPeriodId, setSelectedPeriodId] = useState(initialFilters.period);
@@ -76,6 +71,25 @@ export default function QaDashboardClient({
     router.push(`?${params.toString()}`);
   };
 
+  const handleYearChange = async (year: number) => {
+    setSelectedYear(year);
+    if (year === selectedYear) return;
+    
+    setLoading(true);
+    try {
+      const folderIds = selectedFolderId === 'ALL' ? [] : [selectedFolderId];
+      const newData = await getDashboardDataAction(selectedPeriodId, selectedService, folderIds, timeframe, year);
+      setDisplayData(prev => ({
+        ...prev,
+        ...newData
+      }));
+    } catch (err) {
+      console.error('Failed to fetch dashboard data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     // Stop loading when props update (navigation complete)
     setLoading(false);
@@ -83,6 +97,7 @@ export default function QaDashboardClient({
     setSelectedFolderId(initialFilters.folder);
     setTimeframe(initialFilters.timeframe);
     setSelectedService(initialFilters.service);
+    setDisplayData(initialData);
   }, [initialData]);
 
   return (
@@ -130,18 +145,23 @@ export default function QaDashboardClient({
           </header>
 
           <div className="space-y-8">
-            <DashboardFilters 
-              periods={initialData.periods}
-              selectedPeriodId={selectedPeriodId}
-              onPeriodChange={(v) => { setSelectedPeriodId(v); updateFilters(v, selectedFolderId, timeframe, selectedService); }}
-              folders={initialData.folders}
-              selectedFolderId={selectedFolderId}
-              onFolderChange={(v) => { setSelectedFolderId(v); updateFilters(selectedPeriodId, v, timeframe, selectedService); }}
-              timeframe={timeframe}
-              onTimeframeChange={(v) => { setTimeframe(v); updateFilters(selectedPeriodId, selectedFolderId, v, selectedService); }}
-              serviceType={selectedService}
-              onServiceChange={(v) => { setSelectedService(v); updateFilters(selectedPeriodId, selectedFolderId, timeframe, v); }}
-            />
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
+              <DashboardFilters 
+                periods={displayData.periods}
+                selectedPeriodId={selectedPeriodId}
+                onPeriodChange={(v) => { setSelectedPeriodId(v); updateFilters(v, selectedFolderId, timeframe, selectedService); }}
+                folders={displayData.folders}
+                selectedFolderId={selectedFolderId}
+                onFolderChange={(v) => { setSelectedFolderId(v); updateFilters(selectedPeriodId, v, timeframe, selectedService); }}
+                timeframe={timeframe}
+                onTimeframeChange={(v) => { setTimeframe(v); updateFilters(selectedPeriodId, selectedFolderId, v, selectedService); }}
+                serviceType={selectedService}
+                onServiceChange={(v) => { setSelectedService(v); updateFilters(selectedPeriodId, selectedFolderId, timeframe, v); }}
+                selectedYear={selectedYear}
+                availableYears={displayData.availableYears || []}
+                onYearChange={handleYearChange}
+              />
+            </div>
 
             {loading ? (
               <div className="flex flex-col items-center justify-center py-32 text-foreground/40">
@@ -168,37 +188,37 @@ export default function QaDashboardClient({
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <KpiCard 
                       label="Total Temuan QA"
-                      value={initialData.summary.totalDefects}
+                      value={displayData.summary.totalDefects}
                       delta={-12}
                       target="Target: < 100"
                       reverseLogic={true}
-                      sparklineData={initialData.sparklines.total || []}
+                      sparklineData={displayData.sparklines.total || []}
                     />
                     <KpiCard 
                       label="Rata-rata temuan parameter / agent"
-                      value={initialData.summary.avgDefectsPerAudit.toFixed(1)}
+                      value={displayData.summary.avgDefectsPerAudit.toFixed(1)}
                       delta={-5}
                       target="Target: < 1.0"
                       reverseLogic={true}
-                      sparklineData={initialData.sparklines.avg || []}
+                      sparklineData={displayData.sparklines.avg || []}
                     />
                     <KpiCard 
                       label="Zero Error Rate"
-                      value={initialData.summary.zeroErrorRate.toFixed(1)}
+                      value={displayData.summary.zeroErrorRate.toFixed(1)}
                       unit="%"
                       delta={2}
                       target="Target: > 90%"
                       reverseLogic={false}
-                      sparklineData={initialData.sparklines.critical || []}
+                      sparklineData={displayData.sparklines.critical || []}
                     />
                     <KpiCard 
                       label="Kepatuhan (Skor ≥ 95%)"
-                      value={initialData.summary.complianceCount}
-                      unit={` agent (${initialData.summary.complianceRate.toFixed(1)}%)`}
+                      value={displayData.summary.complianceCount}
+                      unit={` agent (${displayData.summary.complianceRate.toFixed(1)}%)`}
                       delta={4}
                       target="Target: > 95%"
                       reverseLogic={false}
-                      sparklineData={initialData.sparklines.compliance || []}
+                      sparklineData={displayData.sparklines.compliance || []}
                     />
                   </div>
                 </section>
@@ -209,7 +229,7 @@ export default function QaDashboardClient({
                       <span className="w-1 h-5 bg-blue-500 rounded-full"></span>
                       Total Temuan per Layanan
                     </h2>
-                    <ServiceBarChart data={initialData.serviceData} />
+                    <ServiceBarChart data={displayData.serviceData} />
                   </section>
 
                   <section className="bg-card rounded-2xl border border-border p-5">
@@ -217,7 +237,7 @@ export default function QaDashboardClient({
                       <span className="w-1 h-5 bg-orange-500 rounded-full"></span>
                       Top 5 Agen (Temuan Tertinggi)
                     </h2>
-                    <TopAgentsTable agents={initialData.topAgents} />
+                    <TopAgentsTable agents={displayData.topAgents} />
                   </section>
                 </div>
                 
@@ -233,9 +253,9 @@ export default function QaDashboardClient({
                       </span>
                     </div>
                   </div>
-                  {initialData.paramTrend && (
+                  {displayData.paramTrend && (
                     <div className="h-[350px] w-full">
-                      <ParamTrendChart data={initialData.paramTrend} showParameters={true} />
+                      <ParamTrendChart data={displayData.paramTrend} showParameters={true} />
                     </div>
                   )}
                 </section>
@@ -248,11 +268,11 @@ export default function QaDashboardClient({
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2">
                       <h3 className="text-sm font-medium text-foreground/60 mb-4">Pareto Kategori Temuan (80/20 Rule)</h3>
-                      <ParetoChart data={initialData.paretoData} />
+                      <ParetoChart data={displayData.paretoData} />
                     </div>
                     <div>
                       <h3 className="text-sm font-medium text-foreground/60 mb-4 text-center">Proporsi Critical vs Non-Critical</h3>
-                      {initialData.donutData && <FatalDonutChart data={initialData.donutData} />}
+                      {displayData.donutData && <FatalDonutChart data={displayData.donutData} />}
                     </div>
                   </div>
                 </section>

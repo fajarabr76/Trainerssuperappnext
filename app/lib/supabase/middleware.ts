@@ -38,30 +38,33 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // refreshing the auth token
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // Role-based routing
+  // Role-based routing logic
   const path = request.nextUrl.pathname;
-
-  // Protect dashboard and simulation routes
   const protectedRoutes = ['/dashboard', '/ketik', '/pdkt', '/telefun', '/profiler', '/qa-analyzer'];
   const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route));
+  const isAuthPage = path === '/login' || path === '/register';
 
-  if (isProtectedRoute) {
-    if (!user) {
+  // Only call getUser() if we are on a protected route or authenticating
+  if (isProtectedRoute || isAuthPage) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    // Protect dashboard and simulation routes
+    if (isProtectedRoute) {
+      if (!user) {
+        const url = new URL('/', request.url);
+        url.searchParams.set('auth', 'login');
+        return NextResponse.redirect(url);
+      }
+    }
+
+    // Redirect legacy auth pages to landing page modal
+    if (isAuthPage) {
       const url = new URL('/', request.url);
-      url.searchParams.set('auth', 'login');
+      url.searchParams.set('auth', path === '/login' ? 'login' : 'register');
       return NextResponse.redirect(url);
     }
-  }
-  // Redirect legacy auth pages to landing page modal
-  if (path === '/login' || path === '/register') {
-    const url = new URL('/', request.url);
-    url.searchParams.set('auth', path === '/login' ? 'login' : 'register');
-    return NextResponse.redirect(url);
   }
 
   return supabaseResponse;

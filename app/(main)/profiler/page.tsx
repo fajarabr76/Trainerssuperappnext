@@ -6,10 +6,12 @@ import { ProfilerYear, ProfilerFolder } from './services/profilerService';
 export const dynamic = 'force-dynamic';
 
 export default async function ProfilerIndex() {
-  // Fetch initial data on server
-  const years = await profilerServiceServer.getYears();
-  const folders = await profilerServiceServer.getFolders();
-  const countMap = await profilerServiceServer.getFolderCounts();
+  // Fetch initial data in parallel on server
+  const [years, folders, countMap] = await Promise.all([
+    profilerServiceServer.getYears(),
+    profilerServiceServer.getFolders(),
+    profilerServiceServer.getFolderCounts()
+  ]);
   
   return (
     <ProfilerLandingClient 

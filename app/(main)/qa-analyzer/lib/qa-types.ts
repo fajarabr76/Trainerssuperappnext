@@ -125,6 +125,20 @@ export interface CriticalVsNonCriticalData {
   total: number;
 }
 
+export interface DashboardData {
+  periods: QAPeriod[];
+  folders: { id: string, name: string }[];
+  summary: DashboardSummary | null;
+  serviceData: ServiceComparisonData[];
+  topAgents: TopAgentData[];
+  paretoData: ParetoData[];
+  donutData: CriticalVsNonCriticalData | null;
+  paramTrend: any;
+  sparklines: Record<string, TrendPoint[]>;
+  availableYears: number[];
+  currentYear: number;
+}
+
 export interface SharedContext {
   indicators: QAIndicator[];
   periods: QAPeriod[];

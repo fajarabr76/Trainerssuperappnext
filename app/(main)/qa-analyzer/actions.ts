@@ -1,8 +1,8 @@
 'use server'
 
 import { createClient } from '@/app/lib/supabase/server';
-import { ServiceType, Category } from './lib/qa-types';
-import { revalidatePath } from 'next/cache';
+import { ServiceType, Category, DashboardData, TrendPoint } from './lib/qa-types';
+import { revalidatePath, revalidateTag } from 'next/cache';
 
 export async function createIndicator(
   service_type: ServiceType, name: string, category: Category, bobot: number, has_na: boolean
@@ -12,6 +12,7 @@ export async function createIndicator(
     .from('qa_indicators').insert({ service_type, name, category, bobot, has_na }).select().single();
   if (error) throw error;
   revalidatePath('/qa-analyzer/settings');
+  revalidateTag('indicators');
   return data;
 }
 
@@ -23,6 +24,7 @@ export async function updateIndicator(
     .from('qa_indicators').update(patch).eq('id', id).select().single();
   if (error) throw error;
   revalidatePath('/qa-analyzer/settings');
+  revalidateTag('indicators');
   return data;
 }
 
@@ -36,6 +38,7 @@ export async function deleteIndicator(id: string) {
   const { error } = await supabase.from('qa_indicators').delete().eq('id', id);
   if (error) throw error;
   revalidatePath('/qa-analyzer/settings');
+  revalidateTag('indicators');
 }
 
 export async function createPeriod(month: number, year: number) {
@@ -46,6 +49,7 @@ export async function createPeriod(month: number, year: number) {
     throw error;
   }
   revalidatePath('/qa-analyzer/periods');
+  revalidateTag('periods');
   return data;
 }
 
@@ -59,6 +63,7 @@ export async function deletePeriod(id: string) {
   const { error } = await supabase.from('qa_periods').delete().eq('id', id);
   if (error) throw error;
   revalidatePath('/qa-analyzer/periods');
+  revalidateTag('periods');
 }
 
 export async function createTemuan(
@@ -131,6 +136,7 @@ export async function createPeriodAction(month: number, year: number) {
   }
   revalidatePath('/qa-analyzer/periods');
   revalidatePath('/qa-analyzer/dashboard');
+  revalidateTag('periods');
   return data;
 }
 
@@ -148,6 +154,7 @@ export async function deletePeriodAction(id: string) {
   
   revalidatePath('/qa-analyzer/periods');
   revalidatePath('/qa-analyzer/dashboard');
+  revalidateTag('periods');
 }
 
 export async function createIndicatorAction(
@@ -158,6 +165,7 @@ export async function createIndicatorAction(
   const { data, error } = await supabase.from('qa_indicators').insert({ service_type, name, category, bobot, has_na }).select().single();
   if (error) throw error;
   revalidatePath('/qa-analyzer/settings');
+  revalidateTag('indicators');
   return data;
 }
 
@@ -169,6 +177,7 @@ export async function updateIndicatorAction(
   const { data, error } = await supabase.from('qa_indicators').update(patch).eq('id', id).select().single();
   if (error) throw error;
   revalidatePath('/qa-analyzer/settings');
+  revalidateTag('indicators');
   return data;
 }
 
@@ -200,6 +209,7 @@ export async function deleteIndicatorAction(id: string) {
   });
 
   revalidatePath('/qa-analyzer/settings');
+  revalidateTag('indicators');
 }
 
 export async function createTemuanAction(
@@ -405,4 +415,55 @@ export async function createPerfectScoreSessionAction(
   revalidatePath(`/qa-analyzer/agents/${peserta_id}`);
   
   return data ?? [];
+}
+
+export async function getDashboardDataAction(period: string, service: string, folderIds: string[], timeframe: '3m' | '6m' | 'all', year: number): Promise<DashboardData> {
+  const { qaServiceServer } = await import('./services/qaService.server');
+  const { profilerServiceServer } = await import('../profiler/services/profilerService.server');
+  
+  // Re-fetch context and common metadata
+  const [periods, indicators, availableYears, foldersData] = await Promise.all([
+    qaServiceServer.getPeriods(),
+    qaServiceServer.getIndicators(service),
+    qaServiceServer.getAvailableYears(),
+    profilerServiceServer.getFolders()
+  ]);
+  
+  const context = { periods, indicators };
+
+   const [periodData, trendData] = await Promise.all([
+     qaServiceServer.getConsolidatedPeriodData(period, service, folderIds, context, year),
+     qaServiceServer.getConsolidatedTrendData(timeframe, service, folderIds, context, year)
+   ]);
+   
+   if (!periodData || !trendData) {
+     throw new Error('Gagal mengambil data dashboard.');
+   }
+ 
+   return {
+     periods,
+     availableYears,
+     currentYear: year,
+     folders: foldersData.map((f: any) => ({
+       id: typeof f === 'string' ? f : f.name,
+       name: typeof f === 'string' ? f : f.name
+     })),
+     summary: periodData.summary,
+     serviceData: periodData.serviceData,
+     topAgents: periodData.topAgents,
+     paretoData: periodData.paretoData,
+     donutData: periodData.donutData,
+     paramTrend: trendData.paramTrend,
+     sparklines: trendData.sparklines
+   };
+}
+
+export async function getAvailableYearsAction() {
+  const { qaServiceServer } = await import('./services/qaService.server');
+  return await qaServiceServer.getAvailableYears();
+}
+
+export async function getAgentTemuanAction(agentId: string, year: number, page: number) {
+  const { qaServiceServer } = await import('./services/qaService.server');
+  return await qaServiceServer.getAgentWithTemuan(agentId, year, page);
 }

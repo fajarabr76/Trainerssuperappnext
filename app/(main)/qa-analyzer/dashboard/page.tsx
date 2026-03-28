@@ -45,10 +45,12 @@ export default async function QaDashboardPage({
   const folderIds = folder === 'ALL' ? [] : [folder];
 
   // 1. Fetch Shared Context Data (Pre-load common metadata)
-  const [periods, foldersData, indicators] = await Promise.all([
+  const currentYear = new Date().getFullYear();
+  const [periods, foldersData, indicators, availableYears] = await Promise.all([
     qaServiceServer.getPeriods(),
     profilerServiceServer.getFolders(),
-    qaServiceServer.getIndicators(service)
+    qaServiceServer.getIndicators(service),
+    qaServiceServer.getAvailableYears()
   ]);
 
   const context = {
@@ -56,46 +58,36 @@ export default async function QaDashboardPage({
     indicators
   };
 
-  // 2. Fetch Dashboard Aggregations using Shared Context
-  const [
-    summary,
-    serviceData,
-    topAgents,
-    paretoData,
-    donutData,
-    spark1, spark2, spark3, spark4,
-    paramTrend
-  ] = await Promise.all([
-    qaServiceServer.getDashboardSummary(period, service, folderIds, context),
-    qaServiceServer.getServiceComparison(period, folderIds, context),
-    qaServiceServer.getTopAgentsWithDefects(period, service, 5, folderIds, context),
-    qaServiceServer.getParetoData(period, service, folderIds, context),
-    qaServiceServer.getCriticalVsNonCritical(period, service, folderIds, context),
-    qaServiceServer.getKpiSparkline(null, 'total', timeframe, service, folderIds, context),
-    qaServiceServer.getKpiSparkline(null, 'avg', timeframe, service, folderIds, context),
-    qaServiceServer.getKpiSparkline(null, 'zero_error', timeframe, service, folderIds, context),
-    qaServiceServer.getKpiSparkline(null, 'compliance', timeframe, service, folderIds, context),
-    qaServiceServer.getTrendWithParameters(period, service, folderIds, timeframe, context)
+  // 2. Fetch Dashboard Aggregations using Consolidated Fetchers
+  const [periodData, trendData] = await Promise.all([
+    qaServiceServer.getConsolidatedPeriodData(period, service, folderIds, context, currentYear),
+    qaServiceServer.getConsolidatedTrendData(timeframe, service, folderIds, context, currentYear)
   ]);
+
+  if (!periodData || !trendData) {
+    // Fallback or empty state
+    return (
+      <div className="p-8 text-center text-red-500">
+        Gagal memuat data dashboard. Silakan coba lagi atau perkecil filter Anda.
+      </div>
+    );
+  }
 
   const initialData = {
     periods,
+    availableYears,
+    currentYear,
     folders: foldersData.map((f: any) => ({ 
       id: typeof f === 'string' ? f : f.name, 
       name: typeof f === 'string' ? f : f.name 
     })),
-    summary,
-    serviceData,
-    topAgents,
-    paretoData,
-    donutData,
-    paramTrend,
-    sparklines: {
-      total: spark1,
-      avg: spark2,
-      critical: spark3,
-      compliance: spark4
-    }
+    summary: periodData.summary,
+    serviceData: periodData.serviceData,
+    topAgents: periodData.topAgents,
+    paretoData: periodData.paretoData,
+    donutData: periodData.donutData,
+    paramTrend: trendData.paramTrend,
+    sparklines: trendData.sparklines
   };
 
   const filters = {

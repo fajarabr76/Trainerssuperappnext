@@ -32,9 +32,11 @@ export default async function QaAgentDetailPage({ params }: { params: Promise<{ 
 
   try {
     // Fetch initial data
-    const [agentResult, personalTrend] = await Promise.all([
-      qaServiceServer.getAgentWithTemuan(agentId),
-      qaServiceServer.getPersonalTrendWithParameters(agentId, '3m')
+    const currentYear = new Date().getFullYear();
+    const [agentResult, personalTrend, availableYears] = await Promise.all([
+      qaServiceServer.getAgentWithTemuan(agentId, currentYear, 0),
+      qaServiceServer.getPersonalTrendWithParameters(agentId, '3m'),
+      qaServiceServer.getAvailableYears()
     ]);
 
     if (!agentResult.agent) {
@@ -47,7 +49,8 @@ export default async function QaAgentDetailPage({ params }: { params: Promise<{ 
     const initialData = {
       temuan,
       indicators,
-      personalTrend
+      personalTrend,
+      availableYears
     };
 
     return (

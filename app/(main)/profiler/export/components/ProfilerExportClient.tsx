@@ -42,6 +42,12 @@ export default function ProfilerExportClient({
   const [generating,    setGenerating]    = useState<string | null>(null);
   const [orientation, setOrientation] = useState<'landscape' | 'portrait'>('landscape');
 
+  // Sync state with props change (navigation)
+  useEffect(() => {
+    setPeserta(initialPeserta);
+    setSelectedBatch(batchName);
+  }, [initialPeserta, batchName]);
+
   // If user selects a new batch, reload the page with new search params or fetch data.
   // We'll follow the router.push pattern for now to keep it consistent with other SSR pages.
   const handleBatchChange = (newBatch: string) => {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, Users, Filter, ChevronRight, Headset } from 'lucide-react';
 import { QAPeriod, SERVICE_LABELS } from '../../lib/qa-types';
+import { YearSelector } from './YearSelector';
 
 const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
@@ -15,6 +16,9 @@ interface DashboardFiltersProps {
   onTimeframeChange: (tf: '3m' | '6m' | 'all') => void;
   serviceType: string;
   onServiceChange: (val: string) => void;
+  selectedYear: number;
+  availableYears: number[];
+  onYearChange: (year: number) => void;
 }
 
 export default function DashboardFilters({
@@ -27,7 +31,10 @@ export default function DashboardFilters({
   timeframe,
   onTimeframeChange,
   serviceType,
-  onServiceChange
+  onServiceChange,
+  selectedYear,
+  availableYears,
+  onYearChange
 }: DashboardFiltersProps) {
 
   return (
@@ -75,7 +82,7 @@ export default function DashboardFilters({
             onChange={(e) => onPeriodChange(e.target.value)}
             className="block w-full pl-12 pr-10 py-3.5 text-sm bg-background/50 border-border/50 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all appearance-none border hover:border-primary/30"
           >
-            <option value="ytd">Semua (YTD {new Date().getFullYear()})</option>
+            <option value="ytd">Semua (YTD {selectedYear})</option>
             {periods.map(p => (
               <option key={p.id} value={p.id}>
                 {MONTHS[p.month - 1]} {p.year}
@@ -123,6 +130,16 @@ export default function DashboardFilters({
               {tf === '3m' ? '3 Bln' : tf === '6m' ? '6 Bln' : 'Semua'}
             </button>
           ))}
+        </div>
+
+        <div className="h-8 w-px bg-border mx-2 hidden md:block self-center" />
+        
+        <div className="shrink-0 w-[150px]">
+          <YearSelector 
+            years={availableYears} 
+            selectedYear={selectedYear} 
+            onYearChange={onYearChange} 
+          />
         </div>
       </div>
     </div>
