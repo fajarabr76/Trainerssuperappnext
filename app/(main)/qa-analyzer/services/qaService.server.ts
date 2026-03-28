@@ -22,10 +22,10 @@ import { createClient as createJSClient } from '@supabase/supabase-js';
 
 const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
 
-// Lazy static client helper
-function getStaticSupabase() {
+// Lazy Service Role client helper (Server-side only)
+function getServiceSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return null;
   return createJSClient(url, key);
 }
@@ -34,10 +34,10 @@ function getStaticSupabase() {
 
 const cachedFetchIndicators = unstable_cache(
   async (service_type?: string): Promise<QAIndicator[]> => {
-    const staticSupabase = getStaticSupabase();
-    if (!staticSupabase) return [];
+    const serviceSupabase = getServiceSupabase();
+    if (!serviceSupabase) return [];
 
-    let query = staticSupabase
+    let query = serviceSupabase
       .from('qa_indicators').select('*')
       .order('category').order('bobot', { ascending: false }).order('created_at', { ascending: true });
     
@@ -52,10 +52,10 @@ const cachedFetchIndicators = unstable_cache(
 
 const cachedFetchPeriods = unstable_cache(
   async (): Promise<QAPeriod[]> => {
-    const staticSupabase = getStaticSupabase();
-    if (!staticSupabase) return [];
+    const serviceSupabase = getServiceSupabase();
+    if (!serviceSupabase) return [];
 
-    const { data, error } = await staticSupabase
+    const { data, error } = await serviceSupabase
       .from('qa_periods').select('*')
       .order('year', { ascending: false }).order('month', { ascending: false });
     if (error) return [];
@@ -84,11 +84,11 @@ export const qaServiceServer = {
 
   // ── Indicators (GLOBAL CACHE WITH RL FALLBACK) ───────────────
   async getIndicators(service_type?: string): Promise<QAIndicator[]> {
-    // Try cache first
+    // Rely on service-role cache (bypasses RLS)
     const cached = await cachedFetchIndicators(service_type);
     if (cached && cached.length > 0) return cached;
 
-    // Fallback if cache is empty (likely RLS)
+    // Fallback only if cache/service client fails
     const supabase = await createClient();
     let query = supabase
       .from('qa_indicators').select('*')
@@ -117,11 +117,11 @@ export const qaServiceServer = {
 
   // ── Periods (GLOBAL CACHE WITH RL FALLBACK) ──────────────────
   async getPeriods(): Promise<QAPeriod[]> {
-    // Try cache first
+    // Rely on service-role cache (bypasses RLS)
     const cached = await cachedFetchPeriods();
     if (cached && cached.length > 0) return cached;
 
-    // Fallback if cache is empty (likely RLS)
+    // Fallback only if cache/service client fails
     const supabase = await createClient();
     const { data } = await supabase
       .from('qa_periods').select('*')
