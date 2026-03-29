@@ -90,6 +90,7 @@ export interface DashboardSummary {
   totalDefects: number;
   avgDefectsPerAudit: number;
   zeroErrorRate: number;
+  avgAgentScore: number;
   complianceRate: number;
   complianceCount: number;
   totalAgents: number;

@@ -13,6 +13,7 @@ interface KpiCardProps {
   value: number | string;
   delta: number;
   target?: string;
+  targetValue?: number;
   reverseLogic: boolean;
   sparklineData: SparklineData[];
   unit?: string;
@@ -23,11 +24,15 @@ export default function KpiCard({
   value,
   delta,
   target,
+  targetValue,
   reverseLogic,
   sparklineData,
   unit = ''
 }: KpiCardProps) {
   const isGood = reverseLogic ? delta <= 0 : delta >= 0;
+  const meetsTarget = targetValue !== undefined 
+    ? parseFloat(String(value)) >= targetValue 
+    : isGood;
   const isWarning = Math.abs(delta) < 5 && delta !== 0;
   
   let statusColor = 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
@@ -48,6 +53,10 @@ export default function KpiCard({
     Icon = reverseLogic ? ArrowUpRight : ArrowDownRight;
   } else {
     Icon = reverseLogic ? ArrowDownRight : ArrowUpRight;
+  }
+
+  if (targetValue !== undefined) {
+    sparklineColor = meetsTarget ? '#10b981' : '#f59e0b';
   }
 
   return (

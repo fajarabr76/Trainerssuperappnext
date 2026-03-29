@@ -321,7 +321,7 @@ export const qaServiceServer = {
 
     const { data, error } = await query;
     if (error || !data || data.length === 0) {
-      return { totalDefects: 0, avgDefectsPerAudit: 0, zeroErrorRate: 0, complianceRate: 0, complianceCount: 0, totalAgents: 0 };
+      return { totalDefects: 0, avgDefectsPerAudit: 0, zeroErrorRate: 0, avgAgentScore: 0, complianceRate: 0, complianceCount: 0, totalAgents: 0 };
     }
 
     // 2. Determine Audited Population
@@ -357,6 +357,7 @@ export const qaServiceServer = {
     // 3. Calculate Rates over Audited Population
     let agentsWithZeroError = 0;
     let agentsWithPassScore = 0;
+    let totalScore = 0;
     
     auditedAgentsList.forEach(agent => {
       const temuanList = agentTemuanMap[agent.id] || [];
@@ -370,6 +371,7 @@ export const qaServiceServer = {
       // Compliance Check
       const teamInds = allIndicators.filter(i => i.service_type === serviceType);
       const result = calculateQAScoreFromTemuan(teamInds, temuanList);
+      totalScore += result.finalScore;
       if (result.finalScore >= 95) {
         agentsWithPassScore++;
       }
@@ -379,6 +381,7 @@ export const qaServiceServer = {
       totalDefects: defects.length,
       avgDefectsPerAudit: totalAuditedAgents > 0 ? defects.length / totalAuditedAgents : 0,
       zeroErrorRate: totalAuditedAgents > 0 ? (agentsWithZeroError / totalAuditedAgents) * 100 : 0,
+      avgAgentScore: totalAuditedAgents > 0 ? totalScore / totalAuditedAgents : 0,
       complianceRate: totalAuditedAgents > 0 ? (agentsWithPassScore / totalAuditedAgents) * 100 : 0,
       complianceCount: agentsWithPassScore,
       totalAgents: totalAuditedAgents
@@ -716,17 +719,20 @@ export const qaServiceServer = {
 
     let agentsWithZeroError = 0;
     let agentsWithPassScore = 0;
+    let totalScore = 0;
     auditedAgentsList.forEach(agent => {
       const temuanList = agentTemuanMap[agent.id] || [];
       if (!temuanList.some(t => t.nilai < 3)) agentsWithZeroError++;
       const res = calculateQAScoreFromTemuan(serviceInds, temuanList);
       if (res.finalScore >= 95) agentsWithPassScore++;
+      totalScore += res.finalScore;
     });
 
     const summary: DashboardSummary = {
       totalDefects: serviceDefects.length,
       avgDefectsPerAudit: auditedAgentsList.length > 0 ? serviceDefects.length / auditedAgentsList.length : 0,
       zeroErrorRate: auditedAgentsList.length > 0 ? (agentsWithZeroError / auditedAgentsList.length) * 100 : 0,
+      avgAgentScore: auditedAgentsList.length > 0 ? totalScore / auditedAgentsList.length : 0,
       complianceRate: auditedAgentsList.length > 0 ? (agentsWithPassScore / auditedAgentsList.length) * 100 : 0,
       complianceCount: agentsWithPassScore,
       totalAgents: auditedAgentsList.length
@@ -869,11 +875,13 @@ export const qaServiceServer = {
 
       // Compliance calculation
       let passCount = 0;
+      let totalScoreForPeriod = 0;
       if (totalAudited > 0) {
         auditedAgents.forEach(aid => {
           const agentTemuans = pTemuan.filter(t => t.peserta_id === aid);
           const res = calculateQAScoreFromTemuan(serviceInds, agentTemuans);
           if (res.finalScore >= 95) passCount++;
+          totalScoreForPeriod += res.finalScore;
         });
       }
 
@@ -882,7 +890,8 @@ export const qaServiceServer = {
         total: defects,
         avg: totalAudited > 0 ? defects / totalAudited : 0,
         zero: totalAudited > 0 ? (Array.from(auditedAgents).filter(aid => !pTemuan.some(t => t.peserta_id === aid && t.nilai < 3)).length / totalAudited) * 100 : 0,
-        compliance: passCount
+        compliance: passCount,
+        avgAgentScore: totalAudited > 0 ? totalScoreForPeriod / totalAudited : 0
       };
     });
 
@@ -913,7 +922,8 @@ export const qaServiceServer = {
         total: dataByPeriod.map(d => ({ label: d.label, value: d.total })),
         avg: dataByPeriod.map(d => ({ label: d.label, value: Number(d.avg.toFixed(1)) })),
         zero: dataByPeriod.map(d => ({ label: d.label, value: Number(d.zero.toFixed(1)) })),
-        compliance: dataByPeriod.map(d => ({ label: d.label, value: d.compliance }))
+        compliance: dataByPeriod.map(d => ({ label: d.label, value: d.compliance })),
+        avgAgentScore: dataByPeriod.map(d => ({ label: d.label, value: Number(d.avgAgentScore.toFixed(1)) }))
       },
       paramTrend: { labels, datasets }
     };

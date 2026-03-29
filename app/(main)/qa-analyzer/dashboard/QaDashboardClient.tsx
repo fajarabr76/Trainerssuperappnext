@@ -203,13 +203,14 @@ export default function QaDashboardClient({
                       sparklineData={displayData.sparklines.avg || []}
                     />
                     <KpiCard 
-                      label="Zero Error Rate"
-                      value={displayData.summary.zeroErrorRate.toFixed(1)}
+                      label="Rata-rata Skor Agent"
+                      value={displayData.summary.avgAgentScore?.toFixed(1) ?? '0.0'}
                       unit="%"
-                      delta={2}
-                      target="Target: > 90%"
+                      delta={0}
+                      target="TARGET: ≥ 95%"
+                      targetValue={95}
                       reverseLogic={false}
-                      sparklineData={displayData.sparklines.critical || []}
+                      sparklineData={displayData.sparklines.avgAgentScore || []}
                     />
                     <KpiCard 
                       label="Kepatuhan (Skor ≥ 95%)"
