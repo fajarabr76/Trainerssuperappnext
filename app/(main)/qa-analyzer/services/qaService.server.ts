@@ -1,5 +1,6 @@
 import { createClient } from '@/app/lib/supabase/server';
 import { unstable_cache } from 'next/cache';
+import { getCachedFolderNames, getCachedAvailableYears } from '@/lib/cache/user-cache';
 import { 
   QAPeriod, 
   QAIndicator, 
@@ -69,13 +70,7 @@ export const qaServiceServer = {
   // ── Years (REVERTED TO DIRECT FETCH DUE TO RLS) ──────────────
   async getAvailableYears(): Promise<number[]> {
     try {
-      const supabase = await createClient();
-      const { data, error } = await supabase
-        .from('profiler_years')
-        .select('year')
-        .order('year', { ascending: false });
-      if (error) return [];
-      return (data ?? []).map((d: any) => d.year);
+      return await getCachedAvailableYears();
     } catch (e) {
       console.error('Error in getAvailableYears:', e);
       return [];
@@ -103,12 +98,10 @@ export const qaServiceServer = {
   async getFolders(): Promise<string[]> {
     try {
       const supabase = await createClient();
-      const { data, error } = await supabase
-        .from('profiler_folders')
-        .select('name')
-        .order('created_at', { ascending: true });
-      if (error) return [];
-      return (data ?? []).map((d: any) => d.name);
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) throw new Error('Unauthenticated');
+      
+      return await getCachedFolderNames(user.id);
     } catch (e) {
       console.error('Error in getFolders:', e);
       return [];
@@ -1135,6 +1128,31 @@ export const qaServiceServer = {
       serviceSummary[sType].auditedAgents = serviceAgentsMap[sType]?.size || 0;
     });
 
+    // Per-period stats for slicing
+    const periodStats = sortedPeriods.map((p, idx) => {
+      const pTemuan = temuan.filter(t => t.period_id === p.id);
+      const svcStats: Record<string, { totalDefects: number, auditedAgents: number }> = {};
+      
+      const pAgents = new Set(pTemuan.map(t => t.peserta_id));
+      const pDefects = pTemuan.filter(t => t.nilai < 3).length;
+
+      activeServicesSet.forEach(svc => {
+        const sTemuan = pTemuan.filter(t => t.service_type === svc);
+        svcStats[svc] = {
+          totalDefects: sTemuan.filter(t => t.nilai < 3).length,
+          auditedAgents: new Set(sTemuan.map(t => t.peserta_id)).size
+        };
+      });
+
+      return {
+        id: p.id,
+        label: labels[idx],
+        totalDefects: pDefects,
+        auditedAgents: pAgents.size,
+        serviceStats: svcStats
+      };
+    });
+
     return {
       labels,
       totalData,
@@ -1145,7 +1163,49 @@ export const qaServiceServer = {
         totalDefects: totalDefectsCount,
         auditedAgents: totalAuditedAgentsSet.size,
         activeServiceCount: activeServicesSet.size
-      }
+      },
+      periodStats
+    };
+  },
+
+  sliceTrendData(data: any, months: number) {
+    const sliceIdx = Math.max(0, data.labels.length - months);
+    const slicedLabels = data.labels.slice(sliceIdx);
+    const slicedTotalData = data.totalData.slice(sliceIdx);
+    const slicedPeriodStats = data.periodStats.slice(sliceIdx);
+    
+    const slicedServiceData: Record<string, number[]> = {};
+    Object.entries(data.serviceData).forEach(([svc, arr]: [string, any]) => {
+      slicedServiceData[svc] = arr.slice(sliceIdx);
+    });
+
+    // Re-aggregate summaries based on sliced data
+    // For Audited Agents, we take the value from the LATEST month in the slice (as per user condition)
+    const latestStat = slicedPeriodStats[slicedPeriodStats.length - 1] || { totalDefects: 0, auditedAgents: 0, serviceStats: {} };
+    
+    const totalDefects = slicedTotalData.reduce((a: number, b: number) => a + b, 0);
+    
+    const serviceSummary: Record<string, { totalDefects: number, auditedAgents: number }> = {};
+    data.activeServices.forEach((svc: string) => {
+      const svcTotalDefects = slicedServiceData[svc]?.reduce((a: number, b: number) => a + b, 0) || 0;
+      serviceSummary[svc] = {
+        totalDefects: svcTotalDefects,
+        auditedAgents: latestStat.serviceStats[svc]?.auditedAgents || 0
+      };
+    });
+
+    return {
+      labels: slicedLabels,
+      totalData: slicedTotalData,
+      serviceData: slicedServiceData,
+      activeServices: data.activeServices,
+      serviceSummary,
+      totalSummary: {
+        totalDefects,
+        auditedAgents: latestStat.auditedAgents || 0,
+        activeServiceCount: data.activeServices.length
+      },
+      periodStats: slicedPeriodStats
     };
   }
 };

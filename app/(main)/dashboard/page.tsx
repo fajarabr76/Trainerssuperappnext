@@ -23,24 +23,21 @@ export default async function DashboardPage() {
 
   const role = profile?.role || 'trainer';
 
-  // 1. Fetch periods first to share as context
-  const periods = await qaServiceServer.getPeriods();
-  const context = { periods, indicators: [], agents: [] };
-
-  // 2. Fetch all other dashboard data in parallel using the shared context
+  // 1. Fetch all dashboard data in parallel
   const [
-    serviceTrend3m, serviceTrend6m, serviceTrendAll,
+    periods,
+    serviceTrendAll,
     activities
   ] = await Promise.all([
-    qaServiceServer.getServiceTrendForDashboard('3m', context),
-    qaServiceServer.getServiceTrendForDashboard('6m', context),
-    qaServiceServer.getServiceTrendForDashboard('all', context),
+    qaServiceServer.getPeriods(),
+    qaServiceServer.getServiceTrendForDashboard('all'),
     activityServiceServer.getRecentActivities(5)
   ]);
 
+  // 2. Derive 3m and 6m trends from the 'all' fetch (12m)
   const serviceTrendMap = {
-    '3m': serviceTrend3m,
-    '6m': serviceTrend6m,
+    '3m': qaServiceServer.sliceTrendData(serviceTrendAll, 3),
+    '6m': qaServiceServer.sliceTrendData(serviceTrendAll, 6),
     'all': serviceTrendAll,
   };
 

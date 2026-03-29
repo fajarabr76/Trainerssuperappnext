@@ -5,37 +5,44 @@ import {
   Peserta 
 } from '../lib/profiler-types';
 import { maskPesertaData } from '@/app/lib/utils.server';
+import { getCachedFolders, getCachedYears } from '@/lib/cache/user-cache';
 
 export const profilerServiceServer = {
   
   getYears: async (): Promise<ProfilerYear[]> => {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from('profiler_years')
-      .select('*')
-      .order('year', { ascending: false });
-    if (error) throw error;
-    return data || [];
+    try {
+      return await getCachedYears();
+    } catch (error) {
+      console.error('Error fetching cached years:', error);
+      throw error;
+    }
   },
 
   getFolders: async (): Promise<ProfilerFolder[]> => {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from('profiler_folders')
-      .select('*')
-      .order('created_at', { ascending: true });
-    if (error) throw error;
-    return data || [];
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) throw new Error('Unauthenticated');
+    
+    try {
+      return await getCachedFolders(user.id);
+    } catch (error) {
+      console.error('Error fetching cached folders:', error);
+      throw error;
+    }
   },
 
   getBatches: async (): Promise<string[]> => {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from('profiler_folders')
-      .select('name')
-      .order('created_at', { ascending: true });
-    if (error) throw error;
-    return (data || []).map(d => d.name);
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) throw new Error('Unauthenticated');
+    
+    try {
+      const folders = await getCachedFolders(user.id);
+      return folders.map(d => d.name);
+    } catch (error) {
+      console.error('Error fetching cached batches from folders:', error);
+      throw error;
+    }
   },
 
   getFolderCounts: async (): Promise<Record<string, number>> => {

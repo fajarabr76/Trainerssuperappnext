@@ -3,6 +3,7 @@
 import { createClient } from '@/app/lib/supabase/server';
 import { Peserta } from './lib/profiler-types';
 import { revalidatePath } from 'next/cache';
+import { invalidateFoldersCache, invalidateYearsCache } from '@/lib/cache/user-cache';
 
 export async function createYear(year: number) {
   const supabase = await createClient();
@@ -30,6 +31,7 @@ export async function createYear(year: number) {
     .single();
     
   if (error) throw error;
+  invalidateYearsCache();
   revalidatePath('/profiler');
   return data;
 }
@@ -41,6 +43,7 @@ export async function deleteYear(id: string) {
     .delete()
     .eq('id', id);
   if (error) throw error;
+  invalidateYearsCache();
   revalidatePath('/profiler');
 }
 
@@ -70,12 +73,16 @@ export async function createFolder(name: string, yearId: string | null = null, p
     type: 'add'
   });
 
+  invalidateFoldersCache(user.id);
   revalidatePath('/profiler');
   return data;
 }
 
 export async function updateFolder(id: string, patch: { name?: string; year_id?: string; parent_id?: string }) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Tidak terautentikasi');
+
   const { data, error } = await supabase
     .from('profiler_folders')
     .update(patch)
@@ -83,12 +90,15 @@ export async function updateFolder(id: string, patch: { name?: string; year_id?:
     .select()
     .single();
   if (error) throw error;
+  invalidateFoldersCache(user.id);
   revalidatePath('/profiler');
   return data;
 }
 
 export async function renameBatch(oldName: string, newName: string) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Tidak terautentikasi');
   
   // 1. Update folder name
   const { error: folderErr } = await supabase
@@ -104,6 +114,7 @@ export async function renameBatch(oldName: string, newName: string) {
     .eq('batch_name', oldName);
   if (pesertaErr) throw pesertaErr;
 
+  invalidateFoldersCache(user.id);
   revalidatePath('/profiler');
 }
 
@@ -135,6 +146,7 @@ export async function deleteBatch(batchName: string) {
     type: 'delete'
   });
 
+  invalidateFoldersCache(user.id);
   revalidatePath('/profiler');
 }
 
@@ -193,10 +205,12 @@ export async function duplicateFolder(folderId: string, targetYearId: string) {
       .select();
     if (insErr) throw insErr;
 
+    invalidateFoldersCache(user.id);
     revalidatePath('/profiler');
     return { folder: newFolder, participants: insertedData };
   }
   
+  invalidateFoldersCache(user.id);
   revalidatePath('/profiler');
   return { folder: newFolder, participants: [] };
 }

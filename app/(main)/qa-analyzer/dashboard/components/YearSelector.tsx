@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Calendar, ChevronRight } from 'lucide-react';
 
 interface YearSelectorProps {
   years: number[];
@@ -10,23 +11,24 @@ interface YearSelectorProps {
 
 export function YearSelector({ years, selectedYear, onYearChange }: YearSelectorProps) {
   return (
-    <div className="flex items-center gap-2 p-1 bg-card/30 backdrop-blur-md border border-border/40 rounded-full">
-      {years.map((year) => {
-        const active = selectedYear === year;
-        return (
-          <button
-            key={year}
-            onClick={() => onYearChange(year)}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-300 ${
-              active 
-                ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-105' 
-                : 'bg-card/50 text-muted-foreground hover:bg-card hover:text-foreground border border-border/50'
-            }`}
-          >
-            {year}
-          </button>
-        );
-      })}
+    <div className="relative flex-1 group/select min-w-[120px]">
+      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+        <Calendar className="h-4 w-4 text-foreground/40 group-focus-within/select:text-primary transition-colors" />
+      </div>
+      <select
+        value={selectedYear}
+        onChange={(e) => onYearChange(Number(e.target.value))}
+        className="block w-full pl-12 pr-10 py-3.5 text-sm bg-background/50 border-border/50 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all appearance-none border hover:border-primary/30 font-semibold text-primary"
+      >
+        {years.map((year) => (
+          <option key={year} value={year}>
+            Tahun {year}
+          </option>
+        ))}
+      </select>
+      <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-foreground/20">
+        <ChevronRight className="w-4 h-4 rotate-90" />
+      </div>
     </div>
   );
 }
