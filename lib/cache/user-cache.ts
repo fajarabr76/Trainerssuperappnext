@@ -15,15 +15,14 @@ import type { ProfilerFolder, ProfilerYear } from '@/app/(main)/profiler/lib/pro
  * [UNTUK profilerService]
  * Mendapatkan daftar lengkap folder milik user tertentu (return Promise<ProfilerFolder[]>)
  */
-export const getCachedFolders = async (userId: string): Promise<ProfilerFolder[]> => {
+export const getCachedFolders = async (): Promise<ProfilerFolder[]> => {
   const fetchFolders = unstable_cache(
-    async (id: string) => {
+    async () => {
       const supabase = createAdminClient();
 
       const { data, error } = await supabase
         .from('profiler_folders')
         .select('*')
-        .eq('trainer_id', id)
         .order('created_at', { ascending: true });
 
       if (error) {
@@ -32,29 +31,28 @@ export const getCachedFolders = async (userId: string): Promise<ProfilerFolder[]
       }
       return data || [];
     },
-    [`profiler-folders-${userId}`],
+    ['profiler-folders-global'],
     {
       revalidate: 300,
-      tags: [`profiler-folders-${userId}`],
+      tags: ['profiler-folders-global'],
     }
   );
 
-  return await fetchFolders(userId);
+  return await fetchFolders();
 };
 
 /**
  * [UNTUK qaService]
  * Mendapatkan daftar nama (string) folder milik user tertentu (return Promise<string[]>)
  */
-export const getCachedFolderNames = async (userId: string): Promise<string[]> => {
+export const getCachedFolderNames = async (): Promise<string[]> => {
   const fetchFolderNames = unstable_cache(
-    async (id: string) => {
+    async () => {
       const supabase = createAdminClient();
 
       const { data, error } = await supabase
         .from('profiler_folders')
         .select('name')
-        .eq('trainer_id', id)
         .order('created_at', { ascending: true });
 
       if (error) {
@@ -63,14 +61,14 @@ export const getCachedFolderNames = async (userId: string): Promise<string[]> =>
       }
       return (data || []).map((d: any) => d.name);
     },
-    [`profiler-folder-names-${userId}`], 
+    ['profiler-folder-names-global'], 
     {
       revalidate: 300,
-      tags: [`profiler-folders-${userId}`], // Tag sama dengan object utuh, jika folder berubah maka semua invalid
+      tags: ['profiler-folders-global'], // Tag sama dengan object utuh, jika folder berubah maka semua invalid
     }
   );
 
-  return await fetchFolderNames(userId);
+  return await fetchFolderNames();
 };
 
 /**
@@ -149,8 +147,8 @@ export const getCachedAvailableYears = async (): Promise<number[]> => {
  * ------------------------------------------------------------------
  */
 
-export function invalidateFoldersCache(userId: string) {
-  revalidateTag(`profiler-folders-${userId}`);
+export function invalidateFoldersCache() {
+  revalidateTag('profiler-folders-global');
 }
 
 export function invalidateYearsCache() {

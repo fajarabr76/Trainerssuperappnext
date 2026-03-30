@@ -73,7 +73,7 @@ export async function createFolder(name: string, yearId: string | null = null, p
     type: 'add'
   });
 
-  invalidateFoldersCache(user.id);
+  invalidateFoldersCache();
   revalidatePath('/profiler');
   return data;
 }
@@ -90,7 +90,7 @@ export async function updateFolder(id: string, patch: { name?: string; year_id?:
     .select()
     .single();
   if (error) throw error;
-  invalidateFoldersCache(user.id);
+  invalidateFoldersCache();
   revalidatePath('/profiler');
   return data;
 }
@@ -114,7 +114,7 @@ export async function renameBatch(oldName: string, newName: string) {
     .eq('batch_name', oldName);
   if (pesertaErr) throw pesertaErr;
 
-  invalidateFoldersCache(user.id);
+  invalidateFoldersCache();
   revalidatePath('/profiler');
 }
 
@@ -146,7 +146,7 @@ export async function deleteBatch(batchName: string) {
     type: 'delete'
   });
 
-  invalidateFoldersCache(user.id);
+  invalidateFoldersCache();
   revalidatePath('/profiler');
 }
 
@@ -205,12 +205,12 @@ export async function duplicateFolder(folderId: string, targetYearId: string) {
       .select();
     if (insErr) throw insErr;
 
-    invalidateFoldersCache(user.id);
+    invalidateFoldersCache();
     revalidatePath('/profiler');
     return { folder: newFolder, participants: insertedData };
   }
   
-  invalidateFoldersCache(user.id);
+  invalidateFoldersCache();
   revalidatePath('/profiler');
   return { folder: newFolder, participants: [] };
 }

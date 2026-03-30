@@ -101,7 +101,7 @@ export const qaServiceServer = {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) throw new Error('Unauthenticated');
       
-      return await getCachedFolderNames(user.id);
+      return await getCachedFolderNames();
     } catch (e) {
       console.error('Error in getFolders:', e);
       return [];

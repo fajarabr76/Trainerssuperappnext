@@ -24,7 +24,7 @@ export const profilerServiceServer = {
     if (authError || !user) throw new Error('Unauthenticated');
     
     try {
-      return await getCachedFolders(user.id);
+      return await getCachedFolders();
     } catch (error) {
       console.error('Error fetching cached folders:', error);
       throw error;
@@ -37,7 +37,7 @@ export const profilerServiceServer = {
     if (authError || !user) throw new Error('Unauthenticated');
     
     try {
-      const folders = await getCachedFolders(user.id);
+      const folders = await getCachedFolders();
       return folders.map(d => d.name);
     } catch (error) {
       console.error('Error fetching cached batches from folders:', error);
