@@ -1,6 +1,7 @@
 import './globals.css';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import { ThemeProvider } from './components/ThemeProvider';
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 
 const inter = Inter({
@@ -33,6 +34,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          <SpeedInsights />
         </ThemeProvider>
       </body>
     </html>
