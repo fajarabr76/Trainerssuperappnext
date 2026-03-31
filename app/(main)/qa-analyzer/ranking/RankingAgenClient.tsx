@@ -172,7 +172,7 @@ export default function RankingAgenClient({
                     .filter(p => p.year === selectedYear)
                     .map(p => (
                       <option key={p.id} value={p.id}>
-                        {p.label || `${MONTHS[(p.month ?? 1) - 1]} ${p.year}`}
+                        {`${MONTHS[(p.month ?? 1) - 1]} ${p.year}`}
                       </option>
                     ))}
                 </optgroup>

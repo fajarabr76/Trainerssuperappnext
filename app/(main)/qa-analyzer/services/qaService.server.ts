@@ -22,6 +22,7 @@ import {
 import { createClient as createJSClient } from '@supabase/supabase-js';
 
 const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
+const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
 // Lazy Service Role client helper (Server-side only)
 function getServiceSupabase() {
@@ -60,7 +61,10 @@ const cachedFetchPeriods = unstable_cache(
       .from('qa_periods').select('*')
       .order('year', { ascending: false }).order('month', { ascending: false });
     if (error) return [];
-    return data ?? [];
+    return (data ?? []).map(p => ({
+      ...p,
+      label: `${MONTHS[p.month - 1]} ${p.year}`
+    }));
   },
   ['qa_periods_global'],
   { revalidate: 3600, tags: ['periods'] }
@@ -119,7 +123,10 @@ export const qaServiceServer = {
     const { data } = await supabase
       .from('qa_periods').select('*')
       .order('year', { ascending: false }).order('month', { ascending: false });
-    return data ?? [];
+    return (data ?? []).map(p => ({
+      ...p,
+      label: `${MONTHS[p.month - 1]} ${p.year}`
+    }));
   },
 
   // ── QA Temuan CRUD ────────────────────────────────────────────

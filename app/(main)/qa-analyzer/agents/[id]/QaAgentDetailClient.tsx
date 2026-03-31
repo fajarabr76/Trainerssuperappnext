@@ -22,7 +22,7 @@ const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt
 const MONTHS_FULL  = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
 function periodKey(month: number, year: number) { return `${year}-${String(month).padStart(2,'0')}`; }
-function pLabel(month: number, year: number) { return `${MONTHS_SHORT[month-1]} ${year}`; }
+function pLabel(month: number, year: number) { return `${MONTHS_FULL[month-1]} ${year}`; }
 
 async function exportToExcel(agentId: string) {
   const { agent, periods } = await getAgentExportDataAction(agentId);
