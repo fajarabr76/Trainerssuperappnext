@@ -176,7 +176,7 @@ export default function QaPeriodsClient({ user, role, initialPeriods }: QaPeriod
                 </button>
               </div>
             </div>
-          ) : (
+          ) : role !== 'leader' ? (
             <button
               onClick={() => { setShowForm(true); setErrorMsg(null); }}
               className="w-full h-14 flex items-center justify-center gap-2 bg-card border border-dashed border-border hover:border-primary/40 hover:bg-primary/5 rounded-2xl text-sm font-bold text-foreground/40 hover:text-primary transition-all group"
@@ -186,7 +186,7 @@ export default function QaPeriodsClient({ user, role, initialPeriods }: QaPeriod
               </div>
               Tambah Periode Pelaporan
             </button>
-          )}
+          ) : null}
 
           <div className="mt-10">
             {periods.length === 0 ? (
@@ -230,12 +230,14 @@ export default function QaPeriodsClient({ user, role, initialPeriods }: QaPeriod
                                 </p>
                                 <p className="text-[10px] font-black uppercase tracking-wider text-foreground/40">{year}</p>
                               </div>
-                              <button
-                                onClick={() => { setErrorMsg(null); setConfirmDelete(period); }}
-                                className="opacity-0 group-hover:opacity-100 p-2 rounded-xl text-foreground/20 hover:text-destructive hover:bg-destructive/10 transition-all"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              {role !== 'leader' && (
+                                <button
+                                  onClick={() => { setErrorMsg(null); setConfirmDelete(period); }}
+                                  className="opacity-0 group-hover:opacity-100 p-2 rounded-xl text-foreground/20 hover:text-destructive hover:bg-destructive/10 transition-all"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
                             </div>
                           ))}
                       </div>
