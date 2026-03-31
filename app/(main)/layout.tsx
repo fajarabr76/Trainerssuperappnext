@@ -18,7 +18,7 @@ export default async function MainLayout({
   let role = '';
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, status')
     .eq('id', user.id)
     .single();
 

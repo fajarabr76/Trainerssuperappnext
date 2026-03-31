@@ -22,6 +22,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     }
   }, [isOpen, initialMode]);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
@@ -29,6 +30,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   // Reset state when modal closes
   const handleClose = () => {
     setError(null);
+    setSuccessMessage(null);
     setLoading(false);
     onClose();
   };
@@ -57,6 +59,27 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       }
     } else {
       const role = formData.get('role') as string;
+      
+      // Cek apakah email sudah pernah mendaftar dengan status pending
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id, status')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (existingProfile) {
+        if (existingProfile.status === 'pending') {
+          setError('Anda sudah mendaftar dan sedang menunggu persetujuan trainer. Mohon bersabar.');
+          setLoading(false);
+          return;
+        }
+        if (existingProfile.status === 'rejected') {
+          setError('Pendaftaran Anda sebelumnya ditolak. Hubungi trainer untuk informasi lebih lanjut.');
+          setLoading(false);
+          return;
+        }
+      }
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -71,23 +94,26 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       if (data.user) {
         const { error: profileError } = await supabase
           .from('profiles')
-          .insert([
+          .upsert([
             {
               id: data.user.id,
-              role: role.toLowerCase(),
+              email: email,
+              role: role,
               status: 'pending',
             },
-          ]);
+          ], { onConflict: 'id' });
 
         if (profileError) {
-          setError(profileError.message);
+          setError('Gagal membuat profil. Silakan coba lagi.');
           setLoading(false);
           return;
         }
       }
 
-      router.push('/dashboard');
-      router.refresh();
+      // JANGAN redirect ke dashboard, tampilkan pesan sukses
+      setError(null);
+      setSuccessMessage('Pendaftaran berhasil! Akun Anda sedang menunggu persetujuan dari trainer. Kami akan menghubungi Anda setelah disetujui.');
+      setLoading(false);
     }
   }
 
@@ -204,9 +230,22 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                       )}
                     </AnimatePresence>
 
+                    <AnimatePresence>
+                      {successMessage && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="flex items-start gap-3 text-green-600 bg-green-500/10 p-4 rounded-2xl border border-green-500/20 overflow-hidden mt-1"
+                        >
+                          <p className="text-xs font-bold leading-relaxed">{successMessage}</p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
                     <button
                       type="submit"
-                      disabled={loading}
+                      disabled={loading || !!successMessage}
                       className="w-full mt-4 px-8 py-4 bg-primary text-primary-foreground rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     >
                       {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (mode === 'login' ? 'Masuk ke Dashboard' : 'Buat Akun Sekarang')}
@@ -219,6 +258,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                       type="button"
                       onClick={() => {
                         setError(null);
+                        setSuccessMessage(null);
                         setMode(mode === 'login' ? 'register' : 'login');
                       }}
                       className="text-xs font-bold text-foreground/40 hover:text-primary transition-colors focus-visible:outline-none focus-visible:text-primary"

@@ -57,6 +57,26 @@ export async function updateSession(request: NextRequest) {
         url.searchParams.set('auth', 'login');
         return NextResponse.redirect(url);
       }
+
+      // Cek status approval user
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('status')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile || profile.status === 'pending') {
+        const url = new URL('/waiting-approval', request.url);
+        return NextResponse.redirect(url);
+      }
+
+      if (profile.status === 'rejected') {
+        await supabase.auth.signOut();
+        const url = new URL('/', request.url);
+        url.searchParams.set('auth', 'login');
+        url.searchParams.set('message', 'rejected');
+        return NextResponse.redirect(url);
+      }
     }
 
     // Redirect legacy auth pages to landing page modal
