@@ -735,9 +735,13 @@ export default function QaInputClient({
                     const hasBadFindings = temuan.some(t => t.nilai < 3);
                     return (
                       <div className="flex items-center gap-2">
-                        <button onClick={() => { setShowImport(true); setImportTab('download'); setImportRows([]); setImportFile(null); }} className="flex items-center gap-2 px-4 py-2.5 bg-card border border-border hover:border-primary/40 rounded-xl text-sm font-semibold transition-all"><FileSpreadsheet className="w-4 h-4"/>Import</button>
-                        <button onClick={handlePerfectScore} disabled={saving || hasBadFindings} className={`flex items-center gap-2 px-4 py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-500/20 ${hasBadFindings ? 'opacity-50 cursor-not-allowed' : 'hover:bg-emerald-600'}`} title={hasBadFindings ? "Sesi tanpa temuan hanya bisa dibuat jika belum ada laporan temuan buruk." : ""}><Check className="w-4 h-4"/>{hasBadFindings ? 'Sudah Ada Temuan' : 'Sesi Tanpa Temuan'}</button>
-                        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold transition-all shadow-lg shadow-primary/20"><Plus className="w-4 h-4"/>Tambah</button>
+                        {role !== 'leader' && (
+                          <>
+                            <button onClick={() => { setShowImport(true); setImportTab('download'); setImportRows([]); setImportFile(null); }} className="flex items-center gap-2 px-4 py-2.5 bg-card border border-border hover:border-primary/40 rounded-xl text-sm font-semibold transition-all"><FileSpreadsheet className="w-4 h-4"/>Import</button>
+                            <button onClick={handlePerfectScore} disabled={saving || hasBadFindings} className={`flex items-center gap-2 px-4 py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-500/20 ${hasBadFindings ? 'opacity-50 cursor-not-allowed' : 'hover:bg-emerald-600'}`} title={hasBadFindings ? "Sesi tanpa temuan hanya bisa dibuat jika belum ada laporan temuan buruk." : ""}><Check className="w-4 h-4"/>{hasBadFindings ? 'Sudah Ada Temuan' : 'Sesi Tanpa Temuan'}</button>
+                            <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold transition-all shadow-lg shadow-primary/20"><Plus className="w-4 h-4"/>Tambah</button>
+                          </>
+                        )}
                       </div>
                     );
                   })()}
@@ -850,10 +854,12 @@ export default function QaInputClient({
                                     <p className={`text-[9px] font-bold uppercase mt-1 ${t.nilai===3?'text-green-500':t.nilai===2?'text-amber-500':t.nilai===1?'text-orange-500':'text-red-500'}`}>{NILAI_LABELS[t.nilai]}</p>
                                   </div>
                                   <div className="flex flex-col gap-1">
-                                    {deletingId === t.id ? (
-                                      <><button onClick={() => handleDelete(t.id)} className="text-[10px] font-bold text-red-500 px-2 py-1 border border-red-500/20 rounded-lg hover:bg-red-500/10">Ya</button><button onClick={() => setDeletingId(null)} className="text-[10px] font-bold text-foreground/40 px-2 py-1 border border-border rounded-lg hover:bg-foreground/5">Batal</button></>
-                                    ) : (
-                                      <><button onClick={() => isEditing ? cancelEdit() : startEdit(t)} className={`p-2 rounded-lg transition-colors ${isEditing ? 'bg-primary/10 text-primary' : 'text-foreground/20 hover:text-primary hover:bg-primary/5'}`}><Pencil className="w-4 h-4"/></button><button onClick={() => handleDelete(t.id)} className="p-2 text-foreground/20 hover:text-red-500 hover:bg-red-500/5 rounded-lg transition-colors"><Trash2 className="w-4 h-4"/></button></>
+                                    {role !== 'leader' && (
+                                      deletingId === t.id ? (
+                                        <><button onClick={() => handleDelete(t.id)} className="text-[10px] font-bold text-red-500 px-2 py-1 border border-red-500/20 rounded-lg hover:bg-red-500/10">Ya</button><button onClick={() => setDeletingId(null)} className="text-[10px] font-bold text-foreground/40 px-2 py-1 border border-border rounded-lg hover:bg-foreground/5">Batal</button></>
+                                      ) : (
+                                        <><button onClick={() => isEditing ? cancelEdit() : startEdit(t)} className={`p-2 rounded-lg transition-colors ${isEditing ? 'bg-primary/10 text-primary' : 'text-foreground/20 hover:text-primary hover:bg-primary/5'}`}><Pencil className="w-4 h-4"/></button><button onClick={() => handleDelete(t.id)} className="p-2 text-foreground/20 hover:text-red-500 hover:bg-red-500/5 rounded-lg transition-colors"><Trash2 className="w-4 h-4"/></button></>
+                                      )
                                     )}
                                   </div>
                                 </div>

@@ -18,14 +18,17 @@ interface ProfilerAnalyticsClientProps {
   initialYears: ProfilerYear[];
   initialFolders: ProfilerFolder[];
   batchName: string;
+  role?: string;
 }
 
 export default function ProfilerAnalyticsClient({
   initialPeserta,
   initialYears,
   initialFolders,
-  batchName
+  batchName,
+  role = 'trainer'
 }: ProfilerAnalyticsClientProps) {
+  const isReadOnly = role === 'leader';
   const router = useRouter();
 
   const [selectedBatch, setSelectedBatch] = useState(batchName);
@@ -195,10 +198,12 @@ export default function ProfilerAnalyticsClient({
                 <BarChart3 className="w-8 h-8 text-foreground/20" />
              </div>
             <p className="text-foreground/50 font-medium">Tidak ada data peserta untuk folder ini.</p>
-            <button onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(selectedBatch)}`)}
-              className="mt-4 px-6 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-bold shadow-sm hover:opacity-90">
-              Tambah Data Pertama
-            </button>
+            {!isReadOnly && (
+              <button onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(selectedBatch)}`)}
+                className="mt-4 px-6 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-bold shadow-sm hover:opacity-90">
+                Tambah Data Pertama
+              </button>
+            )}
           </div>
         ) : (
           <>

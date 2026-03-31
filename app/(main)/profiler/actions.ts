@@ -5,7 +5,33 @@ import { Peserta } from './lib/profiler-types';
 import { revalidatePath } from 'next/cache';
 import { invalidateFoldersCache, invalidateYearsCache } from '@/lib/cache/user-cache';
 
+/**
+ * Helper to validate if the current user has trainer/admin permissions.
+ * Throws an error if the user is a 'leader' or has no role.
+ */
+async function validateRole() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Tidak terautentikasi');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const role = profile?.role || 'trainer';
+  const allowedRoles = ['trainer', 'trainers', 'admin', 'superadmin'];
+  
+  if (!allowedRoles.includes(role)) {
+    throw new Error('Anda tidak memiliki izin untuk melakukan perubahan data (Read-only)');
+  }
+  
+  return user;
+}
+
 export async function createYear(year: number) {
+  await validateRole();
   const supabase = await createClient();
 
   // 1. Validation for Range (22003 fix)
@@ -37,6 +63,7 @@ export async function createYear(year: number) {
 }
 
 export async function deleteYear(id: string) {
+  await validateRole();
   const supabase = await createClient();
   const { error } = await supabase
     .from('profiler_years')
@@ -48,9 +75,8 @@ export async function deleteYear(id: string) {
 }
 
 export async function createFolder(name: string, yearId: string | null = null, parentId: string | null = null) {
+  const user = await validateRole();
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Tidak terautentikasi');
   
   const { data, error } = await supabase
     .from('profiler_folders')
@@ -79,9 +105,8 @@ export async function createFolder(name: string, yearId: string | null = null, p
 }
 
 export async function updateFolder(id: string, patch: { name?: string; year_id?: string; parent_id?: string }) {
+  await validateRole();
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Tidak terautentikasi');
 
   const { data, error } = await supabase
     .from('profiler_folders')
@@ -96,9 +121,8 @@ export async function updateFolder(id: string, patch: { name?: string; year_id?:
 }
 
 export async function renameBatch(oldName: string, newName: string) {
+  await validateRole();
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Tidak terautentikasi');
   
   // 1. Update folder name
   const { error: folderErr } = await supabase
@@ -119,9 +143,8 @@ export async function renameBatch(oldName: string, newName: string) {
 }
 
 export async function deleteBatch(batchName: string) {
+  const user = await validateRole();
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Tidak terautentikasi');
 
   // 1. Hapus semua peserta dulu
   const { error: pesertaErr } = await supabase
@@ -151,9 +174,8 @@ export async function deleteBatch(batchName: string) {
 }
 
 export async function duplicateFolder(folderId: string, targetYearId: string) {
+  const user = await validateRole();
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Tidak terautentikasi');
 
   // 1. Get source folder
   const { data: folder, error: fErr } = await supabase
@@ -216,9 +238,8 @@ export async function duplicateFolder(folderId: string, targetYearId: string) {
 }
 
 export async function copyPesertaToFolder(pesertaIds: string[], targetBatch: string) {
+  const user = await validateRole();
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Tidak terautentikasi');
 
   const { data: sources, error: sErr } = await supabase
     .from('profiler_peserta')
@@ -259,6 +280,7 @@ export async function getOriginalPeserta(id: string) {
 }
 
 export async function updatePeserta(id: string, data: Partial<Peserta>, path?: string) {
+  await validateRole();
   const supabase = await createClient();
   const { error } = await supabase
     .from('profiler_peserta')
@@ -269,9 +291,8 @@ export async function updatePeserta(id: string, data: Partial<Peserta>, path?: s
 }
 
 export async function deletePeserta(id: string, path?: string) {
+  const user = await validateRole();
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Tidak terautentikasi');
 
   const { error } = await supabase
     .from('profiler_peserta')
@@ -292,6 +313,7 @@ export async function deletePeserta(id: string, path?: string) {
 }
 
 export async function bulkCreatePeserta(pesertaList: Peserta[], path?: string) {
+  await validateRole();
   const supabase = await createClient();
   const { error } = await supabase
     .from('profiler_peserta')
@@ -323,6 +345,7 @@ export async function getTimList() {
 }
 
 export async function addTim(nama: string) {
+  await validateRole();
   const supabase = await createClient();
   const { error } = await supabase.from('profiler_tim_list').insert([{ nama }]);
   if (error) throw error;
@@ -330,6 +353,7 @@ export async function addTim(nama: string) {
 }
 
 export async function deleteTim(nama: string) {
+  await validateRole();
   const supabase = await createClient();
   const { error } = await supabase.from('profiler_tim_list').delete().eq('nama', nama);
   if (error) throw error;
@@ -347,9 +371,8 @@ export async function getPesertaByBatch(batchName: string) {
 }
 
 export async function createPeserta(data: Peserta) {
+  const user = await validateRole();
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Tidak terautentikasi');
 
   const { error } = await supabase.from('profiler_peserta').insert([data]);
   if (error) throw error;

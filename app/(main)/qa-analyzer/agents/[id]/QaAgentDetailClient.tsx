@@ -455,12 +455,14 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
                       onYearChange={handleYearChange} 
                     />
                   </div>
-                  <button 
-                    onClick={handleTambahTemuan} 
-                    className="flex-1 lg:flex-none h-12 px-8 bg-primary text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-primary/30 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" /> Tambah Temuan
-                  </button>
+                  {role !== 'leader' && (
+                    <button 
+                      onClick={handleTambahTemuan} 
+                      className="flex-1 lg:flex-none h-12 px-8 bg-primary text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-primary/30 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all active:scale-95 flex items-center justify-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" /> Tambah Temuan
+                    </button>
+                  )}
                   <button 
                     onClick={handleExport} 
                     disabled={exporting || temuan.length === 0} 
@@ -728,14 +730,16 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
                                           </div>
                                           <h4 className="text-xl font-black tracking-tight text-foreground/80">{t.qa_indicators?.name}</h4>
                                         </div>
-                                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                          <button onClick={() => startEdit(t)} className="text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded-xl transition-colors" title="Edit Temuan">
-                                            <Edit2 className="w-4 h-4" />
-                                          </button>
-                                          <button onClick={() => handleDelete(t.id)} disabled={deletingId === t.id} className="text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 p-2 rounded-xl transition-colors disabled:opacity-50" title="Hapus Temuan">
-                                            {deletingId === t.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                                          </button>
-                                        </div>
+                                        {role !== 'leader' && (
+                                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => startEdit(t)} className="text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded-xl transition-colors" title="Edit Temuan">
+                                              <Edit2 className="w-4 h-4" />
+                                            </button>
+                                            <button onClick={() => handleDelete(t.id)} disabled={deletingId === t.id} className="text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 p-2 rounded-xl transition-colors disabled:opacity-50" title="Hapus Temuan">
+                                              {deletingId === t.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                            </button>
+                                          </div>
+                                        )}
                                       </div>
                                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                                         <div className="space-y-3 p-5 rounded-2xl bg-foreground/[0.02] border border-border/30 hover:border-border/60 transition-colors">

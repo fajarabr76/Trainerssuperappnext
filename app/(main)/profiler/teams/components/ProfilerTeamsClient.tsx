@@ -10,11 +10,14 @@ import { addTim, deleteTim } from '../../actions';
 
 interface ProfilerTeamsClientProps {
   initialTeams: string[];
+  role?: string;
 }
 
 export default function ProfilerTeamsClient({
-  initialTeams
+  initialTeams,
+  role = 'trainer'
 }: ProfilerTeamsClientProps) {
+  const isReadOnly = role === 'leader';
   const router = useRouter();
   const [teams, setTeams] = useState<string[]>(initialTeams);
   const [newTeam, setNewTeam] = useState('');
@@ -78,29 +81,31 @@ export default function ProfilerTeamsClient({
         </div>
 
         {/* Add Team Form */}
-        <div className="bg-white dark:bg-card rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-white/[0.05]">
-          <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3">
-            Tambah Tim Baru
-          </label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newTeam}
-              onChange={(e) => setNewTeam(e.target.value)}
-              placeholder="Contoh: Tim Social Media"
-              className="flex-1 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
-              onKeyDown={(e) => e.key === 'Enter' && handleAddTeam()}
-            />
-            <button
-              onClick={handleAddTeam}
-              disabled={adding || !newTeam.trim()}
-              className="px-4 py-2.5 bg-[#5A5A40] hover:opacity-90 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2"
-            >
-              {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              Tambah
-            </button>
+        {!isReadOnly && (
+          <div className="bg-white dark:bg-card rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-white/[0.05]">
+            <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3">
+              Tambah Tim Baru
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newTeam}
+                onChange={(e) => setNewTeam(e.target.value)}
+                placeholder="Contoh: Tim Social Media"
+                className="flex-1 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                onKeyDown={(e) => e.key === 'Enter' && handleAddTeam()}
+              />
+              <button
+                onClick={handleAddTeam}
+                disabled={adding || !newTeam.trim()}
+                className="px-4 py-2.5 bg-[#5A5A40] hover:opacity-90 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2"
+              >
+                {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                Tambah
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Teams List */}
         <div className="space-y-3">
@@ -141,13 +146,15 @@ export default function ProfilerTeamsClient({
                     </div>
                     <span className="text-sm font-medium text-gray-900 dark:text-white">{t}</span>
                   </div>
-                  <button
-                    onClick={() => handleDeleteTeam(t)}
-                    disabled={deleting === t}
-                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"
-                  >
-                    {deleting === t ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                  </button>
+                  {!isReadOnly && (
+                    <button
+                      onClick={() => handleDeleteTeam(t)}
+                      disabled={deleting === t}
+                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                    >
+                      {deleting === t ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    </button>
+                  )}
                 </motion.div>
               ))}
             </AnimatePresence>

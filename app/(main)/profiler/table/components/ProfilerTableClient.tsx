@@ -137,7 +137,8 @@ const EditModal: React.FC<{
   onClose: () => void;
   onSaved: (updated: Peserta) => void;
   onDeleted: (id: string) => void;
-}> = ({ peserta, timList, onClose, onSaved, onDeleted }) => {
+  isReadOnly?: boolean;
+}> = ({ peserta, timList, onClose, onSaved, onDeleted, isReadOnly }) => {
   const [form, setForm] = useState<Peserta>({ ...peserta });
   const [saving, setSaving] = useState(false);
   const [fotoPreview, setFotoPreview] = useState<string>(peserta.foto_url || '');
@@ -194,8 +195,12 @@ const EditModal: React.FC<{
         <div className="flex items-center justify-between px-6 py-5 border-b border-border/40 shrink-0">
           <h2 className="text-base font-bold tracking-tight text-foreground">Edit Peserta</h2>
           <div className="flex items-center gap-2">
-            <button onClick={handleDelete} className="flex items-center gap-1.5 px-3 py-1.5 text-destructive hover:bg-destructive/10 rounded-xl text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"><Trash2 className="w-3.5 h-3.5" /> Hapus</button>
-            <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 px-4 py-1.5 bg-primary hover:opacity-90 disabled:opacity-50 text-primary-foreground rounded-xl text-xs font-bold shadow-md shadow-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Save className="w-3.5 h-3.5" />{saving ? 'Menyimpan...' : 'Simpan'}</button>
+            {!isReadOnly && (
+              <>
+                <button onClick={handleDelete} className="flex items-center gap-1.5 px-3 py-1.5 text-destructive hover:bg-destructive/10 rounded-xl text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"><Trash2 className="w-3.5 h-3.5" /> Hapus</button>
+                <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 px-4 py-1.5 bg-primary hover:opacity-90 disabled:opacity-50 text-primary-foreground rounded-xl text-xs font-bold shadow-md shadow-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Save className="w-3.5 h-3.5" />{saving ? 'Menyimpan...' : 'Simpan'}</button>
+              </>
+            )}
             <button onClick={onClose} className="w-8 h-8 flex items-center justify-center hover:bg-muted rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><X className="w-4 h-4 text-foreground/40" /></button>
           </div>
         </div>
@@ -265,9 +270,11 @@ const EditModal: React.FC<{
             <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest pl-1 mb-3">Keterangan</p>
             <textarea rows={2} placeholder="Catatan umum lainnya..." className={inputClass} value={form.keterangan || ''} onChange={e => set('keterangan', e.target.value)} />
           </div>
-          <button onClick={handleSave} disabled={saving} className="w-full py-4 bg-primary hover:opacity-90 disabled:opacity-50 text-primary-foreground rounded-2xl text-base font-bold shadow-md shadow-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background hover:shadow-lg mt-2">
-            {saving ? 'Menyimpan...' : '✓ Simpan Perubahan'}
-          </button>
+          {!isReadOnly && (
+            <button onClick={handleSave} disabled={saving} className="w-full py-4 bg-primary hover:opacity-90 disabled:opacity-50 text-primary-foreground rounded-2xl text-base font-bold shadow-md shadow-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background hover:shadow-lg mt-2">
+              {saving ? 'Menyimpan...' : '✓ Simpan Perubahan'}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -280,6 +287,7 @@ interface ProfilerTableClientProps {
   initialYears: ProfilerYear[];
   initialTimList: string[];
   batchName: string;
+  role?: string;
 }
 
 export default function ProfilerTableClient({
@@ -287,8 +295,10 @@ export default function ProfilerTableClient({
   initialFolders,
   initialYears,
   initialTimList,
-  batchName
+  batchName,
+  role = 'trainer'
 }: ProfilerTableClientProps) {
+  const isReadOnly = role === 'leader';
   const router = useRouter();
 
   const [peserta, setPeserta] = useState<Peserta[]>(initialPeserta);
@@ -501,7 +511,7 @@ export default function ProfilerTableClient({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            {!selectMode && (
+            {!isReadOnly && !selectMode && (
               <button
                 onClick={() => { setSortMode(v => !v); setSelectMode(false); setDragOverIndex(null); }}
                 className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-bold transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
@@ -514,7 +524,7 @@ export default function ProfilerTableClient({
                 Urutkan
               </button>
             )}
-            {!sortMode && (
+            {!isReadOnly && !sortMode && (
               <button
                 onClick={toggleSelectMode}
                 className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-bold transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
@@ -535,12 +545,14 @@ export default function ProfilerTableClient({
                 >
                   <Download className="w-3.5 h-3.5" /> Ekspor
                 </button>
-                <button
-                  onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(batchName)}`)}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-primary hover:opacity-90 text-primary-foreground rounded-xl text-[11px] uppercase tracking-wider font-bold shadow-md shadow-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring hover:shadow-lg"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Tambah
-                </button>
+                {!isReadOnly && (
+                  <button
+                    onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(batchName)}`)}
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-primary hover:opacity-90 text-primary-foreground rounded-xl text-[11px] uppercase tracking-wider font-bold shadow-md shadow-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring hover:shadow-lg"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Tambah
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -596,10 +608,12 @@ export default function ProfilerTableClient({
         {displayList.length === 0 ? (
           <div className="bg-card rounded-[2rem] p-10 text-center border border-border/40 shadow-sm">
             <p className="text-foreground/40 text-sm">Belum ada peserta.</p>
-            <button onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(batchName)}`)}
-              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-primary hover:opacity-90 text-primary-foreground rounded-xl text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <Plus className="w-4 h-4" /> Tambah Peserta
-            </button>
+            {!isReadOnly && (
+              <button onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(batchName)}`)}
+                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-primary hover:opacity-90 text-primary-foreground rounded-xl text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <Plus className="w-4 h-4" /> Tambah Peserta
+              </button>
+            )}
           </div>
         ) : (
           <div className="bg-card rounded-[2rem] overflow-hidden divide-y divide-border/40 border border-border/40 shadow-sm">
@@ -720,7 +734,7 @@ export default function ProfilerTableClient({
 
       {selectedPeserta && (
         <EditModal peserta={selectedPeserta} timList={initialTimList}
-          onClose={() => setSelectedPeserta(null)} onSaved={handleSaved} onDeleted={handleDeleted} />
+          onClose={() => setSelectedPeserta(null)} onSaved={handleSaved} onDeleted={handleDeleted} isReadOnly={isReadOnly} />
       )}
       {showMoveModal && (
         <MoveFolderModal 

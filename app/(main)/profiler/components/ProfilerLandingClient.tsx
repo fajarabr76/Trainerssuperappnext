@@ -26,6 +26,7 @@ interface ProfilerLandingClientProps {
   initialFolders: ProfilerFolder[];
   initialCounts: Record<string, number>;
   initialPesertaMap: Record<string, any[]>;
+  role?: string;
 }
 
 function getDaysUntilBirthday(tglLahir: string): number {
@@ -65,8 +66,10 @@ export default function ProfilerLandingClient({
   initialYears,
   initialFolders,
   initialCounts,
-  initialPesertaMap
+  initialPesertaMap,
+  role = 'trainer'
 }: ProfilerLandingClientProps) {
+  const isReadOnly = role === 'leader';
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   
@@ -285,49 +288,53 @@ export default function ProfilerLandingClient({
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <button 
-                    onClick={() => setShowPicker(true)}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-violet-600/20 hover:scale-105 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
-                  >
-                    <UserPlus size={18} />
-                    Pilih dari Batch Lain
-                  </button>
-                  <button 
-                    onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(selectedBatch)}`)}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-accent text-foreground rounded-xl text-sm font-bold border border-border/40 hover:bg-accent/80 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
-                  >
-                    <Plus size={18} />
-                    Input Baru
-                  </button>
-                </div>
+                {!isReadOnly && (
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={() => setShowPicker(true)}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-violet-600/20 hover:scale-105 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+                    >
+                      <UserPlus size={18} />
+                      Pilih dari Batch Lain
+                    </button>
+                    <button 
+                      onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(selectedBatch)}`)}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-accent text-foreground rounded-xl text-sm font-bold border border-border/40 hover:bg-accent/80 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+                    >
+                      <Plus size={18} />
+                      Input Baru
+                    </button>
+                  </div>
+                )}
               </div>
 
-              <section className="mb-8">
-                <div className="flex items-center gap-3 mb-4 px-1">
-                  <div className="w-1 h-3 bg-primary rounded-full" />
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40">Manajemen Data</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <ActionCard
-                    icon={<Plus className="w-5 h-5" />}
-                    iconBg="bg-primary/10"
-                    iconColor="text-primary"
-                    title="Registrasi Manual"
-                    desc="Tambahkan data agen baru secara individual melalui formulir input."
-                    className="md:col-span-2"
-                    onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(selectedBatch)}`)}
-                  />
-                  <ActionCard
-                    icon={<Upload className="w-5 h-5" />}
-                    iconBg="bg-emerald-500/10"
-                    iconColor="text-emerald-500"
-                    title="Impor Kolektif"
-                    desc="Unggah XLS untuk perbarui data massal."
-                    onClick={() => router.push(`/profiler/import?batch=${encodeURIComponent(selectedBatch)}`)}
-                  />
-                </div>
-              </section>
+              {!isReadOnly && (
+                <section className="mb-8">
+                  <div className="flex items-center gap-3 mb-4 px-1">
+                    <div className="w-1 h-3 bg-primary rounded-full" />
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40">Manajemen Data</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <ActionCard
+                      icon={<Plus className="w-5 h-5" />}
+                      iconBg="bg-primary/10"
+                      iconColor="text-primary"
+                      title="Registrasi Manual"
+                      desc="Tambahkan data agen baru secara individual melalui formulir input."
+                      className="md:col-span-2"
+                      onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(selectedBatch)}`)}
+                    />
+                    <ActionCard
+                      icon={<Upload className="w-5 h-5" />}
+                      iconBg="bg-emerald-500/10"
+                      iconColor="text-emerald-500"
+                      title="Impor Kolektif"
+                      desc="Unggah XLS untuk perbarui data massal."
+                      onClick={() => router.push(`/profiler/import?batch=${encodeURIComponent(selectedBatch)}`)}
+                    />
+                  </div>
+                </section>
+              )}
 
               <section className={`transition-all duration-500 mb-8 ${!hasPeserta ? 'opacity-30 grayscale pointer-events-none' : ''}`}>
                 <div className="flex items-center gap-3 mb-4 px-1">
@@ -370,22 +377,24 @@ export default function ProfilerLandingClient({
                 </div>
               </section>
 
-              <section className="mt-2 mb-8">
-                <div className="flex items-center gap-3 mb-4 px-1">
-                  <div className="w-1 h-3 bg-foreground/20 rounded-full" />
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40">Konfigurasi</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <ActionCard
-                    icon={<Settings2 className="w-5 h-5" />}
-                    iconBg="bg-foreground/10"
-                    iconColor="text-foreground/60"
-                    title="Manajemen Tim"
-                    desc="Kustomisasi daftar tim."
-                    onClick={() => router.push('/profiler/teams')}
-                  />
-                </div>
-              </section>
+              {!isReadOnly && (
+                <section className="mt-2 mb-8">
+                  <div className="flex items-center gap-3 mb-4 px-1">
+                    <div className="w-1 h-3 bg-foreground/20 rounded-full" />
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40">Konfigurasi</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <ActionCard
+                      icon={<Settings2 className="w-5 h-5" />}
+                      iconBg="bg-foreground/10"
+                      iconColor="text-foreground/60"
+                      title="Manajemen Tim"
+                      desc="Kustomisasi daftar tim."
+                      onClick={() => router.push('/profiler/teams')}
+                    />
+                  </div>
+                </section>
+              )}
 
               {hasPeserta && (
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -438,6 +447,7 @@ export default function ProfilerLandingClient({
           onDeleteFolder={setConfirmDeleteFolder}
           onDuplicateFolder={setDuplicateFolder}
           counts={counts}
+          role={role}
         />
       </div>
 

@@ -38,14 +38,17 @@ interface ProfilerSlidesClientProps {
   initialYears: ProfilerYear[];
   initialFolders: ProfilerFolder[];
   batchName: string;
+  role?: string;
 }
 
 export default function ProfilerSlidesClient({
   initialPeserta,
   initialYears,
   initialFolders,
-  batchName
+  batchName,
+  role = 'trainer'
 }: ProfilerSlidesClientProps) {
+  const isReadOnly = role === 'leader';
   const router = useRouter();
   const [index, setIndex] = useState(0);
   const [fade, setFade] = useState(true);

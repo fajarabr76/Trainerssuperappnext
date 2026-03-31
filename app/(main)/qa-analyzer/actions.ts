@@ -129,6 +129,23 @@ export async function getPersonalTrendAction(agentId: string, timeframe: '3m' | 
 export async function createPeriodAction(month: number, year: number) {
   const { createClient } = await import('@/app/lib/supabase/server');
   const supabase = await createClient();
+
+  // Authentication Check
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Tidak terautentikasi');
+
+  // RBAC Check for mutation
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const allowedMutationRoles = ['Trainer', 'admin', 'superadmin'];
+  if (!profile || !allowedMutationRoles.includes(profile.role)) {
+    throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
+  }
+
   const { data, error } = await supabase.from('qa_periods').insert({ month, year }).select().single();
   if (error) {
     if (error.code === '23505') throw new Error('Periode ini sudah ada.');
@@ -144,6 +161,22 @@ export async function deletePeriodAction(id: string) {
   const { createClient } = await import('@/app/lib/supabase/server');
   const supabase = await createClient();
   
+  // Authentication Check
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Tidak terautentikasi');
+
+  // RBAC Check for mutation
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const allowedMutationRoles = ['Trainer', 'admin', 'superadmin'];
+  if (!profile || !allowedMutationRoles.includes(profile.role)) {
+    throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
+  }
+
   const { count, error: checkError } = await supabase
     .from('qa_temuan').select('*', { count: 'exact', head: true }).eq('period_id', id);
   if (checkError) throw checkError;
@@ -162,6 +195,23 @@ export async function createIndicatorAction(
 ) {
   const { createClient } = await import('@/app/lib/supabase/server');
   const supabase = await createClient();
+
+  // Authentication Check
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Tidak terautentikasi');
+
+  // RBAC Check for mutation
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const allowedMutationRoles = ['Trainer', 'admin', 'superadmin'];
+  if (!profile || !allowedMutationRoles.includes(profile.role)) {
+    throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
+  }
+
   const { data, error } = await supabase.from('qa_indicators').insert({ service_type, name, category, bobot, has_na }).select().single();
   if (error) throw error;
   revalidatePath('/qa-analyzer/settings');
@@ -174,6 +224,23 @@ export async function updateIndicatorAction(
 ) {
   const { createClient } = await import('@/app/lib/supabase/server');
   const supabase = await createClient();
+
+  // Authentication Check
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Tidak terautentikasi');
+
+  // RBAC Check for mutation
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const allowedMutationRoles = ['Trainer', 'admin', 'superadmin'];
+  if (!profile || !allowedMutationRoles.includes(profile.role)) {
+    throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
+  }
+
   const { data, error } = await supabase.from('qa_indicators').update(patch).eq('id', id).select().single();
   if (error) throw error;
   revalidatePath('/qa-analyzer/settings');
@@ -187,6 +254,18 @@ export async function deleteIndicatorAction(id: string) {
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Tidak terautentikasi');
+
+  // RBAC Check for mutation
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const allowedMutationRoles = ['Trainer', 'admin', 'superadmin'];
+  if (!profile || !allowedMutationRoles.includes(profile.role)) {
+    throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
+  }
 
   const { count, error: checkError } = await supabase
     .from('qa_temuan').select('*', { count: 'exact', head: true }).eq('indicator_id', id);
@@ -230,6 +309,18 @@ export async function createTemuanAction(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Tidak terautentikasi');
 
+  // RBAC Check for mutation
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const allowedMutationRoles = ['Trainer', 'admin', 'superadmin'];
+  if (!profile || !allowedMutationRoles.includes(profile.role)) {
+    throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
+  }
+
   const { data, error } = await supabase
     .from('qa_temuan')
     .insert({ peserta_id, period_id, ...temuan })
@@ -270,6 +361,18 @@ export async function createTemuanBatchAction(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Tidak terautentikasi');
 
+  // RBAC Check for mutation
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const allowedMutationRoles = ['Trainer', 'admin', 'superadmin'];
+  if (!profile || !allowedMutationRoles.includes(profile.role)) {
+    throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
+  }
+
   const insertData = temuanList.map(t => ({
     peserta_id,
     period_id,
@@ -305,6 +408,22 @@ export async function updateTemuanAction(
 ) {
   const { createClient } = await import('@/app/lib/supabase/server');
   const supabase = await createClient();
+
+  // Authentication Check
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Tidak terautentikasi');
+
+  // RBAC Check for mutation
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const allowedMutationRoles = ['Trainer', 'admin', 'superadmin'];
+  if (!profile || !allowedMutationRoles.includes(profile.role)) {
+    throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
+  }
   const { data, error } = await supabase
     .from('qa_temuan')
     .update(patch)
@@ -328,6 +447,18 @@ export async function deleteTemuanAction(id: string) {
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Tidak terautentikasi');
+
+  // RBAC Check for mutation
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const allowedMutationRoles = ['Trainer', 'admin', 'superadmin'];
+  if (!profile || !allowedMutationRoles.includes(profile.role)) {
+    throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
+  }
   
   const { data: current } = await supabase.from('qa_temuan').select('peserta_id').eq('id', id).single();
   
@@ -366,6 +497,18 @@ export async function createPerfectScoreSessionAction(
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Tidak terautentikasi');
+
+  // RBAC Check for mutation
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const allowedMutationRoles = ['Trainer', 'admin', 'superadmin'];
+  if (!profile || !allowedMutationRoles.includes(profile.role)) {
+    throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
+  }
 
   // get pesertas info
   const { data: agent, error: agentErr } = await supabase
