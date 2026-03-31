@@ -189,7 +189,7 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
                         {role?.toLowerCase() !== 'leader' && (
                           <Link href="/qa-analyzer/input" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname?.startsWith('/qa-analyzer/input') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'}`}>Input Temuan</Link>
                         )}
-                        {(role?.toLowerCase() === 'trainer' || role?.toLowerCase() === 'trainers' || role?.toLowerCase() === 'leader') && (
+                        {(role?.toLowerCase() === 'trainer' || role?.toLowerCase() === 'trainers') && (
                           <>
                             <Link href="/qa-analyzer/periods" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname === '/qa-analyzer/periods' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'}`}>Periode QA</Link>
                             <Link href="/qa-analyzer/settings" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname === '/qa-analyzer/settings' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'}`}>Parameter QA</Link>

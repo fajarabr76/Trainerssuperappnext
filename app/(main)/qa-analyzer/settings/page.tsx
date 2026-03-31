@@ -23,9 +23,9 @@ export default async function QaSettingsPage() {
   const role = profile?.role || 'trainer';
 
   // Allowed roles
-  const allowedRoles = ['trainer', 'trainers', 'leader', 'admin', 'superadmin'];
+  const allowedRoles = ['trainer', 'trainers', 'admin', 'superadmin'];
   if (!allowedRoles.includes(role)) {
-    redirect('/dashboard');
+    redirect('/qa-analyzer/dashboard');
   }
 
   // Fetch initial data - all indicators
