@@ -819,6 +819,38 @@ export const qaServiceServer = {
     return { summary, serviceData, paretoData, donutData, topAgents: agentStats };
   },
 
+  async getConsolidatedPeriodDataRPC(
+    periodId: string,
+    serviceType: string,
+    folderIds: string[] = [],
+    context?: SharedContext,
+    year?: number
+  ) {
+    const supabase = await createClient();
+    const pIds = await this.resolvePeriodIds(periodId, year);
+    const currentYear = year || new Date().getFullYear();
+
+    const { data, error } = await supabase.rpc('get_qa_dashboard_data', {
+      p_period_ids: pIds,
+      p_service_type: serviceType,
+      p_year: currentYear,
+      p_folder_ids: folderIds.length > 0 ? folderIds : []
+    });
+
+    if (error) {
+      console.error('[RPC] get_qa_dashboard_data error:', error);
+      return null;
+    }
+
+    return data as {
+      summary: DashboardSummary;
+      paretoData: ParetoData[];
+      serviceData: ServiceComparisonData[];
+      donutData: CriticalVsNonCriticalData;
+      topAgents: TopAgentData[];
+    };
+  },
+
   async getConsolidatedTrendData(
     timeframe: '3m' | '6m' | 'all', 
     serviceType: string, 

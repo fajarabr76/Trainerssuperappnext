@@ -60,7 +60,7 @@ export default async function QaDashboardPage({
 
   // 2. Fetch Dashboard Aggregations using Consolidated Fetchers
   const [periodData, trendData] = await Promise.all([
-    qaServiceServer.getConsolidatedPeriodData(period, service, folderIds, context, currentYear),
+    qaServiceServer.getConsolidatedPeriodDataRPC(period, service, folderIds, context, currentYear),
     qaServiceServer.getConsolidatedTrendData(timeframe, service, folderIds, context, currentYear)
   ]);
 
