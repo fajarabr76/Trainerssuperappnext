@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/app/lib/supabase/server';
-import { ServiceType, Category, DashboardData, TrendPoint } from './lib/qa-types';
+import { ServiceType, Category, DashboardData, TrendPoint, TopAgentData } from './lib/qa-types';
 import { revalidatePath, revalidateTag } from 'next/cache';
 
 export async function createIndicator(
@@ -609,4 +609,26 @@ export async function getAvailableYearsAction() {
 export async function getAgentTemuanAction(agentId: string, year: number, page: number) {
   const { qaServiceServer } = await import('./services/qaService.server');
   return await qaServiceServer.getAgentWithTemuan(agentId, year, page);
+}
+
+export async function getRankingAgenAction(
+  periodId: string,
+  serviceType: string,
+  folderIds?: string[],
+  year?: number
+): Promise<{ data: TopAgentData[]; error?: string }> {
+  try {
+    const { qaServiceServer } = await import('./services/qaService.server');
+    const data = await qaServiceServer.getAllAgentsRanking(
+      periodId,
+      serviceType,
+      folderIds || [],
+      undefined,
+      year
+    );
+    return { data };
+  } catch (error) {
+    console.error('getRankingAgenAction error:', error);
+    return { data: [], error: 'Gagal mengambil data ranking agen.' };
+  }
 }

@@ -238,7 +238,11 @@ export default function QaDashboardClient({
                       <span className="w-1 h-5 bg-orange-500 rounded-full"></span>
                       Top 5 Agen (Temuan Tertinggi)
                     </h2>
-                    <TopAgentsTable agents={displayData.topAgents} />
+                    <TopAgentsTable 
+                      agents={displayData.topAgents} 
+                      serviceType={selectedService}
+                      selectedYear={selectedYear}
+                    />
                   </section>
                 </div>
                 

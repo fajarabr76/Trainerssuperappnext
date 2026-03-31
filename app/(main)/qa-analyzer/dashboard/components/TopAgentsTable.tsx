@@ -14,9 +14,11 @@ interface TopAgentData {
 
 interface TopAgentsTableProps {
   agents: TopAgentData[];
+  serviceType?: string;
+  selectedYear?: number;
 }
 
-export default function TopAgentsTable({ agents }: TopAgentsTableProps) {
+export default function TopAgentsTable({ agents, serviceType, selectedYear }: TopAgentsTableProps) {
   const router = useRouter();
 
   if (!agents || agents.length === 0) {
@@ -105,6 +107,21 @@ export default function TopAgentsTable({ agents }: TopAgentsTableProps) {
           ))}
         </tbody>
       </table>
+      
+      <div className="p-3 border-t border-border/30 bg-white/30 dark:bg-black/10 flex justify-end">
+        <button
+          onClick={() => {
+            const params = new URLSearchParams();
+            if (serviceType) params.set('service', serviceType);
+            if (selectedYear) params.set('year', String(selectedYear));
+            router.push(`/qa-analyzer/ranking?${params.toString()}`);
+          }}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-primary hover:bg-primary/10 transition-all duration-200"
+        >
+          Lihat Semua Ranking
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 }

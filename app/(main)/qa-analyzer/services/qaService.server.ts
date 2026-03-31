@@ -297,6 +297,18 @@ export const qaServiceServer = {
   // ── Dashboard Aggregations ────────────────────────────────────
   async resolvePeriodIds(periodId: string, customYear?: number): Promise<string[]> {
     const supabase = await createClient();
+
+    // alltime: ambil semua period id tanpa filter year
+    if (periodId === 'alltime') {
+      const { data } = await supabase
+        .from('qa_periods')
+        .select('id');
+      return data && data.length > 0 
+        ? data.map(p => p.id) 
+        : ['none'];
+    }
+
+    // ytd: tetap logika yang sudah ada
     if (periodId !== 'ytd') return [periodId];
     const year = customYear || new Date().getFullYear();
     const { data } = await supabase.from('qa_periods').select('id').eq('year', year);
@@ -599,10 +611,11 @@ export const qaServiceServer = {
       agentTemuanMap[p.id].push({ indicator_id: d.indicator_id, nilai: d.nilai, no_tiket: d.no_tiket });
     });
 
+    const serviceInds = allIndicators.filter(i => i.service_type === serviceType);
+
     const agentStats = Object.keys(agentTemuanMap).map(id => {
       const info = agentInfoMap[id];
       const temuanList = agentTemuanMap[id];
-      const serviceInds = allIndicators.filter(i => i.service_type === serviceType);
       const result = calculateQAScoreFromTemuan(serviceInds, temuanList);
       const defects = temuanList.filter(t => t.nilai < 3).length;
       const hasCritical = temuanList.some(t => {
@@ -614,6 +627,59 @@ export const qaServiceServer = {
     });
 
     return agentStats.sort((a, b) => b.defects - a.defects).slice(0, limit);
+  },
+
+  async getAllAgentsRanking(
+    periodId: string,
+    serviceType: string,
+    folderIds: string[] = [],
+    context?: SharedContext,
+    year?: number
+  ): Promise<TopAgentData[]> {
+    const supabase = await createClient();
+    const allIndicators = context?.indicators || (await this.getIndicators()) as QAIndicator[];
+    const pIds = await this.resolvePeriodIds(periodId, year);
+
+    let query = supabase
+      .from('qa_temuan')
+      .select('nilai, no_tiket, indicator_id, qa_indicators(category), profiler_peserta!inner(id, nama, batch_name)')
+      .in('period_id', pIds)
+      .eq('service_type', serviceType);
+
+    if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
+
+    const { data, error } = await query;
+    if (error || !data) return [];
+
+    const agentTemuanMap: Record<string, any[]> = {};
+    const agentInfoMap: Record<string, any> = {};
+
+    data.forEach(d => {
+      const p = d.profiler_peserta as any;
+      if (!p) return;
+      if (!agentTemuanMap[p.id]) {
+        agentTemuanMap[p.id] = [];
+        agentInfoMap[p.id] = { id: p.id, nama: p.nama, batch_name: p.batch_name };
+      }
+      agentTemuanMap[p.id].push({ indicator_id: d.indicator_id, nilai: d.nilai, no_tiket: d.no_tiket });
+    });
+
+    const serviceInds = allIndicators.filter(i => i.service_type === serviceType);
+
+    const agentStats = Object.keys(agentTemuanMap).map(id => {
+      const info = agentInfoMap[id];
+      const temuanList = agentTemuanMap[id];
+      const result = calculateQAScoreFromTemuan(serviceInds, temuanList);
+      const defects = temuanList.filter(t => t.nilai < 3).length;
+      const hasCritical = temuanList.some(t => {
+        const ind = serviceInds.find(i => i.id === t.indicator_id);
+        return t.nilai === 0 && ind?.category === 'critical';
+      });
+
+      return { agentId: id, nama: info.nama, batch: info.batch_name, defects, score: result.finalScore, hasCritical };
+    });
+
+    return agentStats.sort((a, b) => b.defects - a.defects);
   },
 
   async getParetoData(periodId: string, serviceType: string, folderIds: string[] = [], context?: SharedContext): Promise<ParetoData[]> {
