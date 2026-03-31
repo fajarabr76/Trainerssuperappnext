@@ -207,7 +207,8 @@ BEGIN
   -- STEP 2: Summary (hanya untuk p_service_type)
   SELECT 
     COUNT(DISTINCT peserta_id),
-    COUNT(*) FILTER (WHERE nilai < 3)
+    -- Count ALL temuan records (including nilai=3) as total QA findings
+    COUNT(*)
   INTO v_total_agents, v_total_defects
   FROM temp_base
   WHERE service_type = p_service_type;
@@ -258,7 +259,7 @@ BEGIN
     'totalAgents', COALESCE(v_total_agents, 0)
   );
 
-  -- STEP 3: Pareto (hanya untuk p_service_type, hanya nilai < 3)
+  -- STEP 3: Pareto (hanya untuk p_service_type, ALL temuan including nilai=3)
   WITH pareto_counts AS (
     SELECT 
       i.name AS param_name,
@@ -266,7 +267,7 @@ BEGIN
       COUNT(*) AS count_defects
     FROM temp_base b
     JOIN qa_indicators i ON b.indicator_id = i.id
-    WHERE b.service_type = p_service_type AND b.nilai < 3
+    WHERE b.service_type = p_service_type
     GROUP BY i.id, i.name, i.category
     ORDER BY count_defects DESC, param_name ASC
   ),
@@ -295,7 +296,8 @@ BEGIN
     SELECT 
       service_type,
       COUNT(DISTINCT peserta_id) AS s_agents,
-      COUNT(*) FILTER (WHERE nilai < 3) AS s_defects
+      -- Count ALL temuan records (including nilai=3) as total QA findings
+      COUNT(*) AS s_defects
     FROM temp_base
     GROUP BY service_type
   )
@@ -323,14 +325,14 @@ BEGIN
   ), '[]'::jsonb) INTO v_service_json
   FROM svc_summary;
 
-  -- STEP 5: Donut (hanya p_service_type, hanya nilai < 3)
+  -- STEP 5: Donut (hanya p_service_type, ALL temuan including nilai=3)
   SELECT 
     COUNT(*) FILTER (WHERE i.category = 'critical'),
     COUNT(*) FILTER (WHERE i.category = 'non_critical')
   INTO v_critical_count, v_non_critical_count
   FROM temp_base b
   JOIN qa_indicators i ON b.indicator_id = i.id
-  WHERE b.service_type = p_service_type AND b.nilai < 3;
+  WHERE b.service_type = p_service_type;
 
   v_donut_json := jsonb_build_object(
     'critical', COALESCE(v_critical_count, 0),
@@ -338,13 +340,14 @@ BEGIN
     'total', COALESCE(v_critical_count, 0) + COALESCE(v_non_critical_count, 0)
   );
 
-  -- STEP 6: Top Agents (hanya p_service_type, top 5 by defects)
+  -- STEP 6: Top Agents (hanya p_service_type, top 5 by total temuan)
   WITH agent_stats AS (
     SELECT 
       b.peserta_id,
       b.nama,
       b.batch_name,
-      COUNT(*) FILTER (WHERE b.nilai < 3) AS defects,
+      -- Count ALL temuan records (including nilai=3) as total QA findings
+      COUNT(*) AS defects,
       BOOL_OR(b.nilai = 0 AND i.category = 'critical') AS has_critical
     FROM temp_base b
     LEFT JOIN qa_indicators i ON b.indicator_id = i.id

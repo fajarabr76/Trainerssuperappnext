@@ -364,7 +364,8 @@ export const qaServiceServer = {
 
     const totalAuditedAgents = auditedAgentsList.length;
     const allIndicators = context?.indicators || (await this.getIndicators()) as QAIndicator[];
-    const defects = data.filter(d => d.nilai < 3);
+    // Count ALL temuan records (including nilai=3) as total QA findings
+    const allFindings = data;
 
     // 3. Calculate Rates over Audited Population
     let agentsWithZeroError = 0;
@@ -390,8 +391,8 @@ export const qaServiceServer = {
     });
 
     return {
-      totalDefects: defects.length,
-      avgDefectsPerAudit: totalAuditedAgents > 0 ? defects.length / totalAuditedAgents : 0,
+      totalDefects: allFindings.length,
+      avgDefectsPerAudit: totalAuditedAgents > 0 ? allFindings.length / totalAuditedAgents : 0,
       zeroErrorRate: totalAuditedAgents > 0 ? (agentsWithZeroError / totalAuditedAgents) * 100 : 0,
       avgAgentScore: totalAuditedAgents > 0 ? totalScore / totalAuditedAgents : 0,
       complianceRate: totalAuditedAgents > 0 ? (agentsWithPassScore / totalAuditedAgents) * 100 : 0,
@@ -455,10 +456,12 @@ export const qaServiceServer = {
       let value = 0;
 
       if (metric === 'total') {
-        value = pTemuan.filter((t: any) => t.nilai < 3).length;
+        // Count ALL temuan records (including nilai=3)
+        value = pTemuan.length;
       }
       else if (metric === 'avg') {
-        value = totalAudited > 0 ? pTemuan.filter((t: any) => t.nilai < 3).length / totalAudited : 0;
+        // Count ALL temuan records (including nilai=3)
+        value = totalAudited > 0 ? pTemuan.length / totalAudited : 0;
       }
       else if (metric === 'zero_error') {
         if (totalAudited > 0) {
@@ -523,8 +526,8 @@ export const qaServiceServer = {
     const { data: temuan } = await query;
     if (!temuan) return { labels, datasets: [] };
 
-    // Filter "Concerns": Score < 3 OR Score 3 with notes
-    const findings = temuan.filter((t: any) => t.nilai < 3 || t.ketidaksesuaian || t.sebaiknya);
+    // Include ALL temuan records (including nilai=3) as QA findings
+    const findings = temuan as any[];
 
     const counts: Record<string, Record<string, number>> = {};
     const totalByPeriod: Record<string, number> = {};
@@ -552,11 +555,11 @@ export const qaServiceServer = {
   async getServiceComparison(periodId: string, folderIds: string[] = [], context?: SharedContext): Promise<ServiceComparisonData[]> {
     const supabase = await createClient();
     const pIds = await this.resolvePeriodIds(periodId);
+    // Include ALL temuan records (including nilai=3) as QA findings
     let query = supabase
       .from('qa_temuan')
       .select('nilai, service_type, profiler_peserta!inner(batch_name)')
-      .in('period_id', pIds)
-      .lt('nilai', 3);
+      .in('period_id', pIds);
 
     if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
 
@@ -617,7 +620,8 @@ export const qaServiceServer = {
       const info = agentInfoMap[id];
       const temuanList = agentTemuanMap[id];
       const result = calculateQAScoreFromTemuan(serviceInds, temuanList);
-      const defects = temuanList.filter(t => t.nilai < 3).length;
+      // Count ALL temuan records (including nilai=3) as total findings
+      const defects = temuanList.length;
       const hasCritical = temuanList.some(t => {
         const ind = serviceInds.find(i => i.id === t.indicator_id);
         return t.nilai === 0 && ind?.category === 'critical';
@@ -670,7 +674,8 @@ export const qaServiceServer = {
       const info = agentInfoMap[id];
       const temuanList = agentTemuanMap[id];
       const result = calculateQAScoreFromTemuan(serviceInds, temuanList);
-      const defects = temuanList.filter(t => t.nilai < 3).length;
+      // Count ALL temuan records (including nilai=3) as total findings
+      const defects = temuanList.length;
       const hasCritical = temuanList.some(t => {
         const ind = serviceInds.find(i => i.id === t.indicator_id);
         return t.nilai === 0 && ind?.category === 'critical';
@@ -685,12 +690,12 @@ export const qaServiceServer = {
   async getParetoData(periodId: string, serviceType: string, folderIds: string[] = [], context?: SharedContext): Promise<ParetoData[]> {
     const supabase = await createClient();
     const pIds = await this.resolvePeriodIds(periodId);
+    // Include ALL temuan records (including nilai=3) as QA findings
     let query = supabase
       .from('qa_temuan')
       .select('nilai, qa_indicators!inner(id, name, category), profiler_peserta!inner(batch_name)')
       .in('period_id', pIds)
       .eq('service_type', serviceType)
-      .lt('nilai', 3)
       .order('created_at', { ascending: true });
 
     if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
@@ -766,7 +771,8 @@ export const qaServiceServer = {
     const serviceInds = allIndicators.filter(i => i.service_type === serviceType);
 
     const currentServiceData = data.filter(d => d.service_type === serviceType);
-    const serviceDefects = currentServiceData.filter(d => d.nilai < 3);
+    // Include ALL temuan records (including nilai=3) as QA findings
+    const serviceFindings = currentServiceData;
 
     // ── 1. Calculate Summary ──
     const agentTemuanMap: Record<string, any[]> = {};
@@ -795,8 +801,8 @@ export const qaServiceServer = {
     });
 
     const summary: DashboardSummary = {
-      totalDefects: serviceDefects.length,
-      avgDefectsPerAudit: auditedAgentsList.length > 0 ? serviceDefects.length / auditedAgentsList.length : 0,
+      totalDefects: serviceFindings.length,
+      avgDefectsPerAudit: auditedAgentsList.length > 0 ? serviceFindings.length / auditedAgentsList.length : 0,
       zeroErrorRate: auditedAgentsList.length > 0 ? (agentsWithZeroError / auditedAgentsList.length) * 100 : 0,
       avgAgentScore: auditedAgentsList.length > 0 ? totalScore / auditedAgentsList.length : 0,
       complianceRate: auditedAgentsList.length > 0 ? (agentsWithPassScore / auditedAgentsList.length) * 100 : 0,
@@ -806,7 +812,7 @@ export const qaServiceServer = {
 
     // ── 2. Calculate Pareto ──
     const paramCounts: Record<string, { count: number, name: string, category: string }> = {};
-    serviceDefects.forEach(d => {
+    serviceFindings.forEach(d => {
       const ind = (d.qa_indicators as any);
       if (!ind) return;
       if (!paramCounts[ind.id]) paramCounts[ind.id] = { count: 0, name: ind.name.trim(), category: ind.category };
@@ -819,7 +825,7 @@ export const qaServiceServer = {
       .sort((a, b) => b.count - a.count || a.fullName.localeCompare(b.fullName))
       .map(item => {
         cumulativeCount += item.count;
-        item.cumulative = serviceDefects.length > 0 ? Number(((cumulativeCount / serviceDefects.length) * 100).toFixed(1)) : 0;
+        item.cumulative = serviceFindings.length > 0 ? Number(((cumulativeCount / serviceFindings.length) * 100).toFixed(1)) : 0;
         return item;
       });
 
@@ -834,10 +840,9 @@ export const qaServiceServer = {
       if (!serviceAgentsMap[sType]) serviceAgentsMap[sType] = new Set();
       serviceAgentsMap[sType].add(d.peserta_id);
 
-      if (d.nilai < 3) {
-        if (!serviceSummary[sType]) serviceSummary[sType] = { totalDefects: 0, auditedAgents: 0 };
-        serviceSummary[sType].totalDefects++;
-      }
+      // Count ALL temuan records (including nilai=3) as QA findings
+      if (!serviceSummary[sType]) serviceSummary[sType] = { totalDefects: 0, auditedAgents: 0 };
+      serviceSummary[sType].totalDefects++;
     });
 
     const results: ServiceComparisonData[] = Object.keys(serviceSummary).map(sType => {
@@ -853,11 +858,11 @@ export const qaServiceServer = {
     const serviceData = results;
 
     // ── 4. Critical vs Non-Critical ──
-    // Use serviceDefects which we defined at the start for the Summary section
+    // Use serviceFindings which includes ALL temuan records
 
     let critical = 0;
     let nonCritical = 0;
-    serviceDefects.forEach(d => {
+    serviceFindings.forEach(d => {
       if ((d.qa_indicators as any)?.category === 'critical') critical++;
       else nonCritical++;
     });
@@ -868,7 +873,8 @@ export const qaServiceServer = {
     const agentStats = auditedAgentsList.map(agent => {
       const temuans = agentTemuanMap[agent.id] || [];
       const res = calculateQAScoreFromTemuan(serviceInds, temuans);
-      const agentDefects = temuans.filter(t => t.nilai < 3).length;
+      // Count ALL temuan records (including nilai=3) as total findings
+      const agentDefects = temuans.length;
       return { 
         agentId: agent.id, 
         nama: (data.find(d => d.peserta_id === agent.id)?.profiler_peserta as any)?.nama, 
@@ -969,7 +975,8 @@ export const qaServiceServer = {
       const pTemuan = temuan.filter(t => t.period_id === p.id);
       const auditedAgents = new Set(pTemuan.map(t => t.peserta_id));
       const totalAudited = auditedAgents.size;
-      const defects = pTemuan.filter(t => t.nilai < 3).length;
+      // Count ALL temuan records (including nilai=3)
+      const totalFindings = pTemuan.length;
 
       // Compliance calculation
       let passCount = 0;
@@ -985,8 +992,8 @@ export const qaServiceServer = {
 
       return {
         label: `${MONTHS_SHORT[p.month - 1]} ${String(p.year).slice(-2)}`,
-        total: defects,
-        avg: totalAudited > 0 ? defects / totalAudited : 0,
+        total: totalFindings,
+        avg: totalAudited > 0 ? totalFindings / totalAudited : 0,
         zero: totalAudited > 0 ? (Array.from(auditedAgents).filter(aid => !pTemuan.some(t => t.peserta_id === aid && t.nilai < 3)).length / totalAudited) * 100 : 0,
         compliance: passCount,
         avgAgentScore: totalAudited > 0 ? totalScoreForPeriod / totalAudited : 0
@@ -997,13 +1004,12 @@ export const qaServiceServer = {
     const paramCounts: Record<string, Record<string, number>> = {};
     const totalFindingsByPeriod: Record<string, number> = {};
 
+    // Include ALL temuan records (including nilai=3) as QA findings
     temuan.forEach(t => {
-      if (t.nilai < 3) {
-        const pName = (t.qa_indicators as any)?.name || 'Unknown';
-        if (!paramCounts[pName]) paramCounts[pName] = {};
-        paramCounts[pName][t.period_id] = (paramCounts[pName][t.period_id] || 0) + 1;
-        totalFindingsByPeriod[t.period_id] = (totalFindingsByPeriod[t.period_id] || 0) + 1;
-      }
+      const pName = (t.qa_indicators as any)?.name || 'Unknown';
+      if (!paramCounts[pName]) paramCounts[pName] = {};
+      paramCounts[pName][t.period_id] = (paramCounts[pName][t.period_id] || 0) + 1;
+      totalFindingsByPeriod[t.period_id] = (totalFindingsByPeriod[t.period_id] || 0) + 1;
     });
 
     const topParams = Object.entries(paramCounts)
@@ -1049,8 +1055,8 @@ export const qaServiceServer = {
 
     if (!temuanRaw) return { labels, datasets: [] };
 
-    // Filter "Concerns": Score < 3 OR Score 3 with notes
-    const temuan = temuanRaw.filter((t: any) => t.nilai < 3 || t.ketidaksesuaian || t.sebaiknya);
+    // Include ALL temuan records (including nilai=3) as QA findings
+    const temuan = temuanRaw as any[];
 
     const counts: Record<string, Record<string, number>> = {};
     const totalByPeriod: Record<string, number> = {};
@@ -1133,11 +1139,11 @@ export const qaServiceServer = {
     if (periods.length === 0) return 0;
 
     const pIds = periods.map(p => p.id);
+    // Include ALL temuan records (including nilai=3) as QA findings
     const { data } = await supabase
       .from('qa_temuan')
       .select('peserta_id')
-      .in('period_id', pIds)
-      .lt('nilai', 3);
+      .in('period_id', pIds);
     if (!data) return 0;
     return new Set(data.map(d => d.peserta_id)).size;
   },
@@ -1161,11 +1167,11 @@ export const qaServiceServer = {
     if (periods.length === 0) return 0;
 
     const pIds = periods.map(p => p.id);
+    // Include ALL temuan records (including nilai=3) as QA findings
     const { data } = await supabase
       .from('qa_temuan')
       .select('no_tiket')
-      .in('period_id', pIds)
-      .lt('nilai', 3);
+      .in('period_id', pIds);
     if (!data) return 0;
     return new Set(data.map(d => d.no_tiket)).size;
   },
@@ -1202,7 +1208,8 @@ export const qaServiceServer = {
     
     // Summary by all services
     const totalAuditedAgentsSet = new Set(temuan.map(t => t.peserta_id));
-    const totalDefectsCount = temuan.filter(t => t.nilai < 3).length;
+    // Count ALL temuan records (including nilai=3) as total QA findings
+    const totalDefectsCount = temuan.length;
 
     temuan.forEach(t => {
       const sType = t.service_type || 'unknown';
@@ -1211,17 +1218,15 @@ export const qaServiceServer = {
       const periodIdx = sortedPeriods.findIndex(p => p.id === t.period_id);
       if (periodIdx === -1) return;
 
-      if (t.nilai < 3) {
-        totalData[periodIdx]++;
-        if (!serviceData[sType]) serviceData[sType] = labels.map(() => 0);
-        serviceData[sType][periodIdx]++;
-      }
+      // Count ALL temuan records (including nilai=3) as QA findings
+      totalData[periodIdx]++;
+      if (!serviceData[sType]) serviceData[sType] = labels.map(() => 0);
+      serviceData[sType][periodIdx]++;
 
       if (!serviceSummary[sType]) {
         serviceSummary[sType] = { totalDefects: 0, auditedAgents: 0 };
       }
-      
-      if (t.nilai < 3) serviceSummary[sType].totalDefects++;
+      serviceSummary[sType].totalDefects++;
     });
 
     // Calculate unique audited agents per service
@@ -1242,12 +1247,13 @@ export const qaServiceServer = {
       const svcStats: Record<string, { totalDefects: number, auditedAgents: number }> = {};
       
       const pAgents = new Set(pTemuan.map(t => t.peserta_id));
-      const pDefects = pTemuan.filter(t => t.nilai < 3).length;
+      // Count ALL temuan records (including nilai=3)
+      const pDefects = pTemuan.length;
 
       activeServicesSet.forEach(svc => {
         const sTemuan = pTemuan.filter(t => t.service_type === svc);
         svcStats[svc] = {
-          totalDefects: sTemuan.filter(t => t.nilai < 3).length,
+          totalDefects: sTemuan.length,
           auditedAgents: new Set(sTemuan.map(t => t.peserta_id)).size
         };
       });

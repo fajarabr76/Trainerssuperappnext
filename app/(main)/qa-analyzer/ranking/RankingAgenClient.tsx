@@ -224,7 +224,7 @@ export default function RankingAgenClient({
                 <th className="px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 w-16">Rank</th>
                 <th className="px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">Agen</th>
                 <th className="px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">Tim/Batch</th>
-                <th className="px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 text-right">Temuan</th>
+                <th className="px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 text-right">Total Temuan</th>
                 <th className="px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 text-right">Skor QA</th>
                 <th className="px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 text-center">Status</th>
               </tr>
@@ -277,7 +277,7 @@ export default function RankingAgenClient({
                             {agent.batch}
                           </div>
                         </td>
-                        <td className="px-6 py-5 text-right font-mono font-bold text-red-500/80">
+                        <td className="px-6 py-5 text-right font-mono font-bold text-foreground/80">
                           {agent.defects}
                         </td>
                         <td className={`px-6 py-5 text-right font-bold ${scoreColor(agent.score)}`}>
