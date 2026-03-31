@@ -59,7 +59,7 @@ function MainLayoutContent({
         </button>
       </div>
 
-      <div className="flex-1 flex flex-col h-full w-full overflow-hidden relative">
+      <div className="flex-1 flex flex-col h-full w-full overflow-y-auto relative">
         {/* Hide content if we are on /telefun to ensure "tanpa masuk ke modul" */}
         {pathname === '/telefun' ? (
           <div className="flex-1 bg-background flex items-center justify-center">
