@@ -69,7 +69,7 @@ export default function ProfilerExportClient({
       'Masa Dinas': p.bergabung_date ? hitungMasaDinas(p.bergabung_date) : '',
       'Jenis Kelamin': p.jenis_kelamin || '', 'Agama': p.agama || '',
       'Tanggal Lahir': p.tgl_lahir || '',
-      'Usia': p.tgl_lahir ? hitungUsia(p.tgl_lahir) : '',
+      'Usia': p.tgl_lahir ? `${hitungUsia(p.tgl_lahir)} Tahun` : '',
       'Status Perkawinan': p.status_perkawinan || '', 'Pendidikan': p.pendidikan || '',
       'Lembaga': p.nama_lembaga || '', 'Jurusan': p.jurusan || '',
       'No. KTP': p.no_ktp || '', 'No. NPWP': p.no_npwp || '',

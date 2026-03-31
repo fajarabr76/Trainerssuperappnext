@@ -100,7 +100,7 @@ export const hitungUsia = (tglLahir: string): string => {
   let age = now.getFullYear() - lahir.getFullYear();
   const m = now.getMonth() - lahir.getMonth();
   if (m < 0 || (m === 0 && now.getDate() < lahir.getDate())) age--;
-  return `${age} Tahun`;
+  return `${age}`;
 };
 
 export const formatTanggal = (dateStr: string): string => {
