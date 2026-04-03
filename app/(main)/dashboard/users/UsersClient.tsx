@@ -12,6 +12,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from '@/app/lib/supabase/client';
 import { ThemeToggle } from "@/app/components/ThemeToggle";
 import { useEffect, useState, useMemo } from "react";
+import { updateUserStatusAction, updateUserRoleAction, deleteUserAction } from "./actions";
 
 export default function UsersClient({ user, role, profile }: { user: any, role: string, profile: any }) {
   const pathname = usePathname();
@@ -57,15 +58,9 @@ export default function UsersClient({ user, role, profile }: { user: any, role: 
   const updateUserStatus = async (userId: string, status: 'approved' | 'pending') => {
     setUpdating(userId);
     try {
-      const lowerStatus = status.toLowerCase();
-      const { error } = await supabase
-        .from('profiles')
-        .update({ status: lowerStatus })
-        .eq('id', userId);
-
-      if (error) throw error;
+      await updateUserStatusAction(userId, status);
       
-      setUsers(users.map(u => u.id === userId ? { ...u, status: lowerStatus } : u));
+      setUsers(users.map(u => u.id === userId ? { ...u, status: status.toLowerCase() } : u));
     } catch (err) {
       console.error("Error updating user status:", err);
       alert("Gagal memperbarui status pengguna.");
@@ -77,12 +72,7 @@ export default function UsersClient({ user, role, profile }: { user: any, role: 
   const updateUserRole = async (userId: string, newRole: string) => {
     setUpdating(userId);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: newRole })
-        .eq('id', userId);
-
-      if (error) throw error;
+      await updateUserRoleAction(userId, newRole);
       
       setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
     } catch (err) {
@@ -98,12 +88,7 @@ export default function UsersClient({ user, role, profile }: { user: any, role: 
     
     setUpdating(userId);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ is_deleted: true })
-        .eq('id', userId);
-
-      if (error) throw error;
+      await deleteUserAction(userId);
       
       setUsers(users.filter(u => u.id !== userId));
     } catch (err) {

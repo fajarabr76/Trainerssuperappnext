@@ -1,13 +1,26 @@
-'use client';
-
+import { createClient } from '@/app/lib/supabase/server';
+import { redirect } from 'next/navigation';
 import UsersClient from './UsersClient';
-import { useAuth } from '@/app/lib/hooks/useAuth';
 
-export default function UsersPage() {
-  const { user, profile, role, loading } = useAuth(['trainer', 'trainers']);
+export default async function UsersPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    redirect('/login');
+  }
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-background text-foreground">Loading...</div>;
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
+  const role = profile?.role?.toLowerCase() || '';
+  const allowedRoles = ['admin', 'superadmin'];
+  
+  if (!allowedRoles.includes(role)) {
+    redirect('/');
   }
 
   return <UsersClient user={user} role={role} profile={profile} />;
