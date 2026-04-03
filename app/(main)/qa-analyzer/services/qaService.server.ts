@@ -742,6 +742,28 @@ export const qaServiceServer = {
       });
   },
 
+  // ── Dashboard Trend RPC ──────────────────────────────────────
+  async getServiceTrendDashboard(p_period_ids: string[]) {
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc('get_service_trend_dashboard', {
+      p_period_ids
+    });
+    if (error) {
+      console.error('[RPC Error] get_service_trend_dashboard:', error);
+      throw error;
+    }
+    // Cast ke type yang dibutuhkan DashboardClient & sliceTrendData
+    return data as {
+      labels: string[];
+      totalData: number[];
+      serviceData: Record<string, number[]>;
+      activeServices: string[];
+      serviceSummary: Record<string, { totalDefects: number; auditedAgents: number }>;
+      totalSummary: { totalDefects: number; auditedAgents: number; activeServiceCount: number };
+      periodStats: any[];
+    };
+  },
+
   // ── Consolidated Dashboard Data ──────────────────────────────
   async getConsolidatedPeriodData(
     periodId: string, 
@@ -948,31 +970,22 @@ export const qaServiceServer = {
     
     if (pIds.length === 0) return null;
 
-    // ── SAFEGUARD: Count check before massive fetch ──
-    let countQuery = supabase
-      .from('qa_temuan')
-      .select('*', { count: 'exact', head: true })
-      .in('period_id', pIds)
-      .eq('service_type', serviceType);
-    if (folderIds.length > 0) countQuery = countQuery.in('profiler_peserta.batch_name', folderIds);
-
-    const { count: totalRowCount, error: countError } = await countQuery;
-    if (countError) throw countError;
-
-    if ((totalRowCount || 0) > 150000) {
-      throw new Error(`Data terlalu besar (${totalRowCount?.toLocaleString()} baris). Silakan persempit filter periode atau folder.`);
-    }
-
     let query = supabase
       .from('qa_temuan')
-      .select('nilai, period_id, peserta_id, indicator_id, qa_indicators(name, category), profiler_peserta!inner(batch_name)')
+      .select('nilai, period_id, peserta_id, indicator_id, qa_indicators(name, category), profiler_peserta!inner(batch_name)', { count: 'exact' })
       .in('period_id', pIds)
       .eq('service_type', serviceType);
 
     if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
 
-    const { data: temuan, error } = await query;
-    if (error || !temuan) return null;
+    const { data: temuan, count: totalRowCount, error } = await query;
+    if (error) throw error;
+
+    if ((totalRowCount || 0) > 150000) {
+      throw new Error(`Data terlalu besar (${totalRowCount?.toLocaleString()} baris). Silakan persempit filter periode atau folder.`);
+    }
+
+    if (!temuan) return null;
 
     const allIndicators = context?.indicators || (await this.getIndicators(serviceType)) as QAIndicator[];
     const serviceInds = allIndicators.filter(i => i.service_type === serviceType);

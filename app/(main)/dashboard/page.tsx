@@ -23,16 +23,20 @@ export default async function DashboardPage() {
 
   const role = profile?.role || 'trainer';
 
-  // 1. Fetch all dashboard data in parallel
-  const [
-    periods,
-    serviceTrendAll,
-    activities
-  ] = await Promise.all([
-    qaServiceServer.getPeriods(),
-    qaServiceServer.getServiceTrendForDashboard('all'),
+  // 1. Fetch base data
+  const periods = await qaServiceServer.getPeriods();
+  const periodIds = periods.slice(0, 12).map(p => p.id); 
+
+  // Parallel fetch: Trends (RPC with legacy fallback) + Recent Activities
+  const [trendResult, activities] = await Promise.all([
+    qaServiceServer.getServiceTrendDashboard(periodIds).catch(err => {
+      console.warn('[Dashboard] RPC failed, using fallback:', err);
+      return qaServiceServer.getServiceTrendForDashboard('all');
+    }),
     activityServiceServer.getRecentActivities(5)
   ]);
+
+  const serviceTrendAll = trendResult;
 
   // 2. Derive 3m and 6m trends from the 'all' fetch (12m)
   const serviceTrendMap = {

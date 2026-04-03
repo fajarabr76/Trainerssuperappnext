@@ -18,6 +18,17 @@ import ParamTrendChart from '../../dashboard/components/ParamTrendChart';
 import { YearSelector } from '../../dashboard/components/YearSelector';
 import { getAgentExportDataAction, getPersonalTrendAction, updateTemuanAction, deleteTemuanAction, getAgentTemuanAction } from '../../actions';
 
+const AgentTrendTab = React.lazy(() => import('./components/AgentTrendTab'));
+const AgentTemuanTab = React.lazy(() => import('./components/AgentTemuanTab'));
+
+function TabSkeleton() {
+  return (
+    <div className="w-full h-[400px] bg-card/20 animate-pulse rounded-[2.5rem] flex items-center justify-center">
+      <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+    </div>
+  );
+}
+
 const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
 const MONTHS_FULL  = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
@@ -129,6 +140,7 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
   const [exporting, setExporting] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<{ month: number; year: number; label: string; serviceType: string; id?: string } | null>(null);
   const [timeframe, setTimeframe] = useState<'3m' | '6m' | 'all'>('3m');
+  const [activeTab, setActiveTab] = useState<'summary' | 'trend' | 'temuan'>('summary');
   const [activeTrendFilter, setActiveTrendFilter] = useState<string>('all');
   
   const [agent, setAgent] = useState(initialAgent);
@@ -476,6 +488,26 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
             </div>
 
             <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+              {/* Tab Navigation */}
+              <div className="flex p-1.5 bg-foreground/5 backdrop-blur-xl border border-border/50 rounded-2xl w-fit mx-auto sticky top-24 z-30 shadow-2xl">
+                {(['summary', 'trend', 'temuan'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`px-8 py-2.5 rounded-[0.8rem] text-[11px] font-black uppercase tracking-widest transition-all duration-500 flex items-center gap-2 ${
+                      activeTab === tab 
+                        ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-105' 
+                        : 'text-foreground/40 hover:text-foreground/60 hover:bg-foreground/5'
+                    }`}
+                  >
+                    {tab === 'summary' && <Activity className="w-3.5 h-3.5" />}
+                    {tab === 'trend' && <TrendingUp className="w-3.5 h-3.5" />}
+                    {tab === 'temuan' && <BarChart2 className="w-3.5 h-3.5" />}
+                    {tab}
+                  </button>
+                ))}
+              </div>
+
               {temuan.length === 0 ? (
                 <div className="bg-card rounded-3xl border border-border p-12 text-center">
                   <div className="w-20 h-20 rounded-3xl bg-foreground/5 flex items-center justify-center mx-auto mb-6"><BarChart2 className="w-10 h-10 text-foreground/20" /></div>
@@ -484,9 +516,14 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
                   <button onClick={handleTambahTemuan} className="px-8 py-3 bg-primary text-primary-foreground rounded-2xl font-black shadow-xl shadow-primary/20 transition-all hover:scale-105">Start Evaluation</button>
                 </div>
               ) : (
-                <>
-                  <div className="flex flex-col gap-8">
-                    <div className="w-full space-y-8">
+                <div className="space-y-8">
+                  {/* Summary Tab Content */}
+                  {activeTab === 'summary' && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }} 
+                      animate={{ opacity: 1, y: 0 }} 
+                      className="space-y-8"
+                    >
                       {sortedPeriods.length > 0 && (
                         <div className="flex flex-wrap gap-2 bg-card/40 backdrop-blur-md rounded-2xl border border-border/50 p-3 shadow-inner">
                           {sortedPeriods.map(p => {
@@ -605,186 +642,47 @@ export default function QaAgentDetailClient({ agentId, user, role, initialAgent,
                               </motion.div>
                             )}
                           </AnimatePresence>
-
-                          <div className="bg-card/40 backdrop-blur-sm rounded-[2.5rem] border border-border/50 p-10 shadow-xl">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-10 gap-4">
-                              <div>
-                                <h4 className="text-sm font-black uppercase tracking-[0.2em] text-foreground/30">Long-term Performance Trend</h4>
-                                <p className="text-[10px] text-foreground/20 font-bold mt-1 uppercase tracking-widest">Aggregate scoring & Top-3 parameter issues</p>
-                              </div>
-                              <div className="flex items-center bg-foreground/5 border border-border/50 rounded-2xl p-1.5 gap-1 shadow-inner">
-                                {(['3m', '6m', 'all'] as const).map((tf) => (
-                                  <button
-                                    key={tf}
-                                    onClick={() => handleTimeframeChange(tf)}
-                                    className={`px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${
-                                      timeframe === tf 
-                                        ? 'bg-primary text-white shadow-lg shadow-primary/20' 
-                                        : 'hover:bg-foreground/5 text-foreground/40'
-                                    }`}
-                                  >
-                                    {tf === '3m' ? 'Quarterly' : tf === '6m' ? 'Semi-Annual' : 'Lifetime'}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                            <div className="w-full">
-                              {loadingData ? (
-                                <div className="w-full h-[350px] flex items-center justify-center"><div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin" /></div>
-                              ) : personalTrend && (
-                                <>
-                                  <div className="flex flex-wrap gap-1.5 mb-8">
-                                    <button
-                                      onClick={() => setActiveTrendFilter('all')}
-                                      className={`px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all duration-300 border ${activeTrendFilter === 'all' ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105' : 'bg-card/50 text-foreground/40 border-border/50 hover:bg-card hover:text-foreground hover:border-border'}`}
-                                    >
-                                      All
-                                    </button>
-                                    {personalTrend.datasets.map((ds: any, i: number) => {
-                                      const labelDisplay = ds.label.length > 25 ? ds.label.substring(0, 22) + '...' : ds.label;
-                                      const color = ds.isTotal ? 'hsl(var(--primary))' : TREND_COLORS[i % TREND_COLORS.length];
-                                      const isActive = activeTrendFilter === ds.label;
-                                      
-                                      return (
-                                        <button
-                                          key={ds.label}
-                                          onClick={() => setActiveTrendFilter(ds.label)}
-                                          title={ds.label}
-                                          className={`group px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all duration-300 border flex items-center gap-2 ${isActive ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105' : 'bg-card/50 text-foreground/40 border-border/50 hover:bg-card hover:text-foreground hover:border-border'}`}
-                                        >
-                                          <span 
-                                            className="w-1.5 h-1.5 rounded-full transition-transform group-hover:scale-125" 
-                                            style={{ backgroundColor: isActive ? 'white' : color }} 
-                                          />
-                                          {labelDisplay}
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                  <div className="h-[350px] w-full mt-4">
-                                    <ParamTrendChart data={personalTrend} filterLabel={activeTrendFilter} />
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                          </div>
                         </>
                       )}
-                    </div>
-                  </div>
+                    </motion.div>
+                  )}
 
-                  <div className="bg-card/40 backdrop-blur-sm rounded-[3rem] border border-border/50 overflow-hidden shadow-2xl shadow-black/5">
-                    <div className="px-10 py-10 border-b border-border/50 flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-foreground/[0.01]">
-                      <div>
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-foreground/30 mb-2">
-                          <BarChart2 className="w-3.5 h-3.5" /> Itemized Observations
-                        </div>
-                        <h3 className="text-3xl font-black tracking-tighter">Audit Discovery Detail</h3>
-                      </div>
-                      {selectedPeriod && (
-                        <div className="px-6 py-2.5 bg-background/50 border border-border/50 rounded-2xl text-[10px] font-black uppercase tracking-widest text-foreground/50 shadow-inner">
-                          Period: {selectedPeriod.label}
-                        </div>
-                      )}
-                    </div>
-                    <div className="divide-y divide-border/50">
-                      {groupedTemuan.length === 0 ? (
-                        <div className="px-10 py-24 text-center">
-                          <div className="w-20 h-20 rounded-[2rem] bg-foreground/5 flex items-center justify-center mx-auto mb-6">
-                            <ShieldCheck className="w-10 h-10 text-foreground/10" />
-                          </div>
-                          <h4 className="text-xl font-black text-foreground/30">No issues found in this period.</h4>
-                          <p className="text-xs text-foreground/20 mt-2 font-bold uppercase tracking-widest">Excellent record of service</p>
-                        </div>
-                      ) : (
-                        groupedTemuan.map(group => (
-                          <div key={group.no_tiket ?? `audit-${group.urutan}`} className="group/audit">
-                            <div className="flex items-center justify-between px-10 py-6 bg-foreground/[0.03] group-hover/audit:bg-foreground/[0.05] transition-colors">
-                              <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center text-xs font-black shadow-lg shadow-primary/30">
-                                  {group.urutan}
-                                </div>
-                                <div className="flex flex-col">
-                                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-foreground/20 leading-none mb-1.5">Reference / Ticket ID</span>
-                                  <span className="text-sm font-black font-mono tracking-tight text-foreground/70">{group.no_tiket || 'INTERNAL PERFORMANCE AUDIT'}</span>
-                                </div>
-                              </div>
-                              <div className="px-4 py-1.5 rounded-full bg-background/80 border border-border/50 text-[10px] font-black uppercase tracking-widest text-foreground/40 shadow-sm">
-                                {group.items.length} Variable{group.items.length > 1 ? 's' : ''} Highlighted
-                              </div>
-                            </div>
-                            <div className="divide-y divide-border/20">
-                              {group.items.map((t: any) => {
-                                const isCritical = t.qa_indicators?.category === 'critical';
-                                return (
-                                  <div key={t.id} className="px-10 py-10 flex items-start gap-10 hover:bg-foreground/[0.01] transition-all duration-300 group">
-                                    <NilaiBadge nilai={t.nilai} />
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-start justify-between gap-4 mb-6">
-                                        <div>
-                                          <div className="flex items-center gap-2 mb-2">
-                                            <div className={`w-1.5 h-1.5 rounded-full ${isCritical ? 'bg-rose-500 animate-pulse' : 'bg-blue-500'}`} />
-                                            <span className={`text-[9px] font-black uppercase tracking-[0.2em] ${isCritical ? 'text-rose-500' : 'text-blue-500'}`}>
-                                              {isCritical ? 'Critical Compliance Error' : 'General Performance Issue'}
-                                            </span>
-                                          </div>
-                                          <h4 className="text-xl font-black tracking-tight text-foreground/80">{t.qa_indicators?.name}</h4>
-                                        </div>
-                                        {role !== 'leader' && (
-                                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => startEdit(t)} className="text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded-xl transition-colors" title="Edit Temuan">
-                                              <Edit2 className="w-4 h-4" />
-                                            </button>
-                                            <button onClick={() => handleDelete(t.id)} disabled={deletingId === t.id} className="text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 p-2 rounded-xl transition-colors disabled:opacity-50" title="Hapus Temuan">
-                                              {deletingId === t.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                                            </button>
-                                          </div>
-                                        )}
-                                      </div>
-                                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                                        <div className="space-y-3 p-5 rounded-2xl bg-foreground/[0.02] border border-border/30 hover:border-border/60 transition-colors">
-                                          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-foreground/20 leading-none">Gap Analysis / Discrepancy</p>
-                                          <p className="text-sm text-foreground/70 leading-relaxed font-medium">{t.ketidaksesuaian || '-'}</p>
-                                        </div>
-                                        <div className="space-y-3 p-5 rounded-2xl bg-primary/5 border border-primary/20 hover:border-primary/40 transition-colors">
-                                          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40 leading-none">Strategic Improvement Plan</p>
-                                          <p className="text-sm text-foreground/80 leading-relaxed font-bold italic">{t.sebaiknya || '-'}</p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                    
-                    {/* Pagination Controls */}
-                    <div className="px-10 py-6 bg-card border-t border-border/50 flex items-center justify-between">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/30">
-                        Page {currentPage + 1}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handlePageChange(currentPage - 1)}
-                          disabled={currentPage === 0 || loadingData}
-                          className="px-4 py-2 border border-border/50 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-foreground/5 disabled:opacity-30 transition-all"
-                        >
-                          Previous
-                        </button>
-                        <button
-                          onClick={() => handlePageChange(currentPage + 1)}
-                          disabled={!hasMore || loadingData}
-                          className="px-4 py-2 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 disabled:opacity-30 disabled:scale-100 transition-all"
-                        >
-                          Next
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </>
+                  {/* Trend Tab Content */}
+                  {activeTab === 'trend' && (
+                    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                      <React.Suspense fallback={<TabSkeleton />}>
+                        <AgentTrendTab 
+                          loadingData={loadingData}
+                          personalTrend={personalTrend}
+                          timeframe={timeframe}
+                          activeTrendFilter={activeTrendFilter}
+                          onTimeframeChange={handleTimeframeChange}
+                          onFilterChange={setActiveTrendFilter}
+                        />
+                      </React.Suspense>
+                    </motion.div>
+                  )}
+
+                  {/* Temuan Tab Content */}
+                  {activeTab === 'temuan' && (
+                    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                      <React.Suspense fallback={<TabSkeleton />}>
+                        <AgentTemuanTab 
+                          groupedTemuan={groupedTemuan}
+                          selectedPeriod={selectedPeriod}
+                          role={role}
+                          loadingData={loadingData}
+                          currentPage={currentPage}
+                          hasMore={hasMore}
+                          deletingId={deletingId}
+                          onStartEdit={startEdit}
+                          onDelete={handleDelete}
+                          onPageChange={handlePageChange}
+                        />
+                      </React.Suspense>
+                    </motion.div>
+                  )}
+                </div>
               )}
             </div>
           </div>
