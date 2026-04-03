@@ -15,7 +15,7 @@ export async function POST(request: Request) {
       .select('role')
       .eq('id', user.id)
       .single();
-    if (!callerProfile || callerProfile.role !== 'Trainer') {
+    if (!callerProfile || callerProfile.role.toLowerCase() !== 'trainer') {
       return NextResponse.json({ error: 'Forbidden: Only Trainers can reset passwords' }, { status: 403 });
     }
 
@@ -23,6 +23,20 @@ export async function POST(request: Request) {
     const { email } = await request.json();
     if (!email) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
+    }
+
+    // Validasi: pastikan email target terdaftar di sistem
+    const { data: targetProfile } = await supabaseServer
+      .from('profiles')
+      .select('id')
+      .eq('email', email)
+      .single();
+
+    if (!targetProfile) {
+      return NextResponse.json(
+        { error: 'Email tidak ditemukan di sistem' },
+        { status: 404 }
+      );
     }
 
     // Gunakan service role untuk kirim reset email
