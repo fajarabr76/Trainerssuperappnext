@@ -51,7 +51,7 @@ BEGIN
         nilai,
         CASE 
           WHEN no_tiket IS NOT NULL AND TRIM(no_tiket) != '' THEN TRIM(no_tiket)
-          ELSE '__nt_' || ROW_NUMBER() OVER (ORDER BY created_at, id)::text
+          ELSE '__nt_' || TO_CHAR(created_at, 'YYYYMMDD_HH24MISS')
         END AS session_key
       FROM qa_temuan
       WHERE peserta_id = p_peserta_id

@@ -223,12 +223,12 @@ function scoreSession(indicators: QAIndicator[], temuan: { indicator_id: string;
  */
 export function calculateQAScoreFromTemuan(
   indicators: QAIndicator[],
-  temuan: { indicator_id: string; nilai: number; no_tiket?: string | null }[]
+  temuan: { indicator_id: string; nilai: number; no_tiket?: string | null; created_at?: string; period_id?: string }[]
 ): QAScore {
   const sessions: Record<string, { indicator_id: string; nilai: number }[]> = {};
   
   temuan.forEach((t, i) => {
-    const key = t.no_tiket?.trim() || `__no_ticket_${i}`;
+    const key = t.no_tiket?.trim() || `__no_ticket_${t.created_at ?? t.period_id ?? i}`;
     if (!sessions[key]) sessions[key] = [];
     sessions[key].push(t);
   });
