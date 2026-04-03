@@ -18,7 +18,8 @@ import {
   ParetoData,
   CriticalVsNonCriticalData,
   ExportData,
-  ExportPeriod
+  ExportPeriod,
+  isAgentExcluded
 } from '../lib/qa-types';
 
 import { createClient as createJSClient } from '@supabase/supabase-js';
@@ -166,10 +167,10 @@ export const qaServiceServer = {
     // 1. Fetch agents
     const { data: agentData, error: agentError } = await supabase
       .from('profiler_peserta')
-      .select('id, nama, tim, batch_name, foto_url')
+      .select('id, nama, tim, batch_name, foto_url, jabatan')
       .order('nama');
     if (agentError) throw agentError;
-    const agents = agentData ?? [];
+    const agents = (agentData ?? []).filter(a => !isAgentExcluded(a.tim, a.batch_name, a.jabatan));
 
     // 2. Fetch all indicators
     const { data: indsData, error: indsError } = await supabase
@@ -294,13 +295,15 @@ export const qaServiceServer = {
       .eq('batch_name', batch)
       .order('nama');
     if (error) throw error;
-    return (data ?? []).map((a: any) => ({
-      id: a.id,
-      nama: a.nama,
-      tim: a.tim,
-      batch: a.batch_name,
-      jabatan: a.jabatan
-    }));
+    return (data ?? [])
+      .filter((a: any) => !isAgentExcluded(a.tim, a.batch_name, a.jabatan))
+      .map((a: any) => ({
+        id: a.id,
+        nama: a.nama,
+        tim: a.tim,
+        batch: a.batch_name,
+        jabatan: a.jabatan
+      }));
   },
 
   // ── Dashboard Aggregations ────────────────────────────────────
@@ -601,7 +604,7 @@ export const qaServiceServer = {
 
     let query = supabase
       .from('qa_temuan')
-      .select('nilai, no_tiket, indicator_id, qa_indicators(category), profiler_peserta!inner(id, nama, batch_name)')
+      .select('nilai, no_tiket, indicator_id, qa_indicators(category), profiler_peserta!inner(id, nama, batch_name, tim, jabatan)')
       .in('period_id', pIds)
       .eq('service_type', serviceType);
 
@@ -618,7 +621,7 @@ export const qaServiceServer = {
       if (!p) return;
       if (!agentTemuanMap[p.id]) {
         agentTemuanMap[p.id] = [];
-        agentInfoMap[p.id] = { id: p.id, nama: p.nama, batch_name: p.batch_name };
+        agentInfoMap[p.id] = { id: p.id, nama: p.nama, batch_name: p.batch_name, tim: p.tim, jabatan: p.jabatan };
       }
       agentTemuanMap[p.id].push({ indicator_id: d.indicator_id, nilai: d.nilai, no_tiket: d.no_tiket });
     });
@@ -636,8 +639,9 @@ export const qaServiceServer = {
         return t.nilai === 0 && ind?.category === 'critical';
       });
 
-      return { agentId: id, nama: info.nama, batch: info.batch_name, defects, score: result.finalScore, hasCritical };
-    });
+      return { agentId: id, nama: info.nama, batch: info.batch_name, defects, score: result.finalScore, hasCritical, tim: info.tim, jabatan: info.jabatan };
+    })
+    .filter(a => !isAgentExcluded(a.tim, a.batch, a.jabatan));
 
     return agentStats.sort((a, b) => b.defects - a.defects).slice(0, limit);
   },
@@ -655,7 +659,7 @@ export const qaServiceServer = {
 
     let query = supabase
       .from('qa_temuan')
-      .select('nilai, no_tiket, indicator_id, qa_indicators(category), profiler_peserta!inner(id, nama, batch_name)')
+      .select('nilai, no_tiket, indicator_id, qa_indicators(category), profiler_peserta!inner(id, nama, batch_name, tim, jabatan)')
       .in('period_id', pIds)
       .eq('service_type', serviceType);
 
@@ -672,7 +676,7 @@ export const qaServiceServer = {
       if (!p) return;
       if (!agentTemuanMap[p.id]) {
         agentTemuanMap[p.id] = [];
-        agentInfoMap[p.id] = { id: p.id, nama: p.nama, batch_name: p.batch_name };
+        agentInfoMap[p.id] = { id: p.id, nama: p.nama, batch_name: p.batch_name, tim: p.tim, jabatan: p.jabatan };
       }
       agentTemuanMap[p.id].push({ indicator_id: d.indicator_id, nilai: d.nilai, no_tiket: d.no_tiket });
     });
@@ -690,8 +694,9 @@ export const qaServiceServer = {
         return t.nilai === 0 && ind?.category === 'critical';
       });
 
-      return { agentId: id, nama: info.nama, batch: info.batch_name, defects, score: result.finalScore, hasCritical };
-    });
+      return { agentId: id, nama: info.nama, batch: info.batch_name, defects, score: result.finalScore, hasCritical, tim: info.tim, jabatan: info.jabatan };
+    })
+    .filter(a => !isAgentExcluded(a.tim, a.batch, a.jabatan));
 
     return agentStats.sort((a, b) => b.defects - a.defects);
   },
@@ -781,7 +786,7 @@ export const qaServiceServer = {
     // Single Query for all relevant finding data
     let query = supabase
       .from('qa_temuan')
-      .select('*, qa_indicators(id, name, category, bobot), profiler_peserta!inner(id, nama, batch_name, tim)')
+      .select('*, qa_indicators(id, name, category, bobot), profiler_peserta!inner(id, nama, batch_name, tim, jabatan)')
       .in('period_id', pIds)
       .eq('tahun', currentYear);
       // Remove .eq('service_type', serviceType) to allow comparison across services
@@ -816,7 +821,12 @@ export const qaServiceServer = {
 
       if (!seenAgents.has(d.peserta_id)) {
         seenAgents.add(d.peserta_id);
-        auditedAgentsList.push({ id: d.peserta_id, batch_name: d.profiler_peserta?.batch_name, tim: d.profiler_peserta?.tim });
+        auditedAgentsList.push({ 
+          id: d.peserta_id, 
+          batch_name: d.profiler_peserta?.batch_name, 
+          tim: d.profiler_peserta?.tim,
+          jabatan: d.profiler_peserta?.jabatan
+        });
       }
     });
 
@@ -901,23 +911,31 @@ export const qaServiceServer = {
 
     // ── 5. Top Agents ──
     // Use auditedAgentsList which only contains agents for the current serviceType now
-    const agentStats = auditedAgentsList.map(agent => {
-      const temuans = agentTemuanMap[agent.id] || [];
-      const res = calculateQAScoreFromTemuan(serviceInds, temuans);
-      // Count ALL temuan records (including nilai=3) as total findings
-      const agentDefects = temuans.length;
-      return { 
-        agentId: agent.id, 
-        nama: (data.find(d => d.peserta_id === agent.id)?.profiler_peserta as any)?.nama, 
-        batch: agent.batch_name, 
-        defects: agentDefects, 
-        score: res.finalScore, 
-        hasCritical: temuans.some(t => {
-          const ind = serviceInds.find(i => i.id === t.indicator_id);
-          return t.nilai === 0 && ind?.category === 'critical';
-        })
-      };
-    }).sort((a, b) => b.defects - a.defects).slice(0, 5);
+    const agentStats = auditedAgentsList
+      .map(agent => {
+        const temuans = agentTemuanMap[agent.id] || [];
+        const res = calculateQAScoreFromTemuan(serviceInds, temuans);
+        // Count ALL temuan records (including nilai=3) as total findings
+        const agentDefects = temuans.length;
+        return { 
+          agentId: agent.id, 
+          nama: (data.find(d => d.peserta_id === agent.id)?.profiler_peserta as any)?.nama, 
+          batch: agent.batch_name, 
+          tim: agent.tim,
+          jabatan: agent.jabatan,
+          defects: agentDefects, 
+          score: res.finalScore, 
+          hasCritical: temuans.some(t => {
+            const ind = serviceInds.find(i => i.id === t.indicator_id);
+            return t.nilai === 0 && ind?.category === 'critical';
+          })
+        };
+      })
+      .filter(a => !isAgentExcluded(a.tim, a.batch, a.jabatan))
+      .sort((a, b) => b.defects - a.defects)
+      .slice(0, 5);
+
+    const topAgents = agentStats;
 
     return { summary, serviceData, paretoData, donutData, topAgents: agentStats };
   },
@@ -945,13 +963,36 @@ export const qaServiceServer = {
       return null;
     }
 
-    return data as {
+    const result = data as {
       summary: DashboardSummary;
       paretoData: ParetoData[];
       serviceData: ServiceComparisonData[];
       donutData: CriticalVsNonCriticalData;
       topAgents: TopAgentData[];
     };
+
+    if (result.topAgents?.length > 0) {
+      const agentIds = result.topAgents.map(a => a.agentId);
+      const { data: agentDetails } = await supabase
+        .from('profiler_peserta')
+        .select('id, tim, jabatan')
+        .in('id', agentIds);
+      
+      if (agentDetails) {
+        result.topAgents = result.topAgents
+          .map(agent => {
+            const detail = agentDetails.find(d => d.id === agent.agentId);
+            return {
+              ...agent,
+              tim: detail?.tim,
+              jabatan: detail?.jabatan
+            };
+          })
+          .filter(a => !isAgentExcluded(a.tim, a.batch, a.jabatan));
+      }
+    }
+
+    return result;
   },
 
   async getConsolidatedTrendData(

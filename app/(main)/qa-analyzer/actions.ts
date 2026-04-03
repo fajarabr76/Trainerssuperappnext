@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/app/lib/supabase/server';
-import { ServiceType, Category, DashboardData, TrendPoint, TopAgentData, ExportData } from './lib/qa-types';
+import { ServiceType, Category, DashboardData, TrendPoint, TopAgentData, ExportData, EXCLUDED_FOLDERS } from './lib/qa-types';
 import { revalidatePath, revalidateTag } from 'next/cache';
 
 
@@ -487,10 +487,12 @@ export async function getDashboardDataAction(period: string, service: string, fo
      periods,
      availableYears,
      currentYear: year,
-     folders: foldersData.map((f: any) => ({
-       id: typeof f === 'string' ? f : f.name,
-       name: typeof f === 'string' ? f : f.name
-     })),
+     folders: foldersData
+        .map((f: any) => ({
+          id: typeof f === 'string' ? f : f.name,
+          name: typeof f === 'string' ? f : f.name
+        }))
+        .filter((f: any) => !EXCLUDED_FOLDERS.some(ef => ef.toLowerCase() === f.name.toLowerCase())),
      summary: periodData.summary,
      serviceData: periodData.serviceData,
      topAgents: periodData.topAgents,

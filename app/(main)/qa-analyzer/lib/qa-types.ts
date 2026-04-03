@@ -107,6 +107,8 @@ export interface TopAgentData {
   agentId: string;
   nama: string;
   batch: string;
+  tim?: string;
+  jabatan?: string;
   defects: number;
   score: number;
   hasCritical: boolean;
@@ -377,3 +379,21 @@ export function calculateQAScoreFromTemuan(
 }
 
 export const calculateQAScore = calculateQAScoreFromTemuan;
+
+// ── Agent Exclusion Logic ────────────────────────────────────
+export const EXCLUDED_FOLDERS = ['tim om', 'tim qa', 'tim spv', 'tim da & konten'];
+export const EXCLUDED_JABATAN = ['qa', 'trainer', 'wfm', 'team leader', 'team_leader', 'supervisor', 'spv', 'operational manager', 'operation_manager', 'operation manager'];
+
+export function isAgentExcluded(
+  tim?: string | null,
+  batchName?: string | null,
+  jabatan?: string | null
+): boolean {
+  const t = (tim ?? '').toLowerCase().trim();
+  const b = (batchName ?? '').toLowerCase().trim();
+  const j = (jabatan ?? '').toLowerCase().trim();
+  
+  return EXCLUDED_FOLDERS.includes(t)
+      || EXCLUDED_FOLDERS.includes(b)
+      || EXCLUDED_JABATAN.includes(j);
+}

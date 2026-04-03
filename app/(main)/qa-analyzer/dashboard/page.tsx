@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import QaDashboardClient from './QaDashboardClient';
 import { qaServiceServer } from '../services/qaService.server';
 import { profilerServiceServer } from '../../profiler/services/profilerService.server';
+import { EXCLUDED_FOLDERS } from '../lib/qa-types';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,10 +78,12 @@ export default async function QaDashboardPage({
     periods,
     availableYears,
     currentYear,
-    folders: foldersData.map((f: any) => ({ 
-      id: typeof f === 'string' ? f : f.name, 
-      name: typeof f === 'string' ? f : f.name 
-    })),
+    folders: foldersData
+      .map((f: any) => ({ 
+        id: typeof f === 'string' ? f : f.name, 
+        name: typeof f === 'string' ? f : f.name 
+      }))
+      .filter((f: any) => !EXCLUDED_FOLDERS.some(ef => ef.toLowerCase() === f.name.toLowerCase())),
     summary: periodData.summary,
     serviceData: periodData.serviceData,
     topAgents: periodData.topAgents,

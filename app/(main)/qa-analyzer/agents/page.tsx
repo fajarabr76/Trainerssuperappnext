@@ -2,6 +2,7 @@ import { createClient } from '@/app/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import AgentDirectoryClient from './components/AgentDirectoryClient';
 import { qaServiceServer } from '../services/qaService.server';
+import { EXCLUDED_FOLDERS } from '../lib/qa-types';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +35,9 @@ export default async function AgentDirectoryPage() {
     supabase.from('profiler_folders').select('name').order('created_at', { ascending: true })
   ]);
 
-  const batchList = (folderData.data ?? []).map(f => f.name);
+  const batchList = (folderData.data ?? [])
+    .map(f => f.name)
+    .filter(name => !EXCLUDED_FOLDERS.includes(name.toLowerCase().trim()));
 
   return (
     <AgentDirectoryClient 
