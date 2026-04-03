@@ -17,7 +17,7 @@ export default async function UsersPage() {
     .single();
 
   const role = profile?.role?.toLowerCase() || '';
-  const allowedRoles = ['admin', 'superadmin'];
+  const allowedRoles = ['admin', 'superadmin', 'trainer', 'trainers'];
   
   if (!allowedRoles.includes(role)) {
     redirect('/dashboard');

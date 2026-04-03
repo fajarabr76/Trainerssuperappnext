@@ -3,7 +3,7 @@
 import { createClient } from '@/app/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
-async function validateAdminRole() {
+async function validateManagerRole() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Tidak terautentikasi');
@@ -15,15 +15,16 @@ async function validateAdminRole() {
     .single();
 
   const role = profile?.role?.toLowerCase() || '';
-  if (role !== 'admin' && role !== 'superadmin') {
-    throw new Error('Akses ditolak: Hanya admin yang dapat mengelola pengguna');
+  const allowedRoles = ['admin', 'superadmin', 'trainer', 'trainers'];
+  if (!allowedRoles.includes(role)) {
+    throw new Error('Akses ditolak: Anda tidak memiliki izin untuk mengelola pengguna');
   }
 
-  return user;
+  return { user, role };
 }
 
 export async function updateUserStatusAction(userId: string, status: 'approved' | 'pending') {
-  await validateAdminRole();
+  await validateManagerRole();
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -36,8 +37,18 @@ export async function updateUserStatusAction(userId: string, status: 'approved' 
 }
 
 export async function updateUserRoleAction(userId: string, newRole: string) {
-  await validateAdminRole();
+  const { role: callerRole } = await validateManagerRole();
   const supabase = await createClient();
+
+  // Role restriction logic
+  const trainerAllowedRoles = ['agent', 'leader', 'trainer', 'trainers'];
+  
+  // If caller is trainer/trainers, restrict the roles they can assign
+  if (callerRole === 'trainer' || callerRole === 'trainers') {
+    if (!trainerAllowedRoles.includes(newRole.toLowerCase())) {
+      throw new Error('Trainer tidak dapat memberikan role admin atau superadmin');
+    }
+  }
 
   const { error } = await supabase
     .from('profiles')
@@ -49,7 +60,7 @@ export async function updateUserRoleAction(userId: string, newRole: string) {
 }
 
 export async function deleteUserAction(userId: string) {
-  const user = await validateAdminRole();
+  const { user } = await validateManagerRole();
   const supabase = await createClient();
 
   const { error } = await supabase
