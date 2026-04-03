@@ -5,7 +5,7 @@ import {
   LayoutDashboard, MessageSquare, Mail, Phone, Settings, 
   LogOut, BarChart3, Users, Search, Shield, UserCog, 
   ChevronLeft, CheckCircle2, XCircle, Trash2, Filter,
-  MoreVertical, UserPlus, UserMinus, ShieldCheck, ShieldAlert
+  MoreVertical, UserPlus, UserMinus, ShieldCheck, ShieldAlert, KeyRound
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -22,6 +22,7 @@ export default function UsersClient({ user, role, profile }: { user: any, role: 
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [updating, setUpdating] = useState<string | null>(null);
+  const [resetSuccess, setResetSuccess] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'active'>('all');
 
   const fetchAllUsers = async () => {
@@ -76,15 +77,14 @@ export default function UsersClient({ user, role, profile }: { user: any, role: 
   const updateUserRole = async (userId: string, newRole: string) => {
     setUpdating(userId);
     try {
-      const lowerRole = newRole.toLowerCase();
       const { error } = await supabase
         .from('profiles')
-        .update({ role: lowerRole })
+        .update({ role: newRole })
         .eq('id', userId);
 
       if (error) throw error;
       
-      setUsers(users.map(u => u.id === userId ? { ...u, role: lowerRole } : u));
+      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
     } catch (err) {
       console.error("Error updating user role:", err);
       alert("Gagal memperbarui role pengguna.");
@@ -109,6 +109,26 @@ export default function UsersClient({ user, role, profile }: { user: any, role: 
     } catch (err) {
       console.error("Error deleting user:", err);
       alert("Gagal menghapus pengguna.");
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const resetUserPassword = async (userId: string, userEmail: string) => {
+    if (!confirm(`Kirim link reset password ke ${userEmail}?`)) return;
+    setUpdating(userId);
+    try {
+      const response = await fetch('/api/admin/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      setResetSuccess(userId);
+      setTimeout(() => setResetSuccess(null), 3000);
+    } catch (err: any) {
+      alert(`Gagal mengirim reset password: ${err.message}`);
     } finally {
       setUpdating(null);
     }
@@ -271,6 +291,18 @@ export default function UsersClient({ user, role, profile }: { user: any, role: 
                             <XCircle className="w-4 h-4" /> Tangguhkan
                           </button>
                         )}
+                        <button
+                          onClick={() => resetUserPassword(u.id, u.email)}
+                          disabled={updating === u.id}
+                          className={`p-2.5 rounded-xl transition-all disabled:opacity-50 ${
+                            resetSuccess === u.id 
+                              ? 'text-green-500 bg-green-500/10' 
+                              : 'text-blue-500/40 hover:text-blue-500 hover:bg-blue-500/10'
+                          }`}
+                          title="Kirim Reset Password"
+                        >
+                          <KeyRound className="w-5 h-5" />
+                        </button>
                         <button
                           onClick={() => deleteUser(u.id)}
                           disabled={updating === u.id}

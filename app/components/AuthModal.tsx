@@ -9,11 +9,11 @@ import { createClient } from '@/app/lib/supabase/client';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialMode?: 'login' | 'register';
+  initialMode?: 'login' | 'register' | 'forgot';
 }
 
 export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalProps) {
-  const [mode, setMode] = useState<'login' | 'register'>(initialMode);
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>(initialMode);
 
   // Sync mode with initialMode when modal opens
   useEffect(() => {
@@ -24,6 +24,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -32,6 +33,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     setError(null);
     setSuccessMessage(null);
     setLoading(false);
+    setForgotLoading(false);
     onClose();
   };
 
@@ -117,6 +119,24 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     }
   }
 
+  async function handleForgotPassword(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setForgotLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) {
+      setError(error.message);
+    } else {
+      setSuccessMessage('Link reset password telah dikirim ke email Anda. Silakan cek inbox atau folder spam.');
+    }
+    setForgotLoading(false);
+  }
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -156,121 +176,202 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                 <span className="font-black tracking-widest uppercase text-sm text-foreground">Trainers App</span>
               </div>
 
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={mode}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <h2 className="text-3xl font-black tracking-tighter mb-2 text-center text-foreground">
-                    {mode === 'login' ? 'Selamat Datang' : 'Buat Akun'}
-                  </h2>
-                  <p className="text-foreground/40 text-center mb-8 font-light text-sm">
-                    {mode === 'login' 
-                      ? 'Masuk menggunakan kredensial Anda untuk melanjutkan akses ke fasilitas trainers.'
-                      : 'Daftarkan profil Anda untuk memulai pengaturan kelas dan evaluasi simulasi.'}
-                  </p>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={mode}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {mode === 'forgot' ? (
+                      <>
+                        <h2 className="text-3xl font-black tracking-tighter mb-2 text-center text-foreground">
+                          Reset Password
+                        </h2>
+                        <p className="text-foreground/40 text-center mb-8 font-light text-sm">
+                          Masukkan email Anda dan kami akan mengirimkan link untuk mereset password.
+                        </p>
+                        <form onSubmit={handleForgotPassword} className="flex flex-col gap-4">
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40 mb-2 pl-1">Email</label>
+                            <input
+                              type="email"
+                              name="email"
+                              required
+                              className="w-full bg-background border border-border/40 hover:border-border rounded-xl px-4 py-3.5 text-sm font-medium text-foreground placeholder:text-foreground/30 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
+                              placeholder="nama@email.com"
+                              disabled={forgotLoading}
+                            />
+                          </div>
+                          <AnimatePresence>
+                            {error && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="flex items-start gap-3 text-red-500 bg-red-500/10 p-4 rounded-2xl border border-red-500/20 overflow-hidden mt-1"
+                              >
+                                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                                <p className="text-xs font-bold leading-relaxed">{error}</p>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                          <AnimatePresence>
+                            {successMessage && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="flex items-start gap-3 text-green-600 bg-green-500/10 p-4 rounded-2xl border border-green-500/20 overflow-hidden mt-1"
+                              >
+                                <p className="text-xs font-bold leading-relaxed">{successMessage}</p>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                          <button
+                            type="submit"
+                            disabled={forgotLoading || !!successMessage}
+                            className="w-full mt-4 px-8 py-4 bg-primary text-primary-foreground rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
+                          >
+                            {forgotLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Kirim Link Reset'}
+                            {!forgotLoading && <ArrowRight className="w-4 h-4" />}
+                          </button>
+                        </form>
+                        <div className="mt-8 text-center">
+                          <button
+                            type="button"
+                            onClick={() => { setError(null); setSuccessMessage(null); setMode('login'); }}
+                            className="text-xs font-bold text-foreground/40 hover:text-primary transition-colors focus-visible:outline-none focus-visible:text-primary"
+                          >
+                            ← Kembali ke halaman masuk
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <h2 className="text-3xl font-black tracking-tighter mb-2 text-center text-foreground">
+                          {mode === 'login' ? 'Selamat Datang' : 'Buat Akun'}
+                        </h2>
+                        <p className="text-foreground/40 text-center mb-8 font-light text-sm">
+                          {mode === 'login' 
+                            ? 'Masuk menggunakan kredensial Anda untuk melanjutkan akses ke fasilitas trainers.'
+                            : 'Daftarkan profil Anda untuk memulai pengaturan kelas dan evaluasi simulasi.'}
+                        </p>
 
-                  <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                    <div>
-                      <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40 mb-2 pl-1">Email</label>
-                      <input
-                        type="email"
-                        name="email"
-                        required
-                        className="w-full bg-background border border-border/40 hover:border-border rounded-xl px-4 py-3.5 text-sm font-medium text-foreground placeholder:text-foreground/30 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
-                        placeholder="nama@email.com"
-                        disabled={loading}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40 mb-2 pl-1">Password</label>
-                      <input
-                        type="password"
-                        name="password"
-                        required
-                        className="w-full bg-background border border-border/40 hover:border-border rounded-xl px-4 py-3.5 text-sm font-black tracking-widest text-foreground placeholder:text-foreground/30 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
-                        placeholder="••••••••"
-                        disabled={loading}
-                      />
-                    </div>
+                        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40 mb-2 pl-1">Email</label>
+                            <input
+                              type="email"
+                              name="email"
+                              required
+                              className="w-full bg-background border border-border/40 hover:border-border rounded-xl px-4 py-3.5 text-sm font-medium text-foreground placeholder:text-foreground/30 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
+                              placeholder="nama@email.com"
+                              disabled={loading}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40 mb-2 pl-1">Password</label>
+                            <input
+                              type="password"
+                              name="password"
+                              required
+                              className="w-full bg-background border border-border/40 hover:border-border rounded-xl px-4 py-3.5 text-sm font-black tracking-widest text-foreground placeholder:text-foreground/30 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
+                              placeholder="••••••••"
+                              disabled={loading}
+                            />
+                          </div>
 
-                    {mode === 'register' && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                      >
-                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40 mb-2 mt-1 pl-1">Peran (Role)</label>
-                        <select
-                          name="role"
-                          required
-                          className="w-full bg-background border border-border/40 hover:border-border rounded-xl px-4 py-3.5 text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none shadow-sm cursor-pointer"
-                          disabled={loading}
-                        >
-                          <option value="Agent">Agent</option>
-                          <option value="Leader">Leader</option>
-                          <option value="Trainer">Trainer</option>
-                        </select>
-                      </motion.div>
+                          {mode === 'login' && (
+                            <div className="flex justify-end -mt-2">
+                              <button
+                                type="button"
+                                onClick={() => { setError(null); setSuccessMessage(null); setMode('forgot'); }}
+                                className="text-xs font-bold text-foreground/30 hover:text-primary transition-colors focus-visible:outline-none focus-visible:text-primary"
+                                disabled={loading}
+                              >
+                                Lupa password?
+                              </button>
+                            </div>
+                          )}
+
+                          {mode === 'register' && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                            >
+                              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40 mb-2 mt-1 pl-1">Peran (Role)</label>
+                              <select
+                                name="role"
+                                required
+                                className="w-full bg-background border border-border/40 hover:border-border rounded-xl px-4 py-3.5 text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none shadow-sm cursor-pointer"
+                                disabled={loading}
+                              >
+                                <option value="Agent">Agent</option>
+                                <option value="Leader">Leader</option>
+                                <option value="Trainer">Trainer</option>
+                              </select>
+                            </motion.div>
+                          )}
+
+                          <AnimatePresence>
+                            {error && (
+                              <motion.div 
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="flex items-start gap-3 text-red-500 bg-red-500/10 p-4 rounded-2xl border border-red-500/20 overflow-hidden mt-1"
+                              >
+                                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                                <p className="text-xs font-bold leading-relaxed">{error}</p>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+
+                          <AnimatePresence>
+                            {successMessage && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="flex items-start gap-3 text-green-600 bg-green-500/10 p-4 rounded-2xl border border-green-500/20 overflow-hidden mt-1"
+                              >
+                                <p className="text-xs font-bold leading-relaxed">{successMessage}</p>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+
+                          <button
+                            type="submit"
+                            disabled={loading || !!successMessage}
+                            className="w-full mt-4 px-8 py-4 bg-primary text-primary-foreground rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                          >
+                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (mode === 'login' ? 'Masuk ke Dashboard' : 'Buat Akun Sekarang')}
+                            {!loading && <ArrowRight className="w-4 h-4" />}
+                          </button>
+                        </form>
+
+                        <div className="mt-8 text-center">
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              setError(null);
+                              setSuccessMessage(null);
+                              setMode(mode === 'login' ? 'register' : 'login');
+                            }}
+                            className="text-xs font-bold text-foreground/40 hover:text-primary transition-colors focus-visible:outline-none focus-visible:text-primary"
+                            disabled={loading}
+                          >
+                            {mode === 'login' 
+                              ? 'Belum memiliki akses? Daftar di sini' 
+                              : 'Sudah memiliki akun? Masuk di sini'}
+                          </button>
+                        </div>
+                      </>
                     )}
-
-                    <AnimatePresence>
-                      {error && (
-                        <motion.div 
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="flex items-start gap-3 text-red-500 bg-red-500/10 p-4 rounded-2xl border border-red-500/20 overflow-hidden mt-1"
-                        >
-                          <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                          <p className="text-xs font-bold leading-relaxed">{error}</p>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    <AnimatePresence>
-                      {successMessage && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="flex items-start gap-3 text-green-600 bg-green-500/10 p-4 rounded-2xl border border-green-500/20 overflow-hidden mt-1"
-                        >
-                          <p className="text-xs font-bold leading-relaxed">{successMessage}</p>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    <button
-                      type="submit"
-                      disabled={loading || !!successMessage}
-                      className="w-full mt-4 px-8 py-4 bg-primary text-primary-foreground rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                    >
-                      {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (mode === 'login' ? 'Masuk ke Dashboard' : 'Buat Akun Sekarang')}
-                      {!loading && <ArrowRight className="w-4 h-4" />}
-                    </button>
-                  </form>
-
-                  <div className="mt-8 text-center">
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setError(null);
-                        setSuccessMessage(null);
-                        setMode(mode === 'login' ? 'register' : 'login');
-                      }}
-                      className="text-xs font-bold text-foreground/40 hover:text-primary transition-colors focus-visible:outline-none focus-visible:text-primary"
-                      disabled={loading}
-                    >
-                      {mode === 'login' 
-                        ? 'Belum memiliki akses? Daftar di sini' 
-                        : 'Sudah memiliki akun? Masuk di sini'}
-                    </button>
-                  </div>
-                </motion.div>
-              </AnimatePresence>
+                  </motion.div>
+                </AnimatePresence>
             </div>
           </motion.div>
         </div>

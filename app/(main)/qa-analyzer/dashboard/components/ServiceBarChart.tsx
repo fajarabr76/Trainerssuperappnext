@@ -28,10 +28,25 @@ export default function ServiceBarChart({ data }: ServiceBarChartProps) {
     );
   }
 
-  const chartData = data.map(d => ({
-    ...d,
-    displayName: SERVICE_LABELS[d.serviceType as keyof typeof SERVICE_LABELS] || d.name
-  }));
+  const chartData = [...(data ?? [])]
+    .filter((d): d is typeof d & { total: number } => 
+      !!d && typeof d.total === "number"
+    )
+    .sort((a, b) => {
+      if (b.total !== a.total) return b.total - a.total;
+      const typeA = String(a.serviceType ?? 'unknown');
+      const typeB = String(b.serviceType ?? 'unknown');
+      return typeA.localeCompare(typeB);
+    })
+    .map((d) => {
+      const safeType = d.serviceType ?? "unknown";
+      const baseName = SERVICE_LABELS[safeType as keyof typeof SERVICE_LABELS] || d.name || safeType;
+      return {
+        ...d,
+        displayName: baseName,           // Pendek untuk axis
+        fullLabel: `${baseName} (${safeType})`, // Informatif untuk tooltip
+      };
+    });
 
   return (
     <div className="h-80 w-full animate-in fade-in duration-700">
