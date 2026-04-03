@@ -197,7 +197,7 @@ export const qaServiceServer = {
       });
     });
 
-    function periodKey(m: number, y: number) { return `${y}-${String(m).padStart(2, '0')}`; }
+    function periodServiceKey(m: number, y: number, s: string) { return `${y}-${String(m).padStart(2, '0')}-${s}`; }
 
     const temuanByAgent = new Map<string, any[]>();
     allTemuan.forEach(t => {
@@ -210,19 +210,19 @@ export const qaServiceServer = {
       const agentTemuan = temuanByAgent.get(agentId) || [];
       if (agentTemuan.length === 0) return;
 
-      const periodsMap = new Map<string, any[]>();
+      const pSvcMap = new Map<string, any[]>();
       agentTemuan.forEach(t => {
-        const pk = periodKey(t.qa_periods.month, t.qa_periods.year);
-        if (!periodsMap.has(pk)) periodsMap.set(pk, []);
-        periodsMap.get(pk)!.push(t);
+        const activeService = t.service_type || TIM_TO_DEFAULT_SERVICE[agentObj.tim] || 'call';
+        const psk = periodServiceKey(t.qa_periods.month, t.qa_periods.year, activeService);
+        if (!pSvcMap.has(psk)) pSvcMap.set(psk, []);
+        pSvcMap.get(psk)!.push(t);
       });
 
-      const sortedPeriods = [...periodsMap.keys()].sort((a, b) => b.localeCompare(a));
-      const latestPeriodKey = sortedPeriods[0];
-      const prevPeriodKey = sortedPeriods.length > 1 ? sortedPeriods[1] : null;
+      const sortedPsk = [...pSvcMap.keys()].sort((a, b) => b.localeCompare(a));
+      const latestPsk = sortedPsk[0];
+      const prevPsk = sortedPsk.length > 1 ? sortedPsk[1] : null;
 
-      const latestTemuan = periodsMap.get(latestPeriodKey)!;
-      // Use service_type from the latest audits if available, otherwise fallback to team mapping
+      const latestTemuan = pSvcMap.get(latestPsk)!;
       const activeService = latestTemuan[0]?.service_type || TIM_TO_DEFAULT_SERVICE[agentObj.tim] || 'call';
       const teamInds = allIndicators.filter(i => i.service_type === activeService);
 
@@ -235,10 +235,10 @@ export const qaServiceServer = {
       agentObj.avgScore = latestScore.finalScore;
       agentObj.atRisk = latestScore.finalScore < 95;
 
-      // Previous Score for Trend
-      if (prevPeriodKey) {
-        const prevTemuan = periodsMap.get(prevPeriodKey)!;
-        const prevActiveService = prevTemuan[0]?.service_type || activeService; // Use previous period's service type if available
+      // Previous Score for Trend (Now matching service if possible, or just the next available)
+      if (prevPsk) {
+        const prevTemuan = pSvcMap.get(prevPsk)!;
+        const prevActiveService = prevTemuan[0]?.service_type || activeService;
         const prevTeamInds = allIndicators.filter(i => i.service_type === prevActiveService);
         
         const prevScore = calculateQAScoreFromTemuan(
@@ -1114,9 +1114,10 @@ export const qaServiceServer = {
     const periodsMap = new Map<string, QATemuan[]>();
     (temuan as QATemuan[]).forEach(t => {
       if (!t.qa_periods) return;
-      const pk = `${t.qa_periods.year}-${String(t.qa_periods.month).padStart(2, '0')}`;
+      const sType = t.service_type || t.qa_indicators?.service_type || 'unknown';
+      const pk = `${t.qa_periods.year}-${String(t.qa_periods.month).padStart(2, '0')}-${sType}`;
       if (!periodsMap.has(pk)) periodsMap.set(pk, []);
-      periodsMap.get(pk)!.push({ ...t, service_type: t.service_type || t.qa_indicators?.service_type } as QATemuan);
+      periodsMap.get(pk)!.push({ ...t, service_type: sType } as QATemuan);
     });
 
     const periods: ExportPeriod[] = [...periodsMap.entries()]
@@ -1132,6 +1133,7 @@ export const qaServiceServer = {
         return {
           month: p.month,
           year: p.year,
+          service_type: (pTemuan[0]?.service_type || 'call') as ServiceType,
           score: scoreResult.finalScore,
           ncScore: scoreResult.nonCriticalScore,
           crScore: scoreResult.criticalScore,

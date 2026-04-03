@@ -32,6 +32,65 @@ Repo ini juga memakai fitur ekspor dan pengolahan file seperti ExcelJS, xlsx, js
 
 ---
 
+## Alur Wajib: Planning & Audit Sebelum Eksekusi
+
+> **Aturan utama**: AI Agent **DILARANG** langsung mengeksekusi perubahan kode, query, atau modifikasi apapun tanpa melalui alur planning dan audit di bawah ini.
+
+### Langkah 1 — Analisis & Riset
+Sebelum membuat rencana, pahami dulu konteksnya secara menyeluruh:
+- Baca dan pahami file/komponen yang terlibat di repo.
+- Cek konteks terbaru via MCP `context7` dan knowledge items yang tersedia.
+- Identifikasi dependensi, side effects, dan potensi konflik dengan kode existing.
+- Jangan membuat asumsi — verifikasi langsung dari kode aktual di repo.
+
+### Langkah 2 — Buat Rencana Teknis (Implementation Plan)
+Susun rencana dalam format artifact `implementation_plan.md` yang memuat:
+
+1. **Ringkasan Tujuan** — Apa yang akan dikerjakan dan kenapa, dalam bahasa yang mudah dipahami user.
+2. **File yang Akan Diubah / Dibuat / Dihapus** — Daftar lengkap beserta alasan per file.
+3. **Detail Perubahan per File** — Jelaskan secara teknis apa yang berubah, tapi sertakan juga penjelasan sederhana ("bahasa manusia") agar user mengerti impaknya.
+4. **Risiko & Asumsi** — Potensi masalah, breaking changes, atau asumsi yang diambil.
+5. **Langkah Verifikasi** — Bagaimana cara memastikan perubahan berhasil dan tidak merusak yang lain.
+6. **Estimasi Dampak** — Komponen/fitur lain yang mungkin terpengaruh.
+
+Gunakan format yang jelas: heading, bullet points, code snippets, dan tabel bila perlu. Tujuannya: user yang non-teknis pun bisa memahami garis besar rencana, sementara user teknis mendapat detail yang cukup.
+
+### Langkah 3 — Self-Audit Rencana
+Sebelum menyerahkan rencana ke user, AI Agent **WAJIB** melakukan audit internal terhadap rencananya sendiri. Checklist audit:
+
+- [ ] **Kelengkapan**: Apakah semua file yang terdampak sudah tercantum? Tidak ada yang terlewat?
+- [ ] **Kebenaran**: Apakah path file, nama fungsi, dan referensi kode sudah benar dan diverifikasi dari repo?
+- [ ] **Konsistensi**: Apakah rencana konsisten dengan arsitektur, konvensi, dan stack yang ada di `agent.md`?
+- [ ] **RBAC & Auth**: Apakah perubahan menghormati role system (`Trainer`, `Leader`, `Agent`)?
+- [ ] **RLS & Security**: Apakah ada risiko bypass RLS atau membuka akses yang tidak seharusnya?
+- [ ] **Side Effects**: Apakah sudah dipertimbangkan efek samping ke komponen/modul lain?
+- [ ] **Tidak Over-Engineering**: Apakah solusi sesederhana mungkin tanpa mengorbankan kualitas?
+- [ ] **Penjelasan User-Friendly**: Apakah penjelasan cukup mudah dipahami oleh user?
+- [ ] **Tidak Ada Asumsi Tersembunyi**: Apakah semua asumsi sudah dinyatakan secara eksplisit?
+
+Jika ditemukan kekurangan saat audit, **perbaiki dulu** rencana sebelum ditampilkan ke user.
+
+### Langkah 4 — Serahkan ke User untuk Approval
+- Tampilkan rencana yang sudah di-audit ke user.
+- Tandai dengan jelas bagian yang memerlukan keputusan user (jika ada).
+- **Jangan mulai eksekusi sampai user memberikan persetujuan eksplisit.**
+
+### Langkah 5 — Eksekusi & Tracking
+Setelah disetujui:
+- Buat `task.md` untuk tracking progress.
+- Kerjakan sesuai rencana yang sudah disetujui.
+- Jika di tengah jalan ditemukan hal yang memerlukan perubahan signifikan dari rencana, **berhenti dan minta approval ulang**.
+
+### Pengecualian
+Alur planning di atas **boleh dilewati** hanya untuk:
+- Pertanyaan investigasi murni (misal: "jelaskan cara kerja X", "di mana kita melakukan Y?").
+- Fix yang trivial dan jelas (misal: typo, syntax error 1 baris, menambah komentar).
+- Perintah read-only (membaca file, menjalankan query SELECT untuk investigasi).
+
+Untuk semua hal lain, **planning dan audit adalah WAJIB**.
+
+---
+
 ## Stack dan Konvensi Teknis
 
 ### Framework

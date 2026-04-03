@@ -145,6 +145,7 @@ export interface ParetoData {
 export interface ExportPeriod {
   month: number;
   year: number;
+  service_type: ServiceType;
   score: number;
   ncScore: number;
   crScore: number;

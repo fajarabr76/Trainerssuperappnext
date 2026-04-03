@@ -2,6 +2,7 @@ import { createClient } from '@/app/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
 import QaAgentDetailClient from './QaAgentDetailClient';
 import { qaServiceServer } from '../../services/qaService.server';
+import { TIM_TO_DEFAULT_SERVICE } from '../../lib/qa-types';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,18 +34,26 @@ export default async function QaAgentDetailPage({ params }: { params: Promise<{ 
   try {
     // Fetch initial data
     const currentYear = new Date().getFullYear();
-    const [agentResult, personalTrend, availableYears, indicators] = await Promise.all([
-      qaServiceServer.getAgentWithTemuan(agentId, currentYear, 0),
-      qaServiceServer.getPersonalTrendWithParameters(agentId, '3m'),
-      qaServiceServer.getAvailableYears(),
-      qaServiceServer.getIndicators()
-    ]);
-
+    
+    // 1. Fetch agent and their temuan first to determine active service
+    const agentResult = await qaServiceServer.getAgentWithTemuan(agentId, currentYear, 0);
+    
     if (!agentResult.agent) {
       return notFound();
     }
 
     const { agent, temuan } = agentResult;
+    
+    // 2. Resolve service type: latest from temuan, or default from team
+    const initialService = temuan[0]?.service_type || 
+                          (agent.tim ? TIM_TO_DEFAULT_SERVICE[agent.tim] : 'call');
+
+    // 3. Fetch remains in parallel
+    const [personalTrend, availableYears, indicators] = await Promise.all([
+      qaServiceServer.getPersonalTrendWithParameters(agentId, '3m', initialService),
+      qaServiceServer.getAvailableYears(),
+      qaServiceServer.getIndicators()
+    ]);
 
     const initialData = {
       temuan,

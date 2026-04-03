@@ -51,6 +51,7 @@ export function useAgentDetail({
   const [trendMounted, setTrendMounted] = useState(false);
   const [temuanMounted, setTemuanMounted] = useState(false);
   const [activeTrendFilter, setActiveTrendFilter] = useState('all');
+  const manualScrollRef = useRef<number>(0);
   
   const [agent] = useState<Agent>(initialAgent);
   const [data, setData] = useState<AgentDetailData>(initialData);
@@ -93,7 +94,9 @@ export function useAgentDetail({
     
     return Object.values(periods).map(p => {
       // Logic from qa-types used directly via static import
-      const score = calculateQAScoreFromTemuan(indicatorsMetadata, p.items);
+      // Bug Fix: Filter indicators by correct service_type for each period to match SQL RPC logic
+      const filteredIndicators = indicatorsMetadata.filter(i => i.service_type === p.serviceType);
+      const score = calculateQAScoreFromTemuan(filteredIndicators, p.items);
       
       return {
         month: p.month,
@@ -202,8 +205,11 @@ export function useAgentDetail({
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
+        // Skip observer updates if a manual scroll was triggered recently
+        if (Date.now() - manualScrollRef.current < 800) return;
+
         entries.forEach(entry => {
-          if (entry.isIntersecting) {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
             const id = entry.target.id;
             if (id === 'section-summary') setActiveSection('summary');
             if (id === 'section-trend') {
@@ -217,7 +223,11 @@ export function useAgentDetail({
           }
         });
       },
-      { root: scrollContainerRef.current, threshold: 0.3 }
+      { 
+        root: scrollContainerRef.current, 
+        threshold: [0.1, 0.5, 0.8],
+        rootMargin: '-100px 0px -200px 0px' 
+      }
     );
 
     const sections = ['section-summary', 'section-trend', 'section-temuan'];
@@ -233,7 +243,16 @@ export function useAgentDetail({
   const scrollToSection = useCallback((sectionId: string) => {
     const el = document.getElementById(sectionId);
     if (el && scrollContainerRef.current) {
-      const top = el.offsetTop - 120;
+      // Mark as manual scroll to prevent observer from overriding state during smooth scroll
+      manualScrollRef.current = Date.now();
+
+      // Manually set active section for immediate feedback
+      const key = sectionId.replace('section-', '');
+      if (key === 'summary' || key === 'trend' || key === 'temuan') {
+        setActiveSection(key);
+      }
+      
+      const top = el.offsetTop - 140; // Adjusted offset for new sticky bar height
       scrollContainerRef.current.scrollTo({ top, behavior: 'smooth' });
     }
   }, []);
@@ -284,10 +303,11 @@ export function useAgentDetail({
     }
   };
 
-  const handleTimeframeChange = async (tf: '3m' | '6m' | 'all') => {
+  const handleTimeframeChange = useCallback(async (tf: '3m' | '6m' | 'all') => {
     setLoadingTrend(true);
     try {
-      const res = await getPersonalTrendAction(agentId, tf);
+      const targetService = selectedPeriod?.serviceType || (temuan[0]?.service_type) || 'call';
+      const res = await getPersonalTrendAction(agentId, tf, targetService);
       setData(prev => ({ ...prev, personalTrend: res }));
       setTimeframe(tf);
     } catch (err) {
@@ -295,7 +315,14 @@ export function useAgentDetail({
     } finally {
       setLoadingTrend(false);
     }
-  };
+  }, [agentId, selectedPeriod?.serviceType, temuan]);
+
+  // Refetch trend when service type changes via period selection
+  useEffect(() => {
+    if (selectedPeriod?.serviceType) {
+      handleTimeframeChange(timeframe);
+    }
+  }, [selectedPeriod?.serviceType, timeframe, handleTimeframeChange]);
 
   const startEdit = (t: QATemuan) => {
     setEditingTemuan(t);
@@ -351,19 +378,29 @@ export function useAgentDetail({
         ['Nama Agent', exportData.agent.nama], ['Tim', exportData.agent.tim], ['Folder', exportData.agent.batch],
         ['Tanggal Export', new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})],
         [''], ['RINGKASAN SKOR PER PERIODE'],
-        ['Periode', 'Skor Akhir', 'Non-Critical', 'Critical'],
+        ['Periode', 'Layanan', 'Skor Akhir', 'Non-Critical', 'Critical'],
       ];
       exportData.periods.forEach(p => {
-        summaryRows.push([`${['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][p.month-1]} ${p.year}`, p.score.toFixed(2), p.ncScore.toFixed(2), p.crScore.toFixed(2)]);
+        const monthLabel = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][p.month-1];
+        summaryRows.push([
+          `${monthLabel} ${p.year}`, 
+          p.service_type.toUpperCase(),
+          p.score.toFixed(2), 
+          p.ncScore.toFixed(2), 
+          p.crScore.toFixed(2)
+        ]);
       });
       const ws1 = XLSX.utils.aoa_to_sheet(summaryRows);
-      ws1['!cols'] = [{wch:28},{wch:14},{wch:14},{wch:14}];
+      ws1['!cols'] = [{wch:24},{wch:12},{wch:14},{wch:14},{wch:14}];
       XLSX.utils.book_append_sheet(wb, ws1, 'Ringkasan');
 
       exportData.periods.forEach(p => {
-        const sheetName = `${['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][p.month-1]} ${p.year}`.slice(0,31);
+        const monthShort = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][p.month-1];
+        const svcLabel = p.service_type === 'call' ? 'Call' : p.service_type === 'email' ? 'Email' : p.service_type.charAt(0).toUpperCase() + p.service_type.slice(1);
+        const sheetName = `${monthShort} ${p.year} (${svcLabel})`.slice(0,31);
+        
         const rows: (string | number | undefined)[][] = [
-          [`${['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][p.month-1]} ${p.year}`], [''],
+          [`${['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][p.month-1]} ${p.year} - ${svcLabel}`], [''],
           [`Skor Akhir: ${p.score.toFixed(2)}`], [`Non-Critical: ${p.ncScore.toFixed(2)}`], [`Critical: ${p.crScore.toFixed(2)}`],
           [''], ['No. Tiket', 'Kategori', 'Parameter', 'Nilai', 'Keterangan', 'Ketidaksesuaian', 'Sebaiknya'],
         ];

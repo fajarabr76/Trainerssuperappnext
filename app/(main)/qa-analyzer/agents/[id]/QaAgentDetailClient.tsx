@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Activity, ArrowLeft, Sun, Moon, ExternalLink,
@@ -62,6 +62,11 @@ export default function QaAgentDetailClient({
 }: QaAgentDetailClientProps) {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   const {
     // State
@@ -134,9 +139,11 @@ export default function QaAgentDetailClient({
             <h1 className="text-lg font-black tracking-tight">Agent Performance Detail</h1>
           </div>
           <div className="flex items-center gap-4">
-            <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="w-10 h-10 rounded-xl hover:bg-foreground/5 text-foreground/40 border border-border/50 flex items-center justify-center transition-all bg-card/50">
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
+            {mounted && (
+              <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="w-10 h-10 rounded-xl hover:bg-foreground/5 text-foreground/40 border border-border/50 flex items-center justify-center transition-all bg-card/50">
+                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
+            )}
           </div>
         </header>
 
@@ -197,35 +204,22 @@ export default function QaAgentDetailClient({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 bg-card/50 border border-border/50 rounded-2xl p-1.5 px-4 h-12 shadow-sm">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-foreground/30">Tahun:</span>
-                    <YearSelector 
-                      years={availableYears} 
-                      selectedYear={selectedYear} 
-                      onYearChange={handleYearChange}
-                    />
-                  </div>
-                  
+                <div className="flex items-center gap-3">
                   <button
                     onClick={handleExport}
                     disabled={exporting}
-                    className="h-12 px-6 flex items-center gap-2 bg-primary/10 text-primary border border-primary/20 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all duration-500 active:scale-95 disabled:opacity-50 shadow-lg shadow-primary/5"
+                    className="h-11 px-5 flex items-center gap-2 bg-primary/10 text-primary border border-primary/20 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all duration-300 disabled:opacity-50 shadow-sm"
                   >
-                    {exporting ? (
-                      <Activity className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Download className="w-4 h-4" />
-                    )}
-                    {exporting ? 'Exporting...' : 'Export Laporan'}
+                    {exporting ? <Activity className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                    {exporting ? 'Exporting...' : 'Export'}
                   </button>
 
                   {role === 'admin' && (
                     <button
                       onClick={handleTambahTemuan}
-                      className="h-12 px-6 flex items-center gap-2 bg-foreground text-background rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all duration-500 shadow-xl shadow-foreground/10"
+                      className="h-11 px-5 flex items-center gap-2 bg-foreground text-background rounded-xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all shadow-md shadow-foreground/10"
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className="w-3.5 h-3.5" />
                       Tambah Temuan
                     </button>
                   )}
@@ -233,39 +227,55 @@ export default function QaAgentDetailClient({
               </div>
             </div>
 
-            {/* Sticky Navigation Pills */}
-            <div className="sticky top-20 z-30 bg-background/40 backdrop-blur-md px-10 py-4 border-b border-border/20">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 p-1.5 bg-card/60 border border-border/50 rounded-2xl shadow-sm">
+            {/* Unified Sticky Control Bar */}
+            <div className="sticky top-20 z-40 bg-background/60 backdrop-blur-md px-10 py-4 border-b border-border/40">
+              <div className="flex flex-col md:flex-row md:items-center justify-center gap-6 max-w-4xl mx-auto">
+                {/* Navigation Tabs */}
+                <div className="flex items-center gap-1.5 p-1 bg-foreground/[0.03] border border-border/40 rounded-2xl shadow-inner-sm">
                   {[
                     { id: 'section-summary', label: 'Summary', key: 'summary' },
-                    { id: 'section-trend', label: 'Performance Trend', key: 'trend' },
-                    { id: 'section-temuan', label: 'Audit Findings', key: 'temuan' }
+                    { id: 'section-trend', label: 'Trend', key: 'trend' },
+                    { id: 'section-temuan', label: 'Findings', key: 'temuan' }
                   ].map((tab) => (
                     <button
                       key={tab.id}
                       onClick={() => scrollToSection(tab.id)}
-                      className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500 ${
+                      className={`px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all duration-300 ${
                         activeSection === tab.key
-                          ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105'
+                          ? 'bg-primary text-primary-foreground shadow-md'
                           : 'text-foreground/40 hover:text-foreground hover:bg-foreground/5'
                       }`}
-                      aria-current={activeSection === tab.key ? 'page' : undefined}
-                      aria-label={`Go to ${tab.label}`}
                     >
                       {tab.label}
                     </button>
                   ))}
                 </div>
 
+                {/* Vertical Divider for Desktop */}
+                <div className="hidden md:block w-px h-8 bg-border/40" />
+
+                {/* Context & Filters */}
                 {selectedPeriod && (
-                  <div className="flex flex-col items-end">
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground/20 leading-none mb-1.5">Selected Period</p>
-                    <div className="flex items-center gap-3">
-                      <div className="px-3 py-1 bg-primary/5 border border-primary/20 rounded-lg text-[10px] font-black text-primary uppercase tracking-widest">
+                  <div className="flex items-center gap-2 bg-card/40 border border-border/40 rounded-2xl p-1 shadow-sm">
+                    {/* Year Selection Group */}
+                    <div className="flex items-center gap-2 px-3 py-1.5 border-r border-border/40">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-foreground/30">Year</span>
+                      <YearSelector 
+                        years={availableYears} 
+                        selectedYear={selectedYear} 
+                        onYearChange={handleYearChange}
+                      />
+                    </div>
+                    
+                    {/* Period Context Group */}
+                    <div className="flex items-center gap-3 px-3 py-1.5">
+                      <div className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-lg text-[9px] font-black text-primary uppercase tracking-widest">
                         {selectedPeriod.serviceType}
                       </div>
-                      <span className="text-sm font-black tracking-tight">{selectedPeriod.label}</span>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-foreground/20 leading-none mb-0.5">Period</span>
+                        <span className="text-[12px] font-black tracking-tight text-foreground/80">{selectedPeriod.label}</span>
+                      </div>
                     </div>
                   </div>
                 )}
