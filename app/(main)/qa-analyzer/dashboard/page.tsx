@@ -29,8 +29,8 @@ export default async function QaDashboardPage({
 
   const role = profile?.role || 'trainer';
 
-  // Allowed roles - consistent with Level 1 Summary for all personas
-  const allowedRoles = ['trainer', 'trainers', 'leader', 'agent', 'admin', 'superadmin'];
+  // Allowed roles - consistent with Level 1 Summary for all personas (EXCLUDING agent now)
+  const allowedRoles = ['trainer', 'trainers', 'leader', 'admin', 'superadmin'];
   if (!allowedRoles.includes(role)) {
     redirect('/dashboard');
   }

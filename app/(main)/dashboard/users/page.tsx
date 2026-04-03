@@ -20,7 +20,7 @@ export default async function UsersPage() {
   const allowedRoles = ['admin', 'superadmin'];
   
   if (!allowedRoles.includes(role)) {
-    redirect('/');
+    redirect('/dashboard');
   }
 
   return <UsersClient user={user} role={role} profile={profile} />;

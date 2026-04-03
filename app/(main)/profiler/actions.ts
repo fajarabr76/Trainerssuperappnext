@@ -30,33 +30,6 @@ async function validateRole() {
   return user;
 }
 
-/**
- * Validates if the user owns the resource or is an admin.
- */
-async function checkOwnership(table: string, id: string, userId: string) {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from(table)
-    .select('trainer_id')
-    .eq('id', id)
-    .single();
-
-  if (error || !data) throw new Error('Data tidak ditemukan');
-  
-  if (data.trainer_id !== userId) {
-    // Check if user is admin/superadmin as fallback
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', userId)
-      .single();
-    
-    const role = profile?.role?.toLowerCase() || '';
-    if (role !== 'admin' && role !== 'superadmin') {
-      throw new Error('Akses ditolak: bukan milik Anda');
-    }
-  }
-}
 
 export async function createYear(year: number) {
   await validateRole();
@@ -146,7 +119,6 @@ export async function createFolder(name: string, yearId: string | null = null, p
 
 export async function updateFolder(id: string, patch: { name?: string; year_id?: string; parent_id?: string }) {
   const user = await validateRole();
-  await checkOwnership('profiler_folders', id, user.id);
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -216,7 +188,6 @@ export async function deleteBatch(batchName: string) {
 
 export async function duplicateFolder(folderId: string, targetYearId: string) {
   const user = await validateRole();
-  await checkOwnership('profiler_folders', folderId, user.id);
   const supabase = await createClient();
 
   // 1. Get source folder
@@ -290,20 +261,7 @@ export async function copyPesertaToFolder(pesertaIds: string[], targetBatch: str
   if (sErr) throw sErr;
 
   if (sources && sources.length > 0) {
-    // Ownership check for sources
-    const unauthorized = sources.some(s => s.trainer_id !== user.id);
-    if (unauthorized) {
-      // Check if user is admin
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      const role = profile?.role?.toLowerCase() || '';
-      if (role !== 'admin' && role !== 'superadmin') {
-        throw new Error('Akses ditolak: ada data yang bukan milik Anda');
-      }
-    }
+    // Removed ownership check for shared model
 
     const newPeserta = sources.map(s => {
       const { id, created_at, updated_at, ...rest } = s;
@@ -341,7 +299,6 @@ export async function getOriginalPeserta(id: string) {
 
 export async function updatePeserta(id: string, data: Partial<Peserta>, path?: string) {
   const user = await validateRole();
-  await checkOwnership('profiler_peserta', id, user.id);
   const supabase = await createClient();
   const { error } = await supabase
     .from('profiler_peserta')
@@ -353,7 +310,6 @@ export async function updatePeserta(id: string, data: Partial<Peserta>, path?: s
 
 export async function deletePeserta(id: string, path?: string) {
   const user = await validateRole();
-  await checkOwnership('profiler_peserta', id, user.id);
   const supabase = await createClient();
 
   const { error } = await supabase

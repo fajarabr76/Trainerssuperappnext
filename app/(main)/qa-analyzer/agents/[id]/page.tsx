@@ -16,19 +16,34 @@ export default async function QaAgentDetailPage({ params }: { params: Promise<{ 
     redirect('/login');
   }
 
-  // Get profile and role
+  // Get profile and role from PROFILES table (system identity)
   const { data: profile } = await supabase
-    .from('profiler_peserta')
-    .select('role, tim')
+    .from('profiles')
+    .select('role')
     .eq('id', user.id)
     .single();
 
   const role = profile?.role || 'trainer';
 
-  // Allowed roles
-  const allowedRoles = ['trainer', 'trainers', 'leader', 'admin', 'superadmin'];
+  // Allowed roles - Agent is now allowed but will be filtered below
+  const allowedRoles = ['trainer', 'trainers', 'leader', 'agent', 'admin', 'superadmin'];
   if (!allowedRoles.includes(role)) {
     redirect('/dashboard');
+  }
+
+  // STSRICT FILTERING FOR AGENT ROLE
+  if (role.toLowerCase() === 'agent') {
+    // Find the peserta record associated with this user's email
+    const { data: ownPeserta } = await supabase
+      .from('profiler_peserta')
+      .select('id')
+      .eq('email_ojk', user.email)
+      .single();
+    
+    // If agent is not registered as a peserta OR trying to access someone else's ID
+    if (!ownPeserta || ownPeserta.id !== agentId) {
+      redirect('/dashboard');
+    }
   }
 
   try {
