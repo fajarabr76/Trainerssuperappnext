@@ -23,6 +23,7 @@ Repo ini juga memakai fitur ekspor dan pengolahan file seperti ExcelJS, xlsx, js
 ---
 
 ## Prinsip Umum
+- **WAJIB**: Selalu refer ke MCP `context7` sebelum mengerjakan task apa pun untuk mendapatkan konteks terbaru atau instruksi tambahan yang mungkin relevan.
 - Utamakan konsistensi dengan codebase yang sudah ada.
 - Jangan refactor besar tanpa diminta.
 - Jangan mengganti struktur route, auth flow, atau pola Supabase tanpa alasan kuat.

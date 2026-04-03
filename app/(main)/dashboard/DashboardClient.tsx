@@ -171,7 +171,7 @@ export default function DashboardClient({
   const lastVal = trendDataPoints.length > 0 ? trendDataPoints[trendDataPoints.length - 1] : 0;
   const prevVal = trendDataPoints.length > 1 ? trendDataPoints[trendDataPoints.length - 2] : 0;
   
-  const trendStatus = trendDataPoints.length < 2 ? "Stabil" : (lastVal < prevVal ? "Tren Membaik" : lastVal > prevVal ? "Tren Menurun" : "Stabil");
+  const trendStatus = trendDataPoints.length < 2 ? "Stagnan" : (lastVal < prevVal ? "Membaik" : lastVal > prevVal ? "Memburuk" : "Stagnan");
   const timeframeLabel = timeframe === '3m' ? '3 bulan terakhir' : timeframe === '6m' ? '6 bulan terakhir' : 'semua periode';
 
   // We could use searchParams to re-fetch trend data server-side
