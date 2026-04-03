@@ -1,11 +1,11 @@
 'use server'
 
 import { createClient } from '@/app/lib/supabase/server';
-import { ServiceType, Category, DashboardData, TrendPoint, TopAgentData } from './lib/qa-types';
+import { ServiceType, Category, DashboardData, TrendPoint, TopAgentData, ExportData } from './lib/qa-types';
 import { revalidatePath, revalidateTag } from 'next/cache';
 
 
-export async function getAgentExportDataAction(agentId: string) {
+export async function getAgentExportDataAction(agentId: string): Promise<ExportData> {
   const { qaServiceServer } = await import('./services/qaService.server');
   return await qaServiceServer.getAgentExportData(agentId);
 }

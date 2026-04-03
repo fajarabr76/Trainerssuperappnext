@@ -1,17 +1,17 @@
 'use client';
 
-import React from 'react';
-import { BarChart2, ShieldCheck, Edit2, Trash2, Loader2, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
+import { BarChart2, ShieldCheck, Edit2, Trash2, Loader2, ChevronRight, AlertCircle } from 'lucide-react';
+import type { QATemuan } from '../../../lib/qa-types';
 
 interface AgentTemuanTabProps {
-  groupedTemuan: { urutan: number; no_tiket: string | null; items: any[] }[];
+  groupedTemuan: { urutan: number; no_tiket: string | null; items: QATemuan[] }[];
   selectedPeriod: { month: number; year: number; label: string; serviceType: string; id?: string } | null;
   role: string;
-  loadingData: boolean;
+  loadingTemuan: boolean;
   currentPage: number;
   hasMore: boolean;
   deletingId: string | null;
-  onStartEdit: (t: any) => void;
+  onStartEdit: (t: QATemuan) => void;
   onDelete: (id: string) => void;
   onPageChange: (page: number) => void;
 }
@@ -41,7 +41,7 @@ export default function AgentTemuanTab({
   groupedTemuan,
   selectedPeriod,
   role,
-  loadingData,
+  loadingTemuan,
   currentPage,
   hasMore,
   deletingId,
@@ -50,8 +50,8 @@ export default function AgentTemuanTab({
   onPageChange
 }: AgentTemuanTabProps) {
   return (
-    <div className={`relative bg-card/40 backdrop-blur-sm rounded-[3rem] border border-border/50 overflow-hidden shadow-2xl shadow-black/5 transition-opacity duration-300 ${loadingData ? 'opacity-60 pointer-events-none' : ''}`}>
-      {loadingData && (
+    <div className={`relative bg-card/40 backdrop-blur-sm rounded-[3rem] border border-border/50 overflow-hidden shadow-2xl shadow-black/5 transition-opacity duration-300 ${loadingTemuan ? 'opacity-60 pointer-events-none' : ''}`}>
+      {loadingTemuan && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/5">
           <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin shadow-2xl" />
         </div>
@@ -100,7 +100,7 @@ export default function AgentTemuanTab({
               </div>
 
               <div className="divide-y divide-border/20 bg-card/10">
-                {group.items.map((t: any) => {
+                {group.items.map((t: QATemuan) => {
                   const isCritical = t.qa_indicators?.category === 'critical';
                   const isDeficit = t.nilai < 3;
                   const hasRekomendasi = !!t.sebaiknya && t.sebaiknya.trim().length > 0;
@@ -176,28 +176,25 @@ export default function AgentTemuanTab({
 
       <div className="px-10 py-10 bg-card/60 backdrop-blur-xl border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="flex flex-col">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground/20 mb-1">Page Control</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground/20 mb-1">Observation History</p>
           <div className="flex items-center gap-3">
-            <span className="text-2xl font-black tabular-nums">{currentPage + 1}</span>
+            <span className="text-2xl font-black tabular-nums">{groupedTemuan.reduce((acc, g) => acc + g.items.length, 0)}</span>
             <div className="h-4 w-[1px] bg-border/50" />
-            <span className="text-[10px] font-black text-foreground/30 uppercase tracking-widest">{hasMore ? 'Scroll for more' : 'End of records'}</span>
+            <span className="text-[10px] font-black text-foreground/30 uppercase tracking-widest">{hasMore ? 'Incremental loading enabled' : 'All records loaded'}</span>
           </div>
         </div>
         
         <div className="flex items-center gap-3">
           <button
-            onClick={() => onPageChange(currentPage - 1)}
-            disabled={currentPage === 0 || loadingData}
-            className="h-12 px-6 flex items-center gap-2 bg-card border border-border/50 rounded-2xl text-[10px] font-black uppercase tracking-widest text-foreground/60 hover:bg-foreground/5 hover:text-foreground transition-all disabled:opacity-30 active:scale-95 shadow-sm"
-          >
-            <ChevronLeft className="w-4 h-4" /> Previous
-          </button>
-          <button
             onClick={() => onPageChange(currentPage + 1)}
-            disabled={!hasMore || loadingData}
-            className="h-12 px-8 flex items-center gap-2 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 disabled:opacity-30 disabled:scale-100 transition-all"
+            disabled={!hasMore || loadingTemuan}
+            className="h-12 px-8 flex items-center gap-2 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 disabled:opacity-30 disabled:scale-100 transition-all font-black"
           >
-            Next <ChevronRight className="w-4 h-4" />
+            {loadingTemuan ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <>Load More Findings <ChevronRight className="w-4 h-4" /></>
+            )}
           </button>
         </div>
       </div>

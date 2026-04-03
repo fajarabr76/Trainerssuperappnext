@@ -3,6 +3,7 @@
 import React from 'react';
 import { TrendingUp, Activity, BarChart2, Zap } from 'lucide-react';
 import ParamTrendChart from '../../../dashboard/components/ParamTrendChart';
+import type { TrendData, TrendDataset } from '../../../lib/qa-types';
 
 const TREND_COLORS = [
   '#A855F7', // Purple
@@ -14,8 +15,8 @@ const TREND_COLORS = [
 ];
 
 interface AgentTrendTabProps {
-  loadingData: boolean;
-  personalTrend: any;
+  loadingTrend: boolean;
+  personalTrend: TrendData;
   timeframe: '3m' | '6m' | 'all';
   activeTrendFilter: string;
   onTimeframeChange: (tf: '3m' | '6m' | 'all') => void;
@@ -23,14 +24,14 @@ interface AgentTrendTabProps {
 }
 
 export default function AgentTrendTab({
-  loadingData,
+  loadingTrend,
   personalTrend,
   timeframe,
   activeTrendFilter,
   onTimeframeChange,
   onFilterChange
 }: AgentTrendTabProps) {
-  if (loadingData) {
+  if (loadingTrend) {
     return (
       <div className="bg-card/40 backdrop-blur-sm rounded-[2.5rem] border border-border/50 p-10 animate-pulse h-[550px] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -81,7 +82,7 @@ export default function AgentTrendTab({
             >
               Overall Trend
             </button>
-            {personalTrend.datasets.map((ds: any, i: number) => {
+            {personalTrend.datasets.map((ds: TrendDataset, i: number) => {
               if (ds.isTotal) return null;
               const isActive = activeTrendFilter === ds.label;
               const color = TREND_COLORS[i % TREND_COLORS.length];

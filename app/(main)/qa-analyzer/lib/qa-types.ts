@@ -112,12 +112,93 @@ export interface TopAgentData {
   hasCritical: boolean;
 }
 
+export interface Agent {
+  id: string;
+  nama: string;
+  tim: string;
+  batch: string;
+  batch_name?: string;
+  foto_url?: string | null;
+  jabatan?: string | null;
+  bergabung_date?: string | null;
+}
+
+export interface TrendDataset {
+  label: string;
+  data: number[];
+  isTotal: boolean;
+}
+
+export interface TrendData {
+  labels: string[];
+  datasets: TrendDataset[];
+}
+
 export interface ParetoData {
   name: string;
   fullName: string;
   count: number;
   cumulative: number;
   category: 'critical' | 'non_critical';
+}
+
+export interface ExportPeriod {
+  month: number;
+  year: number;
+  score: number;
+  ncScore: number;
+  crScore: number;
+  temuan: QATemuan[];
+}
+
+export interface ExportData {
+  agent: Agent;
+  periods: ExportPeriod[];
+}
+
+export interface AgentDetailData {
+  indicators: QAIndicator[];
+  temuan: QATemuan[];
+  personalTrend: TrendData;
+  availableYears?: number[];
+  scoreHistory?: ScoreResult[];
+}
+
+export interface ScoreResult {
+  month: number;
+  year: number;
+  finalScore: number;
+  nonCriticalScore: number;
+  criticalScore: number;
+  sessionCount: number;
+  service_type: ServiceType;
+}
+
+export interface PeriodSelection {
+  month: number;
+  year: number;
+  label: string;
+  serviceType: string;
+  id?: string;
+}
+
+export interface EditFormState {
+  nilai: number;
+  ketidaksesuaian: string;
+  sebaiknya: string;
+}
+
+export interface CoachingInsight {
+  parameter: string;
+  count: number;
+  recommendation: string;
+  isCritical: boolean;
+}
+
+export interface GroupedTemuan {
+  urutan: number;
+  no_tiket: string | null;
+  items: QATemuan[];
 }
 
 export interface CriticalVsNonCriticalData {
@@ -134,7 +215,7 @@ export interface DashboardData {
   topAgents: TopAgentData[];
   paretoData: ParetoData[];
   donutData: CriticalVsNonCriticalData | null;
-  paramTrend: any;
+  paramTrend: TrendData;
   sparklines: Record<string, TrendPoint[]>;
   availableYears: number[];
   currentYear: number;

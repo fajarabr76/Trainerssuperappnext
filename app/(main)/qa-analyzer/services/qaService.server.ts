@@ -16,7 +16,9 @@ import {
   ServiceComparisonData,
   TopAgentData,
   ParetoData,
-  CriticalVsNonCriticalData
+  CriticalVsNonCriticalData,
+  ExportData,
+  ExportPeriod
 } from '../lib/qa-types';
 
 import { createClient as createJSClient } from '@supabase/supabase-js';
@@ -1101,7 +1103,7 @@ export const qaServiceServer = {
     return { labels, datasets };
   },
 
-  async getAgentExportData(agentId: string) {
+  async getAgentExportData(agentId: string): Promise<ExportData> {
     const supabase = await createClient();
     const { agent, temuan } = await this.getAgentWithTemuan(agentId);
     if (!agent) throw new Error('Agent not found');
@@ -1109,18 +1111,18 @@ export const qaServiceServer = {
     const { data: indicators } = await supabase.from('qa_indicators').select('*');
     const allIndicators = (indicators || []) as QAIndicator[];
 
-    const periodsMap = new Map<string, any[]>();
-    temuan.forEach(t => {
+    const periodsMap = new Map<string, QATemuan[]>();
+    (temuan as QATemuan[]).forEach(t => {
       if (!t.qa_periods) return;
       const pk = `${t.qa_periods.year}-${String(t.qa_periods.month).padStart(2, '0')}`;
       if (!periodsMap.has(pk)) periodsMap.set(pk, []);
-      periodsMap.get(pk)!.push({ ...t, service_type: t.service_type || t.qa_indicators?.service_type });
+      periodsMap.get(pk)!.push({ ...t, service_type: t.service_type || t.qa_indicators?.service_type } as QATemuan);
     });
 
-    const periods = [...periodsMap.entries()]
+    const periods: ExportPeriod[] = [...periodsMap.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([pk, pTemuan]) => {
-        const p = pTemuan[0].qa_periods;
+        const p = pTemuan[0].qa_periods!;
         const teamInds = allIndicators.filter(i => i.service_type === pTemuan[0]?.service_type);
         const scoreResult = calculateQAScoreFromTemuan(
           teamInds,
