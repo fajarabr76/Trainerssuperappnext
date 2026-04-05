@@ -13,6 +13,25 @@ import {
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#ff7300'];
 
+const ChartTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  const item = payload[0];
+  // Recharts payload structure varies slightly between Pie and Bar
+  const color = item.payload?.fill || item.color || item.fill;
+  const name = item.name || label;
+  const value = item.value;
+
+  return (
+    <div className="bg-card border border-border/40 rounded-xl px-4 py-2.5 shadow-lg text-sm transition-all duration-200">
+      <div className="flex items-center gap-2">
+        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 animate-pulse" style={{ backgroundColor: color }} />
+        <span className="font-bold text-foreground">{name}</span>
+        <span className="text-foreground/60 font-medium ml-auto pl-2">{value}</span>
+      </div>
+    </div>
+  );
+};
+
 interface ProfilerAnalyticsClientProps {
   initialPeserta: Peserta[];
   initialYears: ProfilerYear[];
@@ -79,14 +98,24 @@ export default function ProfilerAnalyticsClient({
       timCount[tim] = (timCount[tim] || 0) + 1;
     });
 
-    const formatData = (data: Record<string, number>) => 
-      Object.entries(data).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+    const formatData = (data: Record<string, number>, colorOffset = 0) => 
+      Object.entries(data)
+        .map(([name, value], index) => ({ 
+          name, 
+          value,
+          fill: COLORS[(index + colorOffset) % COLORS.length]
+        }))
+        .sort((a, b) => b.value - a.value);
 
     return {
-      jabatan: formatData(jabatanCount),
-      gender: formatData(genderCount),
-      pendidikan: formatData(pendidikanCount),
-      tim: formatData(timCount),
+      jabatan: formatData(jabatanCount, 0),
+      gender: Object.entries(genderCount).map(([name, value]) => ({
+        name,
+        value,
+        fill: name === 'Laki-laki' ? '#0088FE' : name === 'Perempuan' ? '#FF8042' : '#FFBB28'
+      })).sort((a, b) => b.value - a.value),
+      pendidikan: formatData(pendidikanCount, 6),
+      tim: formatData(timCount, 4),
       total: peserta.length
     };
   }, [peserta]);
@@ -252,19 +281,15 @@ export default function ProfilerAnalyticsClient({
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(255,255,255,0.1)" />
                       <XAxis type="number" />
                       <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
-                      <Tooltip 
-                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', background: 'hsl(var(--card))' }}
-                        cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                      />
+                      <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
                       <Bar 
                         dataKey="value" 
-                        fill="#8884d8" 
                         radius={[0, 4, 4, 0]}
                         cursor="pointer"
                         onClick={(data) => handleChartClick('Jabatan', data.name, p => (labelJabatan[p.jabatan] || p.jabatan || 'Tidak Diketahui') === data.name)}
                       >
                         {stats.jabatan.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -291,11 +316,11 @@ export default function ProfilerAnalyticsClient({
                         onClick={(data) => handleChartClick('Tim', data.name, p => (p.tim || 'Tidak Diketahui') === data.name)}
                       >
                         {stats.tim.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
                         ))}
                       </Pie>
-                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', background: 'hsl(var(--card))' }} />
-                      <Legend verticalAlign="bottom" height={36} />
+                      <Tooltip content={<ChartTooltip />} />
+                      <Legend verticalAlign="bottom" height={36} iconType="circle" />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -319,10 +344,11 @@ export default function ProfilerAnalyticsClient({
                         onClick={(data) => handleChartClick('Gender', data.name, p => (p.jenis_kelamin || 'Tidak Diketahui') === data.name)}
                       >
                         {stats.gender.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.name === 'Laki-laki' ? '#0088FE' : entry.name === 'Perempuan' ? '#FF8042' : '#FFBB28'} />
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
                         ))}
                       </Pie>
-                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', background: 'hsl(var(--card))' }} />
+                      <Tooltip content={<ChartTooltip />} />
+                      <Legend verticalAlign="bottom" height={36} iconType="circle" />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -338,19 +364,15 @@ export default function ProfilerAnalyticsClient({
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
                       <XAxis dataKey="name" />
                       <YAxis />
-                      <Tooltip 
-                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', background: 'hsl(var(--card))' }}
-                        cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                      />
+                      <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
                       <Bar 
                         dataKey="value" 
-                        fill="#00C49F" 
                         radius={[4, 4, 0, 0]}
                         cursor="pointer"
                         onClick={(data) => handleChartClick('Pendidikan', data.name, p => (p.pendidikan || 'Tidak Diketahui') === data.name)}
                       >
                         {stats.pendidikan.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
                         ))}
                       </Bar>
                     </BarChart>
