@@ -250,17 +250,17 @@ export default function QaDashboardClient({
                 </section>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <section className="bg-card rounded-2xl border border-border p-5">
+                  <section className="bg-card rounded-2xl border border-border/40 p-5">
                     <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                      <span className="w-1 h-5 bg-blue-500 rounded-full"></span>
+                      <span className="w-1 h-5 bg-chart-blue rounded-full"></span>
                       Total Temuan per Layanan
                     </h2>
                     <ServiceBarChart data={displayData.serviceData} />
                   </section>
 
-                  <section className="bg-card rounded-2xl border border-border p-5">
+                  <section className="bg-card rounded-2xl border border-border/40 p-5">
                     <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                      <span className="w-1 h-5 bg-orange-500 rounded-full"></span>
+                      <span className="w-1 h-5 bg-chart-orange rounded-full"></span>
                       Top 5 Agen (Temuan Tertinggi)
                     </h2>
                     <TopAgentsTable 
@@ -271,7 +271,7 @@ export default function QaDashboardClient({
                   </section>
                 </div>
                 
-                <section className="bg-card rounded-2xl border border-border p-5">
+                <section className="bg-card rounded-2xl border border-border/40 p-5">
                   <div className="flex items-center justify-between mb-8">
                     <h2 className="text-lg font-semibold flex items-center gap-2">
                       <span className="w-1 h-5 bg-primary rounded-full"></span>
@@ -328,9 +328,9 @@ export default function QaDashboardClient({
                   )}
                 </section>
 
-                <section className="bg-card rounded-2xl border border-border p-5">
+                <section className="bg-card rounded-2xl border border-border/40 p-5">
                   <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                    <span className="w-1 h-5 bg-red-500 rounded-full"></span>
+                    <span className="w-1 h-5 bg-chart-red rounded-full"></span>
                     Root Cause Analysis
                   </h2>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

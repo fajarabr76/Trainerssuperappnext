@@ -255,7 +255,7 @@ export default function ProfilerLandingClient({
         <main className="flex-1 overflow-y-auto bg-card border border-border/40 rounded-2xl shadow-sm custom-scrollbar relative">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none overflow-hidden z-0 rounded-2xl">
             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px] animate-pulse" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-violet-500/5 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-module-profiler/5 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
           </div>
 
           {!selectedBatch ? (
@@ -292,7 +292,7 @@ export default function ProfilerLandingClient({
                   <div className="flex items-center gap-3">
                     <button 
                       onClick={() => setShowPicker(true)}
-                      className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-violet-600/20 hover:scale-105 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+                      className="flex items-center gap-2 px-5 py-2.5 bg-module-profiler text-white rounded-xl text-sm font-bold shadow-lg shadow-module-profiler/20 hover:scale-105 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
                     >
                       <UserPlus size={18} />
                       Pilih dari Batch Lain
@@ -326,8 +326,8 @@ export default function ProfilerLandingClient({
                     />
                     <ActionCard
                       icon={<Upload className="w-5 h-5" />}
-                      iconBg="bg-emerald-500/10"
-                      iconColor="text-emerald-500"
+                      iconBg="bg-module-telefun-bg"
+                      iconColor="text-module-telefun"
                       title="Impor Kolektif"
                       desc="Unggah XLS untuk perbarui data massal."
                       onClick={() => router.push(`/profiler/import?batch=${encodeURIComponent(selectedBatch)}`)}
@@ -338,38 +338,38 @@ export default function ProfilerLandingClient({
 
               <section className={`transition-all duration-500 mb-8 ${!hasPeserta ? 'opacity-30 grayscale pointer-events-none' : ''}`}>
                 <div className="flex items-center gap-3 mb-4 px-1">
-                  <div className="w-1 h-3 bg-blue-500 rounded-full" />
+                  <div className="w-1 h-3 bg-primary rounded-full" />
                   <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40"> Analisis & Ekspor </p>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <ActionCard
                     icon={<Table2 className="w-5 h-5" />}
-                    iconBg="bg-blue-500/10"
-                    iconColor="text-blue-500"
+                    iconBg="bg-chart-blue/10"
+                    iconColor="text-chart-blue"
                     title="Database"
                     desc="Kelola data dalam format tabel."
                     onClick={() => router.push(`/profiler/table?batch=${encodeURIComponent(selectedBatch)}`)}
                   />
                   <ActionCard
                     icon={<SlidersHorizontal className="w-5 h-5" />}
-                    iconBg="bg-purple-500/10"
-                    iconColor="text-purple-500"
+                    iconBg="bg-module-pdkt/10"
+                    iconColor="text-module-pdkt"
                     title="Slides"
                     desc="Profil agen format presentasi."
                     onClick={() => router.push(`/profiler/slides?batch=${encodeURIComponent(selectedBatch)}`)}
                   />
                   <ActionCard
                     icon={<Download className="w-5 h-5" />}
-                    iconBg="bg-orange-500/10"
-                    iconColor="text-orange-500"
+                    iconBg="bg-chart-orange/10"
+                    iconColor="text-chart-orange"
                     title="Ekspor"
                     desc="Konversi ke PDF & Excel."
                     onClick={() => router.push(`/profiler/export?batch=${encodeURIComponent(selectedBatch)}`)}
                   />
                   <ActionCard
                     icon={<PieChart className="w-5 h-5" />}
-                    iconBg="bg-emerald-500/10"
-                    iconColor="text-emerald-500"
+                    iconBg="bg-module-telefun-bg"
+                    iconColor="text-module-telefun"
                     title="Statistik"
                     desc="Dashboard distribusi batch."
                     onClick={() => router.push(`/profiler/analytics?batch=${encodeURIComponent(selectedBatch)}`)}
