@@ -554,7 +554,7 @@ export const qaServiceServer = {
 
     const topParams = Object.entries(counts)
       .map(([name, periodCounts]) => ({ name, total: Object.values(periodCounts).reduce((a, b) => a + b, 0) }))
-      .sort((a, b) => b.total - a.total).slice(0, 5).map(p => p.name);
+      .sort((a, b) => b.total - a.total).map(p => p.name);
 
     const datasets = [
       { label: 'Total Temuan', data: sortedPeriods.map(p => totalByPeriod[p.id] || 0), isTotal: true },
@@ -1077,7 +1077,7 @@ export const qaServiceServer = {
 
     const topParams = Object.entries(paramCounts)
       .map(([name, periodCounts]) => ({ name, total: Object.values(periodCounts).reduce((a, b) => a + b, 0) }))
-      .sort((a, b) => b.total - a.total).slice(0, 5).map(p => p.name);
+      .sort((a, b) => b.total - a.total).map(p => p.name);
 
     const datasets = [
       { label: 'Total Temuan', data: sortedPeriods.map(p => totalFindingsByPeriod[p.id] || 0), isTotal: true },
@@ -1134,7 +1134,7 @@ export const qaServiceServer = {
 
     const topParams = Object.entries(counts)
       .map(([name, periodCounts]) => ({ name, total: Object.values(periodCounts).reduce((a, b) => a + b, 0) }))
-      .sort((a, b) => b.total - a.total).slice(0, 5).map(p => p.name);
+      .sort((a, b) => b.total - a.total).map(p => p.name);
 
     const datasets = [
       { label: 'Total Temuan', data: sortedPeriods.map(p => totalByPeriod[p.id] || 0), isTotal: true },

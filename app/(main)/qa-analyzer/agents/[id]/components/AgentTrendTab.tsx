@@ -50,7 +50,7 @@ export default function AgentTrendTab({
             <TrendingUp className="w-3.5 h-3.5" /> Performance Analytics
           </div>
           <h3 className="text-3xl font-black tracking-tighter">Personal Scoring Trend</h3>
-          <p className="text-[10px] text-foreground/20 font-bold mt-2 uppercase tracking-widest">Aggregate historical data & parameter shifts</p>
+          <p className="text-[10px] text-foreground/20 font-bold mt-2 uppercase tracking-widest">Aggregate historical data & all audited parameters</p>
         </div>
         <div className="flex p-1.5 bg-foreground/5 dark:bg-foreground/[0.03] border border-border/50 rounded-2xl w-fit shadow-inner">
           {(['3m', '6m', 'all'] as const).map((tf) => (
@@ -83,9 +83,8 @@ export default function AgentTrendTab({
               Overall Trend
             </button>
             {personalTrend.datasets.map((ds: TrendDataset, i: number) => {
-              if (ds.isTotal) return null;
               const isActive = activeTrendFilter === ds.label;
-              const color = TREND_COLORS[i % TREND_COLORS.length];
+              const color = ds.isTotal ? 'hsl(var(--primary))' : TREND_COLORS[i % TREND_COLORS.length];
               
               return (
                 <button
