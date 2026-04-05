@@ -232,15 +232,19 @@ export default function AppKetik() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.05 }}
-            className="max-w-xl w-full bg-card/40 backdrop-blur-3xl rounded-[2rem] p-6 md:p-8 shadow-3xl border border-border/50 relative z-10 overflow-hidden"
+            className="max-w-xl w-full bg-card/40 backdrop-blur-3xl rounded-3xl p-6 md:p-8 shadow-2xl border border-border/40 relative z-10 overflow-hidden"
           >
             {/* Background Glow */}
             <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 rounded-full blur-[80px] -mr-24 -mt-24 pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-32 h-32 bg-primary/5 rounded-full blur-[60px] -ml-16 -mb-16 pointer-events-none" />
 
             <div className="absolute top-8 left-8 z-20">
-              <Link href="/dashboard" className="w-12 h-12 flex items-center justify-center rounded-2xl bg-foreground/5 text-foreground/40 hover:bg-foreground/10 hover:text-foreground transition-all border border-border/50">
-                <ArrowLeft className="w-5 h-5" />
+              <Link href="/dashboard"
+                className="w-10 h-10 flex items-center justify-center rounded-xl
+                           bg-foreground/5 border border-border/40
+                           text-foreground/40 hover:text-foreground hover:bg-foreground/10
+                           transition-all group">
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
               </Link>
             </div>
 
@@ -255,7 +259,7 @@ export default function AppKetik() {
                 <div className="absolute inset-0 bg-white/20 rounded-2xl blur-xl opacity-0 hover:opacity-100 transition-opacity duration-500" />
               </motion.div>
               <h1 className="text-4xl font-black text-foreground mb-2 tracking-tighter text-center">Ketik</h1>
-              <h2 className="text-[10px] font-black text-primary uppercase tracking-[0.4em] mb-4 opacity-80">Kelas Etika & Trik Komunikasi</h2>
+              <h2 className="text-label-mono text-primary mb-4">Kelas Etika & Trik Komunikasi</h2>
               <p className="text-foreground/70 text-xs leading-relaxed max-w-sm mx-auto font-medium">
                 Asah kemampuan penanganan chat Anda. Tingkatkan kualitas layanan melalui komunikasi tulis yang empatik, profesional, dan solutif.
               </p>
@@ -267,7 +271,7 @@ export default function AppKetik() {
                 whileTap={{ scale: 0.98 }} 
                 onClick={startSimulation} 
                 disabled={isLoading} 
-                className="w-full bg-primary text-white h-20 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl shadow-primary/20 flex items-center justify-center gap-3 transition-all hover:bg-primary/90"
+                className="w-full bg-primary text-white h-20 rounded-3xl font-black text-xs uppercase tracking-widest shadow-2xl shadow-primary/20 flex items-center justify-center gap-3 transition-all hover:bg-primary/90"
               >
                 {isLoading ? <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Play className="w-4 h-4 fill-current" /><span>Mulai Simulasi</span></>}
               </motion.button>
@@ -277,7 +281,7 @@ export default function AppKetik() {
                   whileHover={{ scale: 1.02, y: -1 }} 
                   whileTap={{ scale: 0.98 }} 
                   onClick={() => setIsSettingsOpen(true)} 
-                  className="bg-foreground/5 hover:bg-foreground/10 text-foreground/60 h-20 rounded-[2rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 transition-all border border-border/50"
+                  className="bg-foreground/5 hover:bg-foreground/10 text-foreground/60 h-20 rounded-3xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 transition-all border border-border/40"
                 >
                   <Settings className="w-4 h-4 opacity-40" /><span>Opsi</span>
                 </motion.button>
@@ -285,7 +289,7 @@ export default function AppKetik() {
                   whileHover={{ scale: 1.02, y: -1 }} 
                   whileTap={{ scale: 0.98 }} 
                   onClick={() => setIsHistoryOpen(true)} 
-                  className="bg-foreground/5 hover:bg-foreground/10 text-foreground/60 h-20 rounded-[2rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 transition-all border border-border/50"
+                  className="bg-foreground/5 hover:bg-foreground/10 text-foreground/60 h-20 rounded-3xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 transition-all border border-border/40"
                 >
                   <History className="w-4 h-4 opacity-40" /><span>Riwayat</span>
                 </motion.button>

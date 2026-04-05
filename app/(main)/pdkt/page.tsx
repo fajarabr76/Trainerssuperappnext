@@ -278,11 +278,15 @@ const PdktPage: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="max-w-xl w-full bg-card/40 backdrop-blur-3xl rounded-[2rem] p-6 md:p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] border border-white/10 relative z-10"
+            className="max-w-xl w-full bg-card/40 backdrop-blur-3xl rounded-3xl p-6 md:p-8 shadow-2xl border border-border/40 relative z-10"
           >
             <div className="absolute top-8 left-8 z-20">
-              <Link href="/dashboard" className="w-14 h-14 flex items-center justify-center rounded-2xl bg-foreground/5 text-foreground/40 hover:text-foreground hover:bg-foreground/10 transition-all group border border-transparent hover:border-border/50">
-                <ArrowLeft className="w-6 h-6 group-hover:-translate-x-1 transition-transform" />
+              <Link href="/dashboard"
+                className="w-10 h-10 flex items-center justify-center rounded-xl
+                           bg-foreground/5 border border-border/40
+                           text-foreground/40 hover:text-foreground hover:bg-foreground/10
+                           transition-all group">
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
               </Link>
             </div>
 
@@ -291,7 +295,7 @@ const PdktPage: React.FC = () => {
                 initial={{ rotate: -15, scale: 0.8, opacity: 0 }} 
                 animate={{ rotate: 0, scale: 1, opacity: 1 }} 
                 transition={{ delay: 0.2, type: 'spring', stiffness: 150 }} 
-                className="w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-[0_20px_40px_-10px_rgba(var(--primary),0.3)] relative group cursor-default"
+                className="w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-2xl shadow-primary/30 relative group cursor-default"
               >
                 <div className="absolute inset-0 bg-white/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
                 <Mail className="h-10 w-10 text-primary-foreground relative z-10" />
@@ -314,7 +318,7 @@ const PdktPage: React.FC = () => {
                 whileTap={{ scale: 0.98 }} 
                 onClick={startSession} 
                 disabled={isLoading} 
-                className="w-full bg-primary text-primary-foreground h-20 rounded-[2rem] font-black text-xl shadow-[0_20px_40px_-12px_rgba(var(--primary),0.4)] flex items-center justify-center gap-4 transition-all hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed group"
+                className="w-full bg-primary text-primary-foreground h-20 rounded-3xl font-black text-xl shadow-2xl shadow-primary/30 flex items-center justify-center gap-4 transition-all hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed group"
               >
                 {isLoading ? (
                   <div className="w-7 h-7 border-3 border-primary-foreground/20 border-t-primary-foreground rounded-full animate-spin" />
@@ -333,7 +337,7 @@ const PdktPage: React.FC = () => {
                   whileHover={{ scale: 1.02, y: -2 }} 
                   whileTap={{ scale: 0.98 }} 
                   onClick={() => setIsSettingsOpen(true)} 
-                  className="bg-foreground/5 hover:bg-foreground/10 text-foreground/60 h-20 rounded-[2rem] font-extrabold flex items-center justify-center gap-3 transition-all border border-border/50 hover:border-border "
+                  className="bg-foreground/5 hover:bg-foreground/10 text-foreground/60 h-20 rounded-3xl font-extrabold flex items-center justify-center gap-3 transition-all border border-border/50 hover:border-border "
                 >
                   <Settings className="w-5 h-5" />
                   <span className="text-[11px] uppercase tracking-widest">Pengaturan</span>
@@ -342,7 +346,7 @@ const PdktPage: React.FC = () => {
                   whileHover={{ scale: 1.02, y: -2 }} 
                   whileTap={{ scale: 0.98 }} 
                   onClick={() => setIsHistoryOpen(true)} 
-                  className="bg-foreground/5 hover:bg-foreground/10 text-foreground/60 h-20 rounded-[2rem] font-extrabold flex items-center justify-center gap-3 transition-all border border-border/50 hover:border-border "
+                  className="bg-foreground/5 hover:bg-foreground/10 text-foreground/60 h-20 rounded-3xl font-extrabold flex items-center justify-center gap-3 transition-all border border-border/50 hover:border-border "
                 >
                   <History className="w-5 h-5" />
                   <span className="text-[11px] uppercase tracking-widest">Riwayat</span>
