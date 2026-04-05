@@ -24,6 +24,7 @@ Repo ini juga memakai fitur ekspor dan pengolahan file seperti ExcelJS, xlsx, js
 
 ## Prinsip Umum
 - **WAJIB**: Selalu refer ke MCP `context7` sebelum mengerjakan task apa pun untuk mendapatkan konteks terbaru atau instruksi tambahan yang mungkin relevan.
+- **WAJIB**: Selalu merujuk pada `design.md` sebagai standar estetika, palet warna, tipografi, dan pola komponen UI (Apple Design System). Semua elemen baru harus selaras dengan prinsip "cinematic minimalism" yang dijelaskan di sana.
 - Utamakan konsistensi dengan codebase yang sudah ada.
 - Jangan refactor besar tanpa diminta.
 - Jangan mengganti struktur route, auth flow, atau pola Supabase tanpa alasan kuat.
@@ -105,6 +106,7 @@ Untuk semua hal lain, **planning dan audit adalah WAJIB**.
 
 ### Styling
 - Gunakan Tailwind CSS 4.
+- Ikuti standar **Apple Design System** yang terdokumentasi di `design.md` (Pure black `#000000`, light gray `#f5f5f7`, Apple Blue `#0071e3`, SF Pro typography, glassmorphism, dan pill-shaped CTAs).
 - Ikuti style yang sudah ada: card rounded, dark mode aware, utility-first.
 - Jangan hardcode style inline jika bisa dinyatakan dengan utility Tailwind.
 - Pertahankan konsistensi visual existing, termasuk dark/light mode.
