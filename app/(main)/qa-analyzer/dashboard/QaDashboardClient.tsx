@@ -23,7 +23,7 @@ import ServiceBarChart from './components/ServiceBarChart';
 import TopAgentsTable from './components/TopAgentsTable';
 import ParetoChart from './components/ParetoChart';
 import FatalDonutChart from './components/FatalDonutChart';
-import ParamTrendChart from './components/ParamTrendChart';
+import ParamTrendChart, { TREND_COLORS } from './components/ParamTrendChart';
 import { YearSelector } from './components/YearSelector';
 import { getDashboardDataAction } from '../actions';
 
@@ -59,6 +59,20 @@ export default function QaDashboardClient({
   const [selectedFolderId, setSelectedFolderId] = useState(initialFilters.folder);
   const [timeframe, setTimeframe] = useState(initialFilters.timeframe);
   const [selectedService, setSelectedService] = useState(initialFilters.service);
+  const [hiddenParams, setHiddenParams] = useState<Set<string>>(() => {
+    const labels = initialData.paramTrend?.datasets
+      .filter((ds: any) => !ds.isTotal && ds.label)
+      .map((ds: any) => ds.label as string) || [];
+    return new Set(labels);
+  });
+
+  const toggleParam = (label: string) => {
+    setHiddenParams(prev => {
+      const next = new Set(prev);
+      next.has(label) ? next.delete(label) : next.add(label);
+      return next;
+    });
+  };
 
   // Update URL when filters change
   const updateFilters = (newPeriod: string, newFolder: string, newTimeframe: string, newService: string) => {
@@ -83,6 +97,10 @@ export default function QaDashboardClient({
         ...prev,
         ...newData
       }));
+      const yearLabels = (newData.paramTrend ?? displayData.paramTrend)?.datasets
+        .filter((ds: any) => !ds.isTotal && ds.label)
+        .map((ds: any) => ds.label as string) || [];
+      setHiddenParams(new Set(yearLabels));
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
     } finally {
@@ -97,7 +115,12 @@ export default function QaDashboardClient({
     setSelectedFolderId(initialFilters.folder);
     setTimeframe(initialFilters.timeframe);
     setSelectedService(initialFilters.service);
+    DISPLAY_DATA_START:
     setDisplayData(initialData);
+    const newLabels = initialData.paramTrend?.datasets
+      .filter((ds: any) => !ds.isTotal && ds.label)
+      .map((ds: any) => ds.label as string) || [];
+    setHiddenParams(new Set(newLabels));
   }, [initialData]);
 
   return (
@@ -259,9 +282,46 @@ export default function QaDashboardClient({
                     </div>
                   </div>
                   {displayData.paramTrend && (
-                    <div className="h-[350px] w-full">
-                      <ParamTrendChart data={displayData.paramTrend} showParameters={true} />
-                    </div>
+                    <>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {displayData.paramTrend.datasets.map((ds: any, i: number) => {
+                          if (ds.isTotal) return null;
+                          const color = TREND_COLORS[i % TREND_COLORS.length];
+                          const isHidden = hiddenParams.has(ds.label);
+                          return (
+                            <button
+                              key={ds.label}
+                              onClick={() => toggleParam(ds.label)}
+                              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all duration-200 ${
+                                isHidden
+                                  ? 'opacity-40 border-border bg-transparent line-through'
+                                  : 'border-transparent'
+                              }`}
+                              style={{
+                                backgroundColor: isHidden ? 'transparent' : `${color}22`,
+                                color,
+                              }}
+                            >
+                              <span
+                                className="w-2 h-2 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: color }}
+                              />
+                              {ds.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="text-xs text-foreground/40 mt-1 mb-3">
+                        Klik parameter untuk menampilkan tren spesifik
+                      </p>
+                      <div className="h-[350px] w-full">
+                        <ParamTrendChart 
+                          data={displayData.paramTrend} 
+                          showParameters={true} 
+                          hiddenKeys={hiddenParams}
+                        />
+                      </div>
+                    </>
                   )}
                 </section>
 

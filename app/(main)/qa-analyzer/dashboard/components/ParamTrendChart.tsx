@@ -5,7 +5,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart
 } from 'recharts';
 
-const TREND_COLORS = [
+export const TREND_COLORS = [
   '#A855F7', // Purple
   '#EC4899', // Pink
   '#3B82F6', // Blue
@@ -17,11 +17,13 @@ const TREND_COLORS = [
 export default function ParamTrendChart({ 
   data, 
   showParameters = true,
-  filterLabel = 'all'
+  filterLabel = 'all',
+  hiddenKeys = new Set<string>()
 }: { 
   data: { labels: string[], datasets: any[] }, 
   showParameters?: boolean,
-  filterLabel?: string
+  filterLabel?: string,
+  hiddenKeys?: Set<string>
 }) {
   const [mounted, setMounted] = React.useState(false);
 
@@ -84,6 +86,7 @@ export default function ParamTrendChart({
           {showParameters && data.datasets.map((ds: any, i: number) => {
             if (ds.isTotal) return null;
             if (isFiltered && ds.label !== filterLabel) return null;
+            if (!isFiltered && hiddenKeys.has(ds.label)) return null;
             
             const color = TREND_COLORS[i % TREND_COLORS.length];
             return (
