@@ -31,13 +31,13 @@
   --color-module-sidak:    var(--module-sidak);
 
   /* Chart colors */
-  --color-chart-blue:      var(--color-chart-blue);
-  --color-chart-orange:    var(--color-chart-orange);
-  --color-chart-red:       var(--color-chart-red);
-  --color-chart-green:     var(--color-chart-green);
-  --color-chart-amber:     var(--color-chart-amber);
-  --color-chart-violet:    var(--color-chart-violet);
-  --color-chart-cyan:      var(--color-chart-cyan);
+  --color-chart-blue:      var(--chart-blue);
+  --color-chart-orange:    var(--chart-orange);
+  --color-chart-red:       var(--chart-red);
+  --color-chart-green:     var(--chart-green);
+  --color-chart-amber:     var(--chart-amber);
+  --color-chart-violet:    var(--chart-violet);
+  --color-chart-cyan:      var(--chart-cyan);
 
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
@@ -103,13 +103,13 @@
 
     /* ── Semantic Chart/Status Colors ───────────────────── */
     /* Dipakai di SIDAK charts, section bars, status badges  */
-    --color-chart-blue:      #3B82F6;
-    --color-chart-orange:    #F97316;
-    --color-chart-red:       #EF4444;
-    --color-chart-green:     #10B981;
-    --color-chart-amber:     #F59E0B;
-    --color-chart-violet:    #8B5CF6;
-    --color-chart-cyan:      #06B6D4;
+    --chart-blue:      #3B82F6;
+    --chart-orange:    #F97316;
+    --chart-red:       #EF4444;
+    --chart-green:     #10B981;
+    --chart-amber:     #F59E0B;
+    --chart-violet:    #8B5CF6;
+    --chart-cyan:      #06B6D4;
   }
 
   .dark {
@@ -156,13 +156,13 @@
     --module-sidak-bg:       #F43F5E15;
 
     /* ── Semantic Chart/Status Colors ────────────────── */
-    --color-chart-blue:      #3B82F6;
-    --color-chart-orange:    #F97316;
-    --color-chart-red:       #EF4444;
-    --color-chart-green:     #10B981;
-    --color-chart-amber:     #F59E0B;
-    --color-chart-violet:    #8B5CF6;
-    --color-chart-cyan:      #06B6D4;
+    --chart-blue:      #3B82F6;
+    --chart-orange:    #F97316;
+    --chart-red:       #EF4444;
+    --chart-green:     #10B981;
+    --chart-amber:     #F59E0B;
+    --chart-violet:    #8B5CF6;
+    --chart-cyan:      #06B6D4;
   }
 }
 
@@ -179,6 +179,50 @@
     @apply antialiased;
     font-family: var(--font-sans), system-ui, sans-serif;
     transition: background-color 0.3s ease, color 0.3s ease;
+  }
+}
+
+@layer utilities {
+  /* ── 3.2 Typography Scale ──────────────────────────────── */
+  
+  .text-page-title {
+    @apply text-4xl font-bold tracking-tight;
+  }
+  
+  .text-section-title {
+    @apply text-3xl font-bold tracking-tight;
+  }
+  
+  .text-card-title {
+    @apply text-base font-bold tracking-tight;
+  }
+  
+  .text-label-mono {
+    @apply text-[10px] font-bold uppercase tracking-widest text-muted-foreground;
+  }
+  
+  .text-body-custom {
+    @apply text-sm font-light text-muted-foreground;
+  }
+  
+  .text-body-bold {
+    @apply text-sm font-bold;
+  }
+  
+  .text-stat-value {
+    @apply text-3xl font-black tracking-tighter;
+  }
+  
+  .text-stat-label {
+    @apply text-[10px] uppercase tracking-[0.2em] font-black text-muted-foreground;
+  }
+  
+  .text-button-custom {
+    @apply text-sm font-bold;
+  }
+  
+  .text-tiny-meta {
+    @apply text-xs font-light text-muted-foreground;
   }
 }
 
