@@ -2,7 +2,7 @@
 
 import React from 'react';
 import {
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Area, AreaChart
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart
 } from 'recharts';
 
 const TREND_COLORS = [
@@ -31,10 +31,12 @@ export default function ParamTrendChart({
 
   if (!data || !data.labels.length) return null;
 
+  // FIX: Gunakan dataset_{index} sebagai key (bukan ds.label) untuk menghindari
+  // Recharts dot-notation bug pada label yang mengandung titik (e.g. "1.1 Greeting")
   const chartData = data.labels.map((label, i) => {
     const point: any = { name: label };
-    data.datasets.forEach(ds => {
-      point[ds.label] = ds.data[i];
+    data.datasets.forEach((ds, dsIndex) => {
+      point[`dataset_${dsIndex}`] = ds.data[i];
     });
     return point;
   });
@@ -78,6 +80,7 @@ export default function ParamTrendChart({
               borderWidth: '1px'
             }}
           />
+          
           {showParameters && data.datasets.map((ds: any, i: number) => {
             if (ds.isTotal) return null;
             if (isFiltered && ds.label !== filterLabel) return null;
@@ -86,9 +89,11 @@ export default function ParamTrendChart({
             return (
               <Area
                 key={ds.label}
+                name={ds.label}
                 type="monotone"
-                dataKey={ds.label}
-                stackId={isFiltered ? undefined : "1"}
+                dataKey={`dataset_${i}`}
+                // FIX: stackId dihapus agar setiap area dirender berdasarkan nilai absolutnya,
+                // bukan ditumpuk secara kumulatif yang menyebabkan semua garis terlihat identik
                 stroke={color}
                 strokeWidth={isFiltered ? 4 : 2}
                 fill={color}
@@ -99,6 +104,7 @@ export default function ParamTrendChart({
               />
             );
           })}
+          
           {data.datasets.map((ds: any, i: number) => {
             if (!ds.isTotal) return null;
             if (isFiltered && ds.label !== filterLabel) return null;
@@ -106,8 +112,9 @@ export default function ParamTrendChart({
             return (
               <Area
                 key={ds.label}
+                name={ds.label}
                 type="monotone"
-                dataKey={ds.label}
+                dataKey={`dataset_${i}`}
                 stroke="hsl(var(--primary))"
                 strokeWidth={4}
                 fill="url(#totalTrendGradient)"
