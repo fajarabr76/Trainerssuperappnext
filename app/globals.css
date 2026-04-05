@@ -23,6 +23,22 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  /* Module colors */
+  --color-module-ketik:    var(--module-ketik);
+  --color-module-pdkt:     var(--module-pdkt);
+  --color-module-telefun:  var(--module-telefun);
+  --color-module-profiler: var(--module-profiler);
+  --color-module-sidak:    var(--module-sidak);
+
+  /* Chart colors */
+  --color-chart-blue:      var(--color-chart-blue);
+  --color-chart-orange:    var(--color-chart-orange);
+  --color-chart-red:       var(--color-chart-red);
+  --color-chart-green:     var(--color-chart-green);
+  --color-chart-amber:     var(--color-chart-amber);
+  --color-chart-violet:    var(--color-chart-violet);
+  --color-chart-cyan:      var(--color-chart-cyan);
+
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
@@ -71,6 +87,29 @@
     --ivory: #FAFAF9;
     --navy: #1E293B;
     --surface-elevated: #FFFFFF;
+
+    /* ── Module Identity Colors ──────────────────────── */
+    /* Dipakai di dashboard card dan header modul          */
+    --module-ketik:          #3B82F6;   /* blue-500    */
+    --module-ketik-bg:       #3B82F610; /* blue-500/10 */
+    --module-pdkt:           #A855F7;   /* purple-500  */
+    --module-pdkt-bg:        #A855F710;
+    --module-telefun:        #10B981;   /* emerald-500 */
+    --module-telefun-bg:     #10B98110;
+    --module-profiler:       #8B5CF6;   /* violet-500  */
+    --module-profiler-bg:    #8B5CF610;
+    --module-sidak:          #F43F5E;   /* rose-500    */
+    --module-sidak-bg:       #F43F5E10;
+
+    /* ── Semantic Chart/Status Colors ───────────────────── */
+    /* Dipakai di SIDAK charts, section bars, status badges  */
+    --color-chart-blue:      #3B82F6;
+    --color-chart-orange:    #F97316;
+    --color-chart-red:       #EF4444;
+    --color-chart-green:     #10B981;
+    --color-chart-amber:     #F59E0B;
+    --color-chart-violet:    #8B5CF6;
+    --color-chart-cyan:      #06B6D4;
   }
 
   .dark {
@@ -103,6 +142,27 @@
     --gold: #F59E0B;
     --gold-muted: #D97706;
     --surface-elevated: #1F1F23;
+
+    /* ── Module Identity Colors (dark) ────────────────── */
+    --module-ketik:          #3B82F6;
+    --module-ketik-bg:       #3B82F615;
+    --module-pdkt:           #A855F7;
+    --module-pdkt-bg:        #A855F715;
+    --module-telefun:        #10B981;
+    --module-telefun-bg:       #10B98115;
+    --module-profiler:       #8B5CF6;
+    --module-profiler-bg:    #8B5CF615;
+    --module-sidak:          #F43F5E;
+    --module-sidak-bg:       #F43F5E15;
+
+    /* ── Semantic Chart/Status Colors ────────────────── */
+    --color-chart-blue:      #3B82F6;
+    --color-chart-orange:    #F97316;
+    --color-chart-red:       #EF4444;
+    --color-chart-green:     #10B981;
+    --color-chart-amber:     #F59E0B;
+    --color-chart-violet:    #8B5CF6;
+    --color-chart-cyan:      #06B6D4;
   }
 }
 
