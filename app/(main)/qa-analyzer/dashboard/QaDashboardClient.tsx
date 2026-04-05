@@ -24,7 +24,6 @@ import TopAgentsTable from './components/TopAgentsTable';
 import ParetoChart from './components/ParetoChart';
 import FatalDonutChart from './components/FatalDonutChart';
 import ParamTrendChart, { TREND_COLORS } from './components/ParamTrendChart';
-import { YearSelector } from './components/YearSelector';
 import { getDashboardDataAction } from '../actions';
 
 interface QaDashboardClientProps {
@@ -115,7 +114,6 @@ export default function QaDashboardClient({
     setSelectedFolderId(initialFilters.folder);
     setTimeframe(initialFilters.timeframe);
     setSelectedService(initialFilters.service);
-    DISPLAY_DATA_START:
     setDisplayData(initialData);
     const newLabels = initialData.paramTrend?.datasets
       .filter((ds: any) => !ds.isTotal && ds.label)
