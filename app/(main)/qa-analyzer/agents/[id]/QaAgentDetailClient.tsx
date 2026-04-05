@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { User } from '@supabase/supabase-js';
 
 // Types & Hooks
@@ -236,19 +236,27 @@ export default function QaAgentDetailClient({
                     { id: 'section-summary', label: 'Summary', key: 'summary' },
                     { id: 'section-trend', label: 'Trend', key: 'trend' },
                     { id: 'section-temuan', label: 'Findings', key: 'temuan' }
-                  ].map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => scrollToSection(tab.id)}
-                      className={`px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all duration-300 ${
-                        activeSection === tab.key
-                          ? 'bg-primary text-primary-foreground shadow-md'
-                          : 'text-foreground/40 hover:text-foreground hover:bg-foreground/5'
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
+                  ].map((tab) => {
+                    const isActive = activeSection === tab.key;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => scrollToSection(tab.id)}
+                        className={`relative px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors duration-300 ${
+                          isActive ? 'text-primary-foreground' : 'text-foreground/40 hover:text-foreground'
+                        }`}
+                      >
+                        <span className="relative z-10">{tab.label}</span>
+                        {isActive && (
+                          <motion.div
+                            layoutId="active-tab-pill"
+                            className="absolute inset-0 bg-primary rounded-xl shadow-md z-0"
+                            transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {/* Vertical Divider for Desktop */}

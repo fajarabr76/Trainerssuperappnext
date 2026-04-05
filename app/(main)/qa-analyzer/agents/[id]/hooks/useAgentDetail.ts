@@ -148,12 +148,20 @@ export function useAgentDetail({
   }, [selectedScore, prevScore]);
 
   const selectedTemuan = useMemo(() => {
-    if (!selectedPeriod) return temuan;
-    return temuan.filter(t => 
-      t.qa_periods?.month === selectedPeriod.month && 
-      t.qa_periods?.year === selectedPeriod.year &&
-      t.service_type === selectedPeriod.serviceType
-    );
+    if (!selectedPeriod) return [];
+    
+    // Strict filtering by period and service_type
+    return temuan.filter(t => {
+      const isMonthMatch = t.qa_periods?.month === selectedPeriod.month;
+      const isYearMatch = t.qa_periods?.year === selectedPeriod.year;
+      
+      // Ensure strict case-insensitive service type matching to avoid '0' bug
+      const itemService = (t.service_type || '').toLowerCase();
+      const targetService = (selectedPeriod.serviceType || '').toLowerCase();
+      const isServiceMatch = itemService === targetService;
+      
+      return isMonthMatch && isYearMatch && isServiceMatch;
+    });
   }, [temuan, selectedPeriod]);
 
   const automatedCoaching = useMemo((): CoachingInsight | null => {
