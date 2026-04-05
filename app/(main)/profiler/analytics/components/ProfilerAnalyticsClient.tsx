@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, PieChart as PieChartIcon, BarChart3, Users, Briefcase, GraduationCap, ChevronDown, X, Folder } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -37,11 +37,23 @@ export default function ProfilerAnalyticsClient({
   const [loading, setLoading] = useState(false);
   const [modalData, setModalData] = useState<{ title: string, participants: Peserta[] } | null>(null);
 
-  // If user changes batch via dropdown, we might want to fetch new data.
-  // In a true SSR app, we could just router.push with new search param.
+  // Fix for Next.js App Router: Sync state with props when navigation occurs
+  // This ensures that new data from the server is reflected in the client state
+  useEffect(() => {
+    setPeserta(initialPeserta);
+    setSelectedBatch(batchName);
+    setLoading(false);
+  }, [initialPeserta, batchName]);
+
   const handleBatchChange = (newBatch: string) => {
+    if (newBatch === selectedBatch) {
+      setShowPicker(false);
+      return;
+    }
+    
     setSelectedBatch(newBatch);
     setShowPicker(false);
+    setLoading(true);
     router.push(`/profiler/analytics?batch=${encodeURIComponent(newBatch)}`);
   };
 
