@@ -8,7 +8,11 @@ import { SERVICE_LABELS, ServiceType, EXCLUDED_FOLDERS } from '../lib/qa-types';
 
 export const dynamic = 'force-dynamic';
 
-export default async function RankingAgenPage() {
+export default async function RankingAgenPage({
+  searchParams,
+}: {
+  searchParams?: { service?: string; year?: string };
+}) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -44,9 +48,9 @@ export default async function RankingAgenPage() {
     .filter((f: any) => !EXCLUDED_FOLDERS.some(ef => ef.toLowerCase() === f.name.toLowerCase()));
 
   const serviceTypes = Object.keys(SERVICE_LABELS) as ServiceType[];
-  const defaultServiceType = serviceTypes[0] || 'call';
+  const defaultServiceType = (searchParams?.service as ServiceType) || serviceTypes[0] || 'call';
   const defaultPeriodId = 'ytd';
-  const defaultYear = new Date().getFullYear();
+  const defaultYear = searchParams?.year ? parseInt(searchParams.year) : new Date().getFullYear();
 
   // Initial Ranking Data
   const { data: initialRanking } = await getRankingAgenAction(
