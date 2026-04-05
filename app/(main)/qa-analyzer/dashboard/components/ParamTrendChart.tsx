@@ -18,12 +18,14 @@ export default function ParamTrendChart({
   data, 
   showParameters = true,
   filterLabel = 'all',
-  hiddenKeys = new Set<string>()
+  hiddenKeys = new Set<string>(),
+  hideTotal = false
 }: { 
   data: { labels: string[], datasets: any[] }, 
   showParameters?: boolean,
   filterLabel?: string,
-  hiddenKeys?: Set<string>
+  hiddenKeys?: Set<string>,
+  hideTotal?: boolean
 }) {
   const [mounted, setMounted] = React.useState(false);
 
@@ -110,6 +112,7 @@ export default function ParamTrendChart({
           
           {data.datasets.map((ds: any, i: number) => {
             if (!ds.isTotal) return null;
+            if (hideTotal) return null;
             if (isFiltered && ds.label !== filterLabel) return null;
             
             return (
