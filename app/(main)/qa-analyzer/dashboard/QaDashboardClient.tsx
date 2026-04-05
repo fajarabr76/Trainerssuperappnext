@@ -118,6 +118,7 @@ export default function QaDashboardClient({
     const newLabels = initialData.paramTrend?.datasets
       .filter((ds: any) => !ds.isTotal && ds.label)
       .map((ds: any) => ds.label as string) || [];
+    setHiddenParams(new Set(newLabels));
   }, [initialData]);
 
   const hasVisibleParam = displayData.paramTrend?.datasets
