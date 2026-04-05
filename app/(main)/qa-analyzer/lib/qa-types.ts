@@ -3,10 +3,10 @@ export type ServiceType = 'call' | 'chat' | 'email' | 'cso' | 'pencatatan' | 'bk
 export type Category = 'critical' | 'non_critical';
 
 export const SERVICE_LABELS: Record<ServiceType, string> = {
-  call: 'Layanan Call',
-  chat: 'Layanan Chat',
-  email: 'Layanan Email',
-  cso: 'Layanan CSO',
+  call: 'Call',
+  chat: 'Chat',
+  email: 'Email',
+  cso: 'CSO',
   pencatatan: 'Pencatatan',
   bko: 'BKO',
   slik: 'SLIK'
