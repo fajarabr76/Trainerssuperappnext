@@ -51,7 +51,8 @@ export default async function QaAgentDetailPage({ params }: { params: Promise<{ 
     const currentYear = new Date().getFullYear();
     
     // 1. Fetch agent and their temuan first to determine active service
-    const agentResult = await qaServiceServer.getAgentWithTemuan(agentId, currentYear, 0);
+    const agentResult = await qaServiceServer.getAgentWithTemuan(agentId, currentYear);
+
     
     if (!agentResult.agent) {
       return notFound();

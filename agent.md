@@ -273,6 +273,121 @@ Jika ada konflik, gunakan urutan prioritas ini:
 
 Artinya: implementasi nyata selalu lebih dipercaya daripada dokumen rencana yang belum sepenuhnya diwujudkan.
 
+
+---
+
+## ⚠️ Temuan Audit & Pola yang Harus Diwaspadai
+
+Section ini mencatat kelemahan yang ditemukan saat audit codebase (April 2026).  
+AI Agent **WAJIB** memperhatikan poin-poin ini saat mengerjakan area yang relevan.
+
+---
+
+### 1. RBAC di Middleware Tidak Granular per Route (🔴 Kritis)
+**File terdampak**: `app/lib/supabase/middleware.ts`
+
+Middleware saat ini hanya memverifikasi status `approved/pending/rejected`, tetapi **tidak membatasi akses per role per route**. Seluruh proteksi role saat ini bergantung pada `useAuth` di sisi client — yang dapat di-bypass.
+
+**Yang harus dilakukan Agent**:
+- Jika mengerjakan route baru yang sensitif untuk role tertentu (misal: hanya `Trainer`), **wajib tambahkan guard di middleware**, bukan hanya di `useAuth`.
+- Pola yang benar: cek `profile.role` di middleware untuk route yang benar-benar restricted.
+- Jangan menganggap client-side role check sudah cukup sebagai satu-satunya proteksi.
+
+---
+
+### 2. `useAuth` Redirect ke Route yang Tidak Eksis (🔴 Kritis)
+**File terdampak**: `app/lib/hooks/useAuth.ts`
+
+Hook `useAuth` melakukan `router.push('/login')` dan `router.push('/pending')` — tetapi route `/login` tidak eksis sebagai page tersendiri. Auth flow menggunakan modal di landing page `/`.
+
+**Yang harus dilakukan Agent**:
+- Jangan menambah `router.push('/login')` di komponen/hook baru. Gunakan `router.push('/?auth=login')` sebagai gantinya.
+- Jangan membuat route `/login` atau `/register` sebagai page baru tanpa instruksi eksplisit dari user.
+- Jika menemukan redirect ke `/login` atau `/pending` di kode lama, tandai sebagai technical debt, jangan replikasi polanya.
+
+---
+
+### 3. `NEXT_PUBLIC_GEMINI_API_KEY` Tidak Boleh Digunakan (🔴 Kritis)
+**File terdampak**: `app/actions/gemini.ts`
+
+Terdapat fallback `process.env.NEXT_PUBLIC_GEMINI_API_KEY` yang berbahaya karena prefix `NEXT_PUBLIC_` membuat variable ter-expose ke client bundle.
+
+**Yang harus dilakukan Agent**:
+- API Key AI (Gemini, OpenAI, dll) **hanya boleh** menggunakan variable tanpa prefix `NEXT_PUBLIC_`.
+- Variabel yang benar: `GEMINI_API_KEY` (server-only).
+- Jangan pernah menambahkan fallback ke `NEXT_PUBLIC_*` untuk secret/API key apapun.
+- Jika butuh konfirmasi apakah suatu value aman di client, tanyakan ke user sebelum menggunakannya.
+
+---
+
+### 4. Admin API Route Tanpa Rate Limiting (🔴 Kritis)
+**File terdampak**: `app/api/admin/reset-password/route.ts`
+
+Route admin yang menggunakan `createAdminClient()` (Supabase service role) tidak memiliki rate limiting. Ini membuka potensi abuse — siapapun dengan role `Trainer` bisa memicu operasi massal.
+
+**Yang harus dilakukan Agent**:
+- Jika menambah API route baru yang menggunakan `createAdminClient()`, **wajib** sertakan mekanisme pembatas (minimal: cek origin/header, atau batasi frekuensi dengan simple counter).
+- Tandai rencana rate limiting di implementation plan sebagai item wajib, bukan opsional.
+- Jangan memperluas penggunaan `createAdminClient()` ke route yang tidak membutuhkan akses service role.
+
+---
+
+### 5. Penggunaan `any` di Layer AI (🟡 Sedang)
+**File terdampak**: `app/lib/ai.ts`, `app/actions/gemini.ts`
+
+Beberapa fungsi AI menggunakan `config: any`, `scenario: any`, `history: any[]` yang melanggar aturan TypeScript di codebase ini.
+
+**Yang harus dilakukan Agent**:
+- Jika mengerjakan atau memperluas fungsi di `app/lib/ai.ts`, gunakan interface/type yang eksplisit.
+- Type yang relevan sudah ada di `app/types.ts` — refer ke sana sebelum membuat type baru.
+- Jika terpaksa menggunakan `any`, beri komentar singkat alasannya di kode.
+
+---
+
+### 6. Model AI Perlu Diverifikasi Sebelum Digunakan (🟡 Sedang)
+**File terdampak**: `app/lib/ai.ts`
+
+Beberapa fungsi menggunakan string model hardcoded seperti `"gemini-3-flash-preview"` yang belum tentu valid/tersedia.
+
+**Yang harus dilakukan Agent**:
+- Jangan menambah atau mengubah nama model AI secara hardcoded tanpa konfirmasi dari user.
+- Jika task melibatkan perubahan model AI, tanyakan model mana yang ingin digunakan.
+- Model yang terbukti digunakan dan valid mengikuti konfigurasi `config.model` yang diteruskan dari caller.
+
+---
+
+### 7. File SQL di Root Bukan Migration Resmi (🟡 Sedang)
+**File terdampak**: `*.sql` di root repo
+
+File SQL seperti `add_pencatatan_indicators.sql`, `add_performance_indexes.sql`, `qa_temuan_rls_update.sql`, dll. berada di root repo tanpa struktur migration yang terkelola. Tidak diketahui mana yang sudah dieksekusi di production.
+
+**Yang harus dilakukan Agent**:
+- Jangan mengeksekusi atau merekomendasikan eksekusi file SQL tanpa konfirmasi eksplisit dari user.
+- Jika perlu membuat perubahan schema baru, buat file SQL baru dengan nama deskriptif dan **jangan modifikasi file SQL lama**.
+- Selalu ingatkan user untuk mengeksekusi SQL secara manual di Supabase dashboard dan memverifikasi hasilnya.
+
+---
+
+### 8. `createAdminClient()` Dibuat Ulang Setiap Request (🟢 Ringan)
+**File terdampak**: `app/lib/supabase/admin.ts`
+
+Client admin dibuat baru setiap kali dipanggil tanpa singleton pattern — tidak efisien untuk endpoint dengan traffic tinggi.
+
+**Yang harus dilakukan Agent**:
+- Untuk saat ini, boleh tetap menggunakan pola yang ada agar tidak over-engineering.
+- Jika di masa depan ada keluhan performa di endpoint admin, ini adalah kandidat pertama untuk dioptimasi dengan lazy singleton.
+
+---
+
+### 9. Folder `reference-old-app` Jangan Dijadikan Referensi (🟢 Ringan)
+**File terdampak**: `reference-old-app/`
+
+Folder ini berisi kode lama yang tidak lagi aktif. Pola, arsitektur, atau kode di dalamnya kemungkinan sudah usang.
+
+**Yang harus dilakukan Agent**:
+- Jangan mengambil pola atau kode dari `reference-old-app/` sebagai referensi implementasi.
+- Jika perlu memahami konteks historis, baca tapi jangan replikasi langsung tanpa validasi ke kode aktual.
+
 ---
 
 ## Catatan Penting

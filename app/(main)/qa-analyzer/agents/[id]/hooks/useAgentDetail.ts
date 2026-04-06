@@ -57,7 +57,8 @@ export function useAgentDetail({
   const [data, setData] = useState<AgentDetailData>(initialData);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [currentPage, setCurrentPage] = useState(0);
-  const [hasMore, setHasMore] = useState(initialData.temuan.length === 50); 
+  // Improved hasMore: if we fetched more than 50 initially, we definitely have everything for the year
+  const [hasMore, setHasMore] = useState(initialData.temuan.length === 50 && !initialData.availableYears); 
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
@@ -269,11 +270,13 @@ export function useAgentDetail({
     if (year === selectedYear) return;
     setLoadingTemuan(true);
     try {
-      const res = await getAgentTemuanAction(agentId, year, 0); // Start from page 0
-      setData(prev => ({ ...prev, temuan: res.temuan, indicators: prev.indicators })); // Adjust based on API
+      // MODIFIED: Fetch ALL data for the year (no page param) to ensure accurate scoring history
+      const res = await getAgentTemuanAction(agentId, year, -1 as any); 
+      setData(prev => ({ ...prev, temuan: res.temuan, indicators: prev.indicators }));
       setSelectedYear(year);
       setCurrentPage(0);
-      setHasMore(res.temuan.length === 50);
+      // Since we fetched all, hasMore is false
+      setHasMore(false);
       setSelectedPeriod(null); 
     } catch (err) {
       console.error('Gagal mengambil data tahun ' + year, err);

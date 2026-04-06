@@ -188,12 +188,12 @@ export const qaServiceServer = {
     (periodsData ?? []).forEach(p => periodsMap.set(p.id, p));
 
     // 3b. Fetch all temuan WITHOUT join — auth client (respects RLS), period data attached manually below
-    // PENTING: .limit(10000) untuk bypass default Supabase limit 1000 baris
+    // PENTING: .limit(30000) untuk mencakup seluruh data agent dalam setahun demi akurasi scoring
     const { data: temuanData, error: temuanError } = await supabase
       .from('qa_temuan')
       .select('peserta_id, indicator_id, nilai, no_tiket, service_type, ketidaksesuaian, sebaiknya, period_id, created_at')
       .eq('tahun', year)
-      .limit(10000);
+      .limit(30000);
     if (temuanError) throw temuanError;
 
     // 3c. Enrich temuan with period data (safe — no dependency on PostgREST join)
@@ -236,8 +236,7 @@ export const qaServiceServer = {
 
       const sortedPsk = [...pSvcMap.keys()].sort((a, b) => b.localeCompare(a));
       const latestPsk = sortedPsk[0];
-      const prevPsk = sortedPsk.length > 1 ? sortedPsk[1] : null;
-
+      
       const latestTemuan = pSvcMap.get(latestPsk)!;
       const activeService = latestTemuan[0]?.service_type || TIM_TO_DEFAULT_SERVICE[agentObj.tim] || 'call';
       const teamInds = allIndicators.filter(i => i.service_type === activeService);
@@ -251,7 +250,13 @@ export const qaServiceServer = {
       agentObj.avgScore = latestScore.finalScore;
       agentObj.atRisk = latestScore.finalScore < 95;
 
-      // Previous Score for Trend (Now matching service if possible, or just the next available)
+      // Previous Score for Trend - MODIFIED: Search for previous period WITH SAME service type first
+      // This prevents cross-service comparisons (e.g., Call vs Email) which are misleading
+      let prevPsk = sortedPsk.find((key, idx) => idx > 0 && key.endsWith(activeService));
+      if (!prevPsk && sortedPsk.length > 1) {
+        prevPsk = sortedPsk[1]; // Fallback to immediate previous if same service not found
+      }
+
       if (prevPsk) {
         const prevTemuan = pSvcMap.get(prevPsk)!;
         const prevActiveService = prevTemuan[0]?.service_type || activeService;
@@ -270,7 +275,8 @@ export const qaServiceServer = {
     return [...agentDataMap.values()];
   },
 
-  async getAgentWithTemuan(peserta_id: string, year?: number, page: number = 0) {
+
+  async getAgentWithTemuan(peserta_id: string, year?: number, page?: number) {
     const supabase = await createClient();
     const { data: agentRaw, error: agentError } = await supabase
       .from('profiler_peserta').select('*').eq('id', peserta_id).single();
@@ -291,16 +297,23 @@ export const qaServiceServer = {
       query = query.eq('tahun', year);
     }
 
-    // Pagination: 50 items per page
-    const from = page * 50;
-    const to = from + 49;
-    query = query.range(from, to);
+    // Optional Pagination: If page is provided (>= 0), use range. 
+    // If page is undefined or null, fetch all for accurate scoring calculation
+    if (page !== undefined && page !== null && page >= 0) {
+      const from = page * 50;
+      const to = from + 49;
+      query = query.range(from, to);
+    } else {
+      // High limit for exhaustive fetch to ensure scoreHistory accuracy
+      query = query.limit(5000);
+    }
 
     const { data: temuan, error: temuanError } = await query;
     if (temuanError) throw temuanError;
 
     return { agent, temuan: temuan ?? [] };
   },
+
 
   async getAgentsByFolder(batch: string) {
     const supabase = await createClient();
