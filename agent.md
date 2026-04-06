@@ -202,6 +202,7 @@ Saat membuat atau mengubah komponen:
 - Hindari duplikasi query Supabase.
 - Jangan menghitung ulang agregasi berat di client jika bisa disiapkan lebih rapi dari query/service.
 - Untuk filter dashboard dan analytics, jaga agar perubahan state tidak memicu render/query berlebihan.
+- **PAGINATION (CRITICAL)**: Waspadai limitasi `max_rows` (default 1000) dari Supabase/PostgREST. Jika mengambil data yang berpotensi melebihi 1000 baris (misal: semua temuan dalam setahun di SIDAK), **WAJIB** menggunakan pola recursive fetching dengan `.range()` secara iteratif hingga seluruh data didapatkan. Jangan mengandalkan `.limit(30000)` karena limit server akan tetap memotong data di 1000 secara silent.
 
 ---
 
@@ -391,6 +392,19 @@ Folder ini berisi kode lama yang tidak lagi aktif. Pola, arsitektur, atau kode d
 **Yang harus dilakukan Agent**:
 - Jangan mengambil pola atau kode dari `reference-old-app/` sebagai referensi implementasi.
 - Jika perlu memahami konteks historis, baca tapi jangan replikasi langsung tanpa validasi ke kode aktual.
+
+---
+  
+### 10. Silent Data Truncation pada Query Besar (🔴 Kritis)
+**Modul terdampak**: `qa-analyzer`, `profiler`, dan modul dashboard lainnya.
+
+Supabase PostgREST memiliki limit `max_rows` (default 1000). Jika query menghasilkan lebih dari 1000 baris, data ke-1001 dst akan hilang tanpa error (silent failure), mengakibatkan scoring dan tren yang salah.
+
+**Yang harus dilakukan Agent**:
+- Identifikasi query yang mengambil data agregasi massal (misal: `qa_temuan` untuk setahun).
+- Gunakan pola recursive fetcher dengan `.range(from, from + step - 1)` di dalam loop `while`.
+- Gunakan `serviceClient` untuk bypass RLS pada query agregasi management jika diperlukan untuk akurasi dan performa.
+- Selalu verifikasi total count `data.length` di log saat development untuk memastikan tidak tertahan di angka 1000.
 
 ---
 

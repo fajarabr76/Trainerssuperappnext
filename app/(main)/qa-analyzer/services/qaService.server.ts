@@ -172,32 +172,52 @@ export const qaServiceServer = {
     if (agentError) throw agentError;
     const agents = (agentData ?? []).filter(a => !isAgentExcluded(a.tim, a.batch_name, a.jabatan));
 
-    // 2. Fetch all indicators
-    const { data: indsData, error: indsError } = await supabase
+    // 2. Initial service client (bypass RLS for all aggregate lookups)
+    const serviceClient = getServiceSupabase() || supabase;
+
+    // 3a. Fetch all indicators
+    const { data: indsData, error: indsError } = await serviceClient
       .from('qa_indicators')
       .select('id, name, category, bobot, has_na, service_type');
     if (indsError) throw indsError;
     const allIndicators: QAIndicator[] = indsData ?? [];
 
-    // 3a. Fetch all periods via service role (bypass RLS) — prevents join returning null for specific agents
-    const serviceClient = getServiceSupabase() || supabase;
+    // 3b. Fetch all periods
     const { data: periodsData } = await serviceClient
       .from('qa_periods')
       .select('id, month, year');
     const periodsMap = new Map<string, { id: string; month: number; year: number }>();
     (periodsData ?? []).forEach(p => periodsMap.set(p.id, p));
 
-    // 3b. Fetch all temuan WITHOUT join — auth client (respects RLS), period data attached manually below
-    // PENTING: .limit(30000) untuk mencakup seluruh data agent dalam setahun demi akurasi scoring
-    const { data: temuanData, error: temuanError } = await supabase
-      .from('qa_temuan')
-      .select('peserta_id, indicator_id, nilai, no_tiket, service_type, ketidaksesuaian, sebaiknya, period_id, created_at')
-      .eq('tahun', year)
-      .limit(30000);
-    if (temuanError) throw temuanError;
+    // 3b. Fetch all temuan WITHOUT join — service client (bypass RLS), period data attached manually below
+    // PENTING: Menggunakan pagination manual (range) karena Supabase max_rows dibatasi 1000
+    let allTemuanData: any[] = [];
+    let from = 0;
+    let step = 1000;
+    let finished = false;
+
+    while (!finished) {
+      const { data, error } = await serviceClient
+        .from('qa_temuan')
+        .select('peserta_id, indicator_id, nilai, no_tiket, service_type, ketidaksesuaian, sebaiknya, period_id, created_at')
+        .eq('tahun', year)
+        .range(from, from + step - 1);
+
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        finished = true;
+      } else {
+        allTemuanData = [...allTemuanData, ...data];
+        if (data.length < step) {
+          finished = true;
+        } else {
+          from += step;
+        }
+      }
+    }
 
     // 3c. Enrich temuan with period data (safe — no dependency on PostgREST join)
-    const allTemuan = (temuanData ?? []).map(t => ({
+    const allTemuan = allTemuanData.map(t => ({
       ...t,
       qa_periods: periodsMap.get(t.period_id) ?? null,
     }));
@@ -228,7 +248,8 @@ export const qaServiceServer = {
 
       const pSvcMap = new Map<string, any[]>();
       agentTemuan.forEach(t => {
-        const activeService = t.service_type || TIM_TO_DEFAULT_SERVICE[agentObj.tim] || 'call';
+        // Standardize service to lowercase
+        const activeService = (t.service_type || TIM_TO_DEFAULT_SERVICE[agentObj.tim] || 'call').toLowerCase();
         const psk = periodServiceKey(t.qa_periods.month, t.qa_periods.year, activeService);
         if (!pSvcMap.has(psk)) pSvcMap.set(psk, []);
         pSvcMap.get(psk)!.push(t);
@@ -238,8 +259,9 @@ export const qaServiceServer = {
       const latestPsk = sortedPsk[0];
       
       const latestTemuan = pSvcMap.get(latestPsk)!;
-      const activeService = latestTemuan[0]?.service_type || TIM_TO_DEFAULT_SERVICE[agentObj.tim] || 'call';
-      const teamInds = allIndicators.filter(i => i.service_type === activeService);
+      // Standardize service to lowercase
+      const activeService = (latestTemuan[0]?.service_type || TIM_TO_DEFAULT_SERVICE[agentObj.tim] || 'call').toLowerCase();
+      const teamInds = allIndicators.filter(i => (i.service_type || '').toLowerCase() === activeService);
 
       // Latest Score
       const latestScore = calculateQAScoreFromTemuan(
