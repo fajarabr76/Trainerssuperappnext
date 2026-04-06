@@ -200,6 +200,17 @@ export const qaServiceServer = {
       qa_periods: periodsMap.get(t.period_id) ?? null,
     }));
 
+    const agentDataMap = new Map<string, any>();
+    agents.forEach(a => {
+      agentDataMap.set(a.id, {
+        ...a,
+        avgScore: null,
+        trend: 'none',
+        trendValue: null,
+        atRisk: false
+      });
+    });
+
     // ── [DEBUG] ───────────────────────────────────────────────────
     const Y_ID = '7f7cb2d1-de1e-482c-b8b7-2cc793965075';
     const yRows = allTemuan.filter(t => t.peserta_id === Y_ID);
@@ -211,17 +222,6 @@ export const qaServiceServer = {
     console.log('[DBG-E] Yuthika qa_periods null count:', yRows.filter(r => !r.qa_periods).length);
     console.log('[DBG-F] periodsMap size:', periodsMap.size);
     // ── [END DEBUG] ───────────────────────────────────────────────
-
-    const agentDataMap = new Map<string, any>();
-    agents.forEach(a => {
-      agentDataMap.set(a.id, {
-        ...a,
-        avgScore: null,
-        trend: 'none',
-        trendValue: null,
-        atRisk: false
-      });
-    });
 
     function periodServiceKey(m: number, y: number, s: string) { return `${y}-${String(m).padStart(2, '0')}-${s}`; }
 
