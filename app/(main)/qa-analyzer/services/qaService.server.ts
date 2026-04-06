@@ -188,10 +188,12 @@ export const qaServiceServer = {
     (periodsData ?? []).forEach(p => periodsMap.set(p.id, p));
 
     // 3b. Fetch all temuan WITHOUT join — auth client (respects RLS), period data attached manually below
+    // PENTING: .limit(10000) untuk bypass default Supabase limit 1000 baris
     const { data: temuanData, error: temuanError } = await supabase
       .from('qa_temuan')
       .select('peserta_id, indicator_id, nilai, no_tiket, service_type, ketidaksesuaian, sebaiknya, period_id, created_at')
-      .eq('tahun', year);
+      .eq('tahun', year)
+      .limit(10000);
     if (temuanError) throw temuanError;
 
     // 3c. Enrich temuan with period data (safe — no dependency on PostgREST join)
@@ -210,18 +212,6 @@ export const qaServiceServer = {
         atRisk: false
       });
     });
-
-    // ── [DEBUG] ───────────────────────────────────────────────────
-    const Y_ID = '7f7cb2d1-de1e-482c-b8b7-2cc793965075';
-    const yRows = allTemuan.filter(t => t.peserta_id === Y_ID);
-    const yInMap = agentDataMap.has(Y_ID);
-    console.log('[DBG-A] temuanData total:', (temuanData ?? []).length);
-    console.log('[DBG-B] allTemuan total:', allTemuan.length);
-    console.log('[DBG-C] Yuthika in agentDataMap:', yInMap);
-    console.log('[DBG-D] Yuthika rows in allTemuan:', yRows.length);
-    console.log('[DBG-E] Yuthika qa_periods null count:', yRows.filter(r => !r.qa_periods).length);
-    console.log('[DBG-F] periodsMap size:', periodsMap.size);
-    // ── [END DEBUG] ───────────────────────────────────────────────
 
     function periodServiceKey(m: number, y: number, s: string) { return `${y}-${String(m).padStart(2, '0')}-${s}`; }
 
