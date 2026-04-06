@@ -179,13 +179,26 @@ export const qaServiceServer = {
     if (indsError) throw indsError;
     const allIndicators: QAIndicator[] = indsData ?? [];
 
-    // 3. Fetch all temuan with period info and metadata
+    // 3a. Fetch all periods via service role (bypass RLS) — prevents join returning null for specific agents
+    const serviceClient = getServiceSupabase() || supabase;
+    const { data: periodsData } = await serviceClient
+      .from('qa_periods')
+      .select('id, month, year');
+    const periodsMap = new Map<string, { id: string; month: number; year: number }>();
+    (periodsData ?? []).forEach(p => periodsMap.set(p.id, p));
+
+    // 3b. Fetch all temuan WITHOUT join — auth client (respects RLS), period data attached manually below
     const { data: temuanData, error: temuanError } = await supabase
       .from('qa_temuan')
-      .select('peserta_id, indicator_id, nilai, no_tiket, service_type, ketidaksesuaian, sebaiknya, qa_periods(id, month, year)')
+      .select('peserta_id, indicator_id, nilai, no_tiket, service_type, ketidaksesuaian, sebaiknya, period_id')
       .eq('tahun', year);
     if (temuanError) throw temuanError;
-    const allTemuan = temuanData ?? [];
+
+    // 3c. Enrich temuan with period data (safe — no dependency on PostgREST join)
+    const allTemuan = (temuanData ?? []).map(t => ({
+      ...t,
+      qa_periods: periodsMap.get(t.period_id) ?? null,
+    }));
 
     const agentDataMap = new Map<string, any>();
     agents.forEach(a => {
@@ -202,7 +215,7 @@ export const qaServiceServer = {
 
     const temuanByAgent = new Map<string, any[]>();
     allTemuan.forEach(t => {
-      if (!t.qa_periods) return;
+      if (!t.qa_periods) return; // skip only if period truly doesn't exist
       if (!temuanByAgent.has(t.peserta_id)) temuanByAgent.set(t.peserta_id, []);
       temuanByAgent.get(t.peserta_id)!.push(t);
     });
