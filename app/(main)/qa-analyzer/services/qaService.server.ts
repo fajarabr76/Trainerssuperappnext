@@ -190,7 +190,7 @@ export const qaServiceServer = {
     // 3b. Fetch all temuan WITHOUT join — auth client (respects RLS), period data attached manually below
     const { data: temuanData, error: temuanError } = await supabase
       .from('qa_temuan')
-      .select('peserta_id, indicator_id, nilai, no_tiket, service_type, ketidaksesuaian, sebaiknya, period_id')
+      .select('peserta_id, indicator_id, nilai, no_tiket, service_type, ketidaksesuaian, sebaiknya, period_id, created_at')
       .eq('tahun', year);
     if (temuanError) throw temuanError;
 
@@ -243,7 +243,7 @@ export const qaServiceServer = {
       // Latest Score
       const latestScore = calculateQAScoreFromTemuan(
         teamInds,
-        latestTemuan.map(t => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket, ketidaksesuaian: t.ketidaksesuaian, sebaiknya: t.sebaiknya }))
+        latestTemuan.map(t => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket, created_at: t.created_at, ketidaksesuaian: t.ketidaksesuaian, sebaiknya: t.sebaiknya }))
       );
 
       agentObj.avgScore = latestScore.finalScore;
@@ -257,7 +257,7 @@ export const qaServiceServer = {
         
         const prevScore = calculateQAScoreFromTemuan(
           prevTeamInds,
-          prevTemuan.map(t => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket, ketidaksesuaian: t.ketidaksesuaian, sebaiknya: t.sebaiknya }))
+          prevTemuan.map(t => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket, created_at: t.created_at, ketidaksesuaian: t.ketidaksesuaian, sebaiknya: t.sebaiknya }))
         );
         
         agentObj.trendValue = latestScore.finalScore - prevScore.finalScore;
