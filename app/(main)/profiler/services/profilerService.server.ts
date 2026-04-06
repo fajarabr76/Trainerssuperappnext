@@ -4,7 +4,6 @@ import {
   ProfilerFolder, 
   Peserta 
 } from '../lib/profiler-types';
-import { maskPesertaData } from '@/app/lib/utils.server';
 import { getCachedFolders, getCachedYears } from '@/lib/cache/user-cache';
 
 export const profilerServiceServer = {
@@ -70,7 +69,7 @@ export const profilerServiceServer = {
       .eq('batch_name', batchName)
       .order('nomor_urut', { ascending: true });
     if (error) throw error;
-    return (data || []).map(maskPesertaData);
+    return data || [];
   },
 
   getGlobalPesertaPool: async (excludeBatch: string): Promise<Peserta[]> => {
@@ -82,7 +81,7 @@ export const profilerServiceServer = {
       .order('batch_name')
       .order('nama');
     if (error) throw error;
-    return (data || []).map(maskPesertaData);
+    return data || [];
   },
 
   getTimList: async (): Promise<string[]> => {

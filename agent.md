@@ -211,6 +211,8 @@ Jika mengerjakan area `qa-analyzer`:
 - Gunakan Recharts untuk visualisasi.
 - Gunakan istilah dan metrik yang konsisten dengan dokumen proyek dan implementasi yang ada.
 - Jangan mengasumsikan role QA/SPV sudah tersedia di auth; mapping operasionalnya saat ini tetap mengikuti role aplikasi yang nyata.
+- **BY DESIGN**: Pola "phantom padding" pada layout/komponen QA Analyzer adalah disengaja per desain (Apple Style). Jangan dihilangkan atau dianggap sebagai bug layout.
+- **TRENS/GRAFIK**: Nilai "Temuan 3" (meskipun kategori Baik/tidak mengurangi nilai) **WAJIB** dimasukkan dalam perhitungan data tren dan grafik karena merupakan data yang diinput user dan tetap menjadi poin perhatian audit.
 
 ---
 
@@ -219,6 +221,8 @@ Jika mengerjakan area `profiler`:
 - Pertahankan struktur hierarki data tahun → folder → sub-folder/peserta bila relevan.
 - Hormati alur import/export yang sudah ada.
 - Jangan merusak kompatibilitas fitur Excel, gambar, slide, atau export.
+- **PENTING**: Data sensitif (KTP, NPWP, Rekening) di modul Profiler **TIDAK BOLEH** disensor/masking (sesuai permintaan user untuk kemudahan operasional). Pastikan data mentah ditampilkan di tabel, form edit, maupun tampilan slide.
+- **RESTRIKSI**: **DILARANG** melakukan modifikasi logika, struktur, atau alur pada modul Profiler tanpa persetujuan eksplisit dari user, **KECUALI** untuk urusan kosmetik, perbaikan UI, atau penyesuaian estetika (Apple Design System).
 
 ---
 
