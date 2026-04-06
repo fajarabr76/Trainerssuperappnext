@@ -200,6 +200,18 @@ export const qaServiceServer = {
       qa_periods: periodsMap.get(t.period_id) ?? null,
     }));
 
+    // ── [DEBUG] ───────────────────────────────────────────────────
+    const Y_ID = '7f7cb2d1-de1e-482c-b8b7-2cc793965075';
+    const yRows = allTemuan.filter(t => t.peserta_id === Y_ID);
+    const yInMap = agentDataMap.has(Y_ID);
+    console.log('[DBG-A] temuanData total:', (temuanData ?? []).length);
+    console.log('[DBG-B] allTemuan total:', allTemuan.length);
+    console.log('[DBG-C] Yuthika in agentDataMap:', yInMap);
+    console.log('[DBG-D] Yuthika rows in allTemuan:', yRows.length);
+    console.log('[DBG-E] Yuthika qa_periods null count:', yRows.filter(r => !r.qa_periods).length);
+    console.log('[DBG-F] periodsMap size:', periodsMap.size);
+    // ── [END DEBUG] ───────────────────────────────────────────────
+
     const agentDataMap = new Map<string, any>();
     agents.forEach(a => {
       agentDataMap.set(a.id, {
