@@ -2,6 +2,7 @@ import { createClient } from '@/app/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import QaSettingsClient from './QaSettingsClient';
 import { qaServiceServer } from '../services/qaService.server';
+import { getAllServiceWeightsAction } from '../actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,8 +16,8 @@ export default async function QaSettingsPage() {
 
   // Get profile and role
   const { data: profile } = await supabase
-    .from('profiler_peserta')
-    .select('role, tim')
+    .from('profiles')
+    .select('role')
     .eq('id', user.id)
     .single();
 
@@ -28,14 +29,18 @@ export default async function QaSettingsPage() {
     redirect('/qa-analyzer/dashboard');
   }
 
-  // Fetch initial data - all indicators
-  const indicators = await qaServiceServer.getIndicators();
+  // Fetch initial data - all indicators and weights
+  const [indicators, weights] = await Promise.all([
+    qaServiceServer.getIndicators(),
+    getAllServiceWeightsAction(),
+  ]);
 
   return (
     <QaSettingsClient 
       user={user} 
       role={role} 
       initialIndicators={indicators}
+      initialWeights={weights}
     />
   );
 }

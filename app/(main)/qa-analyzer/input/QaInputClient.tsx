@@ -22,8 +22,8 @@ import {
   scoreBg,
   NILAI_LABELS 
 } from '../lib/qa-types';
-import type { QAIndicator, QAPeriod, QATemuan, ServiceType } from '../lib/qa-types';
-import { TIM_TO_DEFAULT_SERVICE, SERVICE_LABELS } from '../lib/qa-types';
+import type { QAIndicator, QAPeriod, QATemuan, ServiceType, ServiceWeight } from '../lib/qa-types';
+import { TIM_TO_DEFAULT_SERVICE, SERVICE_LABELS, DEFAULT_SERVICE_WEIGHTS } from '../lib/qa-types';
 import { 
   createTemuanAction, 
   createTemuanBatchAction, 
@@ -75,9 +75,10 @@ function newEntry(): ParamEntry {
 }
 
 // ── Dropdown fix: portal-style dengan posisi fixed ────────────────────────────
-function IndicatorDropdown({ value, indicators, open, onToggle, onSelect }: {
+function IndicatorDropdown({ value, indicators, open, onToggle, onSelect, scoringMode = 'weighted' }: {
   value: string; indicators: QAIndicator[]; open: boolean;
   onToggle: () => void; onSelect: (id: string) => void;
+  scoringMode?: string;
 }) {
   const selected   = indicators.find(i => i.id === value);
   const nc         = indicators.filter(i => i.category === 'non_critical');
@@ -120,30 +121,44 @@ function IndicatorDropdown({ value, indicators, open, onToggle, onSelect }: {
             className="fixed z-40 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden"
             style={{ top: pos.top, left: pos.left, width: pos.width, maxHeight: 288, overflowY: 'auto' }}
           >
-            <div className="px-3 py-1.5 bg-blue-500/10 border-b border-border sticky top-0">
-              <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">Non-Critical Error</p>
-            </div>
-            {nc.map(ind => (
-              <button key={ind.id} type="button" onClick={() => onSelect(ind.id)}
-                className={`w-full flex items-center justify-between px-4 py-2.5 text-sm text-left transition-colors border-b border-border ${
-                  value === ind.id ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-foreground/5'
-                }`}>
-                <span>{ind.name}</span>
-                <span className={`text-[10px] font-bold ml-2 flex-shrink-0 ${value === ind.id ? 'text-primary-foreground/70' : 'text-foreground/40'}`}>{Math.round(ind.bobot * 100)}%</span>
-              </button>
-            ))}
-            <div className="px-3 py-1.5 bg-red-500/10 border-t border-b border-border sticky top-[33px]">
-              <p className="text-[10px] font-bold text-red-500 uppercase tracking-wider">Critical Error</p>
-            </div>
-            {cr.map(ind => (
-              <button key={ind.id} type="button" onClick={() => onSelect(ind.id)}
-                className={`w-full flex items-center justify-between px-4 py-2.5 text-sm text-left transition-colors border-b border-border ${
-                  value === ind.id ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-foreground/5'
-                }`}>
-                <span>{ind.name}</span>
-                <span className={`text-[10px] font-bold ml-2 flex-shrink-0 ${value === ind.id ? 'text-primary-foreground/70' : 'text-foreground/40'}`}>{Math.round(ind.bobot * 100)}%</span>
-              </button>
-            ))}
+            {scoringMode === 'no_category' ? (
+              indicators.map(ind => (
+                <button key={ind.id} type="button" onClick={() => onSelect(ind.id)}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 text-sm text-left transition-colors border-b border-border ${
+                    value === ind.id ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-foreground/5'
+                  }`}>
+                  <span>{ind.name}</span>
+                  <span className={`text-[10px] font-bold ml-2 flex-shrink-0 ${value === ind.id ? 'text-primary-foreground/70' : 'text-foreground/40'}`}>{Math.round(ind.bobot * 100)}%</span>
+                </button>
+              ))
+            ) : (
+              <>
+                <div className="px-3 py-1.5 bg-blue-500/10 border-b border-border sticky top-0">
+                  <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">Non-Critical Error</p>
+                </div>
+                {nc.map(ind => (
+                  <button key={ind.id} type="button" onClick={() => onSelect(ind.id)}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 text-sm text-left transition-colors border-b border-border ${
+                      value === ind.id ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-foreground/5'
+                    }`}>
+                    <span>{ind.name}</span>
+                    <span className={`text-[10px] font-bold ml-2 flex-shrink-0 ${value === ind.id ? 'text-primary-foreground/70' : 'text-foreground/40'}`}>{Math.round(ind.bobot * 100)}%</span>
+                  </button>
+                ))}
+                <div className="px-3 py-1.5 bg-red-500/10 border-t border-b border-border sticky top-[33px]">
+                  <p className="text-[10px] font-bold text-red-500 uppercase tracking-wider">Critical Error</p>
+                </div>
+                {cr.map(ind => (
+                  <button key={ind.id} type="button" onClick={() => onSelect(ind.id)}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 text-sm text-left transition-colors border-b border-border ${
+                      value === ind.id ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-foreground/5'
+                    }`}>
+                    <span>{ind.name}</span>
+                    <span className={`text-[10px] font-bold ml-2 flex-shrink-0 ${value === ind.id ? 'text-primary-foreground/70' : 'text-foreground/40'}`}>{Math.round(ind.bobot * 100)}%</span>
+                  </button>
+                ))}
+              </>
+            )}
           </div>
         </>
       )}
@@ -152,7 +167,7 @@ function IndicatorDropdown({ value, indicators, open, onToggle, onSelect }: {
 }
 
 // ── Excel template generator ───────────────────────────────────────────────────
-async function generateTemplate(indicators: QAIndicator[], agentName: string, periodLabel: string) {
+async function generateTemplate(indicators: QAIndicator[], agentName: string, periodLabel: string, activeWeight: ServiceWeight) {
   const wb = new ExcelJS.Workbook();
   wb.creator = 'SIDAK';
   wb.created = new Date();
@@ -220,7 +235,16 @@ async function generateTemplate(indicators: QAIndicator[], agentName: string, pe
   wsRef.getRow(1).height = 22;
   indicators.forEach(ind => {
     const isCr = ind.category === 'critical';
-    const row = wsRef.addRow([ind.name, isCr ? 'Critical Error' : 'Non-Critical Error', Math.round(ind.bobot * 100), 'Kontribusi 50% ke skor akhir']);
+    let weightDesc = 'Kontribusi 50% ke skor akhir';
+    if (activeWeight.scoring_mode === 'weighted') {
+      weightDesc = isCr ? `Kontribusi ${Math.round(activeWeight.critical_weight * 100)}% ke skor` : `Kontribusi ${Math.round(activeWeight.non_critical_weight * 100)}% ke skor`;
+    } else if (activeWeight.scoring_mode === 'flat') {
+      weightDesc = 'Skor dihitung flat sesuai bobot parameter';
+    } else {
+      weightDesc = 'BKO/Satu kategori (No weight profiling)';
+    }
+
+    const row = wsRef.addRow([ind.name, isCr ? 'Critical Error' : 'Non-Critical Error', Math.round(ind.bobot * 100), weightDesc]);
     row.getCell(1).fill = isCr ? CR_FILL : NC_FILL;
     row.getCell(2).fill = isCr ? CR_FILL : NC_FILL;
     row.getCell(2).font = { bold: true, color: { argb: isCr ? 'FFb91c1c' : 'FF1d4ed8' } };
@@ -310,6 +334,7 @@ interface QaInputClientProps {
   initialService?: ServiceType;
   initialTeam?: string;
   initialPeriod?: QAPeriod | null;
+  initialWeights?: Record<ServiceType, ServiceWeight>;
 }
 
 export default function QaInputClient({ 
@@ -320,7 +345,8 @@ export default function QaInputClient({
   initialFolder,
   initialService,
   initialTeam,
-  initialPeriod
+  initialPeriod,
+  initialWeights,
 }: QaInputClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -339,6 +365,9 @@ export default function QaInputClient({
   const [selectedPeriod, setSelectedPeriod] = useState<QAPeriod | null>(initialPeriod ?? null);
   const [selectedService, setSelectedService] = useState<ServiceType>(initialService ?? 'call');
   const [selectedTeam, setSelectedTeam] = useState<string>(initialTeam ?? '');
+  const [weights, setWeights] = useState<Record<ServiceType, ServiceWeight>>(initialWeights ?? DEFAULT_SERVICE_WEIGHTS);
+
+  const activeWeight = weights[selectedService];
 
   const [showForm, setShowForm]   = useState(false);
   const [noTiket, setNoTiket]     = useState('');
@@ -571,8 +600,8 @@ export default function QaInputClient({
   };
 
   const liveScore = useMemo(() => indicators.length > 0
-    ? calculateQAScoreFromTemuan(indicators, temuan.map(t => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket })))
-    : null, [indicators, temuan]);
+    ? calculateQAScoreFromTemuan(indicators, temuan.map(t => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket })), activeWeight)
+    : null, [indicators, temuan, activeWeight]);
 
   const groupedTemuan = useMemo(() => {
     const groups: { key: string; label: string | null; items: QATemuan[] }[] = [];
@@ -718,13 +747,40 @@ export default function QaInputClient({
                 {liveScore && (
                   <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                      <div><p className="text-xs font-bold text-foreground/40 uppercase tracking-wider">Estimasi Skor</p><p className="text-xs text-foreground/60 mt-0.5">{selectedAgent.nama} · {MONTHS[selectedPeriod.month-1]} {selectedPeriod.year}</p></div>
-                      <div className="text-right"><p className={`text-4xl font-black ${scoreColor(liveScore.finalScore)}`}>{liveScore.finalScore.toFixed(1)}</p><p className={`text-xs font-semibold ${scoreColor(liveScore.finalScore)}`}>{scoreLabel(liveScore.finalScore)}</p></div>
+                      <div>
+                        <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider">Estimasi Skor ({activeWeight.scoring_mode.replace('_', ' ')})</p>
+                        <p className="text-xs text-foreground/60 mt-0.5">{selectedAgent.nama} · {MONTHS[selectedPeriod.month-1]} {selectedPeriod.year}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-4xl font-black ${scoreColor(liveScore.finalScore)}`}>{liveScore.finalScore.toFixed(1)}</p>
+                        <p className={`text-xs font-semibold ${scoreColor(liveScore.finalScore)}`}>{scoreLabel(liveScore.finalScore)}</p>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div className="bg-blue-500/10 rounded-xl p-3 text-center"><p className="text-[10px] text-blue-500 font-bold uppercase">Non-Critical</p><p className={`text-xl font-black ${scoreColor(liveScore.nonCriticalScore)}`}>{liveScore.nonCriticalScore.toFixed(1)}</p></div>
-                      <div className="bg-red-500/10 rounded-xl p-3 text-center"><p className="text-[10px] text-red-500 font-bold uppercase">Critical</p><p className={`text-xl font-black ${scoreColor(liveScore.criticalScore)}`}>{liveScore.criticalScore.toFixed(1)}</p></div>
-                    </div>
+                    {activeWeight.scoring_mode === 'weighted' ? (
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="bg-blue-500/10 rounded-xl p-3 text-center">
+                          <p className="text-[10px] text-blue-500 font-bold uppercase">Non-Critical ({Math.round(activeWeight.non_critical_weight * 100)}%)</p>
+                          <p className={`text-xl font-black ${scoreColor(liveScore.nonCriticalScore)}`}>{liveScore.nonCriticalScore.toFixed(1)}</p>
+                        </div>
+                        <div className="bg-red-500/10 rounded-xl p-3 text-center">
+                          <p className="text-[10px] text-red-500 font-bold uppercase">Critical ({Math.round(activeWeight.critical_weight * 100)}%)</p>
+                          <p className={`text-xl font-black ${scoreColor(liveScore.criticalScore)}`}>{liveScore.criticalScore.toFixed(1)}</p>
+                        </div>
+                      </div>
+                    ) : activeWeight.scoring_mode === 'flat' ? (
+                      <div className="bg-primary/5 rounded-xl p-4 mb-4 border border-primary/10">
+                        <div className="flex justify-between items-center mb-1 text-[10px] font-black uppercase text-foreground/40">
+                          <span>Sistem Penilaian Flat</span>
+                          <span>{Math.round(activeWeight.non_critical_weight * 100)}% NC + {Math.round(activeWeight.critical_weight * 100)}% CR</span>
+                        </div>
+                        <p className="text-xs font-bold text-foreground/60 leading-relaxed text-center">Skor dihitung langsung dari total bobot parameter yang terpenuhi.</p>
+                      </div>
+                    ) : (
+                      <div className="bg-foreground/5 rounded-xl p-4 mb-4 border border-border/50">
+                        <p className="text-[10px] font-black uppercase text-foreground/40 text-center mb-1">Mode No Category (BKO)</p>
+                        <p className="text-xs font-bold text-foreground/60 text-center leading-relaxed">Semua parameter memiliki derajat yang sama tanpa pemisahan kategori.</p>
+                      </div>
+                    )}
                     <div className="h-2.5 bg-foreground/5 rounded-full overflow-hidden"><div className={`h-full rounded-full transition-all ${scoreBg(liveScore.finalScore)}`} style={{width:`${liveScore.finalScore}%`}}/></div>
                   </div>
                 )}
@@ -764,7 +820,7 @@ export default function QaInputClient({
                       {importTab === 'download' ? (
                         <div className="space-y-4">
                           <div className="bg-blue-500/10 rounded-2xl p-4 border border-blue-500/20"><p className="text-xs font-bold text-blue-500 mb-2">Cara menggunakan template</p><ul className="space-y-1.5 text-xs text-foreground/60"><li className="flex items-start gap-2"><span className="font-black mt-0.5">·</span>Sheet <strong>Input Temuan</strong>: isi no. tiket, pilih parameter, isi nilai 0–3</li><li className="flex items-start gap-2"><span className="font-black mt-0.5">·</span>Parameter dengan nilai 3 (Sesuai) tidak perlu diisi</li></ul></div>
-                          <button onClick={() => generateTemplate(indicators, selectedAgent?.nama ?? 'Agent', periodLabel)} className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg shadow-primary/20"><Download className="w-5 h-5"/>Download Template</button>
+                          <button onClick={() => generateTemplate(indicators, selectedAgent?.nama ?? 'Agent', periodLabel, activeWeight)} className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg shadow-primary/20"><Download className="w-5 h-5"/>Download Template</button>
                         </div>
                       ) : (
                         <div className="space-y-4">
@@ -804,7 +860,7 @@ export default function QaInputClient({
                           <div key={entry.uid} className="rounded-2xl border border-border overflow-visible bg-foreground/[0.02]">
                             <div className="flex items-center justify-between px-4 py-3 border-b border-border"><p className="text-xs font-bold text-foreground/40 uppercase">Parameter {idx + 1}</p>{entries.length > 1 && <button onClick={() => setEntries(prev => prev.filter(e => e.uid !== entry.uid))} className="text-foreground/20 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-500/10"><Trash2 className="w-4 h-4"/></button>}</div>
                             <div className="p-4 space-y-4">
-                              <div><label className="text-xs font-bold text-foreground/40 mb-2 block uppercase tracking-wider">Parameter</label><IndicatorDropdown value={entry.indicator_id} indicators={indicators} open={entry.showDropdown} onToggle={() => { closeAllDropdowns(); updateEntry(entry.uid, { showDropdown: !entry.showDropdown }); }} onSelect={id => updateEntry(entry.uid, { indicator_id: id, showDropdown: false })}/></div>
+                              <div><label className="text-xs font-bold text-foreground/40 mb-2 block uppercase tracking-wider">Parameter</label><IndicatorDropdown value={entry.indicator_id} indicators={indicators} scoringMode={activeWeight.scoring_mode} open={entry.showDropdown} onToggle={() => { closeAllDropdowns(); updateEntry(entry.uid, { showDropdown: !entry.showDropdown }); }} onSelect={id => updateEntry(entry.uid, { indicator_id: id, showDropdown: false })}/></div>
                               <div><label className="text-xs font-bold text-foreground/40 mb-2 block uppercase tracking-wider">Nilai</label><div className="grid grid-cols-4 gap-2">{NILAI_OPTIONS.map(opt => <button key={opt.v} type="button" onClick={() => updateEntry(entry.uid, { nilai: opt.v })} className={`py-3 rounded-xl border-2 transition-all text-center ${entry.nilai === opt.v ? opt.active : opt.inactive}`}><p className="text-lg font-black">{opt.v}</p><p className="text-[9px] font-bold uppercase opacity-60">{opt.sub.split(' ')[0]}</p></button>)}</div></div>
                               <div className="grid grid-cols-2 gap-3">
                                 <div><label className="text-xs font-bold text-foreground/40 mb-2 block uppercase tracking-wider">Ketidaksesuaian</label><textarea value={entry.ketidaksesuaian} onChange={e => updateEntry(entry.uid, { ketidaksesuaian: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"/></div>

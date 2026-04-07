@@ -9,6 +9,9 @@ import {
   TrendPoint, 
   calculateQAScoreFromTemuan,
   ServiceType,
+  ServiceWeight,
+  ScoringMode,
+  DEFAULT_SERVICE_WEIGHTS,
   Category,
   TIM_TO_DEFAULT_SERVICE,
   SharedContext,
@@ -73,6 +76,29 @@ const cachedFetchPeriods = unstable_cache(
   { revalidate: 3600, tags: ['periods'] }
 );
 
+const cachedFetchServiceWeights = unstable_cache(
+  async (): Promise<Record<ServiceType, ServiceWeight>> => {
+    const serviceSupabase = getServiceSupabase();
+    if (!serviceSupabase) return DEFAULT_SERVICE_WEIGHTS;
+
+    const { data, error } = await serviceSupabase.from('qa_service_weights').select('*');
+    if (error) return DEFAULT_SERVICE_WEIGHTS;
+
+    const result = { ...DEFAULT_SERVICE_WEIGHTS };
+    data?.forEach(row => {
+      result[row.service_type as ServiceType] = {
+        service_type: row.service_type,
+        critical_weight: Number(row.critical_weight),
+        non_critical_weight: Number(row.non_critical_weight),
+        scoring_mode: row.scoring_mode as ScoringMode,
+      };
+    });
+    return result;
+  },
+  ['qa_service_weights_global'],
+  { revalidate: 3600, tags: ['indicators'] } // Using indicators tag for easy revalidation
+);
+
 export const qaServiceServer = {
   // ── Years (REVERTED TO DIRECT FETCH DUE TO RLS) ──────────────
   async getAvailableYears(): Promise<number[]> {
@@ -132,6 +158,10 @@ export const qaServiceServer = {
     }));
   },
 
+  async getServiceWeights(): Promise<Record<ServiceType, ServiceWeight>> {
+    return await cachedFetchServiceWeights();
+  },
+
   // ── QA Temuan CRUD ────────────────────────────────────────────
   async getTemuanByAgentPeriod(
     peserta_id: string, period_id: string
@@ -182,7 +212,10 @@ export const qaServiceServer = {
     if (indsError) throw indsError;
     const allIndicators: QAIndicator[] = indsData ?? [];
 
-    // 3b. Fetch all periods
+    // 3b. Fetch all weights
+    const serviceWeights = await this.getServiceWeights();
+
+    // 3c. Fetch all periods
     const { data: periodsData } = await serviceClient
       .from('qa_periods')
       .select('id, month, year');
@@ -266,7 +299,8 @@ export const qaServiceServer = {
       // Latest Score
       const latestScore = calculateQAScoreFromTemuan(
         teamInds,
-        latestTemuan.map(t => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket, created_at: t.created_at, ketidaksesuaian: t.ketidaksesuaian, sebaiknya: t.sebaiknya }))
+        latestTemuan.map(t => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket, created_at: t.created_at, ketidaksesuaian: t.ketidaksesuaian, sebaiknya: t.sebaiknya })),
+        serviceWeights[activeService as ServiceType] || DEFAULT_SERVICE_WEIGHTS[activeService as ServiceType]
       );
 
       agentObj.avgScore = latestScore.finalScore;
@@ -286,7 +320,8 @@ export const qaServiceServer = {
         
         const prevScore = calculateQAScoreFromTemuan(
           prevTeamInds,
-          prevTemuan.map(t => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket, created_at: t.created_at, ketidaksesuaian: t.ketidaksesuaian, sebaiknya: t.sebaiknya }))
+          prevTemuan.map(t => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket, created_at: t.created_at, ketidaksesuaian: t.ketidaksesuaian, sebaiknya: t.sebaiknya })),
+          serviceWeights[prevActiveService as ServiceType] || DEFAULT_SERVICE_WEIGHTS[prevActiveService as ServiceType]
         );
         
         agentObj.trendValue = latestScore.finalScore - prevScore.finalScore;
@@ -434,6 +469,11 @@ export const qaServiceServer = {
     let agentsWithPassScore = 0;
     let totalScore = 0;
     
+    // Fetch weights once before the loop
+    const serviceWeights = await this.getServiceWeights();
+    const activeWeight = serviceWeights[serviceType as ServiceType] || DEFAULT_SERVICE_WEIGHTS[serviceType as ServiceType];
+    const teamInds = allIndicators.filter(i => i.service_type === serviceType);
+
     auditedAgentsList.forEach(agent => {
       const temuanList = agentTemuanMap[agent.id] || [];
       
@@ -444,8 +484,7 @@ export const qaServiceServer = {
       }
 
       // Compliance Check
-      const teamInds = allIndicators.filter(i => i.service_type === serviceType);
-      const result = calculateQAScoreFromTemuan(teamInds, temuanList);
+      const result = calculateQAScoreFromTemuan(teamInds, temuanList, activeWeight);
       totalScore += result.finalScore;
       if (result.finalScore >= 95) {
         agentsWithPassScore++;
@@ -511,6 +550,10 @@ export const qaServiceServer = {
       return acc;
     }, {});
 
+    const serviceWeights = await this.getServiceWeights();
+    const activeWeight = serviceWeights[serviceType as ServiceType] || DEFAULT_SERVICE_WEIGHTS[serviceType as ServiceType];
+    const teamInds = allIndicators.filter(i => i.service_type === serviceType);
+
     return sortedPeriods.map(p => {
       const pTemuan = temuanByPeriod[p.id] || [];
       const auditedAgentsInPeriod = new Set(pTemuan.map((t: any) => t.peserta_id));
@@ -538,13 +581,12 @@ export const qaServiceServer = {
       else if (metric === 'compliance') {
         if (totalAudited > 0) {
           let passCount = 0;
-          const teamInds = allIndicators.filter(i => i.service_type === serviceType);
-          
           auditedAgentsInPeriod.forEach(agentId => {
             const agentTemuans = pTemuan.filter((t: any) => t.peserta_id === agentId);
             const result = calculateQAScoreFromTemuan(
               teamInds,
-              agentTemuans.map((t: any) => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket }))
+              agentTemuans.map((t: any) => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket })),
+              activeWeight
             );
             if (result.finalScore >= 95) passCount++;
           });
@@ -677,11 +719,13 @@ export const qaServiceServer = {
     });
 
     const serviceInds = allIndicators.filter(i => i.service_type === serviceType);
+    const serviceWeights = await this.getServiceWeights();
+    const activeWeight = serviceWeights[serviceType as ServiceType] || DEFAULT_SERVICE_WEIGHTS[serviceType as ServiceType];
 
     const agentStats = Object.keys(agentTemuanMap).map(id => {
       const info = agentInfoMap[id];
       const temuanList = agentTemuanMap[id];
-      const result = calculateQAScoreFromTemuan(serviceInds, temuanList);
+      const result = calculateQAScoreFromTemuan(serviceInds, temuanList, activeWeight);
       // Count ALL temuan records (including nilai=3) as total findings
       const defects = temuanList.length;
       const hasCritical = temuanList.some(t => {
@@ -732,11 +776,13 @@ export const qaServiceServer = {
     });
 
     const serviceInds = allIndicators.filter(i => i.service_type === serviceType);
+    const serviceWeights = await this.getServiceWeights();
+    const activeWeight = serviceWeights[serviceType as ServiceType] || DEFAULT_SERVICE_WEIGHTS[serviceType as ServiceType];
 
     const agentStats = Object.keys(agentTemuanMap).map(id => {
       const info = agentInfoMap[id];
       const temuanList = agentTemuanMap[id];
-      const result = calculateQAScoreFromTemuan(serviceInds, temuanList);
+      const result = calculateQAScoreFromTemuan(serviceInds, temuanList, activeWeight);
       // Count ALL temuan records (including nilai=3) as total findings
       const defects = temuanList.length;
       const hasCritical = temuanList.some(t => {

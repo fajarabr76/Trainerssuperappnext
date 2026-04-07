@@ -1,6 +1,24 @@
 // ── Service & Category ───────────────────────────────────────────
 export type ServiceType = 'call' | 'chat' | 'email' | 'cso' | 'pencatatan' | 'bko' | 'slik';
-export type Category = 'critical' | 'non_critical';
+export type Category = 'critical' | 'non_critical' | 'none';
+export type ScoringMode = 'weighted' | 'flat' | 'no_category';
+
+export interface ServiceWeight {
+  service_type: ServiceType;
+  critical_weight: number;
+  non_critical_weight: number;
+  scoring_mode: ScoringMode;
+}
+
+export const DEFAULT_SERVICE_WEIGHTS: Record<ServiceType, ServiceWeight> = {
+  call:       { service_type: 'call',       critical_weight: 0.50, non_critical_weight: 0.50, scoring_mode: 'weighted'     },
+  chat:       { service_type: 'chat',       critical_weight: 0.50, non_critical_weight: 0.50, scoring_mode: 'weighted'     },
+  email:      { service_type: 'email',      critical_weight: 0.65, non_critical_weight: 0.35, scoring_mode: 'weighted'     },
+  cso:        { service_type: 'cso',        critical_weight: 0.50, non_critical_weight: 0.50, scoring_mode: 'weighted'     },
+  pencatatan: { service_type: 'pencatatan', critical_weight: 0.90, non_critical_weight: 0.10, scoring_mode: 'flat'         },
+  bko:        { service_type: 'bko',        critical_weight: 0.50, non_critical_weight: 0.50, scoring_mode: 'no_category'  },
+  slik:       { service_type: 'slik',       critical_weight: 0.60, non_critical_weight: 0.40, scoring_mode: 'weighted'     },
+};
 
 export const SERVICE_LABELS: Record<ServiceType, string> = {
   call: 'Call',
@@ -165,6 +183,7 @@ export interface AgentDetailData {
   personalTrend: TrendData;
   availableYears?: number[];
   scoreHistory?: ScoreResult[];
+  weights?: Record<ServiceType, ServiceWeight>;
 }
 
 export interface ScoreResult {
@@ -272,34 +291,44 @@ export const scoreLabel = (score: number) => {
   return 'Perlu Perhatian';
 };
 
-// ── Scoring Algorithm (Legacy Logic) ─────────────────────────
+// ── Scoring Algorithm (Flexible Weight Logic) ─────────────────────────
 
 /**
  * Menghitung skor untuk satu sesi (satu no_tiket)
  */
-function scoreSession(indicators: QAIndicator[], temuan: { indicator_id: string; nilai: number }[]) {
-  const ncIndicators = indicators.filter((i) => i.category === 'non_critical');
-  const crIndicators = indicators.filter((i) => i.category === 'critical');
-
-  const calculateCategoryScore = (catIndicators: QAIndicator[]) => {
-    let totalBobot = 0;
-    let earnedBobot = 0;
-
-    catIndicators.forEach((ind) => {
-      const t = temuan.find((f) => f.indicator_id === ind.id);
-      const nilai = t ? t.nilai : 3;
-      totalBobot += ind.bobot;
-      earnedBobot += (nilai / 3) * ind.bobot;
-    });
-
-    if (totalBobot === 0) return 100;
-    return (earnedBobot / totalBobot) * 100;
+function scoreSession(
+  indicators: QAIndicator[],
+  temuan: { indicator_id: string; nilai: number }[],
+  weight: ServiceWeight = DEFAULT_SERVICE_WEIGHTS['call']
+): number {
+  const getNilai = (ind: QAIndicator) => {
+    const t = temuan.find(f => f.indicator_id === ind.id);
+    return t ? t.nilai : 3;
   };
 
-  const ncScore = calculateCategoryScore(ncIndicators);
-  const crScore = calculateCategoryScore(crIndicators);
+  // MODE: no_category & flat — rumus sama: Σ(nilai/3 × bobot) / Σbobot
+  if (weight.scoring_mode === 'flat' || weight.scoring_mode === 'no_category') {
+    let totalB = 0, earnedB = 0;
+    indicators.forEach(ind => {
+      totalB  += ind.bobot;
+      earnedB += (getNilai(ind) / 3) * ind.bobot;
+    });
+    return totalB === 0 ? 100 : (earnedB / totalB) * 100;
+  }
 
-  return (ncScore + crScore) / 2;
+  // MODE: weighted — normalize per kategori, lalu timbang antar-kategori
+  const calcCat = (cat: Category) => {
+    const inds = indicators.filter(i => i.category === cat);
+    let total = 0, earned = 0;
+    inds.forEach(ind => {
+      total  += ind.bobot;
+      earned += (getNilai(ind) / 3) * ind.bobot;
+    });
+    return total === 0 ? 100 : (earned / total) * 100;
+  };
+
+  return calcCat('non_critical') * weight.non_critical_weight
+       + calcCat('critical')     * weight.critical_weight;
 }
 
 /**
@@ -307,8 +336,11 @@ function scoreSession(indicators: QAIndicator[], temuan: { indicator_id: string;
  */
 export function calculateQAScoreFromTemuan(
   indicators: QAIndicator[],
-  temuan: { indicator_id: string; nilai: number; no_tiket?: string | null; created_at?: string; period_id?: string }[]
+  temuan: { indicator_id: string; nilai: number; no_tiket?: string | null;
+            created_at?: string; period_id?: string }[],
+  serviceWeight?: ServiceWeight
 ): QAScore {
+  const weight = serviceWeight ?? DEFAULT_SERVICE_WEIGHTS['call'];
   const sessions: Record<string, { indicator_id: string; nilai: number }[]> = {};
   
   temuan.forEach((t, i) => {
@@ -317,12 +349,14 @@ export function calculateQAScoreFromTemuan(
     sessions[key].push(t);
   });
 
-  const sessionScoresArr = Object.values(sessions).map((s) => scoreSession(indicators, s));
+  const sessionScoresArr = Object.values(sessions).map(s =>
+    scoreSession(indicators, s, weight)
+  );
+  
   const sortedScores = [...sessionScoresArr].sort((a, b) => a - b);
   const selectedScores = sortedScores.slice(0, MAX_SAMPLING);
   
   // Phantom padding: if tickets < 5, fill the rest with 100 (no findings)
-  // This ensures the average is always divided by MAX_SAMPLING (5)
   const paddedScores = [...selectedScores];
   while (paddedScores.length < MAX_SAMPLING) {
     paddedScores.push(100);
@@ -330,51 +364,54 @@ export function calculateQAScoreFromTemuan(
 
   const finalScore = paddedScores.reduce((a, b) => a + b, 0) / MAX_SAMPLING;
 
-  const buildDetail = (cat: Category) => {
-    return indicators
-      .filter((i) => i.category === cat)
-      .map((ind) => {
-        const matchingTemuan = temuan.filter((t) => t.indicator_id === ind.id);
-        const avgNilai = matchingTemuan.length > 0
-          ? matchingTemuan.reduce((a, b) => a + b.nilai, 0) / matchingTemuan.length
-          : 3;
-        
-        return {
-          indicatorId: ind.id,
-          name: ind.name,
-          bobot: ind.bobot,
-          nilai: avgNilai,
-          temuanCount: matchingTemuan.length,
-          isNa: false,
-          contribution: (avgNilai / 3) * ind.bobot,
-          selectedForScoring: true
-        };
-      });
-  };
-
+  // calculateQuickCategoryScore — sesuaikan untuk no_category
   const calculateQuickCategoryScore = (cat: Category) => {
+    if (weight.scoring_mode === 'no_category') return finalScore;
+    
     const catInds = indicators.filter(i => i.category === cat);
     if (catInds.length === 0) return 100;
-    
-    let totalB = 0;
-    let earnedB = 0;
+    let totalB = 0, earnedB = 0;
     catInds.forEach(ind => {
       const tList = temuan.filter(t => t.indicator_id === ind.id);
       const val = tList.length > 0 ? Math.min(...tList.map(t => t.nilai)) : 3;
-      totalB += ind.bobot;
+      totalB  += ind.bobot;
       earnedB += (val / 3) * ind.bobot;
     });
     return (earnedB / totalB) * 100;
   };
 
+  // buildDetail — untuk no_category gunakan category 'none'
+  const buildDetail = (cat: Category) => {
+    const targetInds = weight.scoring_mode === 'no_category'
+      ? indicators  // semua parameter masuk satu list
+      : indicators.filter(i => i.category === cat);
+
+    return targetInds.map(ind => {
+      const matchingTemuan = temuan.filter(t => t.indicator_id === ind.id);
+      const avgNilai = matchingTemuan.length > 0
+        ? matchingTemuan.reduce((a, b) => a + b.nilai, 0) / matchingTemuan.length
+        : 3;
+      return {
+        indicatorId: ind.id,
+        name:        ind.name,
+        bobot:       ind.bobot,
+        nilai:       avgNilai,
+        temuanCount: matchingTemuan.length,
+        isNa:        false,
+        contribution: (avgNilai / 3) * ind.bobot,
+        selectedForScoring: true
+      };
+    });
+  };
+
   return {
     finalScore,
-    nonCriticalScore: calculateQuickCategoryScore('non_critical'),
-    criticalScore: calculateQuickCategoryScore('critical'),
-    nonCriticalDetail: buildDetail('non_critical'),
-    criticalDetail: buildDetail('critical'),
-    sessionCount: Object.keys(sessions).length,
-    sessionScores: sortedScores,
+    nonCriticalScore:   calculateQuickCategoryScore('non_critical'),
+    criticalScore:      calculateQuickCategoryScore('critical'),
+    nonCriticalDetail:  weight.scoring_mode === 'no_category' ? [] : buildDetail('non_critical'),
+    criticalDetail:     weight.scoring_mode === 'no_category' ? buildDetail('none') : buildDetail('critical'),
+    sessionCount:       Object.keys(sessions).length,
+    sessionScores:      sortedScores,
   };
 }
 

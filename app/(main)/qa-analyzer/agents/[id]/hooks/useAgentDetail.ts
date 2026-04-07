@@ -12,7 +12,8 @@ import {
   CoachingInsight,
   ScoreResult,
   calculateQAScoreFromTemuan,
-  ServiceType
+  ServiceType,
+  DEFAULT_SERVICE_WEIGHTS
 } from '../../../lib/qa-types';
 import { User } from '@supabase/supabase-js';
 import { 
@@ -97,7 +98,8 @@ export function useAgentDetail({
       // Logic from qa-types used directly via static import
       // Bug Fix: Filter indicators by correct service_type for each period to match SQL RPC logic
       const filteredIndicators = indicatorsMetadata.filter(i => i.service_type === p.serviceType);
-      const score = calculateQAScoreFromTemuan(filteredIndicators, p.items);
+      const activeWeight = (data.weights && data.weights[p.serviceType as ServiceType]) || DEFAULT_SERVICE_WEIGHTS[p.serviceType as ServiceType] || DEFAULT_SERVICE_WEIGHTS['call'];
+      const score = calculateQAScoreFromTemuan(filteredIndicators, p.items, activeWeight);
       
       return {
         month: p.month,
@@ -109,7 +111,7 @@ export function useAgentDetail({
         sessionCount: score.sessionCount
       };
     });
-  }, [temuan, indicatorsMetadata]);
+  }, [temuan, indicatorsMetadata, data.weights]);
 
   const sortedPeriods = useMemo(() => {
     return [...scoreHistory]

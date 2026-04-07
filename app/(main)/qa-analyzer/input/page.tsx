@@ -2,6 +2,7 @@ import { createClient } from '@/app/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import QaInputClient from './QaInputClient';
 import { qaServiceServer } from '../services/qaService.server';
+import { getAllServiceWeightsAction } from '../actions';
 import { ServiceType, QAPeriod, EXCLUDED_FOLDERS } from '../lib/qa-types';
 
 export const dynamic = 'force-dynamic';
@@ -37,9 +38,14 @@ export default async function QaInputPage({ searchParams }: PageProps) {
   const periodIdParam = typeof sParams.periodId === 'string' ? sParams.periodId : undefined;
 
   // Initial common data
-  const allFolders = await qaServiceServer.getFolders();
+  const [allFolders, allPeriods, allWeights] = await Promise.all([
+    qaServiceServer.getFolders(),
+    qaServiceServer.getPeriods(),
+    getAllServiceWeightsAction(),
+  ]);
+
   const initialFolders = allFolders.filter(f => !EXCLUDED_FOLDERS.includes(f.toLowerCase().trim()));
-  const initialPeriods = await qaServiceServer.getPeriods();
+  const initialPeriods = allPeriods;
 
   // Selective pre-fetching based on params
   let initialAgents: any[] = [];
@@ -94,6 +100,7 @@ export default async function QaInputPage({ searchParams }: PageProps) {
       profile={profile}
       initialFolders={initialFolders}
       initialPeriods={initialPeriods}
+      initialWeights={allWeights}
       initialAgents={initialAgents}
       initialAgent={initialAgent}
       initialIndicators={initialIndicators}

@@ -6,19 +6,24 @@ import {
   Settings, Plus, Trash2, AlertCircle, X, Info,
   Pencil, Check, ArrowLeftRight, AlertTriangle, Menu
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import type { QAIndicator, ServiceType, Category } from '../lib/qa-types';
+import { motion, AnimatePresence } from 'motion/react';
+import {
+  createIndicatorAction, updateIndicatorAction, deleteIndicatorAction,
+  updateServiceWeightAction
+} from '../actions';
+import type { QAIndicator, ServiceType, Category, ScoringMode, ServiceWeight } from '../lib/qa-types';
 import { SERVICE_LABELS } from '../lib/qa-types';
-import { createIndicatorAction, updateIndicatorAction, deleteIndicatorAction } from '../actions';
 
 const TEAMS: ServiceType[] = ['call', 'chat', 'email', 'cso', 'pencatatan', 'bko', 'slik'];
 const CAT_LABEL: Record<Category, string> = {
   non_critical: 'Non-Critical Error',
   critical: 'Critical Error',
+  none: 'Semua Parameter',
 };
 const CAT_COLOR: Record<Category, string> = {
   non_critical: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-500/20',
   critical: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/20',
+  none: 'bg-foreground/10 text-foreground/60 border-foreground/20',
 };
 
 interface EditState {
@@ -33,16 +38,25 @@ interface QaSettingsClientProps {
   user: any;
   role: string;
   initialIndicators: QAIndicator[];
+  initialWeights: Record<ServiceType, ServiceWeight>;
 }
 
-export default function QaSettingsClient({ user, role, initialIndicators }: QaSettingsClientProps) {
+export default function QaSettingsClient({ user, role, initialIndicators, initialWeights }: QaSettingsClientProps) {
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeTeam, setActiveTeam] = useState<ServiceType>('call');
   const [indicators, setIndicators] = useState<QAIndicator[]>(initialIndicators);
+  const [weights, setWeights] = useState(initialWeights);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Bobot Kontribusi state
+  const [editingWeight, setEditingWeight] = useState(false);
+  const [draftCr, setDraftCr] = useState('50');
+  const [savingWeight, setSavingWeight] = useState(false);
+
+  const activeWeight = weights[activeTeam];
 
   // Form tambah baru
   const [showForm, setShowForm] = useState(false);
@@ -66,6 +80,17 @@ export default function QaSettingsClient({ user, role, initialIndicators }: QaSe
   const cr = teamIndicators.filter(i => i.category === 'critical');
   const ncTotal = nc.reduce((s, i) => s + Number(i.bobot), 0);
   const crTotal = cr.reduce((s, i) => s + Number(i.bobot), 0);
+
+  const isWeighted    = activeWeight.scoring_mode === 'weighted';
+  const isFlat        = activeWeight.scoring_mode === 'flat';
+  const isNoCategory  = activeWeight.scoring_mode === 'no_category';
+
+  const ncValid  = Math.abs(ncTotal - 1) < 0.01;
+  const crValid  = Math.abs(crTotal - 1) < 0.01;
+  const allTotal = ncTotal + crTotal;
+  const allValid = Math.abs(allTotal - 1) < 0.01;
+
+  const isBobotsValid = isWeighted ? (ncValid && crValid) : allValid;
 
   const flash = (msg: string) => {
     setSuccessMsg(msg);
@@ -94,10 +119,14 @@ export default function QaSettingsClient({ user, role, initialIndicators }: QaSe
     const bobotVal = parseFloat(newBobot) / 100;
     if (!newName.trim()) return setErrorMsg('Nama indikator wajib diisi.');
     if (isNaN(bobotVal) || bobotVal <= 0) return setErrorMsg('Bobot harus lebih dari 0%.');
+    
+    // Auto set category for No Category mode
+    const cat = isNoCategory ? 'none' : newCategory;
+    
     setSaving(true);
     setErrorMsg(null);
     try {
-      const created = await createIndicatorAction(activeTeam, newName.trim(), newCategory, bobotVal, newHasNa);
+      const created = await createIndicatorAction(activeTeam, newName.trim(), cat, bobotVal, newHasNa);
       setIndicators(prev => [...prev, created]);
       setNewName('');
       setNewBobot('10');
@@ -108,6 +137,23 @@ export default function QaSettingsClient({ user, role, initialIndicators }: QaSe
       setErrorMsg(err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveWeights = async () => {
+    const crVal = parseInt(draftCr) / 100;
+    const ncVal = (100 - parseInt(draftCr)) / 100;
+    setSavingWeight(true);
+    setErrorMsg(null);
+    try {
+      const updated = await updateServiceWeightAction(activeTeam, crVal, ncVal, activeWeight.scoring_mode);
+      setWeights(prev => ({ ...prev, [activeTeam]: updated }));
+      setEditingWeight(false);
+      flash('Bobot kontribusi berhasil diperbarui!');
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setSavingWeight(false);
     }
   };
 
@@ -256,21 +302,28 @@ export default function QaSettingsClient({ user, role, initialIndicators }: QaSe
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black uppercase tracking-[0.1em] text-foreground/40 px-1">Kategori</label>
-                  <div className="flex gap-1.5 p-1 bg-foreground/5 rounded-2xl border border-border">
-                    {(['non_critical', 'critical'] as Category[]).map(cat => (
-                      <button key={cat} type="button"
-                        onClick={() => { setEditState(s => s && ({ ...s, category: cat })); setShowMoveWarning(false); }}
-                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${
-                          editState!.category === cat
-                            ? cat === 'critical'
-                              ? 'bg-red-500 text-white border-red-600 shadow-md shadow-red-500/20'
-                              : 'bg-blue-500 text-white border-blue-600 shadow-md shadow-blue-500/20'
-                            : 'bg-transparent text-foreground/40 border-transparent hover:text-foreground/60'
-                        }`}>
-                        {cat === 'critical' ? 'Critical' : 'Non-Crit'}
-                      </button>
-                    ))}
-                  </div>
+                  {!isNoCategory && (
+                    <div className="flex gap-1.5 p-1 bg-foreground/5 rounded-2xl border border-border">
+                      {(['non_critical', 'critical'] as Category[]).map(cat => (
+                        <button key={cat} type="button"
+                          onClick={() => { setEditState(s => s && ({ ...s, category: cat })); setShowMoveWarning(false); }}
+                          className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${
+                            editState!.category === cat
+                              ? cat === 'critical'
+                                ? 'bg-red-500 text-white border-red-600 shadow-md shadow-red-500/20'
+                                : 'bg-blue-500 text-white border-blue-600 shadow-md shadow-blue-500/20'
+                              : 'bg-transparent text-foreground/40 border-transparent hover:text-foreground/60'
+                          }`}>
+                          {cat === 'critical' ? 'Critical' : 'Non-Crit'}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {isNoCategory && (
+                    <div className="px-4 py-3 bg-foreground/5 rounded-2xl border border-border text-[10px] font-black uppercase text-foreground/40">
+                      Otomatis: Semua Parameter
+                    </div>
+                  )}
                   {catChanged && (
                     <div className="mt-2 flex items-center gap-1.5 text-amber-500 px-1">
                       <ArrowLeftRight className="w-3.5 h-3.5"/>
@@ -290,10 +343,15 @@ export default function QaSettingsClient({ user, role, initialIndicators }: QaSe
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-foreground/30">%</span>
                   </div>
-                  {preview && (
+                  {preview && !isNoCategory && (
                     <div className="mt-2 text-[9px] font-black uppercase tracking-[0.05em] text-foreground/30 px-1 flex justify-between">
                       <span>Preview NC: <span className={preview.pNc === 100 ? 'text-green-500' : 'text-amber-500'}>{preview.pNc}%</span></span>
                       <span>Preview CR: <span className={preview.pCr === 100 ? 'text-green-500' : 'text-amber-500'}>{preview.pCr}%</span></span>
+                    </div>
+                  )}
+                  {preview && isNoCategory && (
+                    <div className="mt-2 text-[9px] font-black uppercase tracking-[0.05em] text-foreground/30 px-1">
+                      Preview Total: <span className={allValid ? 'text-green-500' : 'text-amber-500'}>{preview.pNc + preview.pCr}%</span>
                     </div>
                   )}
                 </div>
@@ -361,6 +419,9 @@ export default function QaSettingsClient({ user, role, initialIndicators }: QaSe
   }) => {
     const pct = Math.round(total * 100);
     const isOk = Math.abs(total - 1) < 0.01;
+    const warningBobot = isWeighted
+      ? `Total bobot ${catName}: ${pct}%. Harus tepat 100%.`
+      : `Total semua parameter: ${Math.round(allTotal * 100)}%. Harus tepat 100%.`;
     return (
       <div className="bg-card rounded-3xl border border-border overflow-hidden shadow-sm">
         <div className="flex items-center justify-between px-6 py-5 border-b border-border bg-foreground/[0.01]">
@@ -370,7 +431,9 @@ export default function QaSettingsClient({ user, role, initialIndicators }: QaSe
               <p className="text-sm font-black text-foreground uppercase tracking-wider">{title}</p>
               <span className="text-[10px] font-bold text-foreground/40 bg-foreground/5 px-2 py-0.5 rounded-full">{list.length}</span>
             </div>
-            <p className="text-[10px] text-foreground/30 font-bold uppercase tracking-widest mt-1.5 ml-5">Kontribusi 50% ke skor akhir</p>
+            <p className="text-[10px] text-foreground/30 font-bold uppercase tracking-widest mt-1.5 ml-5">
+              {isWeighted ? 'Kontribusi ke skor akhir' : 'Bobot langsung ke skor akhir'}
+            </p>
           </div>
           <div className="text-right">
             <span className={`text-xs font-black px-3 py-1.5 rounded-xl border-2 transition-colors ${
@@ -386,7 +449,7 @@ export default function QaSettingsClient({ user, role, initialIndicators }: QaSe
           <div className="mx-6 mt-4 flex items-center gap-3 px-4 py-3 bg-amber-500/5 border border-amber-500/20 rounded-2xl">
             <Info className="w-4 h-4 text-amber-500 flex-shrink-0" />
             <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium leading-relaxed">
-              Total bobot {catName}: <strong className="font-black underline">{pct}%</strong>. Sebaiknya tepat 100% untuk akurasi penilaian.
+              {warningBobot} Sebaiknya tepat 100% untuk akurasi penilaian.
             </p>
           </div>
         )}
@@ -440,7 +503,14 @@ export default function QaSettingsClient({ user, role, initialIndicators }: QaSe
           <div className="flex gap-1.5 p-1 bg-card rounded-2xl border border-border shadow-sm overflow-x-auto">
             {TEAMS.map(team => (
               <button key={team}
-                onClick={() => { setActiveTeam(team); setShowForm(false); setErrorMsg(null); cancelEdit(); setConfirmDelete(null); }}
+                onClick={() => { 
+                  setActiveTeam(team); 
+                  setShowForm(false); 
+                  setErrorMsg(null); 
+                  cancelEdit(); 
+                  setConfirmDelete(null); 
+                  setEditingWeight(false);
+                }}
                 className={`flex-none px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
                   activeTeam === team
                     ? 'bg-primary text-white shadow-lg shadow-primary/20'
@@ -480,28 +550,118 @@ export default function QaSettingsClient({ user, role, initialIndicators }: QaSe
           </AnimatePresence>
 
           <div className="bg-primary/[0.03] border border-primary/10 rounded-[2rem] p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Info className="w-4 h-4 text-primary" />
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Sistem Penilaian</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
-                <p className="text-[9px] font-black uppercase tracking-widest text-blue-500 mb-2">Non-Critical</p>
-                <div className="flex items-baseline gap-1.5">
-                  <span className={`text-2xl font-black ${Math.abs(ncTotal - 1) < 0.01 ? 'text-foreground' : 'text-amber-500'}`}>{Math.round(ncTotal * 100)}%</span>
-                  <span className="text-[10px] font-bold text-foreground/30">/ 100%</span>
-                </div>
-                <p className="text-[9px] font-bold text-foreground/40 mt-2 uppercase tracking-tight">Kontribusi 50% skor akhir</p>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Info className="w-4 h-4 text-primary" />
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Sistem Penilaian: {activeWeight.scoring_mode.replace('_', ' ')}</p>
               </div>
-              <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
-                <p className="text-[9px] font-black uppercase tracking-widest text-red-500 mb-2">Critical</p>
-                <div className="flex items-baseline gap-1.5">
-                  <span className={`text-2xl font-black ${Math.abs(crTotal - 1) < 0.01 ? 'text-foreground' : 'text-amber-500'}`}>{Math.round(crTotal * 100)}%</span>
-                  <span className="text-[10px] font-bold text-foreground/30">/ 100%</span>
-                </div>
-                <p className="text-[9px] font-bold text-foreground/40 mt-2 uppercase tracking-tight">Kontribusi 50% skor akhir</p>
-              </div>
+              {!isNoCategory && !editingWeight && (
+                <button 
+                  onClick={() => {
+                    setDraftCr(String(Math.round(activeWeight.critical_weight * 100)));
+                    setEditingWeight(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl text-[10px] font-black uppercase transition-all"
+                >
+                  <Pencil className="w-3 h-3" /> Edit Bobot Kontribusi
+                </button>
+              )}
             </div>
+
+            {editingWeight ? (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-4"
+              >
+                <div className="flex justify-between text-[10px] font-black uppercase tracking-wider">
+                  <span className="text-blue-500">Non-Critical: {100 - parseInt(draftCr)}%</span>
+                  <span className="text-red-500">Critical: {draftCr}%</span>
+                </div>
+                <input 
+                  type="range" min={1} max={99} value={draftCr}
+                  onChange={e => setDraftCr(e.target.value)}
+                  className="w-full h-2 bg-foreground/10 rounded-lg appearance-none cursor-pointer accent-red-500" 
+                />
+                <div className="flex rounded-xl overflow-hidden h-10 text-[10px] font-black shadow-inner">
+                  <div className="bg-blue-500 flex items-center justify-center text-white transition-all duration-300"
+                       style={{ width: `${100 - parseInt(draftCr)}%` }}>
+                    NC {100 - parseInt(draftCr)}%
+                  </div>
+                  <div className="bg-red-500 flex items-center justify-center text-white transition-all duration-300"
+                       style={{ width: `${draftCr}%` }}>
+                    CR {draftCr}%
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={handleSaveWeights}
+                    disabled={savingWeight}
+                    className="flex-1 py-3 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2"
+                  >
+                    {savingWeight ? 'Menyimpan...' : 'Simpan Bobot'}
+                  </button>
+                  <button 
+                    onClick={() => setEditingWeight(false)}
+                    className="px-6 py-3 bg-foreground/5 text-foreground/40 rounded-2xl text-[10px] font-black uppercase tracking-widest"
+                  >
+                    Batal
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                {isWeighted && (
+                  <>
+                    <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-blue-500 mb-2">Non-Critical</p>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className={`text-2xl font-black ${ncValid ? 'text-foreground' : 'text-amber-500'}`}>{Math.round(ncTotal * 100)}%</span>
+                        <span className="text-[10px] font-bold text-foreground/30">/ 100%</span>
+                      </div>
+                      <p className="text-[9px] font-bold text-foreground/40 mt-2 uppercase tracking-tight">Kontribusi {Math.round(activeWeight.non_critical_weight * 100)}% skor akhir</p>
+                    </div>
+                    <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-red-500 mb-2">Critical</p>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className={`text-2xl font-black ${crValid ? 'text-foreground' : 'text-amber-500'}`}>{Math.round(crTotal * 100)}%</span>
+                        <span className="text-[10px] font-bold text-foreground/30">/ 100%</span>
+                      </div>
+                      <p className="text-[9px] font-bold text-foreground/40 mt-2 uppercase tracking-tight">Kontribusi {Math.round(activeWeight.critical_weight * 100)}% skor akhir</p>
+                    </div>
+                  </>
+                )}
+
+                {isFlat && (
+                  <div className="col-span-2 space-y-3">
+                    <div className="flex rounded-xl overflow-hidden h-10 text-xs font-black shadow-inner">
+                      <div className="bg-blue-500 flex items-center justify-center text-white transition-all"
+                           style={{ width: `${Math.round(ncTotal * 100)}%` }}>
+                        NC {Math.round(ncTotal * 100)}%
+                      </div>
+                      <div className="bg-red-500 flex items-center justify-center text-white transition-all"
+                           style={{ width: `${Math.round(crTotal * 100)}%` }}>
+                        CR {Math.round(crTotal * 100)}%
+                      </div>
+                    </div>
+                    <p className="text-[9px] font-bold text-foreground/40 uppercase tracking-widest text-center">
+                      Bobot Langsung ke Skor Akhir — Total harus 100%
+                    </p>
+                  </div>
+                )}
+
+                {isNoCategory && (
+                  <div className="col-span-2 bg-card rounded-2xl p-4 border border-border shadow-sm">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-foreground/40 mb-2">Semua Parameter</p>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className={`text-2xl font-black ${allValid ? 'text-foreground' : 'text-amber-500'}`}>{Math.round(allTotal * 100)}%</span>
+                      <span className="text-[10px] font-bold text-foreground/30">/ 100%</span>
+                    </div>
+                    <p className="text-[9px] font-bold text-foreground/40 mt-2 uppercase tracking-tight">Tidak menggunakan kategori Critical / Non-Critical</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <AnimatePresence>
@@ -525,17 +685,27 @@ export default function QaSettingsClient({ user, role, initialIndicators }: QaSe
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-foreground/40 px-1">Kategori</label>
-                    <select
-                      value={newCategory}
-                      onChange={e => setNewCategory(e.target.value as Category)}
-                      className="w-full px-4 py-3.5 rounded-2xl border border-border bg-foreground/[0.02] text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
-                    >
-                      <option value="non_critical">Non-Critical Error</option>
-                      <option value="critical">Critical Error</option>
-                    </select>
-                  </div>
+                  {!isNoCategory && (
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-foreground/40 px-1">Kategori</label>
+                      <select
+                        value={newCategory}
+                        onChange={e => setNewCategory(e.target.value as Category)}
+                        className="w-full px-4 py-3.5 rounded-2xl border border-border bg-foreground/[0.02] text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
+                      >
+                        <option value="non_critical">Non-Critical Error</option>
+                        <option value="critical">Critical Error</option>
+                      </select>
+                    </div>
+                  )}
+                  {isNoCategory && (
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-foreground/40 px-1">Kategori</label>
+                      <div className="w-full px-4 py-3.5 rounded-2xl border border-border bg-foreground/[0.1] text-xs font-black uppercase tracking-widest text-foreground/40 flex items-center">
+                        Semua Parameter
+                      </div>
+                    </div>
+                  )}
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase tracking-widest text-foreground/40 px-1">Bobot (%)</label>
                     <div className="relative">
@@ -591,8 +761,14 @@ export default function QaSettingsClient({ user, role, initialIndicators }: QaSe
           </AnimatePresence>
 
           <div className="space-y-8 pb-12">
-            <SectionCard title="Non-Critical Error" color="bg-blue-500" list={nc} total={ncTotal} catName="Non-Critical" />
-            <SectionCard title="Critical Error" color="bg-red-500" list={cr} total={crTotal} catName="Critical" />
+            {isNoCategory ? (
+              <SectionCard title="Semua Parameter" color="bg-foreground" list={teamIndicators} total={allTotal} catName="Semua" />
+            ) : (
+              <>
+                <SectionCard title="Non-Critical Error" color="bg-blue-500" list={nc} total={ncTotal} catName="Non-Critical" />
+                <SectionCard title="Critical Error" color="bg-red-500" list={cr} total={crTotal} catName="Critical" />
+              </>
+            )}
           </div>
         </div>
       </main>

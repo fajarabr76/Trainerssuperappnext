@@ -1,13 +1,13 @@
 # Product Requirements Document
-## QA Performance Dashboard — "The Path to Zero"
+## SIDAK Performance Dashboard — "The Path to Zero"
 
 | Field | Detail |
 |---|---|
-| Versi | 1.0.0 — MVP |
-| Status | Selesai (MVP) |
-| Tanggal | Maret 2026 |
-| Platform | Web App (React + Vite + TypeScript + Supabase) |
-| Modul Parent | TrainersSuperApp — QA Analyzer |
+| Versi | 1.1.0 — Flexible Weighing |
+| Status | In Progress (Enhancement) |
+| Tanggal | April 2026 |
+| Platform | Web App (React + Next.js + TypeScript + Supabase) |
+| Modul Parent | TrainersSuperApp — QA Analyzer (SIDAK) |
 
 ---
 
@@ -79,15 +79,41 @@ Filosofi desain yang diadopsi adalah **"The Path to Zero"** — setiap temuan ad
 |---|---|---|---|
 | 🟢 BAIK | Hijau | Temuan rendah / menurun | Total Temuan < target |
 | 🟡 WASPADA | Kuning | Mendekati batas atau stagnan | Rata-rata temuan = target |
-| 🔴 KRITIS | Merah | Tinggi / meningkat / fatal | Fatal error rate naik |
+| 🔵 COACH | Biru | Coaching and Insight | Perbaikan parameter spesifik |
 
-> **Pengecualian:** Metrik "% Kepatuhan SOP" menggunakan logika NORMAL (tinggi = baik) sebagai penyeimbang perspektif.
+> **Pengecualian:** Metrik "% Kepatuhan SOP" (kini diganti dengan **Avg Skor Agent**) menggunakan logika NORMAL (tinggi = baik) sebagai penyeimbang perspektif.
 
 ---
 
-## 3. Ruang Lingkup & Fitur MVP
+## 3. Ruang Lingkup & Fitur
 
-### 3.1 Arsitektur Dashboard
+### 3.1 Manajemen Bobot QA Fleksibel (Fitur Baru v1.1)
+
+Sistem penilaian kini mendukung kustomisasi bobot per jenis layanan melalui tabel `qa_service_weights`.
+
+#### 3.1.1 Mode Penilaian
+
+Sistem menyediakan 3 mode penilaian yang fleksibel:
+
+- **Weighted**: Menghitung skor dengan menimbang kontribusi kategori `Critical` (misal 50%) dan `Non-Critical` (misal 50%). Digunakan untuk layanan kompleks (Call, Chat, Email, SLIK).
+- **Flat**: Menghitung skor langsung dari total bobot parameter tanpa pemisahan kategori kategori. Digunakan untuk `Pencatatan`.
+- **No Category**: Mengabaikan kategori error, menghitung semua parameter sebagai satu kesatuan. Digunakan untuk `BKO`.
+
+#### 3.1.2 Daftar Layanan & Bobot Default
+
+| Service | Mode | Critical Weight | Non-Critical Weight |
+|---|---|---|---|
+| Call | `weighted` | 50% | 50% |
+| Chat | `weighted` | 50% | 50% |
+| Email | `weighted` | 65% | 35% |
+| CSO | `weighted` | 50% | 50% |
+| Pencatatan | `flat` | 90% | 10% |
+| BKO | `no_category` | — | — |
+| SLIK | `weighted` | 60% | 40% |
+
+### 3.2 Arsitektur Dashboard (SIDAK)
+
+Dashboard dibagi menjadi tiga level tampilan yang dapat diakses secara bertahap:
 
 Dashboard dibagi menjadi tiga level tampilan yang dapat diakses secara bertahap:
 
@@ -105,17 +131,18 @@ Dashboard dibagi menjadi tiga level tampilan yang dapat diakses secara bertahap:
 
 - **Filter Periode:** dropdown pilih bulan/tahun dari `qa_periods` yang tersedia
 - **Filter Tim:** dropdown pilih satu folder/sub-folder atau "Semua Tim"
-- **Filter Channel:** Telepon / Chat / Email (berbasis `jenis_tim` dari `profiler_peserta`)
-- Semua komponen dashboard merespons filter yang dipilih secara real-time
+- **Filter Tahun**: Memungkinkan analisis data historis di atas 1 tahun (v1.1 Multi-Year Support).
+- **Filter Channel/Service**: Call / Chat / Email / CSO / Pencatatan / BKO / SLIK.
+- Semua komponen dashboard merespons filter yang dipilih secara real-time.
 
 #### 3.2.2 Kartu Metrik Utama (4 KPI Cards)
 
 | Metrik | Logika | Target | Interpretasi |
 |---|---|---|---|
 | Total Temuan QA (Defects) | RENDAH = BAIK | < 100/bulan | Semakin sedikit temuan, semakin baik kualitasnya |
-| Rata-rata Temuan per Audit | RENDAH = BAIK | < 1.0 | Target: kurang dari 1 kesalahan per sesi telepon yang diaudit |
-| % Fatal Error Rate | RENDAH = BAIK | < 1% | Kesalahan fatal (Critical Error dengan nilai 0) harus segera ditangani |
-| % Kepatuhan SOP | TINGGI = BAIK | > 95% | Persentase parameter yang dinilai sesuai (nilai 3) dari total audit |
+| Rata-rata temuan parameter / agent | RENDAH = BAIK | < 1.0 | Target: kurang dari 1 kesalahan per agen yang diaudit |
+| Rata-rata Skor Agent | TINGGI = BAIK | > 95% | Kualitas rata-rata kinerja agen berdasarkan hasil audit |
+| Kepatuhan (Skor ≥ 95%) | TINGGI = BAIK | > 95% | Jumlah agen yang mencapai target kualitas ≥ 95% |
 
 Setiap kartu menampilkan:
 - Nilai besar di tengah
@@ -196,11 +223,11 @@ Setiap kartu menampilkan:
 |---|---|---|
 | Frontend Framework | React + Vite + TypeScript | Sesuai dengan TrainersSuperApp yang sudah ada |
 | Styling | Tailwind CSS | Konsisten dengan komponen QA Analyzer existing |
-| Charting Library | Recharts | Sudah digunakan di QA Analyzer; tambah Pareto chart |
-| Backend/Database | Supabase (PostgreSQL) | Tabel existing: `qa_temuan`, `qa_indicators`, `profiler_peserta`, `qa_periods` |
-| State Management | React useState/useMemo | Tidak perlu state manager eksternal untuk MVP |
-| Routing | React Router v6 | Route baru: `/qa-analyzer/dashboard` |
-| Deployment | Vercel | Sama dengan deployment TrainersSuperApp existing |
+| Charting Library | Recharts + Framer Motion | Digunakan untuk grafik interaktif dan micro-animations |
+| Backend/Database | Supabase (Postgres) | Tabel: `qa_temuan`, `qa_indicators`, `profiles`, `qa_periods`, `qa_service_weights` |
+| State Management | React Context / useState | Digunakan untuk filter dashboard dan manajemen state UI |
+| Routing | Next.js App Router | Route baru: `/qa-analyzer/dashboard`, `/qa-analyzer/settings` |
+| Deployment | Vercel | Environment staging dan production |
 
 ### 4.2 Struktur Route Baru
 
@@ -542,6 +569,7 @@ interface ParetoItem {
 |---|---|---|---|
 | 1.0.0 | Maret 2026 | Fajar / Claude | Dokumen PRD awal — MVP scope |
 | 1.0.1 | 18 Maret 2026 | Fajar / Claude | Implementasi MVP Selesai (Dashboard, KPI, Pareto, Team Chart, Top Agents) |
+| 1.1.0 | April 2026 | Antigravity | Pembaruan Sistem Bobot Fleksibel, Multi-Year, dan Branding SIDAK |
 
 ---
 

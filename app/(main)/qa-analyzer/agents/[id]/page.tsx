@@ -65,17 +65,19 @@ export default async function QaAgentDetailPage({ params }: { params: Promise<{ 
                           (agent.tim ? TIM_TO_DEFAULT_SERVICE[agent.tim] : 'call');
 
     // 3. Fetch remains in parallel
-    const [personalTrend, availableYears, indicators] = await Promise.all([
+    const [personalTrend, availableYears, indicators, weights] = await Promise.all([
       qaServiceServer.getPersonalTrendWithParameters(agentId, '3m', initialService),
       qaServiceServer.getAvailableYears(),
-      qaServiceServer.getIndicators()
+      qaServiceServer.getIndicators(),
+      qaServiceServer.getServiceWeights()
     ]);
 
     const initialData = {
       temuan,
       indicators,
       personalTrend,
-      availableYears
+      availableYears,
+      weights
     };
 
     return (

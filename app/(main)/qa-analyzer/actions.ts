@@ -1,7 +1,10 @@
 'use server'
 
 import { createClient } from '@/app/lib/supabase/server';
-import { ServiceType, Category, DashboardData, TrendPoint, TopAgentData, ExportData, EXCLUDED_FOLDERS } from './lib/qa-types';
+import {
+  ServiceType, Category, ScoringMode, ServiceWeight, DEFAULT_SERVICE_WEIGHTS,
+  DashboardData, TrendPoint, TopAgentData, ExportData, EXCLUDED_FOLDERS
+} from './lib/qa-types';
 import { revalidatePath, revalidateTag } from 'next/cache';
 
 
@@ -533,4 +536,71 @@ export async function getRankingAgenAction(
     console.error('getRankingAgenAction error:', error);
     return { data: [], error: 'Gagal mengambil data ranking agen.' };
   }
+}
+
+export async function getAllServiceWeightsAction(): Promise<Record<ServiceType, ServiceWeight>> {
+  const { createClient } = await import('@/app/lib/supabase/server');
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('qa_service_weights').select('*');
+  if (error) throw new Error(error.message);
+
+  const result = { ...DEFAULT_SERVICE_WEIGHTS };
+  data?.forEach(row => {
+    result[row.service_type as ServiceType] = {
+      service_type:        row.service_type,
+      critical_weight:     Number(row.critical_weight),
+      non_critical_weight: Number(row.non_critical_weight),
+      scoring_mode:        row.scoring_mode as ScoringMode,
+    };
+  });
+  return result;
+}
+
+export async function updateServiceWeightAction(
+  serviceType: ServiceType,
+  criticalWeight: number,
+  nonCriticalWeight: number,
+  scoringMode: ScoringMode
+): Promise<ServiceWeight> {
+  if (Math.abs(criticalWeight + nonCriticalWeight - 1) > 0.001)
+    throw new Error('Total bobot critical + non-critical harus 100%.');
+
+  const { createClient } = await import('@/app/lib/supabase/server');
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Tidak terautentikasi');
+
+  // RBAC Check for mutation
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const allowedMutationRoles = ['trainer', 'trainers', 'admin', 'superadmin'];
+  if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
+    throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
+  }
+
+  const { data, error } = await supabase
+    .from('qa_service_weights')
+    .upsert({
+      service_type:        serviceType,
+      critical_weight:     criticalWeight,
+      non_critical_weight: nonCriticalWeight,
+      scoring_mode:        scoringMode,
+      updated_at:          new Date().toISOString(),
+      updated_by:          user.id
+    }, { onConflict: 'service_type' })
+    .select().single();
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/qa-analyzer/settings');
+  revalidatePath('/qa-analyzer/input');
+  revalidatePath('/qa-analyzer/dashboard');
+  revalidateTag('indicators');
+
+  return data;
 }
