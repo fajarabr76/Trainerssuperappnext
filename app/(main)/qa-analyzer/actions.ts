@@ -506,6 +506,33 @@ export async function getDashboardDataAction(period: string, service: string, fo
    };
 }
 
+export async function getTrendByRangeAction(
+  service: string,
+  folderIds: string[],
+  year: number,
+  startMonth: number,
+  endMonth: number
+) {
+  const { qaServiceServer } = await import('./services/qaService.server');
+  
+  // Re-fetch context for accuracy and cache consistency
+  const [periods, indicators] = await Promise.all([
+    qaServiceServer.getPeriods(),
+    qaServiceServer.getIndicators(service)
+  ]);
+  
+  const context = { periods, indicators };
+  
+  return await qaServiceServer.getConsolidatedTrendDataByRange(
+    service, 
+    folderIds, 
+    context, 
+    year, 
+    startMonth, 
+    endMonth
+  );
+}
+
 export async function getAvailableYearsAction() {
   const { qaServiceServer } = await import('./services/qaService.server');
   return await qaServiceServer.getAvailableYears();

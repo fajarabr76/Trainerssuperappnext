@@ -1192,6 +1192,120 @@ export const qaServiceServer = {
     };
   },
 
+  async getConsolidatedTrendDataByRange(
+    serviceType: string,
+    folderIds: string[] = [],
+    context: SharedContext,
+    year: number,
+    startMonth: number,
+    endMonth: number
+  ) {
+    const supabase = await createClient();
+    
+    // 1. Filter periods from context based on range and year
+    const allPeriods = context?.periods || (await this.getPeriods());
+    const sortedPeriods = allPeriods
+      .filter(p => p.year === year && p.month >= startMonth && p.month <= endMonth)
+      .sort((a, b) => a.month - b.month); // Ascending order
+    
+    const pIds = sortedPeriods.map(p => p.id);
+    const labels = sortedPeriods.map(p => `${MONTHS_SHORT[p.month - 1]} ${String(p.year).slice(-2)}`);
+    
+    if (pIds.length === 0) return { sparklines: {}, paramTrend: { labels: [], datasets: [] } };
+
+    // 2. Fetch findings with PAGINATION and STABLE ORDERING
+    let allTemuan: any[] = [];
+    let from = 0;
+    const PAGE_SIZE = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      let query = supabase
+        .from('qa_temuan')
+        .select('nilai, period_id, peserta_id, indicator_id, qa_indicators(name, category), profiler_peserta!inner(batch_name)')
+        .in('period_id', pIds)
+        .eq('service_type', serviceType)
+        .order('id', { ascending: true }) // Stable ordering for pagination
+        .range(from, from + PAGE_SIZE - 1);
+
+      if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        hasMore = false;
+      } else {
+        allTemuan = [...allTemuan, ...data];
+        hasMore = data.length === PAGE_SIZE;
+        from += PAGE_SIZE;
+      }
+    }
+
+    const temuan = allTemuan;
+    const allIndicators = context?.indicators || (await this.getIndicators(serviceType)) as QAIndicator[];
+    const serviceInds = allIndicators.filter(i => i.service_type === serviceType);
+
+    // Grouping data by period
+    const dataByPeriod = sortedPeriods.map(p => {
+      const pTemuan = temuan.filter(t => t.period_id === p.id);
+      const auditedAgents = new Set(pTemuan.map(t => t.peserta_id));
+      const totalAudited = auditedAgents.size;
+      const totalFindings = pTemuan.length;
+
+      let passCount = 0;
+      let totalScoreForPeriod = 0;
+      if (totalAudited > 0) {
+        auditedAgents.forEach(aid => {
+          const agentTemuans = pTemuan.filter(t => t.peserta_id === aid);
+          const res = calculateQAScoreFromTemuan(serviceInds, agentTemuans);
+          if (res.finalScore >= 95) passCount++;
+          totalScoreForPeriod += res.finalScore;
+        });
+      }
+
+      return {
+        label: `${MONTHS_SHORT[p.month - 1]} ${String(p.year).slice(-2)}`,
+        total: totalFindings,
+        avg: totalAudited > 0 ? totalFindings / totalAudited : 0,
+        zero: totalAudited > 0 ? (Array.from(auditedAgents).filter(aid => !pTemuan.some(t => t.peserta_id === aid && t.nilai < 3)).length / totalAudited) * 100 : 0,
+        compliance: passCount,
+        avgAgentScore: totalAudited > 0 ? totalScoreForPeriod / totalAudited : 0
+      };
+    });
+
+    // Parameter Trend Calculation
+    const paramCounts: Record<string, Record<string, number>> = {};
+    const totalFindingsByPeriod: Record<string, number> = {};
+
+    temuan.forEach(t => {
+      const pName = (t.qa_indicators as any)?.name || 'Unknown';
+      if (!paramCounts[pName]) paramCounts[pName] = {};
+      paramCounts[pName][t.period_id] = (paramCounts[pName][t.period_id] || 0) + 1;
+      totalFindingsByPeriod[t.period_id] = (totalFindingsByPeriod[t.period_id] || 0) + 1;
+    });
+
+    const topParams = Object.entries(paramCounts)
+      .map(([name, periodCounts]) => ({ name, total: Object.values(periodCounts).reduce((a, b) => a + b, 0) }))
+      .sort((a, b) => b.total - a.total).map(p => p.name);
+
+    const datasets = [
+      { label: 'Total Temuan', data: sortedPeriods.map(p => totalFindingsByPeriod[p.id] || 0), isTotal: true },
+      ...topParams.map(name => ({ label: name, data: sortedPeriods.map(p => paramCounts[name][p.id] || 0), isTotal: false }))
+    ];
+
+    return {
+      sparklines: {
+        total: dataByPeriod.map(d => ({ label: d.label, value: d.total })),
+        avg: dataByPeriod.map(d => ({ label: d.label, value: Number(d.avg.toFixed(1)) })),
+        zero: dataByPeriod.map(d => ({ label: d.label, value: Number(d.zero.toFixed(1)) })),
+        compliance: dataByPeriod.map(d => ({ label: d.label, value: d.compliance })),
+        avgAgentScore: dataByPeriod.map(d => ({ label: d.label, value: Number(d.avgAgentScore.toFixed(1)) }))
+      },
+      paramTrend: { labels, datasets }
+    };
+  },
+
 
   async getPersonalTrendWithParameters(agentId: string, timeframe: '3m' | '6m' | 'all' = '3m', serviceType?: string) {
     const supabase = await createClient();

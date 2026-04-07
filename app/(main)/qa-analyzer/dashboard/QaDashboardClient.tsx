@@ -24,7 +24,8 @@ import TopAgentsTable from './components/TopAgentsTable';
 import ParetoChart from './components/ParetoChart';
 import FatalDonutChart from './components/FatalDonutChart';
 import ParamTrendChart, { TREND_COLORS } from './components/ParamTrendChart';
-import { getDashboardDataAction } from '../actions';
+import { getDashboardDataAction, getTrendByRangeAction } from '../actions';
+import { MonthRangePicker } from './components/MonthRangePicker';
 
 interface QaDashboardClientProps {
   user: any;
@@ -58,12 +59,31 @@ export default function QaDashboardClient({
   const [selectedFolderId, setSelectedFolderId] = useState(initialFilters.folder);
   const [timeframe, setTimeframe] = useState(initialFilters.timeframe);
   const [selectedService, setSelectedService] = useState(initialFilters.service);
+  
+  // Local trend states (not synced to URL)
+  const [trendStartMonth, setTrendStartMonth] = useState<number | null>(null);
+  const [trendEndMonth, setTrendEndMonth] = useState<number | null>(null);
+  const [trendLoading, setTrendLoading] = useState(false);
+  const [trendData, setTrendData] = useState<any>(initialData.paramTrend);
+
   const [hiddenParams, setHiddenParams] = useState<Set<string>>(() => {
     const labels = initialData.paramTrend?.datasets
       .filter((ds: any) => !ds.isTotal && ds.label)
       .map((ds: any) => ds.label as string) || [];
     return new Set(labels);
   });
+
+  // Reset local trend states when global filters change
+  useEffect(() => {
+    setTrendStartMonth(null);
+    setTrendEndMonth(null);
+    setTrendData(initialData.paramTrend);
+    
+    const newLabels = initialData.paramTrend?.datasets
+      .filter((ds: any) => !ds.isTotal && ds.label)
+      .map((ds: any) => ds.label as string) || [];
+    setHiddenParams(new Set(newLabels));
+  }, [selectedYear, selectedService, selectedFolderId, initialData.paramTrend]);
 
   const toggleParam = (label: string) => {
     setHiddenParams(prev => {
@@ -96,14 +116,43 @@ export default function QaDashboardClient({
         ...prev,
         ...newData
       }));
-      const yearLabels = (newData.paramTrend ?? displayData.paramTrend)?.datasets
-        .filter((ds: any) => !ds.isTotal && ds.label)
-        .map((ds: any) => ds.label as string) || [];
-      setHiddenParams(new Set(yearLabels));
+      // Local reset is handled by useEffect dependency [selectedYear, initialData]
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRangeChange = async (start: number | null, end: number | null) => {
+    setTrendStartMonth(start);
+    setTrendEndMonth(end);
+
+    // Only fetch if both are selected and valid
+    if (start !== null && end !== null && end >= start) {
+      setTrendLoading(true);
+      try {
+        const folderIds = selectedFolderId === 'ALL' ? [] : [selectedFolderId];
+        const result = await getTrendByRangeAction(selectedService, folderIds, selectedYear, start, end);
+        setTrendData(result.paramTrend);
+        
+        // Reset hidden params for new dataset
+        const newLabels = result.paramTrend?.datasets
+          .filter((ds: any) => !ds.isTotal && ds.label)
+          .map((ds: any) => ds.label as string) || [];
+        setHiddenParams(new Set(newLabels));
+      } catch (err) {
+        console.error('Failed to fetch trend by range:', err);
+      } finally {
+        setTrendLoading(false);
+      }
+    } else if (start === null && end === null) {
+      // Reset to original data
+      setTrendData(initialData.paramTrend);
+      const newLabels = initialData.paramTrend?.datasets
+        .filter((ds: any) => !ds.isTotal && ds.label)
+        .map((ds: any) => ds.label as string) || [];
+      setHiddenParams(new Set(newLabels));
     }
   };
 
@@ -121,9 +170,12 @@ export default function QaDashboardClient({
     setHiddenParams(new Set(newLabels));
   }, [initialData]);
 
-  const hasVisibleParam = displayData.paramTrend?.datasets
+  const hasVisibleParam = trendData?.datasets
     .filter((ds: any) => !ds.isTotal && ds.label)
     .some((ds: any) => !hiddenParams.has(ds.label)) ?? false;
+
+  const isTrendEmpty = !trendData || trendData.labels.length === 0 || 
+    (trendData.datasets.filter((ds: any) => !ds.isTotal).every((ds: any) => ds.data.every((v: number) => v === 0)));
 
   return (
     <>
@@ -283,10 +335,28 @@ export default function QaDashboardClient({
                       </span>
                     </div>
                   </div>
-                  {displayData.paramTrend && (
+
+                  <MonthRangePicker 
+                    selectedYear={selectedYear}
+                    startMonth={trendStartMonth}
+                    endMonth={trendEndMonth}
+                    onRangeChange={handleRangeChange}
+                  />
+
+                  {trendLoading ? (
+                    <div className="flex flex-col items-center justify-center py-24 text-foreground/40">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
+                      <p className="text-sm">Membarui tren parameter...</p>
+                    </div>
+                  ) : isTrendEmpty ? (
+                    <div className="flex flex-col items-center justify-center py-24 text-foreground/40 bg-background/20 rounded-2xl border border-dashed border-border/50">
+                      <AlertTriangle className="w-8 h-8 text-yellow-500 mb-3 opacity-30" />
+                      <p className="text-sm font-medium">Tidak ada data pada rentang bulan ini</p>
+                    </div>
+                  ) : trendData && (
                     <>
                       <div className="flex flex-wrap gap-2 mb-3">
-                        {displayData.paramTrend.datasets.map((ds: any, i: number) => {
+                        {trendData.datasets.map((ds: any, i: number) => {
                           if (ds.isTotal) return null;
                           const color = TREND_COLORS[i % TREND_COLORS.length];
                           const isHidden = hiddenParams.has(ds.label);
@@ -318,7 +388,7 @@ export default function QaDashboardClient({
                       </p>
                       <div className="h-[350px] w-full">
                         <ParamTrendChart 
-                          data={displayData.paramTrend} 
+                          data={trendData} 
                           showParameters={true} 
                           hiddenKeys={hiddenParams}
                           hideTotal={hasVisibleParam}
