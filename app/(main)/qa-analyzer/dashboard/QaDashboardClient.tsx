@@ -125,15 +125,23 @@ export default function QaDashboardClient({
   };
 
   const handleRangeChange = async (start: number | null, end: number | null) => {
-    setTrendStartMonth(start);
+    let effectiveStart = start;
+    
+    // Auto-select January if end month is March and start month is not selected
+    // This restores the requested behavior from previous versions
+    if (end === 3 && start === null) {
+      effectiveStart = 1;
+    }
+
+    setTrendStartMonth(effectiveStart);
     setTrendEndMonth(end);
 
     // Only fetch if both are selected and valid
-    if (start !== null && end !== null && end >= start) {
+    if (effectiveStart !== null && end !== null && end >= effectiveStart) {
       setTrendLoading(true);
       try {
         const folderIds = selectedFolderId === 'ALL' ? [] : [selectedFolderId];
-        const result = await getTrendByRangeAction(selectedService, folderIds, selectedYear, start, end);
+        const result = await getTrendByRangeAction(selectedService, folderIds, selectedYear, effectiveStart, end);
         setTrendData(result.paramTrend);
         
         // Reset hidden params for new dataset
@@ -146,7 +154,7 @@ export default function QaDashboardClient({
       } finally {
         setTrendLoading(false);
       }
-    } else if (start === null && end === null) {
+    } else if (effectiveStart === null && end === null) {
       // Reset to original data
       setTrendData(initialData.paramTrend);
       const newLabels = initialData.paramTrend?.datasets
