@@ -36,17 +36,16 @@ export default async function QaDashboardPage({
   }
 
   // Parse filters from resolvedParams
-  const period = typeof resolvedParams.period === 'string' ? resolvedParams.period : 'ytd';
   const folder = typeof resolvedParams.folder === 'string' ? resolvedParams.folder : 'ALL';
-  const timeframe = (resolvedParams.timeframe === '3m' || resolvedParams.timeframe === '6m' || resolvedParams.timeframe === 'all') 
-    ? (resolvedParams.timeframe as '3m' | '6m' | 'all') 
-    : '3m';
   const service = typeof resolvedParams.service === 'string' ? resolvedParams.service : 'call';
+  const yearParam = typeof resolvedParams.year === 'string' ? parseInt(resolvedParams.year) : new Date().getFullYear();
+
+  const startMonth = typeof resolvedParams.start_month === 'string' ? parseInt(resolvedParams.start_month) : 1;
+  const endMonth = typeof resolvedParams.end_month === 'string' ? parseInt(resolvedParams.end_month) : (new Date().getMonth() + 1);
 
   const folderIds = folder === 'ALL' ? [] : [folder];
 
   // 1. Fetch Shared Context Data (Pre-load common metadata)
-  const currentYear = new Date().getFullYear();
   const [periods, foldersData, indicators, availableYears] = await Promise.all([
     qaServiceServer.getPeriods(),
     profilerServiceServer.getFolders(),
@@ -61,8 +60,8 @@ export default async function QaDashboardPage({
 
   // 2. Fetch Dashboard Aggregations using Consolidated Fetchers
   const [periodData, trendData] = await Promise.all([
-    qaServiceServer.getConsolidatedPeriodDataRPC(period, service, folderIds, context, currentYear),
-    qaServiceServer.getConsolidatedTrendData(timeframe, service, folderIds, context, currentYear)
+    qaServiceServer.getConsolidatedDashboardDataByRange(service, folderIds, context, yearParam, startMonth, endMonth),
+    qaServiceServer.getConsolidatedTrendDataByRange(service, folderIds, context, yearParam, startMonth, endMonth)
   ]);
 
   if (!periodData || !trendData) {
@@ -77,7 +76,7 @@ export default async function QaDashboardPage({
   const initialData = {
     periods,
     availableYears,
-    currentYear,
+    currentYear: yearParam,
     folders: foldersData
       .map((f: any) => ({ 
         id: typeof f === 'string' ? f : f.name, 
@@ -94,10 +93,11 @@ export default async function QaDashboardPage({
   };
 
   const filters = {
-    period,
+    startMonth,
+    endMonth,
     folder,
-    timeframe,
-    service
+    service,
+    year: yearParam
   };
 
   return (

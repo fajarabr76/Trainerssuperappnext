@@ -1306,7 +1306,182 @@ export const qaServiceServer = {
     };
   },
 
+  async getConsolidatedDashboardDataByRange(
+    serviceType: string,
+    folderIds: string[] = [],
+    context: SharedContext,
+    year: number,
+    startMonth: number,
+    endMonth: number
+  ) {
+    const supabase = await createClient();
+    
+    // 1. Resolve period IDs
+    const allPeriods = context?.periods || (await this.getPeriods());
+    const sortedPeriods = allPeriods
+      .filter(p => p.year === year && p.month >= startMonth && p.month <= endMonth)
+      .sort((a, b) => a.month - b.month);
+    
+    const pIds = sortedPeriods.map(p => p.id);
+    if (pIds.length === 0) return null;
 
+    // 2. Fetch all findings in range
+    let allTemuan: any[] = [];
+    let from = 0;
+    const PAGE_SIZE = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      let query = supabase
+        .from('qa_temuan')
+        .select('*, qa_indicators(id, name, category, bobot), profiler_peserta!inner(id, nama, batch_name, tim, jabatan)')
+        .in('period_id', pIds)
+        .order('id', { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+
+      if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        hasMore = false;
+      } else {
+        allTemuan = [...allTemuan, ...data];
+        hasMore = data.length === PAGE_SIZE;
+        from += PAGE_SIZE;
+      }
+    }
+
+    const data = allTemuan;
+    const allIndicators = context?.indicators || (await this.getIndicators()) as QAIndicator[];
+    const serviceInds = allIndicators.filter(i => i.service_type === serviceType);
+
+    const currentServiceData = data.filter(d => d.service_type === serviceType);
+    const serviceFindings = currentServiceData;
+
+    // ── 1. Calculate Summary ──
+    const agentTemuanMap: Record<string, any[]> = {};
+    const auditedAgentsList: any[] = [];
+    const seenAgents = new Set();
+    
+    currentServiceData.forEach(d => {
+      if (!agentTemuanMap[d.peserta_id]) agentTemuanMap[d.peserta_id] = [];
+      agentTemuanMap[d.peserta_id].push({ indicator_id: d.indicator_id, nilai: d.nilai, no_tiket: d.no_tiket });
+
+      if (!seenAgents.has(d.peserta_id)) {
+        seenAgents.add(d.peserta_id);
+        auditedAgentsList.push({ 
+          id: d.peserta_id, 
+          batch_name: d.profiler_peserta?.batch_name, 
+          tim: d.profiler_peserta?.tim,
+          jabatan: d.profiler_peserta?.jabatan
+        });
+      }
+    });
+
+    let agentsWithZeroError = 0;
+    let agentsWithPassScore = 0;
+    let totalScore = 0;
+    auditedAgentsList.forEach(agent => {
+      const temuanList = agentTemuanMap[agent.id] || [];
+      if (!temuanList.some(t => t.nilai < 3)) agentsWithZeroError++;
+      const res = calculateQAScoreFromTemuan(serviceInds, temuanList);
+      if (res.finalScore >= 95) agentsWithPassScore++;
+      totalScore += res.finalScore;
+    });
+
+    const summary: DashboardSummary = {
+      totalDefects: serviceFindings.length,
+      avgDefectsPerAudit: auditedAgentsList.length > 0 ? serviceFindings.length / auditedAgentsList.length : 0,
+      zeroErrorRate: auditedAgentsList.length > 0 ? (agentsWithZeroError / auditedAgentsList.length) * 100 : 0,
+      avgAgentScore: auditedAgentsList.length > 0 ? totalScore / auditedAgentsList.length : 0,
+      complianceRate: auditedAgentsList.length > 0 ? (agentsWithPassScore / auditedAgentsList.length) * 100 : 0,
+      complianceCount: agentsWithPassScore,
+      totalAgents: auditedAgentsList.length
+    };
+
+    // ── 2. Calculate Pareto ──
+    const paramCounts: Record<string, { count: number, name: string, category: string }> = {};
+    serviceFindings.forEach(d => {
+      const ind = (d.qa_indicators as any);
+      if (!ind) return;
+      if (!paramCounts[ind.id]) paramCounts[ind.id] = { count: 0, name: ind.name.trim(), category: ind.category };
+      paramCounts[ind.id].count++;
+    });
+
+    let cumulativeCount = 0;
+    const paretoData: ParetoData[] = Object.entries(paramCounts)
+      .map(([id, info]) => ({ name: info.name, fullName: info.name, count: info.count, category: info.category as any, cumulative: 0 }))
+      .sort((a, b) => b.count - a.count || a.fullName.localeCompare(b.fullName))
+      .map(item => {
+        cumulativeCount += item.count;
+        item.cumulative = serviceFindings.length > 0 ? Number(((cumulativeCount / serviceFindings.length) * 100).toFixed(1)) : 0;
+        return item;
+      });
+
+    // ── 3. Calculate Service Comparison ──
+    const serviceSummary: Record<string, { totalDefects: number, auditedAgents: number }> = {};
+    const serviceAgentsMap: Record<string, Set<string>> = {};
+
+    data.forEach(d => {
+      const sType = d.service_type || 'unknown';
+      if (!serviceAgentsMap[sType]) serviceAgentsMap[sType] = new Set();
+      serviceAgentsMap[sType].add(d.peserta_id);
+
+      if (!serviceSummary[sType]) serviceSummary[sType] = { totalDefects: 0, auditedAgents: 0 };
+      serviceSummary[sType].totalDefects++;
+    });
+
+    const results: ServiceComparisonData[] = Object.keys(serviceSummary).map(sType => {
+      const defects = serviceSummary[sType].totalDefects;
+      return {
+        name: SERVICE_LABELS[sType as ServiceType] || sType,
+        serviceType: sType,
+        total: defects,
+        severity: defects > 50 ? 'Critical' : defects > 30 ? 'High' : defects > 15 ? 'Medium' : 'Low'
+      };
+    });
+
+    const serviceData = results;
+
+    // ── 4. Critical vs Non-Critical ──
+    let critical = 0;
+    let nonCritical = 0;
+    serviceFindings.forEach(d => {
+      if ((d.qa_indicators as any)?.category === 'critical') critical++;
+      else nonCritical++;
+    });
+    const donutData = { critical, nonCritical, total: critical + nonCritical };
+
+    // ── 5. Top Agents ──
+    const agentStats = auditedAgentsList
+      .map(agent => {
+        const temuans = agentTemuanMap[agent.id] || [];
+        const res = calculateQAScoreFromTemuan(serviceInds, temuans);
+        const agentDefects = temuans.length;
+        return { 
+          agentId: agent.id, 
+          nama: (data.find(d => d.peserta_id === agent.id)?.profiler_peserta as any)?.nama, 
+          batch: agent.batch_name, 
+          tim: agent.tim,
+          jabatan: agent.jabatan,
+          defects: agentDefects, 
+          score: res.finalScore, 
+          hasCritical: temuans.some(t => {
+            const ind = serviceInds.find(i => i.id === t.indicator_id);
+            return t.nilai === 0 && ind?.category === 'critical';
+          })
+        };
+      })
+      .filter(a => !isAgentExcluded(a.tim, a.batch, a.jabatan))
+      .sort((a, b) => b.defects - a.defects)
+      .slice(0, 5);
+
+    return { summary, serviceData, paretoData, donutData, topAgents: agentStats };
+  },
+
+  
   async getPersonalTrendWithParameters(agentId: string, timeframe: '3m' | '6m' | 'all' = '3m', serviceType?: string) {
     const supabase = await createClient();
     const periodQuery = supabase.from('qa_periods').select('*').order('year', { ascending: false }).order('month', { ascending: false });

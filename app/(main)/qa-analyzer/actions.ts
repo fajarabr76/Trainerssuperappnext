@@ -463,7 +463,7 @@ export async function createPerfectScoreSessionAction(
   return data ?? [];
 }
 
-export async function getDashboardDataAction(period: string, service: string, folderIds: string[], timeframe: '3m' | '6m' | 'all', year: number): Promise<DashboardData> {
+export async function getDashboardDataAction(service: string, folderIds: string[], year: number, startMonth: number, endMonth: number): Promise<DashboardData> {
   const { qaServiceServer } = await import('./services/qaService.server');
   const { profilerServiceServer } = await import('../profiler/services/profilerService.server');
   
@@ -478,8 +478,8 @@ export async function getDashboardDataAction(period: string, service: string, fo
   const context = { periods, indicators };
 
    const [periodData, trendData] = await Promise.all([
-     qaServiceServer.getConsolidatedPeriodData(period, service, folderIds, context, year),
-     qaServiceServer.getConsolidatedTrendData(timeframe, service, folderIds, context, year)
+     qaServiceServer.getConsolidatedDashboardDataByRange(service, folderIds, context, year, startMonth, endMonth),
+     qaServiceServer.getConsolidatedTrendDataByRange(service, folderIds, context, year, startMonth, endMonth)
    ]);
    
    if (!periodData || !trendData) {

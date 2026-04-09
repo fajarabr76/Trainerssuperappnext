@@ -11,6 +11,7 @@ interface MonthRangePickerProps {
   endMonth: number | null;
   onRangeChange: (start: number | null, end: number | null) => void;
   className?: string;
+  variant?: 'standalone' | 'compact';
 }
 
 export function MonthRangePicker({
@@ -18,7 +19,8 @@ export function MonthRangePicker({
   startMonth,
   endMonth,
   onRangeChange,
-  className = ""
+  className = "",
+  variant = "standalone"
 }: MonthRangePickerProps) {
   const handleStartChange = (val: string) => {
     const start = val === '' ? null : parseInt(val);
@@ -36,6 +38,65 @@ export function MonthRangePicker({
 
   const isInvalidRange = startMonth !== null && endMonth !== null && endMonth < startMonth;
 
+  if (variant === 'compact') {
+    return (
+      <div className={`flex items-center gap-3 ${className}`}>
+        {/* Start Month */}
+        <div className="relative group/select flex-1 min-w-[120px]">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <Calendar className="h-4 w-4 text-foreground/40 group-focus-within/select:text-primary transition-colors" />
+          </div>
+          <select
+            value={startMonth ?? ''}
+            onChange={(e) => handleStartChange(e.target.value)}
+            className="block w-full pl-11 pr-8 py-3.5 text-sm bg-background/50 border-border/50 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all appearance-none border hover:border-primary/30 font-semibold text-primary"
+          >
+            <option value="">Bulan Awal</option>
+            {MONTHS.map((name, i) => (
+              <option key={name} value={i + 1}>{name}</option>
+            ))}
+          </select>
+          <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-foreground/20">
+            <ChevronRight className="w-4 h-4 rotate-90" />
+          </div>
+        </div>
+
+        <span className="text-foreground/20 font-medium text-xs">sampai</span>
+
+        {/* End Month */}
+        <div className="relative group/select flex-1 min-w-[120px]">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <Calendar className="h-4 w-4 text-foreground/40 group-focus-within/select:text-primary transition-colors" />
+          </div>
+          <select
+            value={endMonth ?? ''}
+            onChange={(e) => handleEndChange(e.target.value)}
+            className="block w-full pl-11 pr-8 py-3.5 text-sm bg-background/50 border-border/50 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all appearance-none border hover:border-primary/30 font-semibold text-primary"
+          >
+            <option value="">Bulan Akhir</option>
+            {MONTHS.map((name, i) => (
+              <option key={name} value={i + 1}>{name}</option>
+            ))}
+          </select>
+          <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-foreground/20">
+            <ChevronRight className="w-4 h-4 rotate-90" />
+          </div>
+        </div>
+
+        {/* Reset Button */}
+        {(startMonth !== null || endMonth !== null) && (
+          <button
+            onClick={handleReset}
+            className="flex items-center justify-center p-3 rounded-2xl bg-background/50 border border-border/50 text-foreground/40 hover:text-red-500 hover:border-red-500/30 transition-all shadow-sm shrink-0"
+            title="Reset Range"
+          >
+            <XCircle className="w-5 h-5" />
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
       <div className="flex flex-wrap items-center gap-4 p-4 bg-background/30 rounded-2xl border border-border/50">
@@ -50,7 +111,7 @@ export function MonthRangePicker({
             <select
               value={startMonth ?? ''}
               onChange={(e) => handleStartChange(e.target.value)}
-              className="block w-full pl-4 pr-10 py-2 text-xs bg-background/50 border-border/50 rounded-xl focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all appearance-none border hover:border-primary/30"
+              className="block w-full pl-4 pr-10 py-2.5 text-xs bg-background/50 border-border/50 rounded-xl focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all appearance-none border hover:border-primary/30"
             >
               <option value="">Bulan Awal</option>
               {MONTHS.map((name, i) => (
@@ -69,7 +130,7 @@ export function MonthRangePicker({
             <select
               value={endMonth ?? ''}
               onChange={(e) => handleEndChange(e.target.value)}
-              className="block w-full pl-4 pr-10 py-2 text-xs bg-background/50 border-border/50 rounded-xl focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all appearance-none border hover:border-primary/30"
+              className="block w-full pl-4 pr-10 py-2.5 text-xs bg-background/50 border-border/50 rounded-xl focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all appearance-none border hover:border-primary/30"
             >
               <option value="">Bulan Akhir</option>
               {MONTHS.map((name, i) => (
