@@ -53,6 +53,10 @@ export default async function DashboardPage() {
     type: act.type
   }));
 
+  // 3. Additional metadata
+  const availableYears = await qaServiceServer.getAvailableYears();
+  const currentYear = new Date().getFullYear();
+
   return (
     <DashboardClient 
       user={user} 
@@ -60,6 +64,8 @@ export default async function DashboardPage() {
       profile={profile} 
       serviceTrendMap={serviceTrendMap}
       initialRecentLogs={formattedLogs}
+      availableYears={availableYears}
+      initialYear={currentYear}
     />
   );
 }

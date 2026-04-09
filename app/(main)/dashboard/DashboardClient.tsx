@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from "motion/react";
-import { LayoutDashboard, MessageSquare, Mail, Phone, Settings, LogOut, ChevronRight, Activity, Users, BarChart3, TrendingUp, Clock, Target, ArrowRight, ChevronLeft, Trash2 } from "lucide-react";
+import { LayoutDashboard, MessageSquare, Mail, Phone, Settings, LogOut, ChevronRight, Activity, Users, BarChart3, TrendingUp, TrendingDown, Clock, Target, ArrowRight, ChevronLeft, Trash2, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -11,6 +11,10 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useTheme } from 'next-themes';
 import { activityService } from "../../lib/services/activityService";
 import { useTelefunWarning } from "@/app/context/TelefunWarningContext";
+
+import { getDashboardTrendByRangeAction } from './actions';
+import { MonthRangePicker } from "@/app/components/ui/MonthRangePicker";
+import { Loader2 } from "lucide-react";
 
 const modules = [
   {
@@ -78,6 +82,8 @@ interface DashboardClientProps {
     totalSummary: { totalDefects: number, auditedAgents: number, activeServiceCount: number };
   }>;
   initialRecentLogs: Array<{ id: string | number, user: string, action: string, time: string, type: string }>;
+  availableYears: number[];
+  initialYear: number;
 }
 
 const SERVICE_COLORS: Record<string, string> = {
@@ -100,16 +106,29 @@ const SERVICE_LABELS: Record<string, string> = {
   slik: 'SLIK'
 };
 
+const MONTH_FULL_NAMES = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+];
+
 export default function DashboardClient({ 
   user, role, profile, 
-  serviceTrendMap, initialRecentLogs 
+  serviceTrendMap, initialRecentLogs,
+  availableYears, initialYear
 }: DashboardClientProps) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  const [timeframe, setTimeframe] = useState<'3m' | '6m' | 'all'>('all');
+  
+  // States for dynamic filtering
+  const [selectedYear, setSelectedYear] = useState(initialYear);
+  const [trendStartMonth, setTrendStartMonth] = useState<number | null>(null);
+  const [trendEndMonth, setTrendEndMonth] = useState<number | null>(null);
+  const [trendLoading, setTrendLoading] = useState(false);
+  const [localTrendData, setLocalTrendData] = useState<any>(null);
+  
   const [selectedService, setSelectedService] = useState<string>('all');
 
   const { openMaintenance } = useTelefunWarning();
@@ -118,28 +137,67 @@ export default function DashboardClient({
     setIsMounted(true);
   }, []);
 
-  // Bug #7 Fix: Reset selectedService to 'all' if the new timeframe doesn't have the current service
-  useEffect(() => {
-    const currentTrend = serviceTrendMap[timeframe];
-    if (selectedService !== 'all' && !currentTrend.activeServices.includes(selectedService)) {
-      setSelectedService('all');
+  // Update localTrendData when year changes to refresh "all" view for that year
+  const handleYearChange = async (year: number) => {
+    setSelectedYear(year);
+    setTrendStartMonth(null);
+    setTrendEndMonth(null);
+    
+    setTrendLoading(true);
+    try {
+      // Fetch trend for all 12 months of the new year
+      const newData = await getDashboardTrendByRangeAction(year, 1, 12);
+      setLocalTrendData(newData);
+    } catch (err) {
+      console.error('Failed to fetch dashboard trend for year:', err);
+    } finally {
+      setTrendLoading(false);
     }
-  }, [timeframe, serviceTrendMap]);
+  };
 
-  // Derive stats dynamically from the selected timeframe and service
-  const currentTrend = serviceTrendMap[timeframe];
+  const handleRangeChange = async (start: number | null, end: number | null) => {
+    // Determine target start/end based on user selection
+    let targetStart = start;
+    let targetEnd = end;
+
+    if (targetStart === null && targetEnd !== null) {
+      targetStart = 1; // Default to January
+    } else if (targetStart !== null && targetEnd === null) {
+      targetEnd = new Date().getMonth() + 1; // Default to current month
+    }
+
+    setTrendStartMonth(targetStart);
+    setTrendEndMonth(targetEnd);
+
+    if (targetStart !== null && targetEnd !== null && targetEnd >= targetStart) {
+      setTrendLoading(true);
+      try {
+        const newData = await getDashboardTrendByRangeAction(selectedYear, targetStart, targetEnd);
+        setLocalTrendData(newData);
+      } catch (err) {
+        console.error('Failed to fetch dashboard trend by range:', err);
+      } finally {
+        setTrendLoading(false);
+      }
+    } else if (targetStart === null && targetEnd === null) {
+      setLocalTrendData(null);
+    }
+  };
+
+  // Derive stats dynamically
+  const activeTrend = localTrendData || serviceTrendMap['all'];
   
   const totalFindings = selectedService === 'all'
-    ? currentTrend.totalSummary.totalDefects
-    : currentTrend.serviceSummary[selectedService]?.totalDefects ?? 0;
+    ? activeTrend.totalSummary.totalDefects
+    : activeTrend.serviceSummary[selectedService]?.totalDefects ?? 0;
 
   const auditedAgents = selectedService === 'all'
-    ? currentTrend.totalSummary.auditedAgents
-    : currentTrend.serviceSummary[selectedService]?.auditedAgents ?? 0;
+    ? activeTrend.totalSummary.auditedAgents
+    : activeTrend.serviceSummary[selectedService]?.auditedAgents ?? 0;
 
   const avgPerService = selectedService === 'all'
-    ? currentTrend.totalSummary.activeServiceCount > 0
-      ? (totalFindings / currentTrend.totalSummary.activeServiceCount).toFixed(1)
+    ? activeTrend.totalSummary.activeServiceCount > 0
+      ? (totalFindings / activeTrend.totalSummary.activeServiceCount).toFixed(1)
       : '0'
     : null;
 
@@ -147,32 +205,42 @@ export default function DashboardClient({
     ? (totalFindings / auditedAgents).toFixed(1)
     : '0';
 
-  const qaTrendPoints = currentTrend.labels.map((label, i) => {
+  const qaTrendPoints = activeTrend.labels.map((label: string, i: number) => {
     const point: any = { name: label };
     
-    // Bug #9 Fix: Tooltip only shows visible fields
     if (selectedService === 'all') {
-      point['Total'] = currentTrend.totalData[i];
-      Object.entries(currentTrend.serviceData).forEach(([svc, data]) => {
+      point['Total'] = activeTrend.totalData[i];
+      Object.entries(activeTrend.serviceData).forEach(([svc, data]: [string, any]) => {
         point[SERVICE_LABELS[svc] || svc] = data[i];
       });
     } else {
       const svcLabel = SERVICE_LABELS[selectedService] || selectedService;
-      point[svcLabel] = (currentTrend.serviceData[selectedService] || [])[i] || 0;
+      point[svcLabel] = (activeTrend.serviceData[selectedService] || [])[i] || 0;
     }
     
     return point;
   });
 
   const trendDataPoints = selectedService === 'all' 
-    ? currentTrend.totalData 
-    : (currentTrend.serviceData[selectedService] || currentTrend.labels.map(() => 0));
+    ? activeTrend.totalData 
+    : (activeTrend.serviceData[selectedService] || activeTrend.labels.map(() => 0));
 
   const lastVal = trendDataPoints.length > 0 ? trendDataPoints[trendDataPoints.length - 1] : 0;
   const prevVal = trendDataPoints.length > 1 ? trendDataPoints[trendDataPoints.length - 2] : 0;
-  
   const trendStatus = trendDataPoints.length < 2 ? "Stagnan" : (lastVal < prevVal ? "Membaik" : lastVal > prevVal ? "Memburuk" : "Stagnan");
-  const timeframeLabel = timeframe === '3m' ? '3 bulan terakhir' : timeframe === '6m' ? '6 bulan terakhir' : 'semua periode';
+  
+  const timeframeLabel = trendStartMonth && trendEndMonth 
+    ? `periode ${MONTH_FULL_NAMES[trendStartMonth - 1]} - ${MONTH_FULL_NAMES[trendEndMonth - 1]} ${selectedYear}`
+    : 'semua periode';
+
+  // Calculate Delta for Total Temuan
+  const lastTrendVal = trendDataPoints.length > 0 ? trendDataPoints[trendDataPoints.length - 1] : 0;
+  const prevTrendVal = trendDataPoints.length > 1 ? trendDataPoints[trendDataPoints.length - 2] : null;
+  const trendDelta = prevTrendVal !== null && prevTrendVal !== 0 
+    ? ((lastTrendVal - prevTrendVal) / prevTrendVal) * 100 
+    : null;
+
+  const topParameter = activeTrend.topParameter;
 
   // We could use searchParams to re-fetch trend data server-side
   // or keep this client-side for dynamic switching for now.
@@ -304,7 +372,7 @@ export default function DashboardClient({
                         >
                           Semua
                         </button>
-                        {currentTrend.activeServices.map(svc => (
+                        {activeTrend.activeServices.map(svc => (
                           <button
                             key={svc}
                             onClick={() => setSelectedService(selectedService === svc ? 'all' : svc)}
@@ -323,27 +391,37 @@ export default function DashboardClient({
                         ))}
                       </div>
 
+                      <div className="flex items-center bg-background/50 border border-border/40 rounded-xl px-3 py-1.5 gap-2">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-foreground/40">Tahun:</span>
+                        <select 
+                          value={selectedYear}
+                          onChange={(e) => handleYearChange(parseInt(e.target.value))}
+                          className="bg-transparent text-[9px] font-black uppercase tracking-widest focus:outline-none cursor-pointer"
+                        >
+                          {availableYears.map(year => (
+                            <option key={year} value={year}>{year}</option>
+                          ))}
+                        </select>
+                      </div>
+
                       <div className="h-4 w-px bg-border/40 hidden sm:block" />
 
-                      <div className="flex items-center bg-background/50 border border-border/40 rounded-xl p-1">
-                        {(['3m', '6m', 'all'] as const).map((tf) => (
-                          <button
-                            key={tf}
-                            onClick={() => setTimeframe(tf)}
-                            className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                              timeframe === tf 
-                              ? 'bg-primary text-primary-foreground shadow-sm' 
-                              : 'hover:bg-foreground/5 text-foreground/50'
-                            }`}
-                          >
-                            {tf === '3m' ? '3 B' : tf === '6m' ? '6 B' : 'All'}
-                          </button>
-                        ))}
-                      </div>
+                      <MonthRangePicker 
+                        selectedYear={selectedYear}
+                        startMonth={trendStartMonth}
+                        endMonth={trendEndMonth}
+                        onRangeChange={handleRangeChange}
+                        className="mb-0 !gap-0"
+                      />
                     </div>
                   </div>
                   
-                  <div className="h-[300px] w-full">
+                  <div className="h-[300px] w-full relative">
+                    {trendLoading && (
+                      <div className="absolute inset-0 z-20 flex items-center justify-center bg-card/50 backdrop-blur-[1px] rounded-2xl">
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      </div>
+                    )}
                     {isMounted && (
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={qaTrendPoints}>
@@ -401,7 +479,7 @@ export default function DashboardClient({
                             const isSelected = selectedService === svc;
                             const shouldShow = selectedService === 'all' || isSelected;
                             
-                            if (!shouldShow || !currentTrend.serviceData[svc]) return null;
+                            if (!shouldShow || !activeTrend.serviceData[svc]) return null;
 
                             return (
                               <Area
@@ -430,21 +508,41 @@ export default function DashboardClient({
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.5, duration: 0.5 }}
-                  className="rounded-3xl border border-primary/20 bg-primary/95 text-primary-foreground p-8 flex flex-col shadow-2xl shadow-primary/10 relative overflow-hidden"
+                  className="rounded-3xl border border-primary/20 bg-primary/95 text-primary-foreground p-6 flex flex-col shadow-2xl shadow-primary/10 relative overflow-hidden"
                 >
                   <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
                   
-                  <h2 className="text-lg font-bold tracking-tight mb-8 relative z-10">Ringkasan Performa</h2>
-                  <div className="flex-1 flex flex-col justify-center gap-6 relative z-10">
+                  <h2 className="text-lg font-bold tracking-tight mb-4 relative z-10">Ringkasan Performa</h2>
+                  <div className="flex-1 flex flex-col justify-center gap-4 relative z-10">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10">
                         <Activity className="w-6 h-6" />
                       </div>
                       <div>
-                        <div className="text-[10px] font-mono uppercase tracking-widest opacity-70 mb-1">Total Temuan</div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="text-[10px] font-mono uppercase tracking-widest opacity-70">Total Temuan</div>
+                          {trendDelta !== null && (
+                            <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${trendDelta <= 0 ? 'bg-emerald-400/20 text-emerald-400' : 'bg-rose-400/20 text-rose-400'}`}>
+                              {trendDelta <= 0 ? <TrendingDown className="w-2.5 h-2.5" /> : <TrendingUp className="w-2.5 h-2.5" />}
+                              {Math.abs(Math.round(trendDelta))}%
+                            </div>
+                          )}
+                        </div>
                         <div className="text-4xl font-bold tracking-tight">{totalFindings}</div>
                       </div>
                     </div>
+
+                    {/* Service Distribution (Suggestion 1) */}
+                    {selectedService === 'all' && (
+                       <div className="flex flex-wrap gap-2 pt-2 pb-4">
+                         {Object.entries(activeTrend.serviceSummary).map(([svc, stats]) => (
+                           <div key={svc} className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 flex flex-col items-start gap-0.5 min-w-[70px]">
+                             <span className="text-[8px] uppercase tracking-tighter opacity-60 font-bold">{SERVICE_LABELS[svc as keyof typeof SERVICE_LABELS] || svc}</span>
+                             <span className="text-xs font-bold leading-none">{(stats as any).totalDefects}</span>
+                           </div>
+                         ))}
+                       </div>
+                    )}
                     
                     {selectedService === 'all' && (
                       <div className="flex items-center gap-4">
@@ -476,6 +574,22 @@ export default function DashboardClient({
                       <div className="text-xl font-bold">{trendStatus}</div>
                       <div className="text-[10px] opacity-60 mt-1">Berdasarkan data {timeframeLabel}</div>
                     </div>
+
+                    {/* Top Parameter Highlight (Suggestion 3) */}
+                    {topParameter && (
+                      <div className="mt-2 pt-4 border-t border-white/10 relative overflow-hidden group">
+                        <div className="flex items-start gap-3 relative z-10">
+                          <div className="w-8 h-8 rounded-xl bg-amber-400/20 flex items-center justify-center border border-amber-400/20 shrink-0">
+                            <AlertCircle className="w-4 h-4 text-amber-400" />
+                          </div>
+                          <div>
+                            <div className="text-[9px] font-bold uppercase tracking-widest text-amber-400 mb-0.5">Top Finding Issue</div>
+                            <div className="text-sm font-semibold leading-snug line-clamp-2 pr-2">{topParameter.name}</div>
+                            <div className="text-[10px] opacity-60 mt-1 font-mono">{topParameter.count} temuan terdeteksi</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               </div>

@@ -25,7 +25,7 @@ import ParetoChart from './components/ParetoChart';
 import FatalDonutChart from './components/FatalDonutChart';
 import ParamTrendChart, { TREND_COLORS } from './components/ParamTrendChart';
 import { getDashboardDataAction, getTrendByRangeAction } from '../actions';
-import { MonthRangePicker } from './components/MonthRangePicker';
+import { MonthRangePicker } from '@/app/components/ui/MonthRangePicker';
 
 interface QaDashboardClientProps {
   user: any;

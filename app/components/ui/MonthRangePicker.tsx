@@ -10,13 +10,15 @@ interface MonthRangePickerProps {
   startMonth: number | null;
   endMonth: number | null;
   onRangeChange: (start: number | null, end: number | null) => void;
+  className?: string;
 }
 
 export function MonthRangePicker({
   selectedYear,
   startMonth,
   endMonth,
-  onRangeChange
+  onRangeChange,
+  className = ""
 }: MonthRangePickerProps) {
   const handleStartChange = (val: string) => {
     const start = val === '' ? null : parseInt(val);
@@ -35,7 +37,7 @@ export function MonthRangePicker({
   const isInvalidRange = startMonth !== null && endMonth !== null && endMonth < startMonth;
 
   return (
-    <div className="flex flex-col gap-2 mb-6">
+    <div className={`flex flex-col gap-2 ${className}`}>
       <div className="flex flex-wrap items-center gap-4 p-4 bg-background/30 rounded-2xl border border-border/50">
         <div className="flex items-center gap-2 text-xs font-semibold text-foreground/60 mr-2">
           <Calendar className="w-4 h-4" />
@@ -99,7 +101,7 @@ export function MonthRangePicker({
       </div>
       
       <p className="text-[10px] text-foreground/30 font-medium ml-4">
-        * Rentang bulan dibatasi dalam tahun {selectedYear}. Ubah tahun di filter global untuk tahun lain.
+        * Rentang bulan dibatasi dalam tahun {selectedYear}. Ubah tahun di filter untuk tahun lain.
       </p>
     </div>
   );

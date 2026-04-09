@@ -1415,10 +1415,9 @@ export const qaServiceServer = {
 
     const pIds = periods.map(p => p.id);
     // Include ALL temuan records (including nilai=3) as QA findings
-    const { data } = await supabase
-      .from('qa_temuan')
-      .select('peserta_id')
-      .in('period_id', pIds);
+    // Use paginated fetch to bypass 1000 row limit
+    const data = await this.fetchPaginatedTrendData(supabase, pIds);
+
     if (!data) return 0;
     return new Set(data.map(d => d.peserta_id)).size;
   },
@@ -1443,10 +1442,9 @@ export const qaServiceServer = {
 
     const pIds = periods.map(p => p.id);
     // Include ALL temuan records (including nilai=3) as QA findings
-    const { data } = await supabase
-      .from('qa_temuan')
-      .select('no_tiket')
-      .in('period_id', pIds);
+    // Use paginated fetch to bypass 1000 row limit
+    const data = await this.fetchPaginatedTrendData(supabase, pIds);
+
     if (!data) return 0;
     return new Set(data.map(d => d.no_tiket)).size;
   },
@@ -1468,13 +1466,10 @@ export const qaServiceServer = {
     const pIds = sortedPeriods.map(p => p.id);
     const labels = sortedPeriods.map(p => `${MONTHS_SHORT[p.month - 1]} ${String(p.year).slice(-2)}`);
 
-    const { data: temuan } = await supabase
-      .from('qa_temuan')
-      .select('nilai, period_id, service_type, peserta_id')
-      .in('period_id', pIds)
-      .eq('tahun', sortedPeriods[0]?.year || new Date().getFullYear());
+    // Use paginated fetch to bypass 1000 row limit
+    const temuan = await this.fetchPaginatedTrendData(supabase, pIds, sortedPeriods[0]?.year || new Date().getFullYear());
 
-    if (!temuan) return { labels, totalData: labels.map(() => 0), serviceData: {}, activeServices: [], serviceSummary: {}, totalSummary: { totalDefects: 0, auditedAgents: 0, activeServiceCount: 0 } };
+    if (!temuan || temuan.length === 0) return { labels, totalData: labels.map(() => 0), serviceData: {}, activeServices: [], serviceSummary: {}, totalSummary: { totalDefects: 0, auditedAgents: 0, activeServiceCount: 0 } };
 
     const activeServicesSet = new Set<string>();
     const totalData = labels.map(() => 0);
@@ -1553,7 +1548,120 @@ export const qaServiceServer = {
         auditedAgents: totalAuditedAgentsSet.size,
         activeServiceCount: activeServicesSet.size
       },
-      periodStats
+      periodStats,
+      topParameter: this.calculateTopParameter(temuan)
+    };
+  },
+
+  private calculateTopParameter(temuan: any[]) {
+    if (!temuan || temuan.length === 0) return null;
+    
+    const counts: Record<string, { count: number, name: string }> = {};
+    temuan.forEach(t => {
+      const id = t.indicator_id;
+      const name = t.qa_indicators?.name || 'Unknown';
+      if (!id) return;
+      if (!counts[id]) counts[id] = { count: 0, name };
+      counts[id].count++;
+    });
+
+    const sorted = Object.values(counts).sort((a, b) => b.count - a.count);
+    return sorted[0] || null;
+  },
+
+  async getServiceTrendForDashboardByRange(year: number, startMonth: number, endMonth: number, context?: SharedContext) {
+    const supabase = await createClient();
+    
+    const allPeriods = context?.periods || (await this.getPeriods());
+    const sortedPeriods = allPeriods
+      .filter(p => p.year === year && p.month >= startMonth && p.month <= endMonth)
+      .sort((a, b) => a.month - b.month);
+    
+    const pIds = sortedPeriods.map(p => p.id);
+    const labels = sortedPeriods.map(p => `${MONTHS_SHORT[p.month - 1]} ${String(p.year).slice(-2)}`);
+
+    if (pIds.length === 0) return { labels: [], totalData: [], serviceData: {}, activeServices: [], serviceSummary: {}, totalSummary: { totalDefects: 0, auditedAgents: 0, activeServiceCount: 0 }, periodStats: [] };
+
+    // Use paginated fetch to bypass 1000 row limit
+    const temuan = await this.fetchPaginatedTrendData(supabase, pIds, year);
+
+    const topParameter = this.calculateTopParameter(temuan);
+
+    if (!temuan || temuan.length === 0) return { labels, totalData: labels.map(() => 0), serviceData: {}, activeServices: [], serviceSummary: {}, totalSummary: { totalDefects: 0, auditedAgents: 0, activeServiceCount: 0 }, periodStats: [], topParameter: null };
+
+    const activeServicesSet = new Set<string>();
+    const totalData = labels.map(() => 0);
+    const serviceData: Record<string, number[]> = {};
+    const serviceSummary: Record<string, { totalDefects: number, auditedAgents: number }> = {};
+    
+    const totalAuditedAgentsSet = new Set(temuan.map(t => t.peserta_id));
+    const totalDefectsCount = temuan.length;
+
+    temuan.forEach(t => {
+      const sType = t.service_type || 'unknown';
+      activeServicesSet.add(sType);
+
+      const periodIdx = sortedPeriods.findIndex(p => p.id === t.period_id);
+      if (periodIdx === -1) return;
+
+      totalData[periodIdx]++;
+      if (!serviceData[sType]) serviceData[sType] = labels.map(() => 0);
+      serviceData[sType][periodIdx]++;
+
+      if (!serviceSummary[sType]) {
+        serviceSummary[sType] = { totalDefects: 0, auditedAgents: 0 };
+      }
+      serviceSummary[sType].totalDefects++;
+    });
+
+    const serviceAgentsMap: Record<string, Set<string>> = {};
+    temuan.forEach(t => {
+      const sType = t.service_type || 'unknown';
+      if (!serviceAgentsMap[sType]) serviceAgentsMap[sType] = new Set();
+      serviceAgentsMap[sType].add(t.peserta_id);
+    });
+
+    Object.keys(serviceSummary).forEach(sType => {
+      serviceSummary[sType].auditedAgents = serviceAgentsMap[sType]?.size || 0;
+    });
+
+    const periodStats = sortedPeriods.map((p, idx) => {
+      const pTemuan = temuan.filter(t => t.period_id === p.id);
+      const svcStats: Record<string, { totalDefects: number, auditedAgents: number }> = {};
+      
+      const pAgents = new Set(pTemuan.map(t => t.peserta_id));
+      const pDefects = pTemuan.length;
+
+      activeServicesSet.forEach(svc => {
+        const sTemuan = pTemuan.filter(t => t.service_type === svc);
+        svcStats[svc] = {
+          totalDefects: sTemuan.length,
+          auditedAgents: new Set(sTemuan.map(t => t.peserta_id)).size
+        };
+      });
+
+      return {
+        id: p.id,
+        label: labels[idx],
+        totalDefects: pDefects,
+        auditedAgents: pAgents.size,
+        serviceStats: svcStats
+      };
+    });
+
+    return {
+      labels,
+      totalData,
+      serviceData,
+      activeServices: Array.from(activeServicesSet),
+      serviceSummary,
+      totalSummary: {
+        totalDefects: totalDefectsCount,
+        auditedAgents: totalAuditedAgentsSet.size,
+        activeServiceCount: activeServicesSet.size
+      },
+      periodStats,
+      topParameter: this.calculateTopParameter(temuan)
     };
   },
 
@@ -1596,5 +1704,40 @@ export const qaServiceServer = {
       },
       periodStats: slicedPeriodStats
     };
+  },
+
+  /**
+   * Helper private method to fetch QA findings with pagination to bypass Supabase 1000-row limit
+   */
+  async fetchPaginatedTrendData(supabase: any, pIds: string[], year?: number) {
+    let allData: any[] = [];
+    let from = 0;
+    const step = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      let query = supabase
+        .from('qa_temuan')
+        .select('nilai, period_id, service_type, peserta_id, no_tiket, indicator_id, qa_indicators(name)') // Added indicator_id and join
+        .in('period_id', pIds)
+        .order('id', { ascending: true })
+        .range(from, from + step - 1);
+
+      if (year) {
+        query = query.eq('tahun', year);
+      }
+
+      const { data, error } = await query;
+      
+      if (!data || data.length === 0) {
+        hasMore = false;
+      } else {
+        allData = [...allData, ...data];
+        hasMore = data.length === step;
+        from += step;
+      }
+    }
+
+    return allData;
   }
 };
