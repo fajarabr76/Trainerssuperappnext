@@ -3,6 +3,7 @@ export interface AppSettings {
   consumerTypes: ConsumerType[];
   enableImageGeneration: boolean;
   globalConsumerTypeId: string;
+  selectedModel?: string;
   customIdentity?: {
     senderName?: string;
     bodyName?: string;
@@ -42,6 +43,7 @@ export interface SessionConfig {
   consumerType: ConsumerType;
   identity: Identity;
   enableImageGeneration: boolean;
+  model: string;
 }
 
 export interface Identity {

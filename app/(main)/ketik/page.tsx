@@ -317,6 +317,7 @@ export default function AppKetik() {
                   onEndSession={endSession} 
                   isReviewMode={currentScenario.id === 'review'} 
                   initialMessages={reviewMessages} 
+                  isEnding={isLoading}
                 />
               )}
             </div>

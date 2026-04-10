@@ -11,6 +11,6 @@ export const defaultSettings: AppSettings = {
     phoneNumber: '',
     city: ''
   },
-  selectedModel: 'gemini-3-flash-preview',
+  selectedModel: 'qwen/qwen3-next-80b-a3b-instruct:free',
   simulationDuration: 5
 };

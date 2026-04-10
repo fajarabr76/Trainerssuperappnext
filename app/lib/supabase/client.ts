@@ -21,24 +21,24 @@ export function createClient() {
       'placeholder',
       {
         cookieOptions: {
-          sameSite: 'none',
-          secure: true,
+          sameSite: 'lax',
+          secure: process.env.NODE_ENV === 'production',
         }
       }
     );
     return browserClient;
   }
 
-  browserClient = createBrowserClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookieOptions: {
-        sameSite: 'none',
-        secure: true,
-      }
+browserClient = createBrowserClient(
+  supabaseUrl,
+  supabaseAnonKey,
+  {
+    cookieOptions: {
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
     }
-  );
+  }
+);
 
   return browserClient;
 }

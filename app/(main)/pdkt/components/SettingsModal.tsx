@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { AppSettings, Scenario, ConsumerType, Identity, ConsumerDifficulty } from '../types';
 import { DEFAULT_SCENARIOS, DEFAULT_CONSUMER_TYPES } from '../constants';
+import { AI_MODELS } from '@/app/lib/ai-models';
 import { X, Plus, Check, Edit2, Trash2, Image as ImageIcon, User, Settings, FileText, Users, Clock, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -15,7 +16,7 @@ interface SettingsModalProps {
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave }) => {
-  const [activeTab, setActiveTab] = useState<'scenarios' | 'consumers' | 'identity'>('scenarios');
+  const [activeTab, setActiveTab] = useState<'scenarios' | 'consumers' | 'identity' | 'system'>('scenarios');
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
   
   // Scenario Form State
@@ -48,6 +49,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   // Global Settings
   const [enableImageGeneration, setEnableImageGeneration] = useState(localSettings.enableImageGeneration ?? true);
   const [globalConsumerTypeId, setGlobalConsumerTypeId] = useState(localSettings.globalConsumerTypeId || 'random');
+  const [selectedModel, setSelectedModel] = useState(localSettings.selectedModel || 'gemini-3-flash-preview');
 
   // Sync state when modal opens to ensure fresh data
   useEffect(() => {
@@ -59,6 +61,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
         setCustomCity(settings.customIdentity?.city || '');
         setEnableImageGeneration(settings.enableImageGeneration ?? true);
         setGlobalConsumerTypeId(settings.globalConsumerTypeId || 'random');
+        setSelectedModel(settings.selectedModel || 'gemini-3-flash-preview');
         
         // Reset forms
         setEditingScenarioId(null);
@@ -291,6 +294,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
         ...localSettings,
         enableImageGeneration,
         globalConsumerTypeId,
+        selectedModel,
         customIdentity: {
           senderName: customSenderName,
           bodyName: customBodyName,
@@ -350,6 +354,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     { id: 'scenarios', label: 'Masalah', icon: FileText },
     { id: 'consumers', label: 'Karakter', icon: Users },
     { id: 'identity', label: 'Identitas', icon: User },
+    { id: 'system', label: 'Sistem', icon: Settings },
   ];
 
   // SELECT ALL LOGIC
@@ -1047,6 +1052,64 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                         </button>
                       </div>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'system' && (
+                <div className="space-y-8 mt-4">
+                  <div className="bg-card/40 p-8 rounded-[2.5rem] border border-white/5 backdrop-blur-md">
+                    <div className="flex items-start gap-6">
+                      <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <Settings className="w-7 h-7 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-black text-foreground text-xl tracking-tight">Pengaturan Sistem</h3>
+                        <p className="text-sm text-foreground/40 mt-1 font-medium leading-relaxed">
+                          Pilih model AI yang akan menggerakkan simulasi email ini.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {AI_MODELS.map(model => {
+                      const isSelected = selectedModel === model.id;
+                      return (
+                        <div 
+                          key={model.id}
+                          onClick={() => setSelectedModel(model.id)}
+                          className={`cursor-pointer p-6 rounded-[2rem] border transition-all flex items-center justify-between gap-6 group relative overflow-hidden ${
+                            isSelected 
+                              ? 'bg-card border-primary/30 shadow-xl' 
+                              : 'bg-card/20 border-white/5 opacity-40 hover:opacity-100 hover:bg-card/40'
+                          }`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 mb-1">
+                              <h4 className="text-lg font-black text-foreground tracking-tight truncate">
+                                {model.name}
+                              </h4>
+                              <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${
+                                model.provider === 'openrouter' 
+                                ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' 
+                                : 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                              }`}>
+                                {model.provider}
+                              </span>
+                            </div>
+                            <p className="text-sm text-foreground/40 font-medium">
+                              {model.description}
+                            </p>
+                          </div>
+                          {isSelected && (
+                            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
+                              <Check className="w-5 h-5 text-white" />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

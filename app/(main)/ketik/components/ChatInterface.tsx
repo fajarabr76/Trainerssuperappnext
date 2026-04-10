@@ -13,6 +13,7 @@ interface ChatInterfaceProps {
   onEndSession: (messages: ChatMessage[]) => void;
   isReviewMode?: boolean;
   initialMessages?: ChatMessage[];
+  isEnding?: boolean;
 }
 
 const TickIcon: React.FC<{ status?: string }> = ({ status }) => {
@@ -32,7 +33,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   scenario,
   onEndSession,
   isReviewMode = false,
-  initialMessages = []
+  initialMessages = [],
+  isEnding = false
 }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [inputText, setInputText] = useState('');
@@ -71,8 +73,23 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     
     try {
       const currentHistory = [...messages];
-      const responseText = await generateConsumerResponse(config, scenario, currentHistory);
-      
+      const result = await generateConsumerResponse(config, scenario, currentHistory);
+
+      if (!result.success) {
+        setIsLoading(false);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: 'error-' + Date.now(),
+            sender: 'system',
+            text: result.error,
+            timestamp: new Date(),
+          },
+        ]);
+        return;
+      }
+
+      const responseText = result.text;
       if (responseText !== '[NO_RESPONSE]') {
         const parts = responseText.split('[BREAK]').map(p => p.trim()).filter(p => p);
         let delay = 1000;
@@ -162,9 +179,23 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const currentHistory = [...messages, userMsg];
     
     try {
-      // Call Gemini
-      const responseText = await generateConsumerResponse(config, scenario, currentHistory);
-      
+      const result = await generateConsumerResponse(config, scenario, currentHistory);
+
+      if (!result.success) {
+        setIsLoading(false);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: 'error-' + Date.now(),
+            sender: 'system',
+            text: result.error,
+            timestamp: new Date(),
+          },
+        ]);
+        return;
+      }
+
+      const responseText = result.text;
       if (responseText !== '[NO_RESPONSE]') {
         const parts = responseText.split('[BREAK]').map(p => p.trim()).filter(p => p);
         
@@ -318,34 +349,54 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         
         <div className="flex items-center justify-end gap-3 w-1/4">
             {isReviewMode ? (
-                <button 
-                    onClick={() => {
-                        const csvContent = "data:text/csv;charset=utf-8,Pengirim,Pesan,Waktu\n" + 
-                            messages.map(m => {
-                                const sender = m.sender === 'agent' ? 'Agen' : m.sender === 'consumer' ? 'Konsumen' : 'Sistem';
-                                const text = m.text.replace(/"/g, '""');
-                                const time = new Date(m.timestamp).toLocaleString();
-                                return `"${sender}","${text}","${time}"`;
-                            }).join("\n");
-                        const encodedUri = encodeURI(csvContent);
-                        const link = document.createElement("a");
-                        link.setAttribute("href", encodedUri);
-                        link.setAttribute("download", `chat_review_${Date.now()}.csv`);
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                    }}
-                    className="w-12 h-12 flex items-center justify-center bg-foreground/5 hover:bg-foreground/10 text-foreground/60 hover:text-foreground rounded-2xl transition-all border border-border/50 shadow-sm"
-                    title="Download CSV"
-                >
-                    <Download className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                    <button 
+                        onClick={() => {
+                            const csvContent = "data:text/csv;charset=utf-8,Pengirim,Pesan,Waktu\n" + 
+                                messages.map(m => {
+                                    const sender = m.sender === 'agent' ? 'Agen' : m.sender === 'consumer' ? 'Konsumen' : 'Sistem';
+                                    const text = m.text.replace(/"/g, '""');
+                                    const time = new Date(m.timestamp).toLocaleString();
+                                    return `"${sender}","${text}","${time}"`;
+                                }).join("\n");
+                            const encodedUri = encodeURI(csvContent);
+                            const link = document.createElement("a");
+                            link.setAttribute("href", encodedUri);
+                            link.setAttribute("download", `chat_review_${Date.now()}.csv`);
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                        }}
+                        className="w-12 h-12 flex items-center justify-center bg-foreground/5 hover:bg-foreground/10 text-foreground/60 hover:text-foreground rounded-2xl transition-all border border-border/50 shadow-sm"
+                        title="Download CSV"
+                    >
+                        <Download className="w-5 h-5" />
+                    </button>
+                    <button 
+                        onClick={() => onEndSession([])}
+                        className="w-12 h-12 flex items-center justify-center bg-foreground/5 hover:bg-foreground/10 text-foreground/60 hover:text-red-500 rounded-2xl transition-all border border-border/50 shadow-sm"
+                        title="Tutup Review"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
             ) : (
                 <button 
-                    onClick={() => onEndSession(messages)}
-                    className="px-6 py-2.5 bg-red-500 text-white font-black text-[10px] uppercase tracking-widest hover:bg-red-600 transition-all rounded-xl shadow-lg shadow-red-500/20"
+                    onClick={() => !isLoading && !isEnding && onEndSession(messages)}
+                    disabled={isLoading || isEnding}
+                    className={`px-6 py-2.5 text-white font-black text-[10px] uppercase tracking-widest transition-all rounded-xl shadow-lg flex items-center gap-2
+                    ${(isLoading || isEnding) 
+                        ? 'bg-red-400 cursor-not-allowed opacity-80' 
+                        : 'bg-red-500 hover:bg-red-600 shadow-red-500/20 active:scale-95'}`}
                 >
-                    Selesai
+                    {isEnding ? (
+                        <>
+                            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            <span>Memproses...</span>
+                        </>
+                    ) : (
+                        'Selesai'
+                    )}
                 </button>
             )}
         </div>

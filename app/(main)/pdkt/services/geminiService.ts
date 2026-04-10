@@ -1,5 +1,34 @@
 import { SessionConfig, EmailMessage, EvaluationResult } from "../types";
 import { generateGeminiContent } from '@/app/actions/gemini';
+import { generateOpenRouterContent } from '@/app/actions/openrouter';
+import { getProviderFromModelId } from '@/app/lib/ai-models';
+
+/**
+ * Helper to call the appropriate AI provider based on model ID.
+ */
+async function callAI(options: { 
+  model: string; 
+  systemInstruction: string; 
+  prompt: string; 
+  temperature?: number;
+  responseMimeType?: string;
+}) {
+  const provider = getProviderFromModelId(options.model);
+  
+  const callPayload = {
+    model: options.model,
+    systemInstruction: options.systemInstruction,
+    contents: [{ role: 'user', parts: [{ text: options.prompt }] }],
+    temperature: options.temperature,
+    responseMimeType: options.responseMimeType,
+  };
+
+  if (provider === 'openrouter') {
+    return generateOpenRouterContent(callPayload);
+  }
+  
+  return generateGeminiContent(callPayload);
+}
 
 interface Content {
   role: string;
@@ -84,8 +113,14 @@ const getSystemInstruction = (config: SessionConfig, hasCustomImages: boolean) =
   `;
 };
 
+export type InitializeEmailSessionResult =
+  | { success: true; message: EmailMessage }
+  | { success: false; error: string };
+
 // ── Init Email Session ───────────────────────────────────────
-export const initializeEmailSession = async (config: SessionConfig): Promise<EmailMessage> => {
+export const initializeEmailSession = async (
+  config: SessionConfig
+): Promise<InitializeEmailSessionResult> => {
   chatHistory = [];
 
   const customAttachments: string[] = config.scenarios
@@ -106,8 +141,9 @@ export const initializeEmailSession = async (config: SessionConfig): Promise<Ema
     .filter((img): img is string => !!img);
 
   const hasCustomImages = customAttachments.length > 0;
-  const model = "gemini-3-flash-preview";
+  const model = config.model || "gemini-3-flash-preview";
 
+  // Existing logic for prompt remains the same...
   const prompt = `
     Silakan tulis email pengaduan pertama Anda sekarang.
     
@@ -123,17 +159,42 @@ export const initializeEmailSession = async (config: SessionConfig): Promise<Ema
   `;
 
   try {
-    const response = await generateGeminiContent({
+    const response = await callAI({
       model,
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      prompt,
       systemInstruction: getSystemInstruction(config, hasCustomImages),
       responseMimeType: "application/json"
     });
 
-    if (!response.success) throw new Error(response.error);
+    if (!response.success) {
+      return {
+        success: false,
+        error:
+          response.error ||
+          'Layanan AI tidak tersedia sementara. Silakan tunggu beberapa detik lalu coba lagi.',
+      };
+    }
 
     const responseText = response.text || "{}";
-    const jsonResponse = JSON.parse(responseText);
+    
+    // Flexible JSON extraction (to handle cases where model includes preamble text)
+    let jsonResponse;
+    try {
+      jsonResponse = JSON.parse(responseText);
+    } catch (e) {
+      console.log("[PDKT] Direct JSON parse failed, trying regex extraction...");
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          jsonResponse = JSON.parse(jsonMatch[0]);
+        } catch (e2) {
+          console.warn("[PDKT] Regex JSON parse also failed:", e2);
+          return { success: false, error: "Format balasan AI tidak valid. Coba mulai sesi lagi." };
+        }
+      } else {
+        return { success: false, error: "Tidak ada data JSON valid dari AI. Coba mulai sesi lagi." };
+      }
+    }
 
     chatHistory.push({ role: 'user', parts: [{ text: prompt }] });
     chatHistory.push({ role: 'model', parts: [{ text: responseText }] });
@@ -147,19 +208,25 @@ export const initializeEmailSession = async (config: SessionConfig): Promise<Ema
     }
 
     return {
-      id: Date.now().toString(),
-      from: config.identity.email,
-      to: "konsumen@ojk.go.id",
-      subject: jsonResponse.subject || "Keluhan Pelanggan",
-      body: jsonResponse.body || "Gagal memuat isi email.",
-      timestamp: new Date(),
-      isAgent: false,
-      attachments: attachmentBase64s
+      success: true,
+      message: {
+        id: Date.now().toString(),
+        from: config.identity.email,
+        to: "konsumen@ojk.go.id",
+        subject: jsonResponse.subject || "Keluhan Pelanggan",
+        body: jsonResponse.body || "Gagal memuat isi email.",
+        timestamp: new Date(),
+        isAgent: false,
+        attachments: attachmentBase64s,
+      },
     };
-
   } catch (error) {
-    console.error("[PDKT] Error init email via Server Action:", error);
-    throw error;
+    console.warn("[PDKT] Error init email via Server Action:", error);
+    const msg =
+      error instanceof Error
+        ? error.message
+        : "Gagal memulai sesi email. Periksa koneksi lalu coba lagi.";
+    return { success: false, error: msg };
   }
 };
 

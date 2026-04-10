@@ -783,11 +783,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                                     }`}
                                 >
                                     <div className="flex-1">
-                                        <h4 className="font-black text-foreground tracking-tight text-lg">{model.name}</h4>
+                                        <div className="flex items-center gap-2">
+                                          <h4 className="font-black text-foreground tracking-tight text-lg">{model.name}</h4>
+                                          <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${
+                                            model.provider === 'openrouter' 
+                                            ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' 
+                                            : 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                                          }`}>
+                                            {model.provider}
+                                          </span>
+                                        </div>
                                         <p className="text-sm text-foreground/40 mt-1 font-medium">{model.description}</p>
                                     </div>
                                     {isSelected && (
-                                      <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+                                      <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
                                         <Check className="w-4 h-4 text-white" />
                                       </div>
                                     )}

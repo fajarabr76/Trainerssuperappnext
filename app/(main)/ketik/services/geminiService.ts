@@ -1,12 +1,54 @@
 import { SessionConfig, ChatMessage, Scenario } from '@/app/types';
 import { generateGeminiContent } from '@/app/actions/gemini';
+import { generateOpenRouterContent } from '@/app/actions/openrouter';
+import { getProviderFromModelId } from '@/app/lib/ai-models';
+
+/**
+ * Helper to call the appropriate AI provider based on model ID.
+ */
+async function callAI(options: { 
+  model: string; 
+  systemInstruction: string; 
+  prompt: string; 
+  temperature?: number;
+  responseMimeType?: string;
+}) {
+  const provider = getProviderFromModelId(options.model);
+  
+  const callPayload = {
+    model: options.model,
+    systemInstruction: options.systemInstruction,
+    contents: [{ role: 'user', parts: [{ text: options.prompt }] }],
+    temperature: options.temperature,
+    responseMimeType: options.responseMimeType,
+  };
+
+  try {
+    const result = provider === 'openrouter' 
+      ? await generateOpenRouterContent(callPayload)
+      : await generateGeminiContent(callPayload);
+      
+    if (!result.success) {
+      // Avoid console.error here: Next.js dev overlay treats it like an app error.
+      console.warn(`[callAI] AI request failed (${provider}):`, result.error);
+    }
+    return result;
+  } catch (err) {
+    console.error(`[callAI] Critical AI Exception (${provider}):`, err);
+    throw err;
+  }
+}
+
+export type GenerateConsumerResponseResult =
+  | { success: true; text: string }
+  | { success: false; error: string };
 
 export async function generateConsumerResponse(
   config: SessionConfig,
   scenario: Scenario,
   chatHistory: ChatMessage[],
   extraPrompt?: string
-): Promise<string> {
+): Promise<GenerateConsumerResponseResult> {
   const imagesCount = scenario.images?.length || 0;
   const imageInstruction = imagesCount > 0 
     ? `Anda memiliki ${imagesCount} lampiran gambar yang bisa dikirim (indeks 0 sampai ${imagesCount - 1}). Gunakan tag [SEND_IMAGE: indeks] untuk mengirimnya.`
@@ -52,17 +94,28 @@ ATURAN BALASAN:
   const prompt = `Skenario Saat Ini: ${scenario.title}\n\nRiwayat Chat:\n${historyText}\n\n${extraPrompt || 'Balas sebagai konsumen:'}`;
 
   try {
-    const response = await generateGeminiContent({
+    const response = await callAI({
       model: config.model || 'gemini-3-flash-preview',
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      prompt,
       systemInstruction,
       temperature: 0.7,
     });
 
-    return response.success ? (response.text || '[NO_RESPONSE]') : 'Maaf, saya sedang tidak bisa membalas saat ini.';
+    if (!response.success) {
+      return {
+        success: false,
+        error:
+          response.error ||
+          'Maaf, layanan AI sementara tidak tersedia. Silakan tunggu sebentar lalu kirim pesan lagi.',
+      };
+    }
+    return { success: true, text: response.text || '[NO_RESPONSE]' };
   } catch (error) {
     console.error('[Ketik] Gemini Error:', error);
-    return 'Maaf, saya sedang tidak bisa membalas saat ini.';
+    return {
+      success: false,
+      error: 'Terjadi gangguan saat menghubungi AI. Silakan coba kirim pesan lagi.',
+    };
   }
 }
 
@@ -82,9 +135,9 @@ Langsung saja ke intinya, jangan terlalu banyak basa-basi.
   `;
 
   try {
-    const response = await generateGeminiContent({
+    const response = await callAI({
       model: config.model || 'gemini-3-flash-preview',
-      contents: [{ role: 'user', parts: [{ text: "Berikan pesan pembuka chat Anda." }] }],
+      prompt: "Berikan pesan pembuka chat Anda.",
       systemInstruction,
       temperature: 0.9,
     });

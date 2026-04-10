@@ -133,6 +133,7 @@ const PdktPage: React.FC = () => {
       consumerType: selectedConsumerType,
       identity,
       enableImageGeneration: settings.enableImageGeneration ?? true,
+      model: settings.selectedModel || 'gemini-3-flash-preview',
     };
 
     setCurrentConfig(config);
@@ -143,13 +144,23 @@ const PdktPage: React.FC = () => {
 
     try {
       console.log('[PDKT] Starting session with config:', config);
-      const firstEmail = await initializeEmailSession(config);
-      console.log('[PDKT] First email received:', firstEmail);
-      setEmails([firstEmail]);
+      const initResult = await initializeEmailSession(config);
+      if (!initResult.success) {
+        console.warn('[PDKT] Failed to start session:', initResult.error);
+        alert(initResult.error);
+        setView('home');
+        return;
+      }
+      console.log('[PDKT] First email received:', initResult.message);
+      setEmails([initResult.message]);
       setSessionStartTime(Date.now());
     } catch (e) {
-      console.error('[PDKT] Failed to start session:', e);
-      alert('Gagal memulai sesi email. Periksa API Key atau koneksi.');
+      console.warn('[PDKT] Failed to start session:', e);
+      alert(
+        e instanceof Error
+          ? e.message
+          : 'Gagal memulai sesi email. Periksa API Key atau koneksi.'
+      );
       setView('home');
     } finally {
       setIsLoading(false);
