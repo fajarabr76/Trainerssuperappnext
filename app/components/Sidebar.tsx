@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   LayoutDashboard, MessageSquare, Mail, Phone, Users, BarChart3, 
   Settings, LogOut, ChevronRight, CalendarDays, ClipboardList,
-  ChevronDown, Activity
+  ChevronDown, Activity, FileText
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -187,6 +187,22 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
                         <Link href="/qa-analyzer/dashboard" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname === '/qa-analyzer/dashboard' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'}`}>Dashboard SIDAK</Link>
                         <Link href="/qa-analyzer/agents" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname === '/qa-analyzer/agents' || pathname?.startsWith('/qa-analyzer/agents/') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'}`}>Analisis Individu</Link>
                         <Link href="/qa-analyzer/ranking" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname === '/qa-analyzer/ranking' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'}`}>Ranking Agen</Link>
+                        {(role?.toLowerCase() === 'trainer' ||
+                          role?.toLowerCase() === 'trainers' ||
+                          role?.toLowerCase() === 'admin' ||
+                          role?.toLowerCase() === 'superadmin') && (
+                          <Link
+                            href="/qa-analyzer/reports"
+                            className={`flex items-center gap-2 px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${
+                              pathname === '/qa-analyzer/reports' || pathname?.startsWith('/qa-analyzer/reports/')
+                                ? 'bg-primary text-primary-foreground shadow-sm'
+                                : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'
+                            }`}
+                          >
+                            <FileText className="h-3.5 w-3.5 opacity-70" />
+                            Report Maker
+                          </Link>
+                        )}
                         {role?.toLowerCase() !== 'leader' && (
                           <Link href="/qa-analyzer/input" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname?.startsWith('/qa-analyzer/input') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'}`}>Input Temuan</Link>
                         )}

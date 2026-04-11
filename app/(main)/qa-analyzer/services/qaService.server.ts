@@ -1728,7 +1728,7 @@ export const qaServiceServer = {
     };
   },
 
-  private calculateTopParameter(temuan: any[]) {
+  calculateTopParameter(temuan: any[]) {
     if (!temuan || temuan.length === 0) return null;
     
     const counts: Record<string, { count: number, name: string }> = {};
@@ -1879,6 +1879,143 @@ export const qaServiceServer = {
       },
       periodStats: slicedPeriodStats
     };
+  },
+
+  /** Rows for Report Maker — detail table (service report). */
+  async getServiceReportTemuanDetailRows(
+    serviceType: string,
+    folderIds: string[],
+    context: SharedContext,
+    year: number,
+    startMonth: number,
+    endMonth: number
+  ): Promise<
+    Array<{
+      no_tiket: string | null;
+      nilai: number;
+      ketidaksesuaian: string | null;
+      sebaiknya: string | null;
+      parameter: string;
+      agen: string;
+    }>
+  > {
+    const supabase = await createClient();
+    const allPeriods = context?.periods || (await this.getPeriods());
+    const sortedPeriods = allPeriods
+      .filter((p) => p.year === year && p.month >= startMonth && p.month <= endMonth)
+      .sort((a, b) => a.month - b.month);
+    const pIds = sortedPeriods.map((p) => p.id);
+    if (pIds.length === 0) return [];
+
+    let allTemuan: any[] = [];
+    let from = 0;
+    const PAGE_SIZE = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      let query = supabase
+        .from('qa_temuan')
+        .select(
+          'no_tiket, nilai, ketidaksesuaian, sebaiknya, qa_indicators(name), profiler_peserta!inner(nama, batch_name)'
+        )
+        .in('period_id', pIds)
+        .eq('service_type', serviceType)
+        .order('id', { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+
+      if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        hasMore = false;
+      } else {
+        allTemuan = [...allTemuan, ...data];
+        hasMore = data.length === PAGE_SIZE;
+        from += PAGE_SIZE;
+      }
+    }
+
+    return allTemuan.map((d) => ({
+      no_tiket: d.no_tiket ?? null,
+      nilai: d.nilai,
+      ketidaksesuaian: d.ketidaksesuaian ?? null,
+      sebaiknya: d.sebaiknya ?? null,
+      parameter: ((d.qa_indicators as any)?.name || '').trim() || '—',
+      agen: ((d.profiler_peserta as any)?.nama || '').trim() || '—',
+    }));
+  },
+
+  /** Monthly score + findings for individual report trend chart. */
+  async getAgentMonthlyPerformanceForReport(
+    agentId: string,
+    year: number,
+    startMonth: number,
+    endMonth: number
+  ): Promise<Array<{ label: string; score: number; findings: number }>> {
+    const supabase = await createClient();
+    const { data: periods } = await supabase
+      .from('qa_periods')
+      .select('id, month, year')
+      .eq('year', year)
+      .gte('month', startMonth)
+      .lte('month', endMonth)
+      .order('month', { ascending: true });
+    if (!periods?.length) return [];
+
+    const pIds = periods.map((p) => p.id);
+    let all: any[] = [];
+    let from = 0;
+    const PAGE = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from('qa_temuan')
+        .select('indicator_id, nilai, no_tiket, service_type, period_id, created_at')
+        .eq('peserta_id', agentId)
+        .in('period_id', pIds)
+        .order('id', { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) throw error;
+      if (!data?.length) hasMore = false;
+      else {
+        all = [...all, ...data];
+        hasMore = data.length === PAGE;
+        from += PAGE;
+      }
+    }
+
+    const allIndicators = (await this.getIndicators()) as QAIndicator[];
+    const serviceWeights = await this.getServiceWeights();
+
+    return periods.map((p) => {
+      const pTemuan = all.filter((t) => t.period_id === p.id);
+      const bySvc: Record<string, typeof pTemuan> = {};
+      pTemuan.forEach((t) => {
+        const s = (t.service_type || 'call') as string;
+        if (!bySvc[s]) bySvc[s] = [];
+        bySvc[s].push(t);
+      });
+      let sum = 0;
+      let w = 0;
+      Object.entries(bySvc).forEach(([svc, list]) => {
+        const inds = allIndicators.filter((i) => i.service_type === svc);
+        if (!inds.length) return;
+        const sw =
+          serviceWeights[svc as ServiceType] ?? DEFAULT_SERVICE_WEIGHTS[svc as ServiceType];
+        const sc = calculateQAScoreFromTemuan(inds, list, sw).finalScore;
+        const weight = list.length;
+        sum += sc * weight;
+        w += weight;
+      });
+      return {
+        label: `${MONTHS_SHORT[p.month - 1]} ${p.year}`,
+        score: w > 0 ? Number((sum / w).toFixed(1)) : 100,
+        findings: pTemuan.length,
+      };
+    });
   },
 
   /**

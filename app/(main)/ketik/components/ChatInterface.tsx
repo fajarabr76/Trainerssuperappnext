@@ -82,7 +82,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           {
             id: 'error-' + Date.now(),
             sender: 'system',
-            text: result.error,
+            text: 'error' in result ? result.error : 'Terjadi kesalahan.',
             timestamp: new Date(),
           },
         ]);
@@ -188,7 +188,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           {
             id: 'error-' + Date.now(),
             sender: 'system',
-            text: result.error,
+            text: 'error' in result ? result.error : 'Terjadi kesalahan.',
             timestamp: new Date(),
           },
         ]);
