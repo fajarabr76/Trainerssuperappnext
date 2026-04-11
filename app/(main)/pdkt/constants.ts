@@ -45,8 +45,6 @@ export const DEFAULT_SCENARIOS: Scenario[] = [
   }
 ];
 
-export const PDKT_SCENARIOS = DEFAULT_SCENARIOS;
-
 export const DEFAULT_CONSUMER_TYPES: ConsumerType[] = [
   { 
     id: 'marah', 

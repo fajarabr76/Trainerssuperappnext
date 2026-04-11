@@ -1,6 +1,7 @@
 import asyncio
 from playwright import async_api
 
+
 async def run_test():
     pw = None
     browser = None
@@ -14,10 +15,10 @@ async def run_test():
         browser = await pw.chromium.launch(
             headless=True,
             args=[
-                "--window-size=1280,720",         # Set the browser window size
-                "--disable-dev-shm-usage",        # Avoid using /dev/shm which can cause issues in containers
-                "--ipc=host",                     # Use host-level IPC for better stability
-                "--single-process"                # Run the browser in a single process mode
+                "--window-size=1280,720",  # Set the browser window size
+                "--disable-dev-shm-usage",  # Avoid using /dev/shm which can cause issues in containers
+                "--ipc=host",  # Use host-level IPC for better stability
+                "--single-process",  # Run the browser in a single process mode
             ],
         )
 
@@ -31,10 +32,10 @@ async def run_test():
         # Interact with the page elements to simulate user flow
         # -> Navigate to http://localhost:3000
         await page.goto("http://localhost:3000")
-        
+
         # -> Navigate to http://localhost:3000/qa-analyzer/reports and verify the user is redirected to a login page or shown a login prompt (without logging in).
         await page.goto("http://localhost:3000/qa-analyzer/reports")
-        
+
         # --> Test passed — verified by AI agent
         frame = context.pages[-1]
         current_url = await frame.evaluate("() => window.location.href")
@@ -49,5 +50,5 @@ async def run_test():
         if pw:
             await pw.stop()
 
+
 asyncio.run(run_test())
-    
