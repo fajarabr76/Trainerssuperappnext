@@ -18,25 +18,25 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, his
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-8">
+    <div data-module="ketik" className="module-clean-app module-clean-modal fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-8">
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="absolute inset-0 bg-background/80 backdrop-blur-xl"
+        className="module-clean-overlay absolute inset-0"
       />
       
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-2xl bg-card border border-border/50 rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+        className="module-clean-modal-shell relative w-full max-w-2xl rounded-[2.5rem] overflow-hidden flex flex-col max-h-[90vh]"
       >
         {/* Modal Header */}
-        <header className="px-10 py-8 border-b border-border/50 flex items-center justify-between bg-card/50 backdrop-blur-2xl shrink-0">
+        <header className="module-clean-toolbar px-10 py-8 border-b flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
+            <div className="module-clean-chip w-14 h-14 rounded-2xl flex items-center justify-center">
               <History className="w-7 h-7 text-primary" />
             </div>
             <div>
@@ -80,14 +80,14 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, his
                   key={session.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="group relative bg-card border border-border/50 hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/5 rounded-[2rem] p-8 transition-all cursor-pointer overflow-hidden"
+                  className="module-clean-panel group relative hover:border-module-ketik/40 rounded-[2rem] p-8 transition-all cursor-pointer overflow-hidden"
                   onClick={() => onReview(session)}
                 >
                   <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                   
                   <div className="flex items-start justify-between relative z-10">
                     <div className="flex items-center gap-5">
-                      <div className="w-14 h-14 bg-primary/5 rounded-2xl flex items-center justify-center border border-primary/10 group-hover:bg-primary group-hover:border-primary transition-all duration-500">
+                      <div className="module-clean-chip w-14 h-14 rounded-2xl flex items-center justify-center group-hover:bg-module-ketik group-hover:text-white transition-all duration-500">
                         <MessageSquare className="w-6 h-6 text-primary group-hover:text-white transition-all duration-500" />
                       </div>
                       <div>
@@ -140,7 +140,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, his
         </div>
 
         {/* Modal Footer */}
-        <footer className="px-10 py-6 border-t border-border/50 bg-card/50 backdrop-blur-2xl text-center shrink-0">
+        <footer className="module-clean-toolbar px-10 py-6 border-t text-center shrink-0">
           <p className="text-[10px] text-foreground/20 font-black uppercase tracking-[0.3em] flex items-center justify-center gap-2">
             <Database className="w-3 h-3" />
             Data lokal terenkripsi di browser Anda

@@ -25,26 +25,26 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-6">
+        <div data-module="pdkt" className="module-clean-app module-clean-modal fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-6">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            className="module-clean-overlay absolute inset-0"
           />
           
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-3xl bg-card border border-border rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+            className="module-clean-modal-shell relative w-full max-w-3xl rounded-[2.5rem] overflow-hidden flex flex-col max-h-[85vh]"
           >
             {/* Header */}
-            <div className="p-6 border-b border-border flex items-center justify-between shrink-0 bg-foreground/[0.02]">
+            <div className="module-clean-toolbar p-6 border-b flex items-center justify-between shrink-0">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center border border-purple-500/20">
-                  <HistoryIcon className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                <div className="module-clean-chip w-12 h-12 rounded-2xl flex items-center justify-center">
+                  <HistoryIcon className="w-6 h-6 text-module-pdkt" />
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold tracking-tight text-foreground">Riwayat Simulasi</h2>
@@ -98,7 +98,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                       <motion.div
                         key={session.id}
                         whileHover={{ scale: 1.01, backgroundColor: 'rgba(var(--foreground),0.03)' }}
-                        className="group relative bg-foreground/[0.02] border border-border rounded-3xl p-5 transition-all cursor-pointer"
+                        className="module-clean-panel group relative rounded-3xl p-5 transition-all cursor-pointer"
                         onClick={() => onSelectSession(session)}
                       >
                         <div className="flex justify-between items-start mb-4">
@@ -114,7 +114,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                                 {new Date(session.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                               </div>
                             </div>
-                            <h3 className="text-lg font-bold leading-tight group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors line-clamp-1 text-foreground">
+                            <h3 className="text-lg font-bold leading-tight group-hover:text-module-pdkt transition-colors line-clamp-1 text-foreground">
                               {subject}
                             </h3>
                           </div>

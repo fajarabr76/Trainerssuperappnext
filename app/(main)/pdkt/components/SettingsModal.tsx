@@ -402,7 +402,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+        <div data-module="pdkt" className="module-clean-app module-clean-modal fixed inset-0 module-clean-overlay z-[200] flex items-center justify-center p-4">
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -414,18 +414,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative bg-card/40 backdrop-blur-3xl w-full max-w-5xl max-h-[90vh] rounded-[3rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] flex flex-col overflow-hidden border border-white/10"
+            className="module-clean-modal-shell relative w-full max-w-5xl max-h-[90vh] rounded-[3rem] flex flex-col overflow-hidden"
           >
             
             {/* Modal Header */}
-            <div className="px-10 py-8 border-b border-white/5 flex justify-between items-center bg-card/30 backdrop-blur-3xl shrink-0 relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent pointer-events-none" />
+            <div className="module-clean-toolbar px-10 py-8 border-b flex justify-between items-center shrink-0 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-module-pdkt/10 to-transparent pointer-events-none" />
               <div className="relative z-10">
                 <h2 className="text-3xl font-black text-foreground tracking-tighter">Pengaturan Simulasi</h2>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-[10px] font-black text-foreground/30 uppercase tracking-[0.3em]">Module PDKT</span>
-                  <div className="w-1 h-1 bg-primary rounded-full" />
-                  <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Standard v2.0</span>
                 </div>
               </div>
               <div className="flex items-center gap-4 relative z-10">
@@ -447,7 +445,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
 
             {/* Segmented Control Tabs */}
             <div className="px-10 pt-8 pb-4 shrink-0 bg-transparent">
-              <div className="flex p-2 bg-foreground/5 rounded-2xl border border-white/5 backdrop-blur-sm">
+              <div className="module-clean-panel flex p-2 rounded-2xl">
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
@@ -461,7 +459,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                     {activeTab === tab.id && (
                       <motion.div
                         layoutId="activeTabPDKT"
-                        className="absolute inset-0 bg-card/60 shadow-sm rounded-xl border border-white/10"
+                        className="module-clean-shell absolute inset-0 shadow-sm rounded-xl"
                         transition={{ type: "spring", bounce: 0.15, duration: 0.6 }}
                       />
                     )}
@@ -475,7 +473,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
             </div>
 
             {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto px-10 pb-10 bg-transparent custom-scrollbar">
+            <div className="module-clean-stage flex-1 overflow-y-auto px-10 pb-10 bg-transparent custom-scrollbar">
               {activeTab === 'scenarios' && (
                 <div className="space-y-8 mt-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 bg-card/40 p-6 rounded-3xl border border-white/5 backdrop-blur-md">

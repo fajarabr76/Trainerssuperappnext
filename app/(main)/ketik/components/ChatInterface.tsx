@@ -291,23 +291,23 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-background overflow-hidden relative">
+    <div data-module="ketik" className="module-clean-app flex flex-col h-full w-full bg-background overflow-hidden relative">
       {/* 1. Premium Header */}
-      <div className="px-8 py-6 flex items-center justify-between border-b border-border/50 shrink-0 bg-card/50 backdrop-blur-2xl w-full z-50 relative">
+      <div className="module-clean-toolbar px-8 py-6 flex items-center justify-between border-b shrink-0 w-full z-50 relative">
         <div className="flex items-center gap-4 w-1/4">
             {isReviewMode && (
                 <button 
                     onClick={() => onEndSession(messages)}
                     className="flex items-center gap-2 text-foreground/40 hover:text-foreground transition-all group"
                 >
-                    <div className="w-10 h-10 rounded-xl bg-foreground/5 flex items-center justify-center group-hover:bg-foreground/10 transition-all">
+                    <div className="module-clean-button-secondary w-10 h-10 rounded-xl flex items-center justify-center transition-all">
                       <ArrowLeft className="w-5 h-5" />
                     </div>
                     <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Kembali</span>
                 </button>
             )}
             {!isReviewMode && (
-                 <div className="w-12 h-12 rounded-2xl overflow-hidden bg-foreground/5 shrink-0 relative border border-border/50">
+                 <div className="module-clean-panel w-12 h-12 rounded-2xl overflow-hidden shrink-0 relative">
                     <Image 
                         src={`https://picsum.photos/seed/${config.identity.name}/200`} 
                         alt="Avatar" 
@@ -323,7 +323,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <h1 className="font-black text-foreground text-xl tracking-tighter truncate max-w-full text-center">
                 {config.identity.name}
             </h1>
-            <div className="flex items-center gap-3 mt-1.5 bg-foreground/5 px-4 py-1 rounded-full border border-border/50">
+            <div className="module-clean-panel flex items-center gap-3 mt-1.5 px-4 py-1 rounded-full">
                 <div className="flex items-center gap-1.5">
                    <Phone className="w-3 h-3 text-primary" />
                    <span className="text-[10px] font-black uppercase tracking-widest text-foreground/60">{config.identity.phone}</span>
@@ -336,8 +336,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
             {!isReviewMode ? (
                 <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">Active Now</span>
-                    <span className="w-1 h-1 bg-primary rounded-full animate-pulse"></span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-module-ketik">Online</span>
+                    <span className="w-1 h-1 bg-module-ketik rounded-full animate-pulse"></span>
                 </div>
             ) : (
                 <div className="flex items-center gap-2 mt-0.5">
@@ -367,14 +367,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                             link.click();
                             document.body.removeChild(link);
                         }}
-                        className="w-12 h-12 flex items-center justify-center bg-foreground/5 hover:bg-foreground/10 text-foreground/60 hover:text-foreground rounded-2xl transition-all border border-border/50 shadow-sm"
+                        className="module-clean-button-secondary w-12 h-12 flex items-center justify-center hover:text-foreground rounded-2xl transition-all shadow-sm"
                         title="Download CSV"
                     >
                         <Download className="w-5 h-5" />
                     </button>
                     <button 
                         onClick={() => onEndSession([])}
-                        className="w-12 h-12 flex items-center justify-center bg-foreground/5 hover:bg-foreground/10 text-foreground/60 hover:text-red-500 rounded-2xl transition-all border border-border/50 shadow-sm"
+                        className="module-clean-button-secondary w-12 h-12 flex items-center justify-center hover:text-red-500 rounded-2xl transition-all shadow-sm"
                         title="Tutup Review"
                     >
                         <X className="w-5 h-5" />
@@ -403,7 +403,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       </div>
 
       {/* 2. Messages Area */}
-      <div className="flex-1 overflow-y-auto z-10 scroll-smooth custom-scrollbar flex flex-col p-4 space-y-2 bg-background">
+      <div className="module-clean-stage flex-1 overflow-y-auto z-10 scroll-smooth custom-scrollbar flex flex-col p-4 space-y-2">
         <AnimatePresence initial={false}>
             {messages.map((msg, index) => {
                if (msg.sender === 'system') {
@@ -433,8 +433,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     <div 
                         className={`max-w-[80%] px-6 py-4 relative text-[15px] leading-relaxed shadow-sm
                         ${isAgent 
-                            ? 'bg-primary text-primary-foreground rounded-[2rem] rounded-tr-none shadow-primary/20' 
-                            : 'bg-card border border-border/50 text-foreground rounded-[2rem] rounded-tl-none'
+                            ? 'bg-module-ketik text-white rounded-[2rem] rounded-tr-none shadow-module-ketik/20' 
+                            : 'module-clean-panel text-foreground rounded-[2rem] rounded-tl-none'
                         }`}
                     >
                         <div className="font-medium">
@@ -461,7 +461,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 animate={{ opacity: 1, scale: 1 }}
                 className="flex justify-start"
              >
-                <div className="bg-foreground/5 rounded-[20px] rounded-bl-sm px-4 py-3">
+                <div className="module-clean-panel rounded-[20px] rounded-bl-sm px-4 py-3">
                     <div className="flex space-x-1">
                         <motion.div animate={{ y: [0, -3, 0] }} transition={{ repeat: Infinity, duration: 0.6 }} className="w-1.5 h-1.5 bg-muted-foreground rounded-full" />
                         <motion.div animate={{ y: [0, -3, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }} className="w-1.5 h-1.5 bg-muted-foreground rounded-full" />
@@ -475,14 +475,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       {/* Input Area */}
       {!isReviewMode ? (
-        <div className="p-6 bg-card border-t border-border/50 z-40 shrink-0 backdrop-blur-3xl relative">
+        <div className="module-clean-toolbar p-6 border-t z-40 shrink-0 relative">
           <div className="absolute inset-x-0 -top-12 h-12 bg-gradient-to-t from-card to-transparent pointer-events-none" />
           
           {/* Template Button */}
           <div className="flex justify-center mb-6">
              <button 
                 onClick={applyTemplate}
-                className="flex items-center gap-2.5 px-6 py-2.5 bg-background/50 hover:bg-background rounded-2xl shadow-sm border border-border/50 text-[10px] font-black uppercase tracking-widest text-primary hover:border-primary/50 transition-all group"
+                className="module-clean-button-secondary flex items-center gap-2.5 px-6 py-2.5 rounded-2xl shadow-sm text-[10px] font-black uppercase tracking-widest text-module-ketik transition-all group"
              >
                 <Sparkles className="w-3.5 h-3.5 group-hover:rotate-12 transition-transform" />
                 <span>Gunakan Template Salam</span>
@@ -490,7 +490,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           </div>
 
           <div className="max-w-4xl mx-auto flex items-end gap-4">
-              <div className="flex-1 bg-background/50 rounded-[2rem] border-2 border-border/50 flex flex-col px-6 py-2.5 focus-within:border-primary focus-within:bg-background transition-all shadow-inner">
+              <div className="module-clean-input-shell flex-1 rounded-[2rem] border-2 flex flex-col px-6 py-2.5 focus-within:border-module-ketik transition-all shadow-inner">
                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/50 mb-1 ml-1 select-none">Pesan Baru</span>
                   <textarea
                       ref={textareaRef}
@@ -509,7 +509,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   disabled={!inputText.trim()}
                   className={`w-14 h-14 rounded-[2rem] flex items-center justify-center transition-all ${
                       inputText.trim() 
-                      ? 'bg-primary text-white shadow-2xl shadow-primary/20' 
+                      ? 'module-clean-button-primary text-white' 
                       : 'bg-foreground/5 text-foreground/20'
                   }`}
               >
@@ -518,7 +518,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           </div>
         </div>
       ) : (
-        <div className="p-8 bg-card border-t border-border/50 z-40 shrink-0 text-center flex items-center justify-center gap-3">
+        <div className="module-clean-toolbar p-8 border-t z-40 shrink-0 text-center flex items-center justify-center gap-3">
           <Lock className="w-4 h-4 text-orange-500/50" />
           <span className="text-[10px] font-extrabold uppercase tracking-[0.3em] text-foreground/30">
             Mode Review &bull; Hanya Baca
@@ -533,7 +533,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-6 cursor-pointer"
+                className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-6 cursor-pointer"
                 onClick={() => setSelectedImage(null)}
             >
                 <motion.img 
@@ -545,7 +545,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     className="max-w-full max-h-full rounded-xl shadow-2xl"
                     referrerPolicy="no-referrer"
                 />
-                <button className="absolute top-6 right-6 bg-gray-800/50 text-white p-2 rounded-full backdrop-blur-md">
+                <button className="absolute top-6 right-6 bg-gray-800/80 text-white p-2 rounded-full">
                     <X className="w-6 h-6" />
                 </button>
             </motion.div>

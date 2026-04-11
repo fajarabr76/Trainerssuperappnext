@@ -1,0 +1,19 @@
+{
+  "name": "trainers-superapp-next",
+  "version": "1.0.0",
+  "description": "Codex plugin manifest for MCP integration in trainers-superapp-next",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Trainers Superapp Next",
+    "shortDescription": "Local Codex plugin for MCP servers",
+    "longDescription": "Plugin manifest that points Codex to the local MCP server configuration for this repository.",
+    "developerName": "Local Workspace",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Write"],
+    "defaultPrompt": [
+      "Use the local MCP tools for this workspace.",
+      "Inspect Supabase data and project context.",
+      "Help me work on trainers-superapp-next."
+    ]
+  }
+}

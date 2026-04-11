@@ -14,10 +14,12 @@ import Link from 'next/link';
 import { ArrowLeft, History, Settings, Play, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { createClient } from '@/app/lib/supabase/client';
+import { moduleTheme } from '@/app/components/ui/moduleTheme';
 
 const supabase = createClient();
 
 const PdktPage: React.FC = () => {
+  const theme = moduleTheme.pdkt;
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [view, setView] = useState<'home' | 'email'>('home');
@@ -278,10 +280,7 @@ const PdktPage: React.FC = () => {
   };
 
   return (
-    <div className="h-full overflow-auto bg-background flex items-center justify-center p-6 transition-colors duration-500 font-sans selection:bg-primary/30 relative">
-      {/* Background Decor */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px] animate-pulse delay-700" />
+    <div data-module="pdkt" className={`${theme.root} h-full overflow-auto flex items-center justify-center p-6 transition-colors duration-500 font-sans selection:bg-primary/20 relative`}>
 
       <AnimatePresence mode="wait">
         {view === 'home' ? (
@@ -290,12 +289,11 @@ const PdktPage: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="max-w-xl w-full bg-card/40 backdrop-blur-3xl rounded-3xl p-6 md:p-8 shadow-2xl border border-border/40 relative z-10"
+            className="module-clean-shell max-w-xl w-full rounded-3xl p-6 md:p-8 relative z-10"
           >
             <div className="absolute top-8 left-8 z-20">
               <Link href="/dashboard"
-                className="w-10 h-10 flex items-center justify-center rounded-xl
-                           bg-foreground/5 border border-border/40
+                className="module-clean-button-secondary w-10 h-10 flex items-center justify-center rounded-xl
                            text-foreground/40 hover:text-foreground hover:bg-foreground/10
                            transition-all group">
                 <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
@@ -307,16 +305,15 @@ const PdktPage: React.FC = () => {
                 initial={{ rotate: -15, scale: 0.8, opacity: 0 }} 
                 animate={{ rotate: 0, scale: 1, opacity: 1 }} 
                 transition={{ delay: 0.2, type: 'spring', stiffness: 150 }} 
-                className="w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-2xl shadow-primary/30 relative group cursor-default"
+                className="module-clean-hero-icon w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center relative group cursor-default"
               >
-                <div className="absolute inset-0 bg-white/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
                 <Mail className="h-10 w-10 text-primary-foreground relative z-10" />
               </motion.div>
               
               <h1 className="text-4xl font-black text-foreground mb-2 tracking-tighter">PDKT</h1>
-              <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-4">
-                <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
-                <h2 className="text-[10px] font-black text-primary uppercase tracking-[0.4em]">Paham Dulu Kasih Tanggapan</h2>
+              <div className="module-clean-chip inline-flex items-center gap-3 px-4 py-1.5 rounded-full mb-4">
+                <span className="w-1.5 h-1.5 bg-module-pdkt rounded-full animate-pulse" />
+                <h2 className="text-[10px] font-black uppercase tracking-[0.4em]">Paham Dulu Kasih Tanggapan</h2>
               </div>
               
               <p className="text-foreground/70 text-[13px] leading-relaxed max-w-sm mx-auto font-medium">
@@ -324,50 +321,46 @@ const PdktPage: React.FC = () => {
               </p>
             </div>
 
-            <div className="space-y-6">
+            <div className="relative z-10 mt-8 flex flex-col gap-3">
               <motion.button 
-                whileHover={{ scale: 1.02, y: -2 }} 
+                whileHover={{ scale: 1.02, y: -1 }} 
                 whileTap={{ scale: 0.98 }} 
                 onClick={startSession} 
                 disabled={isLoading} 
-                className="w-full bg-primary text-primary-foreground h-20 rounded-3xl font-black text-xl shadow-2xl shadow-primary/30 flex items-center justify-center gap-4 transition-all hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed group"
+                className="module-clean-button-primary w-full h-14 px-6 rounded-2xl font-black text-[11px] uppercase tracking-[0.22em] flex items-center justify-center gap-3 transition-all hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
-                  <div className="w-7 h-7 border-3 border-primary-foreground/20 border-t-primary-foreground rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
-                    <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Play className="w-5 h-5 fill-current" />
-                    </div>
-                    <span>Mulai Simulasi Baru</span>
+                    <Play className="w-4 h-4 fill-current" />
+                    <span>Mulai Simulasi</span>
                   </>
                 )}
               </motion.button>
-              
-              <div className="grid grid-cols-2 gap-6">
-                <motion.button 
-                  whileHover={{ scale: 1.02, y: -2 }} 
-                  whileTap={{ scale: 0.98 }} 
-                  onClick={() => setIsSettingsOpen(true)} 
-                  className="bg-foreground/5 hover:bg-foreground/10 text-foreground/60 h-20 rounded-3xl font-extrabold flex items-center justify-center gap-3 transition-all border border-border/50 hover:border-border "
-                >
-                  <Settings className="w-5 h-5" />
-                  <span className="text-[11px] uppercase tracking-widest">Pengaturan</span>
-                </motion.button>
-                <motion.button 
-                  whileHover={{ scale: 1.02, y: -2 }} 
-                  whileTap={{ scale: 0.98 }} 
-                  onClick={() => setIsHistoryOpen(true)} 
-                  className="bg-foreground/5 hover:bg-foreground/10 text-foreground/60 h-20 rounded-3xl font-extrabold flex items-center justify-center gap-3 transition-all border border-border/50 hover:border-border "
-                >
-                  <History className="w-5 h-5" />
-                  <span className="text-[11px] uppercase tracking-widest">Riwayat</span>
-                </motion.button>
-              </div>
+
+              <motion.button 
+                whileHover={{ scale: 1.02, y: -1 }} 
+                whileTap={{ scale: 0.98 }} 
+                onClick={() => setIsSettingsOpen(true)} 
+                className="module-clean-button-secondary w-full h-14 px-6 rounded-2xl font-black text-[11px] uppercase tracking-[0.22em] flex items-center justify-center gap-3 transition-all"
+              >
+                <Settings className="w-4 h-4 opacity-50" />
+                <span>Pengaturan</span>
+              </motion.button>
+
+              <motion.button 
+                whileHover={{ scale: 1.02, y: -1 }} 
+                whileTap={{ scale: 0.98 }} 
+                onClick={() => setIsHistoryOpen(true)} 
+                className="module-clean-button-secondary w-full h-14 px-6 rounded-2xl font-black text-[11px] uppercase tracking-[0.22em] flex items-center justify-center gap-3 transition-all"
+              >
+                <History className="w-4 h-4 opacity-50" />
+                <span>Riwayat</span>
+              </motion.button>
             </div>
 
             <div className="mt-16 pt-8 border-t border-border/50 flex flex-col items-center gap-1.5">
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground/60">Powered by Google Gemini</p>
               <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-foreground/40">Trainers SuperApp | Made by Fajar & Ratna</p>
             </div>
           </motion.div>
@@ -377,10 +370,10 @@ const PdktPage: React.FC = () => {
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }} 
-            className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center p-0 md:p-8 overflow-hidden transition-colors duration-500"
+            className="fixed inset-0 z-[100] module-clean-stage flex flex-col items-center justify-center p-0 md:p-8 overflow-hidden transition-colors duration-500"
           >
             {currentConfig && (
-              <div className="w-full h-full bg-card md:rounded-[3rem] overflow-hidden relative shadow-2xl border border-border flex flex-col">
+              <div data-module="pdkt" className="module-clean-app module-clean-shell w-full h-full md:rounded-[3rem] overflow-hidden relative flex flex-col">
                 <EmailInterface emails={emails} onSendReply={handleSendReply} isLoading={isLoading} config={currentConfig} onEndSession={endSession} evaluation={evaluation} timeTaken={timeTaken} />
               </div>
             )}
