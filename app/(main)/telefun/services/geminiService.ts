@@ -1,12 +1,9 @@
-import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
+import { LiveServerMessage } from "@google/genai";
 import { generateGeminiContent } from '@/app/actions/gemini';
 import { SessionConfig, Scenario } from "../types";
 import { createClient } from "@/app/lib/supabase/client";
 
 const supabase = createClient();
-
-// Initialize Gemini AI
-const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY! });
 
 const STABLE_VOICE_MAP = {
   male: 'Fenrir',
@@ -169,46 +166,9 @@ export class LiveSession {
       currentStep = "Menghubungkan ke Gemini Live...";
       this.onStatusChange?.(currentStep);
 
-      // Use the latest recommended model for live audio
-      const modelName = this.config.model || "gemini-2.5-flash-native-audio-preview-12-2025";
-
-      this.session = await ai.live.connect({
-        model: modelName,
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: {
-                voiceName: this.config.identity.gender === 'male' ? STABLE_VOICE_MAP.male : STABLE_VOICE_MAP.female
-              }
-            }
-          },
-          systemInstruction: this.buildSystemInstruction(),
-        },
-        callbacks: {
-          onopen: () => {
-            console.log("[Telefun] WebSocket connected");
-            this.onStatusChange?.("Tersambung");
-            this.onConnect?.();
-            this.startAudioInput();
-          },
-          onmessage: (message: LiveServerMessage) => {
-            this.handleMessage(message);
-          },
-          onerror: (err) => {
-            console.error("[Telefun] Live Session Error:", err);
-            this.onStatusChange?.("Koneksi Error");
-            this.onError?.(err);
-          },
-          onclose: () => {
-            console.log("[Telefun] WebSocket closed");
-            if (!this.isDisconnected) {
-              this.onStatusChange?.("Terputus");
-              this.disconnect();
-            }
-          }
-        }
-      });
+      throw new Error(
+        "Telefun Live dinonaktifkan sementara sampai proxy server-side untuk Gemini Live selesai dihardening."
+      );
 
     } catch (err: any) {
       console.error("[Telefun] Connection setup failed:", err);
@@ -685,4 +645,3 @@ export const generateScore = async (
     };
   }
 };
-

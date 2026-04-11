@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/app/lib/supabase/server';
 import { createAdminClient } from '@/app/lib/supabase/admin';
+import { normalizeRole } from '@/app/lib/authz';
+import { consumeRateLimit } from '@/app/lib/rate-limit';
 
 export async function POST(request: Request) {
   try {
@@ -15,8 +17,29 @@ export async function POST(request: Request) {
       .select('role')
       .eq('id', user.id)
       .single();
-    if (!callerProfile || callerProfile.role.toLowerCase() !== 'trainer') {
-      return NextResponse.json({ error: 'Forbidden: Only Trainers can reset passwords' }, { status: 403 });
+
+    const callerRole = normalizeRole(callerProfile?.role);
+    if (!['trainer', 'admin', 'superadmin'].includes(callerRole)) {
+      return NextResponse.json({ error: 'Forbidden: Only trainers, admin, or superadmin can reset passwords' }, { status: 403 });
+    }
+
+    const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const rateLimit = await consumeRateLimit({
+      key: `reset-password:${user.id}:${forwardedFor}`,
+      limit: 5,
+      windowMs: 60_000,
+    });
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Terlalu banyak permintaan reset password. Coba lagi beberapa saat lagi.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimit.retryAfterSeconds),
+          },
+        }
+      );
     }
 
     // Ambil email dari request body

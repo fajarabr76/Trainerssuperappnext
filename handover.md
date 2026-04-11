@@ -152,5 +152,5 @@ Berikut adalah daftar isu yang ditemukan pada Step 1 dan rencana perbaikannya:
 - **Charts**: Recharts
 
 ## Catatan Penting
-- Pastikan `NEXT_PUBLIC_GEMINI_API_KEY` dan variabel lingkungan Supabase terkonfigurasi dengan benar di AI Studio Settings.
+- Pastikan `GEMINI_API_KEY` dan variabel lingkungan Supabase terkonfigurasi dengan benar di AI Studio Settings.
 - Performa Next.js pada mode pengembangan mungkin terasa sedikit berbeda dengan Vite karena proses kompilasi on-demand, namun pada mode produksi (standalone) performanya akan sangat optimal.

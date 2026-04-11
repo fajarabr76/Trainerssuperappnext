@@ -6,38 +6,29 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from '@/app/lib/supabase/client';
 import { ThemeToggle } from "@/app/components/ThemeToggle";
-import { useEffect, useState } from "react";
-import { activityService, ActivityLog } from "@/app/lib/services/activityService";
+import { useState } from "react";
+import { ActivityLog } from "@/app/lib/services/activityService";
 import { normalizeModuleName, normalizeActionText } from "@/app/lib/utils";
+import { deleteActivityAction } from "./actions";
 
-export default function ActivitiesClient({ user, role, profile }: { user: any, role: string, profile: any }) {
+export default function ActivitiesClient({
+  user,
+  role,
+  profile,
+  initialLogs,
+}: {
+  user: any,
+  role: string,
+  profile: any,
+  initialLogs: ActivityLog[],
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
-  const [logs, setLogs] = useState<ActivityLog[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [logs, setLogs] = useState<ActivityLog[]>(initialLogs);
+  const [loading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
-
-  useEffect(() => {
-    async function fetchLogs() {
-      try {
-        const { data, error } = await supabase
-          .from('activity_logs')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        setLogs(data || []);
-      } catch (err) {
-        console.error("Error fetching activity logs:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchLogs();
-  }, [supabase]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -49,7 +40,7 @@ export default function ActivitiesClient({ user, role, profile }: { user: any, r
     if (!confirm('Apakah Anda yakin ingin menghapus log aktivitas ini?')) return;
     
     try {
-      await activityService.deleteActivity(id);
+      await deleteActivityAction(id);
       setLogs(logs.filter(l => l.id !== id));
     } catch (err) {
       console.error(err);

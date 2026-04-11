@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { normalizeRole } from '@/app/lib/authz';
 
 export async function updateSession(request: NextRequest) {
   // Guard: if env vars aren't available, pass through instead of crashing
@@ -65,7 +66,7 @@ export async function updateSession(request: NextRequest) {
       // Cek status approval user
       const { data: profile } = await supabase
         .from('profiles')
-        .select('status')
+        .select('status, role')
         .eq('id', user.id)
         .single();
 
@@ -80,6 +81,37 @@ export async function updateSession(request: NextRequest) {
         url.searchParams.set('auth', 'login');
         url.searchParams.set('message', 'rejected');
         return NextResponse.redirect(url);
+      }
+
+      const role = normalizeRole(profile.role);
+      const trainerOnlyRoutes = [
+        '/dashboard/users',
+        '/dashboard/activities',
+        '/qa-analyzer/input',
+        '/qa-analyzer/settings',
+        '/qa-analyzer/periods',
+        '/qa-analyzer/reports',
+      ];
+      const trainerOrLeaderRoutes = [
+        '/dashboard/monitoring',
+        '/profiler',
+        '/qa-analyzer/dashboard',
+        '/qa-analyzer/ranking',
+        '/qa-analyzer/agents',
+      ];
+
+      if (trainerOnlyRoutes.some((route) => path.startsWith(route))) {
+        const allowed = ['trainer', 'admin', 'superadmin'];
+        if (!allowed.includes(role)) {
+          return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
+      }
+
+      if (trainerOrLeaderRoutes.some((route) => path.startsWith(route))) {
+        const allowed = ['trainer', 'leader', 'admin', 'superadmin'];
+        if (!allowed.includes(role)) {
+          return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
       }
     }
 

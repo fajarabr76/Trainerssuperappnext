@@ -9,12 +9,12 @@ import { createClient } from '@/app/lib/supabase/client';
 import { ThemeToggle } from "@/app/components/ThemeToggle";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { useTheme } from 'next-themes';
-import { activityService } from "../../lib/services/activityService";
 import { useTelefunWarning } from "@/app/context/TelefunWarningContext";
 
 import { getDashboardTrendByRangeAction } from './actions';
 import { MonthRangePicker } from "@/app/components/ui/MonthRangePicker";
 import { Loader2 } from "lucide-react";
+import { deleteActivityAction } from './activities/actions';
 
 const modules = [
   {
@@ -637,7 +637,7 @@ export default function DashboardClient({
                             onClick={async () => {
                               if (confirm('Hapus log aktivitas ini?')) {
                                 try {
-                                  await activityService.deleteActivity(log.id.toString());
+                                  await deleteActivityAction(log.id.toString());
                                   router.refresh();
                                 } catch (err) {
                                   console.error(err);

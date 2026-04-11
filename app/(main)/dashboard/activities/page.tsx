@@ -1,22 +1,19 @@
-import { createClient } from '@/app/lib/supabase/server';
+import { getCurrentUserWithRole, hasRole } from '@/app/lib/authz';
 import { redirect } from 'next/navigation';
 import ActivitiesClient from './ActivitiesClient';
+import { activityServiceServer } from '@/app/lib/services/activityService.server';
 
 export default async function ActivitiesPage() {
-  const supabase = await createClient();
-  
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, profile, role } = await getCurrentUserWithRole();
   if (!user) {
     redirect('/?auth=login');
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
+  if (!hasRole(role, ['trainer', 'admin', 'superadmin'])) {
+    redirect('/dashboard');
+  }
 
-  const role = profile?.role || 'user';
+  const initialLogs = await activityServiceServer.getRecentActivities(500);
 
-  return <ActivitiesClient user={user} role={role} profile={profile} />;
+  return <ActivitiesClient user={user} role={role} profile={profile} initialLogs={initialLogs} />;
 }

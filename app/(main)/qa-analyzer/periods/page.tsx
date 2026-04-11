@@ -1,4 +1,4 @@
-import { createClient } from '@/app/lib/supabase/server';
+import { getCurrentUserWithRole, hasRole } from '@/app/lib/authz';
 import { redirect } from 'next/navigation';
 import QaPeriodsClient from './QaPeriodsClient';
 import { qaServiceServer } from '../services/qaService.server';
@@ -6,25 +6,13 @@ import { qaServiceServer } from '../services/qaService.server';
 export const dynamic = 'force-dynamic';
 
 export default async function QaPeriodsPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, role } = await getCurrentUserWithRole();
 
   if (!user) {
     redirect('/login');
   }
 
-  // Get profile and role
-  const { data: profile } = await supabase
-    .from('profiler_peserta')
-    .select('role, tim')
-    .eq('id', user.id)
-    .single();
-
-  const role = profile?.role || 'trainer';
-
-  // Allowed roles
-  const allowedRoles = ['trainer', 'trainers', 'admin', 'superadmin'];
-  if (!allowedRoles.includes(role)) {
+  if (!hasRole(role, ['trainer', 'admin', 'superadmin'])) {
     redirect('/qa-analyzer/dashboard');
   }
 
