@@ -40,7 +40,6 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
   const [startMonth, setStartMonth] = useState(1);
   const [endMonth, setEndMonth] = useState(() => new Date().getMonth() + 1);
   const [pesertaId, setPesertaId] = useState('');
-  const [agentSearch, setAgentSearch] = useState('');
   const [modelId, setModelId] = useState(models[0]?.id ?? '');
 
   const [rate, setRate] = useState<{ count: number; limit: number; allowed: boolean } | null>(null);
@@ -56,6 +55,7 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
     donutData: CriticalVsNonCriticalData | null;
     trendPoints: Array<{ label: string; score: number; findings: number }>;
   }>({ paretoData: [], donutData: null, trendPoints: [] });
+  const [captureWarning, setCaptureWarning] = useState<string | null>(null);
 
   const captureRef = useRef<ReportChartCaptureHandle>(null);
 
@@ -87,7 +87,7 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
       (reportKind === 'individu' && !!pesertaId && startMonth <= endMonth));
 
   const filteredAgents = agents.filter((a) =>
-    a.nama.toLowerCase().includes(agentSearch.toLowerCase())
+    folderId === 'ALL' || a.batch_name === folderId
   );
 
   const handleGenerate = async () => {
@@ -130,13 +130,24 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
       let donutPng: string | null = null;
       let trendPng: string | null = null;
 
-      if (reportKind === 'layanan') {
-        const caps = await captureRef.current?.captureService();
-        paretoPng = caps?.pareto ?? null;
-        donutPng = caps?.donut ?? null;
-      } else {
-        const caps = await captureRef.current?.captureIndividual();
-        trendPng = caps?.trend ?? null;
+      try {
+        if (reportKind === 'layanan') {
+          const caps = await captureRef.current?.captureService();
+          paretoPng = caps?.pareto ?? null;
+          donutPng = caps?.donut ?? null;
+          if (!paretoPng || !donutPng) {
+            setCaptureWarning('Beberapa grafik layanan gagal ditangkap. Laporan akan tetap dibuat tanpa gambar grafik.');
+          }
+        } else {
+          const caps = await captureRef.current?.captureIndividual();
+          trendPng = caps?.trend ?? null;
+          if (!trendPng) {
+            setCaptureWarning('Grafik tren individu gagal ditangkap. Laporan akan tetap dibuat tanpa gambar grafik.');
+          }
+        }
+      } catch (capErr) {
+        console.warn('[ReportMaker] Chart capture failed, proceeding without images:', capErr);
+        setCaptureWarning('Proses penangkapan grafik mengalami kendala. Laporan tetap dibuat tanpa gambar.');
       }
 
       const result =
@@ -230,7 +241,18 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
                 <button
                   key={k}
                   type="button"
-                  onClick={() => setReportKind(k)}
+                  onClick={() => {
+                    setReportKind(k);
+                    // Reset inputs that are not compatible or should be fresh
+                    if (k === 'layanan') {
+                      setPesertaId('');
+                    } else {
+                      setFolderId('ALL');
+                    }
+                    // Always clear error and last report when switching
+                    setError(null);
+                    setLastReport(null);
+                  }}
                   className={`flex-1 rounded-2xl py-3 text-xs font-black uppercase tracking-widest transition-all ${
                     reportKind === k
                       ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
@@ -282,21 +304,34 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
               <div className="mt-8 space-y-4">
                 <div>
                   <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-foreground/40">
-                    Cari agen
+                    Pilih tim
                   </label>
-                  <input
-                    value={agentSearch}
-                    onChange={(e) => setAgentSearch(e.target.value)}
-                    placeholder="Nama agen..."
-                    className="mb-3 h-11 w-full rounded-xl border border-border/50 bg-background px-4 text-sm outline-none focus:ring-2 focus:ring-primary/20"
-                  />
+                  <select
+                    value={folderId}
+                    onChange={(e) => {
+                      setFolderId(e.target.value);
+                      setPesertaId('');
+                    }}
+                    className="mb-3 h-11 w-full rounded-xl border border-border/50 bg-background px-4 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                  >
+                    <option value="ALL">Semua tim</option>
+                    {folders.map((f) => (
+                      <option key={f.id} value={f.name}>
+                        {f.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-foreground/40">
+                    Pilih agen
+                  </label>
                   <select
                     value={pesertaId}
                     onChange={(e) => setPesertaId(e.target.value)}
                     className="h-12 w-full rounded-xl border border-border/50 bg-background px-4 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
                   >
                     <option value="">— Pilih agen —</option>
-                    {filteredAgents.slice(0, 200).map((a) => (
+                    {filteredAgents.slice(0, 400).map((a) => (
                       <option key={a.id} value={a.id}>
                         {a.nama}
                         {a.batch_name ? ` (${a.batch_name})` : ''}
@@ -404,6 +439,17 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
               >
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{error}</span>
+              </motion.div>
+            )}
+
+            {captureWarning && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-700"
+              >
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{captureWarning}</span>
               </motion.div>
             )}
 

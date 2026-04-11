@@ -213,6 +213,7 @@ Jika mengerjakan area `qa-analyzer`:
 - Gunakan istilah dan metrik yang konsisten dengan dokumen proyek dan implementasi yang ada.
 - Jangan mengasumsikan role QA/SPV sudah tersedia di auth; mapping operasionalnya saat ini tetap mengikuti role aplikasi yang nyata.
 - **BY DESIGN**: Pola "phantom padding" pada layout/komponen QA Analyzer adalah disengaja per desain (Apple Style). Jangan dihilangkan atau dianggap sebagai bug layout.
+- **REPORTING (PATH TO ZERO)**: Setiap pembuatan report (Service/Individual) **WAJIB** merujuk pada filosofi dan struktur yang ada di `qa_report_guidelines.md`. Fokus utama adalah tren pergerakan parameter (Path to Zero) dan deteksi regresi.
 - **TRENS/GRAFIK**: Nilai "Temuan 3" (meskipun kategori Baik/tidak mengurangi nilai) **WAJIB** dimasukkan dalam perhitungan data tren dan grafik karena merupakan data yang diinput user dan tetap menjadi poin perhatian audit.
 
 ---

@@ -2,6 +2,7 @@
 
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import html2canvas from 'html2canvas';
+import { prepareHtml2CanvasClone } from '@/app/lib/html2canvas-tailwind-fix';
 import {
   ComposedChart,
   Bar,
@@ -33,12 +34,23 @@ type Props = {
   trendPoints: Array<{ label: string; score: number; findings: number }>;
 };
 
-const chartOpts = {
+const HTML2CANVAS_BASE = {
   backgroundColor: '#ffffff',
   scale: 2,
   logging: false,
   useCORS: true,
+  allowTaint: true,
+  foreignObjectRendering: true,
 } as const;
+
+function chartCaptureOptions(root: HTMLElement) {
+  return {
+    ...HTML2CANVAS_BASE,
+    onclone: (clonedDoc: Document, clonedElement: HTMLElement) => {
+      prepareHtml2CanvasClone(clonedDoc, clonedElement, root);
+    },
+  };
+}
 
 const ReportChartCapture = forwardRef<ReportChartCaptureHandle, Props>(
   function ReportChartCapture({ paretoData, donutData, trendPoints }, ref) {
@@ -57,17 +69,23 @@ const ReportChartCapture = forwardRef<ReportChartCaptureHandle, Props>(
     useImperativeHandle(ref, () => ({
       async captureService() {
         const pareto = paretoEl.current
-          ? (await html2canvas(paretoEl.current, chartOpts)).toDataURL('image/png')
+          ? (await html2canvas(paretoEl.current, chartCaptureOptions(paretoEl.current))).toDataURL(
+              'image/png'
+            )
           : null;
         const donut =
           donutEl.current && donutChartData.length
-            ? (await html2canvas(donutEl.current, chartOpts)).toDataURL('image/png')
+            ? (await html2canvas(donutEl.current, chartCaptureOptions(donutEl.current))).toDataURL(
+                'image/png'
+              )
             : null;
         return { pareto, donut };
       },
       async captureIndividual() {
         const trend = trendEl.current
-          ? (await html2canvas(trendEl.current, chartOpts)).toDataURL('image/png')
+          ? (await html2canvas(trendEl.current, chartCaptureOptions(trendEl.current))).toDataURL(
+              'image/png'
+            )
           : null;
         return { trend };
       },

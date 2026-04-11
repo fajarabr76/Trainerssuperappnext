@@ -60,9 +60,3 @@ export interface AppSettings {
   maxCallDuration: number;
 }
 
-export interface CallRecord {
-  id: string;
-  date: Date;
-  url: string;
-  consumerName: string;
-}

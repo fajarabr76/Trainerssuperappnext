@@ -193,13 +193,12 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
                           role?.toLowerCase() === 'superadmin') && (
                           <Link
                             href="/qa-analyzer/reports"
-                            className={`flex items-center gap-2 px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${
+                            className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${
                               pathname === '/qa-analyzer/reports' || pathname?.startsWith('/qa-analyzer/reports/')
                                 ? 'bg-primary text-primary-foreground shadow-sm'
                                 : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'
                             }`}
                           >
-                            <FileText className="h-3.5 w-3.5 opacity-70" />
                             Report Maker
                           </Link>
                         )}

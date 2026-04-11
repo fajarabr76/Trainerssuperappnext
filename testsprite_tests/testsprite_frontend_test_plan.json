@@ -1,0 +1,492 @@
+[
+  {
+    "id": "TC001",
+    "title": "Generate and download a Service QA report",
+    "description": "Verifies an authorized user can generate a Service report with required filters and AI model and then download the resulting .docx from the ready state.",
+    "category": "Report Maker",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /qa-analyzer/reports"
+      },
+      {
+        "type": "action",
+        "description": "Select the Service report type"
+      },
+      {
+        "type": "action",
+        "description": "Select a service type"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid date range"
+      },
+      {
+        "type": "action",
+        "description": "Select an AI model"
+      },
+      {
+        "type": "action",
+        "description": "Submit the report generation request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a ready state is displayed with an option to download the generated report"
+      },
+      {
+        "type": "action",
+        "description": "Download the .docx report"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the report download starts"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC002",
+    "title": "Generate and download an Individual agent QA report",
+    "description": "Verifies an authorized user can generate an Individual report by selecting an agent and required filters and then download the resulting .docx from the ready state.",
+    "category": "Report Maker",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /qa-analyzer/reports"
+      },
+      {
+        "type": "action",
+        "description": "Select the Individual report type"
+      },
+      {
+        "type": "action",
+        "description": "Search for an agent using a common query"
+      },
+      {
+        "type": "action",
+        "description": "Select an agent from the search results"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid date range"
+      },
+      {
+        "type": "action",
+        "description": "Select an AI model"
+      },
+      {
+        "type": "action",
+        "description": "Submit the report generation request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a ready state is displayed with an option to download the generated report"
+      },
+      {
+        "type": "action",
+        "description": "Download the .docx report"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the report download starts"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC003",
+    "title": "Filter QA Dashboard charts by date range and team",
+    "description": "Verifies an authorized user can apply date range and team filters on the QA Dashboard and the Pareto and Donut visualizations update accordingly.",
+    "category": "QA Dashboard",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /qa-analyzer/dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid date range"
+      },
+      {
+        "type": "action",
+        "description": "Select a team filter"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the Pareto chart displays data for the selected filters"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the Donut chart displays data for the selected filters"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC004",
+    "title": "Access control gates Report Maker for unauthenticated users",
+    "description": "Verifies an unauthenticated user cannot view the Report Maker page and is instead prompted to log in.",
+    "category": "Report Maker",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /qa-analyzer/reports"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is redirected to a login page or shown a login prompt"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC005",
+    "title": "Access control gates QA Dashboard for unauthenticated users",
+    "description": "Verifies an unauthenticated user cannot view the QA Dashboard and is instead prompted to log in.",
+    "category": "QA Dashboard",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /qa-analyzer/dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is redirected to a login page or shown a login prompt"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC006",
+    "title": "Service report required-field validation blocks submission",
+    "description": "Verifies the Service report form prevents generation when required fields are missing and shows a validation error prompting completion.",
+    "category": "Report Maker",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /qa-analyzer/reports"
+      },
+      {
+        "type": "action",
+        "description": "Select the Service report type"
+      },
+      {
+        "type": "action",
+        "description": "Leave one or more required fields empty"
+      },
+      {
+        "type": "action",
+        "description": "Submit the report generation request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a required-field validation error is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify no ready-to-download state is shown"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC007",
+    "title": "Generate a Service report with an optional team filter applied",
+    "description": "Verifies a Service report can be generated successfully when the optional team filter is selected along with other required inputs.",
+    "category": "Report Maker",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /qa-analyzer/reports"
+      },
+      {
+        "type": "action",
+        "description": "Select the Service report type"
+      },
+      {
+        "type": "action",
+        "description": "Select a service type"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid date range"
+      },
+      {
+        "type": "action",
+        "description": "Select a team filter"
+      },
+      {
+        "type": "action",
+        "description": "Select an AI model"
+      },
+      {
+        "type": "action",
+        "description": "Submit the report generation request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a ready state is displayed with an option to download the generated report"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC008",
+    "title": "QA Dashboard supports single-day date range filtering",
+    "description": "Verifies the QA Dashboard accepts a single-day date range and displays updated Pareto and Donut data for that boundary case.",
+    "category": "QA Dashboard",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /qa-analyzer/dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Select a single-day date range"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the Pareto chart displays data or an appropriate empty state for the selected day"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the Donut chart displays data or an appropriate empty state for the selected day"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC009",
+    "title": "Daily report generation limit blocks the 11th request",
+    "description": "Verifies the user is prevented from generating additional reports after reaching the daily limit and sees a clear limit-reached message instead of a download state.",
+    "category": "Report Maker",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /qa-analyzer/reports"
+      },
+      {
+        "type": "action",
+        "description": "Select the Service report type"
+      },
+      {
+        "type": "action",
+        "description": "Select a service type"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid date range"
+      },
+      {
+        "type": "action",
+        "description": "Select an AI model"
+      },
+      {
+        "type": "action",
+        "description": "Submit the report generation request"
+      },
+      {
+        "type": "action",
+        "description": "Wait for a ready state to appear"
+      },
+      {
+        "type": "action",
+        "description": "Repeat submitting a valid report request until 10 total reports have been created in this session"
+      },
+      {
+        "type": "action",
+        "description": "Submit one additional valid report generation request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a daily limit reached message is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify no download option is provided for the blocked request"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC010",
+    "title": "Switching report type resets incompatible inputs",
+    "description": "Verifies switching between Service and Individual report types clears or disables fields that are not applicable, preventing accidental mixed criteria submission.",
+    "category": "Report Maker",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /qa-analyzer/reports"
+      },
+      {
+        "type": "action",
+        "description": "Select the Individual report type"
+      },
+      {
+        "type": "action",
+        "description": "Search for an agent using a common query"
+      },
+      {
+        "type": "action",
+        "description": "Select an agent from the search results"
+      },
+      {
+        "type": "action",
+        "description": "Select the Service report type"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify agent selection is cleared or no longer applied to the form"
+      },
+      {
+        "type": "action",
+        "description": "Select a service type"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid date range"
+      },
+      {
+        "type": "action",
+        "description": "Select an AI model"
+      },
+      {
+        "type": "action",
+        "description": "Submit the report generation request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a ready state is displayed with an option to download the generated report"
+      }
+    ],
+    "priority": "Medium"
+  }
+]

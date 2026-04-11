@@ -126,8 +126,8 @@ export async function preflightServiceReportChartsAction(
     endMonth
   );
 
-  if (!data) {
-    throw new Error('Tidak ada data untuk rentang periode yang dipilih.');
+  if (!data || data.summary.totalDefects === 0) {
+    throw new Error('Tidak ditemukan data temuan QA untuk rentang periode dan filter yang dipilih.');
   }
 
   return {
@@ -206,6 +206,7 @@ export async function generateReportAction(
   const aiProvider = provider;
 
   let reportId: string | null = null;
+  let downloadName = 'Laporan_QA.docx';
 
   try {
     const insertRow: Record<string, unknown> = {
@@ -232,8 +233,9 @@ export async function generateReportAction(
     let storagePath: string;
 
     const systemNarration =
-      'Anda adalah analis QA BPR. Tulis narasi profesional dalam Bahasa Indonesia, ringkas namun actionable. ' +
-      'Gunakan bullet points bila perlu. Jangan menyertakan markup HTML.';
+      'Anda adalah analis QA senior dengan spesialisasi filosofi "Path to Zero" (menuju nol temuan). ' +
+      'Tulis laporan profesional dalam Bahasa Indonesia yang actionable, kritis, dan berorientasi pada perbaikan berkelanjutan. ' +
+      'Gunakan bullet points untuk kejelasan. Fokus pada tren (membaik/memburuk) dan rekomendasi strategis. Jangan menyertakan markup HTML.';
 
     if (input.reportKind === 'layanan') {
       const [periods, indicators] = await Promise.all([
@@ -242,37 +244,79 @@ export async function generateReportAction(
       ]);
       const context = { periods, indicators };
 
-      const periodData = await qaServiceServer.getConsolidatedDashboardDataByRange(
-        input.serviceType,
-        input.folderIds,
-        context,
-        input.year,
-        input.startMonth,
-        input.endMonth
-      );
-      if (!periodData) throw new Error('Data dashboard tidak tersedia untuk filter ini.');
-
-      const detailRows = await qaServiceServer.getServiceReportTemuanDetailRows(
-        input.serviceType,
-        input.folderIds,
-        context,
-        input.year,
-        input.startMonth,
-        input.endMonth
-      );
+      const [periodData, detailRows, trendData] = await Promise.all([
+        qaServiceServer.getConsolidatedDashboardDataByRange(
+          input.serviceType,
+          input.folderIds,
+          context,
+          input.year,
+          input.startMonth,
+          input.endMonth
+        ),
+        qaServiceServer.getServiceReportTemuanDetailRows(
+          input.serviceType,
+          input.folderIds,
+          context,
+          input.year,
+          input.startMonth,
+          input.endMonth
+        ),
+        qaServiceServer.getConsolidatedTrendDataByRange(
+          input.serviceType,
+          input.folderIds,
+          context,
+          input.year,
+          input.startMonth,
+          input.endMonth
+        ),
+      ]);
 
       const svcLabel = SERVICE_LABELS[input.serviceType];
       const periodLabel = `${MONTHS[input.startMonth - 1]}–${MONTHS[input.endMonth - 1]} ${input.year}`;
+      
+      // Calculate Path to Zero Tracker rows for the builder
+      const datasets = trendData?.paramTrend?.datasets || [];
+      const paramTrackerRows = datasets
+        .filter(d => !d.isTotal)
+        .map(d => {
+          const current = d.data[d.data.length - 1] || 0;
+          const previous = d.data[0] || 0;
+          const delta = current - previous;
+          let direction: 'up' | 'down' | 'flat' = 'flat';
+          if (delta > 0) direction = 'up';
+          else if (delta < 0) direction = 'down';
+          
+          return {
+            parameter: d.label,
+            current,
+            previous,
+            delta,
+            direction,
+          };
+        })
+        .sort((a, b) => b.current - a.current);
+
+      const paramTrends = datasets
+        .filter(d => !d.isTotal)
+        .map(d => `${d.label}: [${d.data.join(', ')}]`)
+        .join(' | ') || '—';
+
       const prompt = [
-        `Buat ringkasan analitik untuk laporan QA layanan ${svcLabel}, periode ${periodLabel}.`,
-        `Metrik: total temuan ${periodData.summary.totalDefects}, rata temuan/audit ${periodData.summary.avgDefectsPerAudit.toFixed(2)}, `,
-        `zero-error ${periodData.summary.zeroErrorRate.toFixed(1)}%, compliance ${periodData.summary.complianceRate.toFixed(1)}%, skor rata-rata agen ${periodData.summary.avgAgentScore.toFixed(1)}.`,
-        `Top parameter Pareto (nama: jumlah): ${periodData.paretoData
-          .slice(0, 8)
-          .map((p) => `${p.name}: ${p.count}`)
-          .join('; ')}.`,
-        `Fatal vs non-fatal: critical ${periodData.donutData.critical}, non-critical ${periodData.donutData.nonCritical}.`,
-        'Berikan interpretasi, risiko, dan rekomendasi perbaikan untuk manajemen.',
+        `Analisis Laporan QA Layanan ${svcLabel} - Filosofi Path to Zero.`,
+        `Periode: ${periodLabel}.`,
+        `1. STATUS EXECUTIVE SUMMARY:`,
+        `- Total temuan: ${periodData.summary.totalDefects}`,
+        `- Average temuan per audit (absolut): ${periodData.summary.avgDefectsPerAudit.toFixed(2)}`,
+        `- Compliance rate: ${periodData.summary.complianceRate.toFixed(1)}%`,
+        `- Status Zero-Error: ${periodData.summary.zeroErrorRate.toFixed(1)}% agen tanpa temuan.`,
+        `2. DASHBOARD ARAH PARAMETER (Data tren bulanan per parameter):`,
+        `${paramTrends}`,
+        `Instruksi: Analisis mana parameter yang Membaik (turun), Memburuk (naik), atau Stagnan. Berikan tanda (⚠️) untuk yang memburuk.`,
+        `3. ZOOM-IN PARAMETER MEMBURUK:`,
+        `Berdasarkan data Pareto: ${periodData.paretoData.slice(0, 5).map(p => `${p.name} (${p.count})`).join(', ')}.`,
+        `4. SUCCESS SPOTLIGHT: Sebutkan parameter yang menunjukkan tren penurunan temuan yang signifikan atau mencapai Zero.`,
+        `5. REKOMENDASI STRATEGIS: Berikan 3 poin intervensi sistem atau proses untuk menekan temuan menuju Zero.`,
+        `PENTING: Gunakan struktur penomoran 1-5 di atas dalam narasi Anda.`,
       ].join('\n');
 
       const aiNarrative = await narrationWithTimeout(modelId, systemNarration, prompt);
@@ -282,6 +326,7 @@ export async function generateReportAction(
         serviceType: input.serviceType,
         periodLabel,
         summary: periodData.summary,
+        paramTrackerRows, // New structured data
         aiNarrative,
         paretoPngBase64: input.paretoPngBase64,
         donutPngBase64: input.donutPngBase64,
@@ -289,6 +334,9 @@ export async function generateReportAction(
       });
 
       storagePath = `${user.id}/${reportId}.docx`;
+      const svcLabelSafe = svcLabel.replace(/\s+/g, '_');
+      const periodLabelSafe = periodLabel.replace(/\s+/g, '_').replace(/–/g, '-');
+      downloadName = `Laporan_QA_Layanan_${svcLabelSafe}_${periodLabelSafe}.docx`;
     } else {
       const { agent, temuan: temuanRaw } = await qaServiceServer.getAgentWithTemuan(
         input.pesertaId,
@@ -321,12 +369,52 @@ export async function generateReportAction(
             ? trend.reduce((a, b) => a + b.score, 0) / trend.length
             : 100;
 
+      const currentParams = new Set(temuan.map(t => (t.qa_indicators as any)?.name));
+      const preRangeTemuan = (temuanRaw as QATemuan[]).filter((t) => {
+        const p = t.qa_periods as { month?: number; year?: number } | undefined;
+        if (!p) return false;
+        return p.year === input.year && p.month < input.startMonth;
+      });
+      const preRangeParams = new Set(preRangeTemuan.map(t => (t.qa_indicators as any)?.name));
+
+      // Fetch indicators to build the full parameter map
+      // Use any service type found in temuan, or default to 'call'
+      const sampleSvc = (temuan[0]?.service_type as ServiceType) || 'call';
+      const indicators = await qaServiceServer.getIndicators(sampleSvc);
+      
+      const paramMapRows: Array<{ parameter: string; status: 'dipertahankan' | 'baru' | 'regresi' | 'aktif' }> = [];
+      let zeroParamCount = 0;
+
+      indicators.forEach(ind => {
+        const name = ind.name;
+        const isCurrentZero = !currentParams.has(name);
+        const isPreZero = !preRangeParams.has(name);
+
+        if (isCurrentZero) {
+          zeroParamCount++;
+          if (isPreZero) {
+            paramMapRows.push({ parameter: name, status: 'dipertahankan' });
+          } else {
+            paramMapRows.push({ parameter: name, status: 'baru' });
+          }
+        } else {
+          if (isPreZero && preRangeParams.size > 0) {
+            paramMapRows.push({ parameter: name, status: 'regresi' });
+          } else {
+            paramMapRows.push({ parameter: name, status: 'aktif' });
+          }
+        }
+      });
+
+      const regressionParams = paramMapRows
+        .filter(r => r.status === 'regresi')
+        .map(r => r.parameter);
+      
+      const totalParamCount = indicators.length;
+
       const tickets = new Set<string>();
       temuan.forEach((t, idx) => {
-        const k =
-          t.no_tiket && String(t.no_tiket).trim()
-            ? String(t.no_tiket).trim()
-            : `row-${idx}`;
+        const k = t.no_tiket && String(t.no_tiket).trim() ? String(t.no_tiket).trim() : `row-${idx}`;
         tickets.add(k);
       });
 
@@ -356,10 +444,20 @@ export async function generateReportAction(
         .join('; ');
 
       const prompt = [
-        `Buat insight coaching untuk agen ${agent.nama} (tim ${agent.tim || '—'}, batch ${agent.batch_name || '—'}).`,
-        `Periode ${periodLabel}. Total temuan ${temuan.length}, perkiraan sesi ${tickets.size}, skor rata-rata bulanan (berbobot) ${avgScore.toFixed(1)}.`,
-        `Distribusi parameter teratas: ${topStr || '—'}.`,
-        'Fokus pada pola kesalahan, prioritas perbaikan, dan saran dialog coaching singkat.',
+        `Analisis Laporan QA Individu: ${agent.nama} (Filosofi Path to Zero).`,
+        `Periode: ${periodLabel}.`,
+        `1. PROFIL & STATUS PERSONAL PATH TO ZERO:`,
+        `- Skor QA rata-rata: ${avgScore.toFixed(1)}`,
+        `- Status Zero: ${zeroParamCount} dari ${totalParamCount} parameter mencapai ZERO.`,
+        `- Total temuan: ${temuan.length} (dari ${tickets.size} sesi audit).`,
+        `2. PETA PARAMETER PERSONAL:`,
+        `- Parameter dominan: ${topStr || 'Semua parameter dalam kondisi baik.'}`,
+        `3. ALARM REGRESI (⚠️):`,
+        `- Parameter yang muncul kembali setelah sebelumnya bersih: ${regressionParams.length > 0 ? regressionParams.join(', ') : 'Tidak ditemukan regresi (Pertahankan!).'}`,
+        `4. PRIORITAS COACHING:`,
+        `Identifikasi Top 3 parameter yang paling krusial untuk diperbaiki segera berdasarkan frekuensi dan dampak.`,
+        `5. TARGET PERIODE BERIKUTNYA: Berikan target spesifik (misal: Zero temuan pada parameter X).`,
+        `PENTING: Gunakan struktur penomoran 1-5 di atas dalam narasi Anda. Berikan saran dialog coaching yang singkat dan empatik.`,
       ].join('\n');
 
       const aiNarrative = await narrationWithTimeout(modelId, systemNarration, prompt);
@@ -374,12 +472,19 @@ export async function generateReportAction(
         avgScore,
         totalFindings: temuan.length,
         sessionEstimate: tickets.size,
+        zeroParamCount,
+        totalParamCount,
+        paramMapRows,
+        regressionParams,
         aiNarrative,
         trendPngBase64: input.trendPngBase64,
         detailRows,
       });
 
       storagePath = `${user.id}/${reportId}.docx`;
+      const agentNameSafe = agent.nama.replace(/\s+/g, '_');
+      const periodLabelSafe = periodLabel.replace(/\s+/g, '_').replace(/–/g, '-');
+      downloadName = `Laporan_QA_Individu_${agentNameSafe}_${periodLabelSafe}.docx`;
     }
 
     if (buffer.length > MAX_DOCX_BYTES) {
@@ -417,7 +522,7 @@ export async function generateReportAction(
 
     const { data: signed, error: signErr } = await admin.storage
       .from('reports')
-      .createSignedUrl(storagePath, 3600);
+      .createSignedUrl(storagePath, 3600, { download: downloadName });
 
     if (signErr || !signed?.signedUrl) {
       throw new Error(signErr?.message || 'Gagal membuat tautan unduhan.');
@@ -431,12 +536,17 @@ export async function generateReportAction(
       expiresIn: 3600,
     };
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : 'Gagal membuat laporan.';
+    console.error('[generateReportAction] CRITICAL ERROR:', e);
+    const msg = e instanceof Error ? e.message : 'Gagal membuat laporan karena kesalahan server internal.';
     if (reportId) {
-      await admin
-        .from('reports')
-        .update({ status: 'failed', error_message: msg })
-        .eq('id', reportId);
+      try {
+        await admin
+          .from('reports')
+          .update({ status: 'failed', error_message: msg })
+          .eq('id', reportId);
+      } catch (dbErr) {
+        console.error('[generateReportAction] Failed to update fail status:', dbErr);
+      }
     }
     return { ok: false, error: msg };
   }

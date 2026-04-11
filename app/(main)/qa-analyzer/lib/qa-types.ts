@@ -248,14 +248,6 @@ export interface SharedContext {
   periods: QAPeriod[];
 }
 
-export interface ParameterStat {
-  indicator_id: string;
-  name: string;
-  category: Category;
-  dist: Record<number, number>;
-  total: number;
-  bermasalah: number;
-}
 
 export interface TrendPoint {
   label: string;

@@ -15,6 +15,86 @@ import type { DashboardSummary } from '../../lib/qa-types';
 import type { ServiceType } from '../../lib/qa-types';
 import { SERVICE_LABELS } from '../../lib/qa-types';
 
+/** AI narrative parsing helper to turn numbered lists into headings + bullets */
+function renderParsedNarrative(narration: string): Paragraph[] {
+  const result: Paragraph[] = [];
+  // Split by numbered sections like "1. ", "2. ", etc.
+  const sections = narration.split(/\n?(?=\d\.\s)/g);
+
+  sections.forEach((sec) => {
+    const lines = sec.trim().split('\n');
+    if (lines.length === 0) return;
+
+    const firstLine = lines[0].trim();
+    // If it looks like a heading (e.g., "1. STATUS EXECUTIVE SUMMARY")
+    if (/^\d\.\s/.test(firstLine)) {
+      result.push(
+        new Paragraph({
+          text: firstLine.toUpperCase(),
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 240, after: 120 },
+        })
+      );
+      
+      // The rest of the segment is the body
+      lines.slice(1).forEach(line => {
+        const text = line.trim();
+        if (!text) return;
+        
+        result.push(
+          new Paragraph({
+            children: [
+              new TextRun({ 
+                text: text.startsWith('-') ? `• ${text.substring(1).trim()}` : text,
+                size: 20
+              })
+            ],
+            indent: text.startsWith('-') ? { left: 720 } : undefined,
+            spacing: { after: 120 },
+          })
+        );
+      });
+    } else {
+      // Normal paragraph
+      lines.forEach(line => {
+        const text = line.trim();
+        if (!text) return;
+        result.push(
+          new Paragraph({
+            children: [new TextRun({ text, size: 20 })],
+            spacing: { after: 120 },
+          })
+        );
+      });
+    }
+  });
+
+  return result;
+}
+
+function getStatusIndicator(value: number, type: 'compliance' | 'zero'): TextRun {
+  let symbol = '🔴';
+  let label = 'Perlu Perhatian';
+  let color = 'FF0000';
+
+  if (type === 'compliance') {
+    if (value >= 95) { symbol = '🟢'; label = 'Sangat Baik'; color = '008000'; }
+    else if (value >= 90) { symbol = '🟡'; label = 'Cukup'; color = '8B8000'; }
+  } else {
+    // Zero error rate
+    if (value >= 50) { symbol = '🟢'; label = 'Bagus'; color = '008000'; }
+    else if (value >= 30) { symbol = '🟡'; label = 'Waspada'; color = '8B8000'; }
+  }
+
+  return new TextRun({ text: `${symbol} ${label}`, color, bold: true, size: 20 });
+}
+
+function getDirectionIcon(dir: 'up' | 'down' | 'flat'): string {
+  if (dir === 'up') return '↑';
+  if (dir === 'down') return '↓';
+  return '→';
+}
+
 const MAX_TABLE_ROWS = 400;
 
 function stripBase64Prefix(s: string): string {
@@ -37,6 +117,13 @@ export async function buildServiceReportDocx(input: {
   serviceType: ServiceType;
   periodLabel: string;
   summary: DashboardSummary;
+  paramTrackerRows: Array<{
+    parameter: string;
+    current: number;
+    previous: number;
+    delta: number;
+    direction: 'up' | 'down' | 'flat';
+  }>;
   aiNarrative: string;
   paretoPngBase64: string | null;
   donutPngBase64: string | null;
@@ -93,25 +180,92 @@ export async function buildServiceReportDocx(input: {
       spacing: { after: 300 },
     }),
     new Paragraph({
-      text: 'Ringkasan eksekutif',
+      text: '1. Ringkasan Eksekutif',
       heading: HeadingLevel.HEADING_1,
       spacing: { before: 200, after: 120 },
     }),
-    new Paragraph({
-      children: [
-        new TextRun({
-          text: `Total temuan: ${input.summary.totalDefects}  |  Rata-rata temuan per audit: ${input.summary.avgDefectsPerAudit.toFixed(2)}  |  Zero-error rate: ${input.summary.zeroErrorRate.toFixed(1)}%  |  Compliance rate: ${input.summary.complianceRate.toFixed(1)}%  |  Skor rata-rata agen: ${input.summary.avgAgentScore.toFixed(1)}`,
-          size: 20,
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({ children: [cellPara('Metrik Utama', true)] }),
+            new TableCell({ children: [cellPara('Nilai', true)] }),
+            new TableCell({ children: [cellPara('Status', true)] }),
+          ]
         }),
-      ],
-      spacing: { after: 200 },
+        new TableRow({
+          children: [
+            new TableCell({ children: [cellPara('Compliance Rate')] }),
+            new TableCell({ children: [cellPara(`${input.summary.complianceRate.toFixed(1)}%`)] }),
+            new TableCell({ children: [new Paragraph({ children: [getStatusIndicator(input.summary.complianceRate, 'compliance')] })] }),
+          ]
+        }),
+        new TableRow({
+          children: [
+            new TableCell({ children: [cellPara('Zero-Error Rate')] }),
+            new TableCell({ children: [cellPara(`${input.summary.zeroErrorRate.toFixed(1)}%`)] }),
+            new TableCell({ children: [new Paragraph({ children: [getStatusIndicator(input.summary.zeroErrorRate, 'zero')] })] }),
+          ]
+        }),
+        new TableRow({
+          children: [
+            new TableCell({ children: [cellPara('Avg. Defects/Audit')] }),
+            new TableCell({ children: [cellPara(input.summary.avgDefectsPerAudit.toFixed(2))] }),
+            new TableCell({ children: [cellPara('Target: < 0.5')] }),
+          ]
+        }),
+      ]
+    }),
+    new Paragraph({ spacing: { after: 200 } }),
+    
+    new Paragraph({
+      text: '2. Path to Zero Tracker',
+      heading: HeadingLevel.HEADING_1,
+      spacing: { before: 200, after: 120 },
+    }),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({ width: { size: 40, type: WidthType.PERCENTAGE }, children: [cellPara('Parameter', true)] }),
+            new TableCell({ width: { size: 15, type: WidthType.PERCENTAGE }, children: [cellPara('Start Range', true)] }),
+            new TableCell({ width: { size: 15, type: WidthType.PERCENTAGE }, children: [cellPara('End Range', true)] }),
+            new TableCell({ width: { size: 10, type: WidthType.PERCENTAGE }, children: [cellPara('Δ', true)] }),
+            new TableCell({ width: { size: 20, type: WidthType.PERCENTAGE }, children: [cellPara('Arah', true)] }),
+          ]
+        }),
+        ...input.paramTrackerRows.map(r => new TableRow({
+          children: [
+            new TableCell({ children: [cellPara(r.parameter)] }),
+            new TableCell({ children: [cellPara(String(r.previous))] }),
+            new TableCell({ children: [cellPara(String(r.current))] }),
+            new TableCell({ children: [cellPara(`${r.delta > 0 ? '+' : ''}${r.delta}`)] }),
+            new TableCell({ 
+              children: [
+                new Paragraph({ 
+                  children: [
+                    new TextRun({ 
+                      text: `${getDirectionIcon(r.direction)} ${r.direction === 'up' ? 'Memburuk' : r.direction === 'down' ? 'Membaik' : 'Stagnan'}`,
+                      color: r.direction === 'up' ? 'FF0000' : r.direction === 'down' ? '008000' : '000000',
+                      bold: true,
+                      size: 18
+                    })
+                  ]
+                })
+              ]
+            }),
+          ]
+        }))
+      ]
     }),
   ];
 
   if (input.paretoPngBase64) {
     children.push(
       new Paragraph({
-        text: 'Pareto — parameter bermasalah',
+        text: '3. Zoom-in Parameter Memburuk (Pareto)',
         heading: HeadingLevel.HEADING_2,
         spacing: { before: 120, after: 120 },
       }),
@@ -152,14 +306,11 @@ export async function buildServiceReportDocx(input: {
 
   children.push(
     new Paragraph({
-      text: 'Analisis AI',
+      text: '4. Interpretasi & Analisis (AI Narration)',
       heading: HeadingLevel.HEADING_1,
       spacing: { before: 200, after: 120 },
     }),
-    new Paragraph({
-      children: [new TextRun({ text: input.aiNarrative, size: 20 })],
-      spacing: { after: 240 },
-    }),
+    ...renderParsedNarrative(input.aiNarrative),
     new Paragraph({
       text: 'Detail temuan',
       heading: HeadingLevel.HEADING_1,
@@ -206,6 +357,10 @@ export async function buildIndividualReportDocx(input: {
   avgScore: number;
   totalFindings: number;
   sessionEstimate: number;
+  zeroParamCount: number;
+  totalParamCount: number;
+  paramMapRows: Array<{ parameter: string; status: 'dipertahankan' | 'baru' | 'regresi' | 'aktif' }>;
+  regressionParams: string[];
   aiNarrative: string;
   trendPngBase64: string | null;
   detailRows: Array<{
@@ -269,19 +424,81 @@ export async function buildIndividualReportDocx(input: {
       spacing: { after: 300 },
     }),
     new Paragraph({
-      text: 'Ringkasan performa',
+      text: '1. Profil & Status Path to Zero Personal',
       heading: HeadingLevel.HEADING_1,
       spacing: { after: 120 },
     }),
     new Paragraph({
       children: [
         new TextRun({
-          text: `Skor QA rata-rata (per bulan, bobot temuan): ${input.avgScore.toFixed(1)}  |  Total temuan: ${input.totalFindings}  |  Perkiraan sesi (unik no. tiket): ${input.sessionEstimate}`,
+          text: `Status Zero: ${input.zeroParamCount} dari ${input.totalParamCount} parameter mencapai ZERO.`,
+          bold: true,
+          size: 22,
+          color: input.zeroParamCount === input.totalParamCount ? '008000' : '000000',
+        }),
+      ],
+      spacing: { after: 120 },
+    }),
+    ...(input.regressionParams.length > 0 ? [
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: `⚠️ ALARM REGRESI: Terdeteksi temuan baru pada parameter yang sebelumnya sudah bersih: ${input.regressionParams.join(', ')}`,
+            bold: true,
+            color: 'FF0000',
+            size: 20
+          })
+        ],
+        spacing: { after: 200 }
+      })
+    ] : []),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: `Skor QA rata-rata: ${input.avgScore.toFixed(1)}  |  Total temuan: ${input.totalFindings}  |  Perkiraan sesi: ${input.sessionEstimate}`,
           size: 20,
         }),
       ],
       spacing: { after: 200 },
     }),
+
+    new Paragraph({
+      text: '2. Peta Parameter Personal',
+      heading: HeadingLevel.HEADING_2,
+      spacing: { before: 200, after: 120 },
+    }),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({ children: [cellPara('Parameter', true)] }),
+            new TableCell({ children: [cellPara('Status Path to Zero', true)] }),
+          ]
+        }),
+        ...input.paramMapRows.map(r => {
+          let label = 'Aktif (Ada Temuan)';
+          let color = '000000';
+          if (r.status === 'dipertahankan') { label = 'ZERO (Dipertahankan) ✅'; color = '008000'; }
+          else if (r.status === 'baru') { label = 'Baru Capai ZERO 🎯'; color = '008000'; }
+          else if (r.status === 'regresi') { label = 'REGRESI ⚠️'; color = 'FF0000'; }
+
+          return new TableRow({
+            children: [
+              new TableCell({ children: [cellPara(r.parameter)] }),
+              new TableCell({ 
+                children: [
+                  new Paragraph({ 
+                    children: [new TextRun({ text: label, color, bold: r.status !== 'aktif', size: 18 })] 
+                  })
+                ] 
+              }),
+            ]
+          });
+        })
+      ]
+    }),
+    new Paragraph({ spacing: { after: 300 } }),
   ];
 
   if (input.trendPngBase64) {
@@ -307,14 +524,11 @@ export async function buildIndividualReportDocx(input: {
 
   children.push(
     new Paragraph({
-      text: 'Insight & coaching (AI)',
+      text: '3. Interpretasi & Analisis (AI Narration)',
       heading: HeadingLevel.HEADING_1,
       spacing: { before: 200, after: 120 },
     }),
-    new Paragraph({
-      children: [new TextRun({ text: input.aiNarrative, size: 20 })],
-      spacing: { after: 240 },
-    }),
+    ...renderParsedNarrative(input.aiNarrative),
     new Paragraph({
       text: 'Detail temuan',
       heading: HeadingLevel.HEADING_1,

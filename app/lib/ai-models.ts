@@ -14,13 +14,13 @@ export const AI_MODELS = [
   { 
     id: 'qwen/qwen3-next-80b-a3b-instruct:free', 
     name: 'Qwen 3 Next 80B', 
-    description: 'Model Qwen generasi berikutnya, sangat cerdas & responsif (gratis).', 
+    description: 'Model Qwen generasi berikutnya, sangat cerdas & responsif.', 
     provider: 'openrouter' as const 
   },
   { 
     id: 'google/gemma-4-31b-it:free', 
     name: 'Gemma 4 31B', 
-    description: 'Model Google terbaru, efisien dan cerdas (gratis).', 
+    description: 'Model Google terbaru, efisien dan cerdas.', 
     provider: 'openrouter' as const 
   },
 ];

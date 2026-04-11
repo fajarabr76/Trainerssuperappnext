@@ -503,7 +503,8 @@ export default function ProfilerExportClient({
     try {
       const { jsPDF }   = await import('jspdf');
       const html2canvas = (await import('html2canvas')).default;
-      
+      const { prepareHtml2CanvasClone } = await import('@/app/lib/html2canvas-tailwind-fix');
+
       const isLandscape = orientation === 'landscape';
       const pdfW = isLandscape ? 960 : 600;
       const pdfH = isLandscape ? 540 : 848;
@@ -517,10 +518,9 @@ export default function ProfilerExportClient({
         document.body.appendChild(container);
         const canvas = await html2canvas(container, {
           scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#FFFFFF', width: pdfW, height: pdfH,
-          onclone: (clonedDoc) => {
-            clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => el.remove());
-            const html = clonedDoc.documentElement;
-            html.style.colorScheme = 'normal'; html.style.color = '#000000'; html.style.backgroundColor = '#FFFFFF';
+          foreignObjectRendering: true,
+          onclone: (clonedDoc, clonedElement) => {
+            prepareHtml2CanvasClone(clonedDoc, clonedElement, container);
           },
         });
         document.body.removeChild(container);

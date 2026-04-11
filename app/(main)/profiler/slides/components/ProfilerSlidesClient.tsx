@@ -91,61 +91,17 @@ export default function ProfilerSlidesClient({
   const captureSlideCanvas = async () => {
     if (!slideRef.current) return null;
     const html2canvas = (await import('html2canvas')).default;
+    const { prepareHtml2CanvasClone } = await import('@/app/lib/html2canvas-tailwind-fix');
     const el = slideRef.current;
-
-    const PROPS = [
-      'display','position','top','right','bottom','left','z-index',
-      'width','height','min-width','max-width','min-height','max-height',
-      'margin','margin-top','margin-right','margin-bottom','margin-left',
-      'padding','padding-top','padding-right','padding-bottom','padding-left',
-      'border','border-top','border-right','border-bottom','border-left',
-      'border-width','border-style',
-      'border-top-color','border-right-color','border-bottom-color','border-left-color',
-      'border-radius',
-      'border-top-left-radius','border-top-right-radius',
-      'border-bottom-left-radius','border-bottom-right-radius',
-      'flex','flex-direction','flex-wrap','flex-grow','flex-shrink','flex-basis',
-      'align-items','align-self','justify-content','justify-self',
-      'gap','row-gap','column-gap',
-      'grid-template-columns','grid-column','grid-row','grid-column-end',
-      'font-size','font-weight','font-family','font-style',
-      'line-height','letter-spacing','text-align','text-transform',
-      'text-decoration','white-space','text-overflow','word-break',
-      'color','background-color','background',
-      'box-shadow','outline',
-      'overflow','overflow-x','overflow-y',
-      'opacity','visibility',
-      'box-sizing','object-fit','object-position','aspect-ratio',
-      'vertical-align',
-    ];
-
-    const inlineAll = (orig: Element, clone: Element) => {
-      if (orig instanceof HTMLElement && clone instanceof HTMLElement) {
-        const cs = window.getComputedStyle(orig);
-        PROPS.forEach(p => {
-          const v = cs.getPropertyValue(p);
-          if (v) clone.style.setProperty(p, v, 'important');
-        });
-        const bg = cs.getPropertyValue('background-color');
-        if (!bg || bg === 'rgba(0, 0, 0, 0)') {
-          clone.style.setProperty('background-color', 'transparent', 'important');
-        }
-      }
-      const origChildren = Array.from(orig.children);
-      const cloneChildren = Array.from(clone.children);
-      origChildren.forEach((child, i) => {
-        if (cloneChildren[i]) inlineAll(child, cloneChildren[i]);
-      });
-    };
 
     return await html2canvas(el, {
       scale: 3,
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#FFFFFF',
+      foreignObjectRendering: true,
       onclone: (_clonedDoc, clonedElement) => {
-        inlineAll(el, clonedElement);
-        _clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(s => s.remove());
+        prepareHtml2CanvasClone(_clonedDoc, clonedElement, el);
       },
     });
   };
