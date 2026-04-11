@@ -14,6 +14,7 @@ import { useTheme } from 'next-themes';
 import { Sun, Moon, AlertCircle, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useTelefunWarning } from '@/app/context/TelefunWarningContext';
 import { useAccessDenied } from '@/app/context/AccessDeniedContext';
+import { useSessionTimeout } from '@/app/context/SessionTimeoutContext';
 
 interface SidebarProps {
   user?: any;
@@ -29,6 +30,7 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
   const { theme, setTheme } = useTheme();
   const { openMaintenance } = useTelefunWarning();
   const { openAccessDenied } = useAccessDenied();
+  const { signOut } = useSessionTimeout();
   
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
@@ -46,9 +48,7 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
   }, [pathname]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/?auth=login');
-    router.refresh();
+    await signOut();
   };
 
   const navItemClass = (active: boolean) => 

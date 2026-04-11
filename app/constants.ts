@@ -96,3 +96,8 @@ export const AI_MODELS = [
 ];
 
 export const TEMPLATE_GREETING = "Selamat pagi/siang/sore Bapak/Ibu. Terima kasih telah menghubungi Kontak OJK 157. Ada yang bisa kami bantu?";
+
+// Auth Session Management (Milliseconds)
+export const AUTH_SESSION_TIMEOUT = 30 * 60 * 1000;      // 30 Minutes
+export const AUTH_GRACE_PERIOD_SEC = 5 * 60;            // 5 Minutes (300 Seconds)
+export const AUTH_MAX_LIFETIME = 8 * 60 * 60 * 1000;    // 8 Hours

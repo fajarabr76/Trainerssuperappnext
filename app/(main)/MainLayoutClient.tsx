@@ -5,6 +5,7 @@ import Sidebar from '@/app/components/Sidebar';
 import { Menu } from 'lucide-react';
 import { TelefunWarningProvider, useTelefunWarning } from '@/app/context/TelefunWarningContext';
 import { AccessDeniedProvider, useAccessDenied } from '@/app/context/AccessDeniedContext';
+import { SessionTimeoutProvider } from '@/app/context/SessionTimeoutContext';
 import { MaintenanceModal } from '@/app/(main)/telefun/components/MaintenanceModal';
 import { AccessDeniedModal } from '@/app/components/AccessDeniedModal';
 
@@ -85,7 +86,9 @@ export default function MainLayoutClient(props: any) {
   return (
     <AccessDeniedProvider>
       <TelefunWarningProvider>
-        <MainLayoutContent {...props} />
+        <SessionTimeoutProvider>
+          <MainLayoutContent {...props} />
+        </SessionTimeoutProvider>
       </TelefunWarningProvider>
     </AccessDeniedProvider>
   );
