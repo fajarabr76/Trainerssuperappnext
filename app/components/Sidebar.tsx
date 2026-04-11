@@ -199,7 +199,7 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
                                 : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'
                             }`}
                           >
-                            Report Maker
+                            Laporan
                           </Link>
                         )}
                         {role?.toLowerCase() !== 'leader' && (

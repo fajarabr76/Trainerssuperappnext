@@ -6,7 +6,7 @@ import { qaServiceServer } from '../services/qaService.server';
 import { EXCLUDED_FOLDERS } from '../lib/qa-types';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 export default async function ReportMakerPage() {
   const supabase = await createClient();

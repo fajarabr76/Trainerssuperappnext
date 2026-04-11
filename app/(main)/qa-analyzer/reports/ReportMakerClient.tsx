@@ -18,6 +18,7 @@ import {
   generateReportAction,
   markReportDownloadedAction,
 } from './actions/report-actions';
+import { ReportWarningModal } from './components/ReportWarningModal';
 
 const SERVICE_TYPES = Object.keys(SERVICE_LABELS) as ServiceType[];
 
@@ -56,6 +57,7 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
     trendPoints: Array<{ label: string; score: number; findings: number }>;
   }>({ paretoData: [], donutData: null, trendPoints: [] });
   const [captureWarning, setCaptureWarning] = useState<string | null>(null);
+  const [showWarning, setShowWarning] = useState(true);
 
   const captureRef = useRef<ReportChartCaptureHandle>(null);
 
@@ -206,7 +208,7 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
           <div className="mb-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-foreground/40">
             <FileText className="h-3 w-3" /> SIDAK
           </div>
-          <h1 className="text-3xl font-black tracking-tighter text-foreground">Report Maker</h1>
+          <h1 className="text-3xl font-black tracking-tighter text-foreground">Laporan</h1>
           <p className="mt-1 text-xs text-foreground/50">
             Generate laporan Word (.docx) dengan ringkasan data QA dan narasi AI. Role: {role}
           </p>
@@ -487,6 +489,11 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
         paretoData={chartData.paretoData}
         donutData={chartData.donutData}
         trendPoints={chartData.trendPoints}
+      />
+
+      <ReportWarningModal 
+        isOpen={showWarning} 
+        onClose={() => setShowWarning(false)} 
       />
     </main>
   );

@@ -23,6 +23,12 @@ export const AI_MODELS = [
     description: 'Model Google terbaru, efisien dan cerdas.', 
     provider: 'openrouter' as const 
   },
+  { 
+    id: 'minimax/minimax-m2.5:free', 
+    name: 'MiniMax m2.5', 
+    description: 'Model MiniMax terbaru, sangat cerdas & responsif.', 
+    provider: 'openrouter' as const 
+  },
 ];
 
 export type AIProvider = 'gemini' | 'openrouter';

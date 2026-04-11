@@ -11,6 +11,6 @@ export const defaultSettings: AppSettings = {
     phoneNumber: '',
     city: ''
   },
-  selectedModel: 'qwen/qwen3-next-80b-a3b-instruct:free',
+  selectedModel: 'minimax/minimax-m2.5:free',
   simulationDuration: 5
 };

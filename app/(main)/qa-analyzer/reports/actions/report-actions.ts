@@ -13,7 +13,7 @@ import { buildIndividualReportDocx, buildServiceReportDocx } from '../lib/docx-b
 
 const ALLOWED_ROLES = ['trainer', 'trainers', 'admin', 'superadmin'];
 const MAX_DOCX_BYTES = 10 * 1024 * 1024;
-const AI_TIMEOUT_MS = 115_000;
+const AI_TIMEOUT_MS = 300_000;
 
 const MONTHS = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -75,7 +75,7 @@ async function narrationWithTimeout(modelId: string, systemInstruction: string, 
   return await Promise.race([
     run(),
     new Promise<string>((_, rej) =>
-      setTimeout(() => rej(new Error('Generasi narasi AI melebihi batas waktu (120 detik).')), AI_TIMEOUT_MS)
+      setTimeout(() => rej(new Error('Generasi narasi AI melebihi batas waktu (300 detik).')), AI_TIMEOUT_MS)
     ),
   ]);
 }

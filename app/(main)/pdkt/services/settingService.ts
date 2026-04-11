@@ -10,7 +10,7 @@ export const defaultPdktSettings: AppSettings = {
   consumerTypes: DEFAULT_CONSUMER_TYPES,
   enableImageGeneration: true,
   globalConsumerTypeId: 'random',
-  selectedModel: 'qwen/qwen3-next-80b-a3b-instruct:free',
+  selectedModel: 'minimax/minimax-m2.5:free',
 };
 
 export async function loadPdktSettings(): Promise<AppSettings> {
