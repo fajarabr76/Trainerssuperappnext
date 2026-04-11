@@ -16,7 +16,7 @@ interface SettingsModalProps {
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave }) => {
   const [activeTab, setActiveTab] = useState<'scenarios' | 'consumers' | 'identity' | 'system'>('scenarios');
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
-  
+
   // UI States for Forms
   const [isScenarioFormOpen, setIsScenarioFormOpen] = useState(false);
   const [isConsumerFormOpen, setIsConsumerFormOpen] = useState(false);
@@ -133,7 +133,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     setNewScenarioScript(scenario.script || '');
     setNewScenarioImages(scenario.images || []);
     setIsNewCategoryInput(!categories.includes(scenario.category));
-    
+
     setIsScenarioFormOpen(true);
     setTimeout(() => {
       document.getElementById('scenario-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -173,17 +173,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   const handleSaveScenario = () => {
     if (!newScenarioTitle || !newScenarioDesc) return;
     const category = isNewCategoryInput ? newScenarioCategory : newScenarioCategory || "Umum";
-    
+
     if (editingScenarioId) {
       setLocalSettings(prev => ({
         ...prev,
-        scenarios: prev.scenarios.map(s => 
-          s.id === editingScenarioId 
-            ? { 
-                ...s, 
-                category, 
-                title: newScenarioTitle, 
-                description: newScenarioDesc, 
+        scenarios: prev.scenarios.map(s =>
+          s.id === editingScenarioId
+            ? {
+                ...s,
+                category,
+                title: newScenarioTitle,
+                description: newScenarioDesc,
                 script: newScenarioScript,
                 images: newScenarioImages
               }
@@ -229,7 +229,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     setNewConsumerName(consumer.name);
     setNewConsumerDesc(consumer.description);
     setNewConsumerDifficulty(consumer.difficulty);
-    
+
     setIsConsumerFormOpen(true);
     setTimeout(() => {
         document.getElementById('consumer-form')?.scrollIntoView({ behavior: 'smooth' });
@@ -247,8 +247,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     if (editingConsumerId) {
       setLocalSettings(prev => ({
         ...prev,
-        consumerTypes: prev.consumerTypes.map(c => 
-          c.id === editingConsumerId 
+        consumerTypes: prev.consumerTypes.map(c =>
+          c.id === editingConsumerId
             ? { ...c, name: newConsumerName, description: newConsumerDesc, difficulty: newConsumerDifficulty }
             : c
         )
@@ -302,60 +302,80 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="bg-white dark:bg-[#1C1C1E] w-full max-w-5xl max-h-[90vh] rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden border border-white/20 dark:border-white/10"
-      >
-        
-        {/* Modal Header */}
-        <div className="px-10 py-8 border-b border-border/50 flex justify-between items-center bg-card/50 backdrop-blur-2xl shrink-0">
-          <div>
-            <h2 className="text-3xl font-black text-foreground tracking-tighter">Pengaturan Simulasi</h2>
-            <p className="text-xs font-black text-primary uppercase tracking-[0.3em] mt-1 opacity-60">Ketik V3 Settings</p>
-          </div>
-          <button 
-            onClick={handleClose} 
-            className="w-12 h-12 flex items-center justify-center bg-foreground/5 hover:bg-foreground/10 rounded-2xl text-foreground/40 hover:text-foreground transition-all border border-border/50"
+    <AnimatePresence>
+      {isOpen && (
+        <div data-module="ketik" className="module-clean-app module-clean-modal fixed inset-0 module-clean-overlay z-[200] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="module-clean-modal-shell relative w-full max-w-5xl max-h-[90vh] rounded-[3rem] flex flex-col overflow-hidden"
           >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+            {/* Modal Header */}
+            <div className="module-clean-toolbar px-10 py-8 border-b flex justify-between items-center shrink-0 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-module-ketik/10 to-transparent pointer-events-none" />
+              <div className="relative z-10">
+                <h2 className="text-3xl font-black text-foreground tracking-tighter">Pengaturan Simulasi</h2>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] font-black text-foreground/30 uppercase tracking-[0.3em]">Module KETIK</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 relative z-10">
+                <button
+                  onClick={handleSave}
+                  className="px-8 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-2xl shadow-primary/20 flex items-center gap-3 group"
+                >
+                  <Save className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                  <span>Simpan Perubahan</span>
+                </button>
+                <button
+                  onClick={handleClose}
+                  className="w-12 h-12 flex items-center justify-center bg-foreground/5 hover:bg-foreground/10 rounded-2xl text-foreground/40 hover:text-foreground transition-all border border-transparent hover:border-border/50"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
 
-        {/* Segmented Control Tabs */}
-        <div className="px-10 pt-8 pb-4 shrink-0 bg-card/30">
-          <div className="flex p-1.5 bg-foreground/5 rounded-2xl border border-border/50">
+            {/* Segmented Control Tabs */}
+            <div className="px-10 pt-8 pb-4 shrink-0 bg-transparent">
+              <div className="module-clean-panel flex p-2 rounded-2xl">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all relative ${
-                  activeTab === tab.id 
-                    ? 'text-foreground' 
-                    : 'text-foreground/40 hover:text-foreground/60'
+                className={`flex-1 flex items-center justify-center gap-3 py-3.5 text-[11px] font-black uppercase tracking-[0.2em] rounded-xl transition-all relative group ${
+                  activeTab === tab.id
+                    ? 'text-primary'
+                    : 'text-foreground/30 hover:text-foreground/60'
                 }`}
               >
                 {activeTab === tab.id && (
                   <motion.div
-                    layoutId="activeTab"
-                    className="absolute inset-0 bg-card border border-border/50 shadow-sm rounded-xl"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    layoutId="activeTabKetik"
+                    className="module-clean-shell absolute inset-0 shadow-sm rounded-xl"
+                    transition={{ type: "spring", bounce: 0.15, duration: 0.6 }}
                   />
                 )}
-                <span className="relative z-10 flex items-center gap-2">
+                <span className="relative z-10 flex items-center gap-2.5">
                   <tab.icon className="w-4 h-4" />
                   {tab.label}
                 </span>
               </button>
             ))}
-          </div>
-        </div>
+              </div>
+            </div>
 
-        {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-10 bg-foreground/5 scroll-smooth custom-scrollbar">
-          
+            {/* Modal Body */}
+            <div className="module-clean-stage flex-1 overflow-y-auto px-10 pb-10 bg-transparent custom-scrollbar">
+
           {/* TAB 1: SCENARIOS */}
           {activeTab === 'scenarios' && (
             <div className="space-y-8 pb-10">
@@ -368,16 +388,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                        {activeCount} / {totalScenarios} AKTIF
                      </p>
                  </div>
-                 
+
                  <div className="flex items-center gap-3">
-                     <button 
+                     <button
                         onClick={handleSelectAll}
                         disabled={allSelected}
                         className="px-5 py-2.5 bg-foreground/5 border border-border/50 rounded-xl text-[10px] font-black uppercase tracking-widest text-foreground/60 hover:bg-foreground/10 hover:text-foreground transition-all disabled:opacity-30 shadow-sm"
                      >
                         Pilih Semua
                      </button>
-                     <button 
+                     <button
                         onClick={handleUnselectAll}
                         disabled={noneSelected}
                         className="px-5 py-2.5 bg-foreground/5 border border-border/50 rounded-xl text-[10px] font-black uppercase tracking-widest text-red-500/60 hover:bg-red-500/10 hover:text-red-500 transition-all disabled:opacity-30 shadow-sm"
@@ -386,16 +406,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                      </button>
                  </div>
               </div>
-                
+
               {/* Scenario List */}
               <div className="grid grid-cols-1 gap-4">
                   {localSettings.scenarios.map(scenario => (
-                  <motion.div 
+                  <motion.div
                     layout
-                    key={scenario.id} 
+                    key={scenario.id}
                     className={`flex items-start p-6 rounded-[2rem] border transition-all ${
-                      scenario.isActive 
-                        ? 'bg-card border-primary/30 shadow-2xl shadow-primary/5' 
+                      scenario.isActive
+                        ? 'bg-card border-primary/30 shadow-2xl shadow-primary/5'
                         : 'bg-card/40 border-border/50 opacity-40 grayscale hover:grayscale-0 hover:opacity-100'
                     }`}
                   >
@@ -404,8 +424,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                           <button
                               onClick={() => handleToggleScenario(scenario.id)}
                               className={`w-7 h-7 rounded-xl border-2 flex items-center justify-center transition-all ${
-                                scenario.isActive 
-                                  ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20' 
+                                scenario.isActive
+                                  ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20'
                                   : 'border-foreground/10 bg-foreground/5 text-transparent'
                               }`}
                           >
@@ -437,13 +457,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
 
                       {/* Action */}
                       <div className="flex items-center gap-2 ml-4">
-                          <button 
+                          <button
                               onClick={() => handleEditScenario(scenario)}
                               className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"
                           >
                               <Edit2 className="w-4 h-4" />
                           </button>
-                          <button 
+                          <button
                               onClick={() => handleDeleteScenario(scenario.id)}
                               className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
                           >
@@ -469,7 +489,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                 /* Edit Form */
                 <div id="scenario-form" className="bg-card border border-border/50 rounded-[2rem] shadow-3xl overflow-hidden relative">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
-                    
+
                     <div className="px-8 py-6 border-b border-border/50 bg-foreground/5 relative z-10">
                          <h3 className="font-black text-foreground text-lg tracking-tighter">
                             {editingScenarioId ? 'Edit Skenario' : 'Tambah Skenario Baru'}
@@ -480,9 +500,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                              <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-widest mb-3 ml-1">Kategori</label>
                              {!isNewCategoryInput ? (
                                 <div className="relative">
-                                  <select 
-                                    className="w-full rounded-2xl border border-border/50 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none appearance-none transition-all" 
-                                    value={newScenarioCategory} 
+                                  <select
+                                    className="w-full rounded-2xl border border-border/50 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none appearance-none transition-all"
+                                    value={newScenarioCategory}
                                     onChange={(e) => {if (e.target.value === 'NEW') {setIsNewCategoryInput(true); setNewScenarioCategory('');} else {setNewScenarioCategory(e.target.value);}}}
                                   >
                                       <option value="">Pilih Kategori</option>
@@ -509,8 +529,42 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                             <textarea className="w-full rounded-2xl border border-border/50 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none resize-none transition-all" rows={3} value={newScenarioDesc} onChange={(e) => setNewScenarioDesc(e.target.value)} />
                         </div>
                         <div className="col-span-2">
-                             <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-widest mb-3 ml-1">Instruksi Khusus (Opsional)</label>
-                             <textarea className="w-full rounded-2xl border border-border/50 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none resize-none transition-all placeholder:text-foreground/20" rows={3} value={newScenarioScript} onChange={(e) => setNewScenarioScript(e.target.value)} placeholder="Misal: Konsumen sangat terburu-buru..." />
+                             <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-widest mb-3 ml-1">Skrip Percakapan (Opsional)</label>
+                             <textarea
+                               className="w-full rounded-2xl border border-border/50 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none resize-none transition-all placeholder:text-foreground/20"
+                               rows={12}
+                               value={newScenarioScript}
+                               onChange={(e) => setNewScenarioScript(e.target.value)}
+                               placeholder={`Contoh format 1 - Dialog:
+Agent: Selamat pagi, ada yang bisa saya bantu?
+Konsumen: Mas saya ada masalah transaksi.
+Agent: Baik, transaksi seperti apa ya?
+Konsumen: Tadi pagi ada transaksi kartu kredit yang saya tidak kenal.
+
+Contoh format 2 - Alur:
+Awal:
+- Konsumen membuka chat dengan nada panik dan singkat.
+- Menyebut ada transaksi kartu kredit yang tidak dikenali.
+
+Jika agen bertanya detail:
+- Konsumen menyebut transaksi terjadi tadi pagi.
+- Nilai transaksi sekitar Rp3.250.000.
+- Konsumen tidak pernah memberikan OTP ke siapa pun.
+
+Jika agen memberi arahan pemblokiran:
+- Konsumen mulai sedikit tenang.
+- Lalu bertanya apakah dana masih bisa diselamatkan.
+
+Akhir:
+- Konsumen berterima kasih setelah mendapat langkah lanjut.`}
+                             />
+                             <p className="mt-3 text-xs text-foreground/45 leading-relaxed font-medium">
+                               Anda bisa menulis skrip dalam format dialog seperti <span className="font-black text-foreground/60">Agent:</span> /
+                               <span className="font-black text-foreground/60"> Konsumen:</span> atau dalam format poin alur seperti
+                               <span className="font-black text-foreground/60"> Awal</span>, <span className="font-black text-foreground/60">Jika agen bertanya</span>,
+                               dan <span className="font-black text-foreground/60">Akhir</span>. AI akan berusaha mengikuti skrip ini sebagai panduan,
+                               tetapi tetap menjawab secara natural sesuai pertanyaan agen dan situasi percakapan.
+                             </p>
                         </div>
                         <div className="col-span-2">
                             <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-widest mb-3 ml-1">Lampiran Gambar</label>
@@ -525,14 +579,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                                     </div>
                                     <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
                                 </label>
-                            </div> 
+                            </div>
                             {newScenarioImages.length > 0 && (
                               <div className="flex gap-4 mt-6 overflow-x-auto pb-4 custom-scrollbar">
                                 {newScenarioImages.map((img, idx) => (
                                   <div key={idx} className="relative w-24 h-24 shrink-0 group">
                                     <div className="relative w-full h-full">
-                                      <Image 
-                                        src={img} 
+                                      <Image
+                                        src={img}
                                         alt={`Preview ${idx}`}
                                         fill
                                         className="object-cover rounded-2xl border border-border/50 shadow-md"
@@ -578,11 +632,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
               {/* Selection Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Random Option */}
-                  <div 
+                  <div
                     onClick={() => handleSelectConsumerType('random')}
                     className={`cursor-pointer p-8 rounded-[2.5rem] border-2 transition-all relative ${
                         localSettings.activeConsumerTypeId === 'random'
-                        ? 'border-primary bg-primary/5 shadow-2xl shadow-primary/5' 
+                        ? 'border-primary bg-primary/5 shadow-2xl shadow-primary/5'
                         : 'border-transparent bg-card border-border/50 hover:bg-foreground/5'
                     }`}
                   >
@@ -603,12 +657,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
 
                   {/* Defined Types */}
                   {localSettings.consumerTypes.map(c => (
-                     <div 
-                        key={c.id} 
+                     <div
+                        key={c.id}
                         onClick={() => handleSelectConsumerType(c.id)}
                         className={`cursor-pointer p-8 rounded-[2.5rem] border-2 transition-all relative group ${
                             localSettings.activeConsumerTypeId === c.id
-                            ? 'border-primary bg-primary/5 shadow-2xl shadow-primary/5' 
+                            ? 'border-primary bg-primary/5 shadow-2xl shadow-primary/5'
                             : 'border-transparent bg-card border-border/50 hover:bg-foreground/5'
                         }`}
                      >
@@ -630,13 +684,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                                     </div>
                                 ) : (
                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button 
+                                        <button
                                             onClick={(e) => { e.stopPropagation(); handleEditConsumer(c); }}
                                             className="p-2 text-foreground/40 hover:text-primary hover:bg-primary/10 rounded-xl transition-all border border-border/50"
                                         >
                                             <Edit2 className="w-4 h-4" />
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={(e) => { e.stopPropagation(); handleDeleteConsumer(c.id); }}
                                             className="p-2 text-foreground/40 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all border border-border/50"
                                         >
@@ -665,7 +719,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                     <span>Buat Karakteristik Baru</span>
                 </button>
               )}
-              
+
               {/* Form for Add/Edit Consumer */}
               {isConsumerFormOpen && (
                   <div id="consumer-form" className="bg-card border border-border/50 rounded-[2.5rem] shadow-3xl overflow-hidden relative">
@@ -773,12 +827,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                         {AI_MODELS.map(model => {
                             const isSelected = localSettings.selectedModel === model.id;
                             return (
-                                <div 
+                                <div
                                     key={model.id}
                                     onClick={() => setLocalSettings(prev => ({ ...prev, selectedModel: model.id }))}
                                     className={`cursor-pointer p-6 rounded-[2rem] border-2 transition-all flex items-center justify-between gap-6 group ${
-                                        isSelected 
-                                        ? 'border-primary bg-primary/5 shadow-2xl shadow-primary/5' 
+                                        isSelected
+                                        ? 'border-primary bg-primary/5 shadow-2xl shadow-primary/5'
                                         : 'border-transparent bg-card border-border/50 hover:bg-foreground/5'
                                     }`}
                                 >
@@ -786,8 +840,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                                         <div className="flex items-center gap-2">
                                           <h4 className="font-black text-foreground tracking-tight text-lg">{model.name}</h4>
                                           <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${
-                                            model.provider === 'openrouter' 
-                                            ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' 
+                                            model.provider === 'openrouter'
+                                            ? 'bg-orange-500/10 text-orange-500 border-orange-500/20'
                                             : 'bg-blue-500/10 text-blue-500 border-blue-500/20'
                                           }`}>
                                             {model.provider}
@@ -827,12 +881,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                         {[5, 10, 15].map(duration => {
                             const isSelected = (localSettings.simulationDuration || 5) === duration;
                             return (
-                                <div 
+                                <div
                                     key={duration}
                                     onClick={() => setLocalSettings(prev => ({ ...prev, simulationDuration: duration }))}
                                     className={`cursor-pointer p-8 rounded-[2.5rem] border-2 transition-all flex flex-col items-center justify-center gap-3 text-center relative group ${
-                                        isSelected 
-                                        ? 'border-primary bg-primary/5 shadow-2xl shadow-primary/5' 
+                                        isSelected
+                                        ? 'border-primary bg-primary/5 shadow-2xl shadow-primary/5'
                                         : 'border-transparent bg-card border-border/50 hover:bg-foreground/5'
                                     }`}
                                 >
@@ -854,32 +908,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
           )}
         </div>
 
-        {/* Modal Footer */}
-        <div className="px-10 py-8 border-t border-border/50 flex justify-between items-center bg-card/50 backdrop-blur-2xl shrink-0">
-          <button 
-            onClick={handleResetDefaults}
-            className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-red-500/60 hover:text-red-500 transition-all px-6 py-3 rounded-2xl hover:bg-red-500/5 border border-transparent hover:border-red-500/20"
-          >
-            <RotateCcw className="w-4 h-4" />
-            Reset Default
-          </button>
-          <div className="flex gap-4">
-            <button 
-              onClick={handleClose} 
-              className="px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-foreground/40 hover:bg-foreground/5 transition-all"
-            >
-              Batal
-            </button>
-            <button 
-              onClick={handleSave} 
-              className="px-10 py-4 bg-foreground text-background rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-foreground/10 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
-            >
-              <Save className="w-4 h-4" />
-              Simpan Perubahan
-            </button>
-          </div>
+            {/* Modal Footer */}
+            <div className="px-10 py-8 border-t border-border/50 flex justify-between items-center bg-card/50 backdrop-blur-2xl shrink-0">
+              <button
+                onClick={handleResetDefaults}
+                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-red-500/60 hover:text-red-500 transition-all px-6 py-3 rounded-2xl hover:bg-red-500/5 border border-transparent hover:border-red-500/20"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Reset Default
+              </button>
+              <div className="flex gap-4">
+                <button
+                  onClick={handleClose}
+                  className="px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-foreground/40 hover:bg-foreground/5 transition-all"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="px-10 py-4 bg-foreground text-background rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-foreground/10 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  Simpan Perubahan
+                </button>
+              </div>
+            </div>
+          </motion.div>
         </div>
-      </motion.div>
-    </div>
+      )}
+    </AnimatePresence>
   );
 };

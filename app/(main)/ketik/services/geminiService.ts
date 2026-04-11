@@ -6,28 +6,36 @@ import { getProviderFromModelId } from '@/app/lib/ai-models';
 /**
  * Helper to call the appropriate AI provider based on model ID.
  */
-async function callAI(options: { 
-  model: string; 
-  systemInstruction: string; 
-  prompt: string; 
+async function callAI(options: {
+  model: string;
+  systemInstruction: string;
+  prompt: string;
   temperature?: number;
   responseMimeType?: string;
+  strictScriptMode?: boolean;
 }) {
   const provider = getProviderFromModelId(options.model);
-  
+  const isOpenRouter = provider === 'openrouter';
+  const providerSystemInstruction =
+    isOpenRouter && options.strictScriptMode
+      ? `${options.systemInstruction}\n\nOPENROUTER SCRIPT MODE (WAJIB PATUH):\n- Ikuti system instruction dan skrip percakapan dengan lebih ketat daripada biasanya.\n- Jangan menambah detail baru yang tidak ada di identitas, masalah, atau skrip kecuali benar-benar diperlukan untuk menjawab secara natural.\n- Prioritaskan konsistensi karakter, alur skrip, dan jawaban singkat yang relevan.\n- Jika skrip memberi arah percakapan, anggap itu sebagai batas perilaku utama, bukan sekadar saran ringan.\n- Bila ragu, pilih jawaban yang paling dekat dengan isi skrip dan riwayat chat, bukan yang paling kreatif.`
+      : options.systemInstruction;
+
   const callPayload = {
     model: options.model,
-    systemInstruction: options.systemInstruction,
+    systemInstruction: providerSystemInstruction,
     contents: [{ role: 'user', parts: [{ text: options.prompt }] }],
-    temperature: options.temperature,
+    temperature: isOpenRouter && options.strictScriptMode
+      ? Math.min(options.temperature ?? 0.7, 0.35)
+      : options.temperature,
     responseMimeType: options.responseMimeType,
   };
 
   try {
-    const result = provider === 'openrouter' 
+    const result = isOpenRouter
       ? await generateOpenRouterContent(callPayload)
       : await generateGeminiContent(callPayload);
-      
+
     if (!result.success) {
       // Avoid console.error here: Next.js dev overlay treats it like an app error.
       console.warn(`[callAI] AI request failed (${provider}):`, result.error);
@@ -50,12 +58,30 @@ export async function generateConsumerResponse(
   extraPrompt?: string
 ): Promise<GenerateConsumerResponseResult> {
   const imagesCount = scenario.images?.length || 0;
-  const imageInstruction = imagesCount > 0 
+  const imageInstruction = imagesCount > 0
     ? `Anda memiliki ${imagesCount} lampiran gambar yang bisa dikirim (indeks 0 sampai ${imagesCount - 1}). Gunakan tag [SEND_IMAGE: indeks] untuk mengirimnya.`
     : 'Anda tidak memiliki lampiran gambar untuk dikirim.';
 
-  const scriptInstruction = scenario.script 
-    ? `SKRIP PERCAKAPAN (PANDUAN ALUR): Berikut adalah skrip/alur yang HARUS Anda ikuti informasinya secara bertahap. Jangan berikan semua informasi sekaligus kecuali ditanya, tapi pastikan alur masalahnya sesuai skrip ini: ${scenario.script}`
+  const scriptInstruction = scenario.script
+    ? `SKRIP PERCAKAPAN (PANDUAN ALUR):
+Gunakan skrip berikut sebagai panduan utama arah percakapan, informasi penting, dan urutan eskalasi masalah.
+- Skrip bisa ditulis dalam DUA FORMAT, dan Anda harus bisa memahami keduanya:
+  1. FORMAT DIALOG, mis. "Agent: ..." dan "Konsumen: ..."
+  2. FORMAT POIN ALUR, mis. "Awal:", "Jika agen bertanya:", "Akhir:", dst.
+- Jika skrip berbentuk FORMAT DIALOG:
+  - Perlakukan bagian "Agent" sebagai contoh pemicu atau arah percakapan dari agen.
+  - Perlakukan bagian "Konsumen" sebagai contoh respons, nada bicara, dan informasi yang perlu Anda keluarkan secara bertahap.
+  - Jangan menyalin dialog mentah-mentah; adaptasikan dengan percakapan aktual.
+- Jika skrip berbentuk FORMAT POIN ALUR:
+  - Ikuti tahapan, kondisi, emosi, dan informasi penting yang tertulis sebagai panduan perilaku.
+- IKUTI inti alur, fakta penting, emosi, dan konteks dari skrip ini semampunya.
+- JANGAN menyalin skrip secara verbatim atau terdengar seperti membaca naskah.
+- JANGAN berikan semua informasi sekaligus; buka informasi sedikit demi sedikit sesuai pertanyaan agen dan alur chat yang natural.
+- BOLEH menyimpang dari urutan skrip bila diperlukan agar percakapan tetap realistis, menjawab pertanyaan agen dengan relevan, atau menutup percakapan secara natural.
+- Jika ada konflik antara skrip, pertanyaan agen, dan kondisi percakapan aktual, prioritaskan respons yang paling natural namun tetap konsisten dengan inti masalah pada skrip.
+
+Isi skrip:
+${scenario.script}`
     : '';
 
   const timeLimitInstruction = config.simulationDuration && config.simulationDuration > 0
@@ -84,13 +110,14 @@ ATURAN BALASAN:
 5. Kembalikan [NO_RESPONSE] HANYA JIKA agen memberikan jawaban yang sangat memuaskan, percakapan benar-benar selesai secara natural, dan tidak ada lagi yang perlu ditanyakan.
 6. Jangan pernah mengakui bahwa Anda adalah AI. Tetaplah dalam karakter sebagai konsumen yang sedang menghadapi masalah keuangan/perbankan.
 7. KONSISTENSI DATA: Jika agen meminta data pribadi (Nama/HP/Kota), berikan data DI ATAS. JANGAN MENGARANG DATA BARU yang berbeda dengan profil ini.
+8. Jika ada skrip percakapan, perlakukan skrip itu sebagai arahan fleksibel: usahakan mengikuti alurnya, tetapi tetap responsif terhadap pertanyaan agen dan jangan memaksakan percakapan menjadi kaku.
   `;
 
   const historyText = chatHistory
     .filter(m => m.sender !== 'system')
     .map(m => `${m.sender === 'agent' ? 'Agen' : 'Konsumen'}: ${m.text}`)
     .join('\n');
-    
+
   const prompt = `Skenario Saat Ini: ${scenario.title}\n\nRiwayat Chat:\n${historyText}\n\n${extraPrompt || 'Balas sebagai konsumen:'}`;
 
   try {
@@ -99,6 +126,7 @@ ATURAN BALASAN:
       prompt,
       systemInstruction,
       temperature: 0.7,
+      strictScriptMode: Boolean(scenario.script),
     });
 
     if (!response.success) {
@@ -129,7 +157,7 @@ Identitas: ${config.identity.name} dari ${config.identity.city}.
 Skenario: ${scenario.title} - ${scenario.description}.
 Tipe Konsumen: ${config.consumerType.name}.
 
-Tugas: Berikan pesan pembuka (greeting) pertama Anda di chat. 
+Tugas: Berikan pesan pembuka (greeting) pertama Anda di chat.
 Pesan harus mencerminkan masalah Anda dan tipe kepribadian Anda.
 Langsung saja ke intinya, jangan terlalu banyak basa-basi.
   `;
