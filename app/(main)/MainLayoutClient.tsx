@@ -14,10 +14,12 @@ import { usePathname, useRouter } from 'next/navigation';
 function MainLayoutContent({ 
   user, 
   role, 
+  profile,
   children 
 }: { 
   user: any, 
   role: string, 
+  profile?: any,
   children: React.ReactNode 
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

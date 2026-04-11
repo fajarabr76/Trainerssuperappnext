@@ -1,4 +1,5 @@
 export const AI_MODELS = [
+  // Gemini
   { 
     id: 'gemini-3-flash-preview', 
     name: 'Gemini 3 Flash', 
@@ -11,16 +12,30 @@ export const AI_MODELS = [
     description: 'Lebih cerdas untuk skenario yang sangat kompleks.', 
     provider: 'gemini' as const 
   },
+
+  // OpenRouter
   { 
-    id: 'qwen/qwen3-next-80b-a3b-instruct:free', 
-    name: 'Qwen 3 Next 80B', 
-    description: 'Model Qwen generasi berikutnya, sangat cerdas & responsif.', 
+    id: 'nvidia/nemotron-3-nano-30b-a3b:free', 
+    name: 'Nemotron 3 Nano 30B', 
+    description: 'Model NVIDIA yang ringan dan responsif untuk percakapan cepat.', 
     provider: 'openrouter' as const 
   },
   { 
-    id: 'google/gemma-4-31b-it:free', 
-    name: 'Gemma 4 31B', 
-    description: 'Model Google terbaru, efisien dan cerdas.', 
+    id: 'google/gemma-3n-e2b-it:free', 
+    name: 'Gemma 3N E2B IT', 
+    description: 'Model Google yang lebih ringan untuk respons cepat.', 
+    provider: 'openrouter' as const 
+  },
+  { 
+    id: 'z-ai/glm-4.5-air:free', 
+    name: 'GLM 4.5 Air', 
+    description: 'Model ringkas dengan kemampuan reasoning yang baik.', 
+    provider: 'openrouter' as const 
+  },
+  { 
+    id: 'openai/gpt-oss-120b:free', 
+    name: 'GPT-OSS 120B', 
+    description: 'Model open-weight yang kuat untuk tugas yang lebih kompleks.', 
     provider: 'openrouter' as const 
   },
   { 

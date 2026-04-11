@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createClient } from '@/app/lib/supabase/server';
 
 export type AppRole =
@@ -18,28 +19,37 @@ export function normalizeRole(role?: string | null): AppRole {
   return '';
 }
 
-export async function getCurrentUserWithRole() {
+export interface CurrentUserContext {
+  user: any | null;
+  profile: { role?: string | null; status?: string | null; full_name?: string | null } | null;
+  role: AppRole;
+}
+
+export const getCurrentUserContext = cache(async (): Promise<CurrentUserContext> => {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { supabase, user: null, profile: null, role: '' as AppRole };
+    return { user: null, profile: null, role: '' as AppRole };
   }
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, status')
+    .select('role, status, full_name')
     .eq('id', user.id)
     .single();
 
   return {
-    supabase,
     user,
     profile,
     role: normalizeRole(profile?.role),
   };
+});
+
+export async function getCurrentUserWithRole() {
+  return getCurrentUserContext();
 }
 
 export function hasRole(role: string | null | undefined, allowedRoles: string[]) {

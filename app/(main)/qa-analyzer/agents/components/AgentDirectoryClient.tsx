@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Users, Search, ChevronRight, TrendingUp, TrendingDown, 
@@ -9,11 +9,12 @@ import {
 import { motion } from 'motion/react';
 import Link from 'next/link';
 import { scoreColor } from "../../lib/qa-types";
+import type { AgentDirectoryEntry } from "../../lib/qa-types";
 
 interface AgentDirectoryClientProps {
   user: any;
   role: string;
-  initialAgents: any[];
+  initialAgents: AgentDirectoryEntry[];
   initialBatches: string[];
 }
 
@@ -26,6 +27,7 @@ export default function AgentDirectoryClient({
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [selectedBatch, setSelectedBatch] = useState<string>('all');
+  const [visibleCount, setVisibleCount] = useState(24);
 
   const filteredAgents = useMemo(() => {
     return initialAgents.filter(a => {
@@ -34,6 +36,16 @@ export default function AgentDirectoryClient({
       return matchSearch && matchBatch;
     });
   }, [initialAgents, search, selectedBatch]);
+
+  const visibleAgents = useMemo(() => filteredAgents.slice(0, visibleCount), [filteredAgents, visibleCount]);
+
+  useEffect(() => {
+    setVisibleCount(24);
+  }, [search, selectedBatch]);
+
+  const getSafeNumber = (value: unknown) => {
+    return typeof value === 'number' && Number.isFinite(value) ? value : null;
+  };
 
   return (
     <>
@@ -80,12 +92,16 @@ export default function AgentDirectoryClient({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-            {filteredAgents.map((agent, i) => (
+            {visibleAgents.map((agent, i) => {
+              const safeAvgScore = getSafeNumber(agent.avgScore);
+              const safeTrendValue = getSafeNumber(agent.trendValue);
+
+              return (
               <motion.div
                 key={agent.id}
-                initial={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.03, duration: 0.4 }}
+                transition={{ delay: Math.min(i, 8) * 0.02, duration: 0.28 }}
                 onClick={() => router.push(`/qa-analyzer/agents/${agent.id}`)}
                 className="group relative bg-card/40 backdrop-blur-sm border border-border/50 rounded-[2rem] p-6 hover:shadow-3xl hover:shadow-primary/10 hover:border-primary/30 transition-all duration-500 cursor-pointer overflow-hidden"
               >
@@ -94,7 +110,13 @@ export default function AgentDirectoryClient({
                 <div className="flex items-start justify-between mb-8 relative z-10">
                   <div className="w-16 h-16 rounded-2xl bg-foreground/5 p-0.5 border border-border/50 group-hover:border-primary/30 transition-all duration-500 overflow-hidden shadow-inner flex items-center justify-center">
                       {agent.foto_url ? (
-                        <img src={agent.foto_url} alt={agent.nama} className="w-full h-full object-cover rounded-xl" />
+                        <img
+                          src={agent.foto_url}
+                          alt={agent.nama}
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover rounded-xl"
+                        />
                       ) : (
                         <Users className="w-8 h-8 text-foreground/10 group-hover:text-primary/20 transition-colors" />
                       )}
@@ -106,15 +128,15 @@ export default function AgentDirectoryClient({
                           <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
                           <span className="text-[9px] font-black uppercase tracking-widest text-rose-500">At Risk</span>
                         </div>
-                      ) : agent.avgScore !== null ? (
+                      ) : safeAvgScore !== null ? (
                         <div className="px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center gap-1.5">
                           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                           <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500">Compliant</span>
                         </div>
                       ) : null}
-                      {agent.avgScore !== null ? (
-                        <div className={`text-xl font-black tabular-nums tracking-tighter ${scoreColor(agent.avgScore).includes('green') ? 'text-emerald-500' : scoreColor(agent.avgScore).includes('amber') ? 'text-amber-500' : 'text-rose-500'}`}>
-                          {agent.avgScore.toFixed(1)}%
+                      {safeAvgScore !== null ? (
+                        <div className={`text-xl font-black tabular-nums tracking-tighter ${scoreColor(safeAvgScore).includes('green') ? 'text-emerald-500' : scoreColor(safeAvgScore).includes('amber') ? 'text-amber-500' : 'text-rose-500'}`}>
+                          {safeAvgScore.toFixed(1)}%
                         </div>
                       ) : (
                         <div className="px-3 py-1 bg-foreground/5 border border-border/20 rounded-full text-[9px] font-black text-foreground/30 mt-1 uppercase tracking-widest leading-none">Not Audited</div>
@@ -133,16 +155,16 @@ export default function AgentDirectoryClient({
 
                 <div className="flex items-center justify-between pt-6 border-t border-border/30 relative z-10">
                   <div className="flex items-center gap-1.5">
-                    {agent.trend !== 'none' && agent.trendValue !== null && agent.avgScore !== null ? (
+                    {agent.trend !== 'none' && safeTrendValue !== null && safeAvgScore !== null ? (
                       agent.trend === 'up' ? (
                         <div className="flex items-center gap-1 text-emerald-500">
                           <TrendingUp className="w-3 h-3" />
-                          <span className="text-[10px] font-black">+{agent.trendValue.toFixed(1)}%</span>
+                          <span className="text-[10px] font-black">+{safeTrendValue.toFixed(1)}%</span>
                         </div>
                       ) : agent.trend === 'down' ? (
                         <div className="flex items-center gap-1 text-rose-500">
                           <TrendingDown className="w-3 h-3" />
-                          <span className="text-[10px] font-black">{agent.trendValue.toFixed(1)}%</span>
+                          <span className="text-[10px] font-black">{safeTrendValue.toFixed(1)}%</span>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1 text-foreground/30">
@@ -160,7 +182,7 @@ export default function AgentDirectoryClient({
                   </div>
                 </div>
               </motion.div>
-            ))}
+            )})}
           </div>
 
           {filteredAgents.length === 0 && (
@@ -175,6 +197,17 @@ export default function AgentDirectoryClient({
                 className="mt-6 px-6 py-3 bg-primary/10 text-primary rounded-xl text-xs font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all shadow-sm"
               >
                 Reset Filter
+              </button>
+            </div>
+          )}
+
+          {filteredAgents.length > visibleAgents.length && (
+            <div className="mt-10 flex justify-center">
+              <button
+                onClick={() => setVisibleCount((count) => count + 24)}
+                className="px-6 py-3 bg-primary/10 text-primary rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all shadow-sm"
+              >
+                Muat 24 Agent Lagi
               </button>
             </div>
           )}

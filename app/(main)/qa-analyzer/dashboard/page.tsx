@@ -1,9 +1,9 @@
-import { createClient } from '@/app/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import QaDashboardClient from './QaDashboardClient';
 import { qaServiceServer } from '../services/qaService.server';
 import { profilerServiceServer } from '../../profiler/services/profilerService.server';
 import { EXCLUDED_FOLDERS } from '../lib/qa-types';
+import { getCurrentUserContext, hasRole } from '@/app/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,25 +13,14 @@ export default async function QaDashboardPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const resolvedParams = await searchParams;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, profile, role } = await getCurrentUserContext();
 
   if (!user) {
     redirect('/?auth=login');
   }
 
-  // Get profile and role
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  const role = profile?.role || 'trainer';
-
   // Allowed roles - consistent with Level 1 Summary for all personas (EXCLUDING agent now)
-  const allowedRoles = ['trainer', 'trainers', 'leader', 'admin', 'superadmin'];
-  if (!allowedRoles.includes(role)) {
+  if (!hasRole(role, ['trainer', 'leader', 'admin', 'superadmin'])) {
     redirect('/dashboard');
   }
 
@@ -60,8 +49,8 @@ export default async function QaDashboardPage({
 
   // 2. Fetch Dashboard Aggregations using Consolidated Fetchers
   const [periodData, trendData] = await Promise.all([
-    qaServiceServer.getConsolidatedDashboardDataByRange(service, folderIds, context, yearParam, startMonth, endMonth),
-    qaServiceServer.getConsolidatedTrendDataByRange(service, folderIds, context, yearParam, startMonth, endMonth)
+    qaServiceServer.getDashboardRangeData(service, folderIds, context, yearParam, startMonth, endMonth),
+    qaServiceServer.getDashboardRangeTrendData(service, folderIds, context, yearParam, startMonth, endMonth)
   ]);
 
   if (!periodData || !trendData) {

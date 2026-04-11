@@ -3,36 +3,26 @@ import { redirect, notFound } from 'next/navigation';
 import QaAgentDetailClient from './QaAgentDetailClient';
 import { qaServiceServer } from '../../services/qaService.server';
 import { TIM_TO_DEFAULT_SERVICE } from '../../lib/qa-types';
+import { getCurrentUserContext, hasRole } from '@/app/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
 export default async function QaAgentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: agentId } = await params;
-  
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, profile, role } = await getCurrentUserContext();
 
   if (!user) {
     redirect('/login');
   }
 
-  // Get profile and role from PROFILES table (system identity)
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  const role = profile?.role || 'trainer';
-
   // Allowed roles - Agent is now allowed but will be filtered below
-  const allowedRoles = ['trainer', 'trainers', 'leader', 'agent', 'admin', 'superadmin'];
-  if (!allowedRoles.includes(role)) {
+  if (!hasRole(role, ['trainer', 'leader', 'agent', 'admin', 'superadmin'])) {
     redirect('/dashboard');
   }
 
   // STSRICT FILTERING FOR AGENT ROLE
   if (role.toLowerCase() === 'agent') {
+    const supabase = await createClient();
     // Find the peserta record associated with this user's email
     const { data: ownPeserta } = await supabase
       .from('profiler_peserta')
@@ -49,31 +39,35 @@ export default async function QaAgentDetailPage({ params }: { params: Promise<{ 
   try {
     // Fetch initial data
     const currentYear = new Date().getFullYear();
-    
-    // 1. Fetch agent and their temuan first to determine active service
-    const agentResult = await qaServiceServer.getAgentWithTemuan(agentId, currentYear);
-
-    
-    if (!agentResult.agent) {
-      return notFound();
-    }
-
-    const { agent, temuan } = agentResult;
-    
-    // 2. Resolve service type: latest from temuan, or default from team
-    const initialService = temuan[0]?.service_type || 
-                          (agent.tim ? TIM_TO_DEFAULT_SERVICE[agent.tim] : 'call');
-
-    // 3. Fetch remains in parallel
-    const [personalTrend, availableYears, indicators, weights] = await Promise.all([
-      qaServiceServer.getPersonalTrendWithParameters(agentId, '3m', initialService),
+    const [agent, periodSummary, availableYears, indicators, weights] = await Promise.all([
+      qaServiceServer.getAgentMiniProfile(agentId),
+      qaServiceServer.getAgentPeriodSummaries(agentId, currentYear),
       qaServiceServer.getAvailableYears(),
       qaServiceServer.getIndicators(),
       qaServiceServer.getServiceWeights()
     ]);
 
+    if (!agent) {
+      return notFound();
+    }
+
+    const initialPeriod = periodSummary.periods[0] || null;
+    const initialService = initialPeriod?.serviceType ||
+      (agent.tim ? TIM_TO_DEFAULT_SERVICE[agent.tim] : 'call');
+
+    const [personalTrend, initialTemuan] = await Promise.all([
+      qaServiceServer.getPersonalTrendWithParameters(agentId, '3m', initialService),
+      initialPeriod
+        ? qaServiceServer.getAgentTemuanPage(agentId, currentYear, initialPeriod.id, initialService, 0)
+        : Promise.resolve({ temuan: [], hasMore: false, total: 0 })
+    ]);
+
     const initialData = {
-      temuan,
+      periodSummaries: periodSummary.periods,
+      selectedPeriod: initialPeriod,
+      temuan: initialTemuan.temuan,
+      temuanHasMore: initialTemuan.hasMore,
+      temuanTotal: initialTemuan.total,
       indicators,
       personalTrend,
       availableYears,

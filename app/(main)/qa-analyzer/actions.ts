@@ -6,6 +6,23 @@ import {
   DashboardData, TrendPoint, TopAgentData, ExportData, EXCLUDED_FOLDERS
 } from './lib/qa-types';
 import { revalidatePath, revalidateTag } from 'next/cache';
+import {
+  QA_AGENT_DETAIL_TAG,
+  QA_AGENT_DIRECTORY_TAG,
+  QA_DASHBOARD_RANGE_TAG,
+} from './services/qaService.server';
+
+function revalidateQaPerformanceCaches(agentId?: string) {
+  revalidatePath('/qa-analyzer/dashboard');
+  revalidatePath('/qa-analyzer/agents');
+  revalidateTag(QA_DASHBOARD_RANGE_TAG);
+  revalidateTag(QA_AGENT_DIRECTORY_TAG);
+  revalidateTag(QA_AGENT_DETAIL_TAG);
+
+  if (agentId) {
+    revalidatePath(`/qa-analyzer/agents/${agentId}`);
+  }
+}
 
 
 export async function getAgentExportDataAction(agentId: string): Promise<ExportData> {
@@ -44,7 +61,7 @@ export async function createPeriodAction(month: number, year: number) {
     throw error;
   }
   revalidatePath('/qa-analyzer/periods');
-  revalidatePath('/qa-analyzer/dashboard');
+  revalidateQaPerformanceCaches();
   revalidateTag('periods');
   return data;
 }
@@ -78,7 +95,7 @@ export async function deletePeriodAction(id: string) {
   if (error) throw error;
   
   revalidatePath('/qa-analyzer/periods');
-  revalidatePath('/qa-analyzer/dashboard');
+  revalidateQaPerformanceCaches();
   revalidateTag('periods');
 }
 
@@ -107,6 +124,7 @@ export async function createIndicatorAction(
   const { data, error } = await supabase.from('qa_indicators').insert({ service_type, name, category, bobot, has_na }).select().single();
   if (error) throw error;
   revalidatePath('/qa-analyzer/settings');
+  revalidateQaPerformanceCaches();
   revalidateTag('indicators');
   return data;
 }
@@ -136,6 +154,7 @@ export async function updateIndicatorAction(
   const { data, error } = await supabase.from('qa_indicators').update(patch).eq('id', id).select().single();
   if (error) throw error;
   revalidatePath('/qa-analyzer/settings');
+  revalidateQaPerformanceCaches();
   revalidateTag('indicators');
   return data;
 }
@@ -180,6 +199,7 @@ export async function deleteIndicatorAction(id: string) {
   });
 
   revalidatePath('/qa-analyzer/settings');
+  revalidateQaPerformanceCaches();
   revalidateTag('indicators');
 }
 
@@ -230,8 +250,7 @@ export async function createTemuanAction(
   });
 
   revalidatePath('/qa-analyzer/input');
-  revalidatePath('/qa-analyzer/dashboard');
-  revalidatePath(`/qa-analyzer/agents/${peserta_id}`);
+  revalidateQaPerformanceCaches(peserta_id);
   return data;
 }
 
@@ -299,8 +318,7 @@ export async function createTemuanBatchAction(
   });
 
   revalidatePath('/qa-analyzer/input');
-  revalidatePath('/qa-analyzer/dashboard');
-  revalidatePath(`/qa-analyzer/agents/${peserta_id}`);
+  revalidateQaPerformanceCaches(peserta_id);
   
   return data ?? [];
 }
@@ -336,7 +354,7 @@ export async function updateTemuanAction(
   if (error) throw error;
   
   revalidatePath('/qa-analyzer/input');
-  revalidatePath('/qa-analyzer/dashboard');
+  revalidateQaPerformanceCaches(data?.peserta_id);
   if (data?.peserta_id) {
     revalidatePath(`/qa-analyzer/agents/${data.peserta_id}`);
   }
@@ -378,7 +396,7 @@ export async function deleteTemuanAction(id: string) {
   });
   
   revalidatePath('/qa-analyzer/input');
-  revalidatePath('/qa-analyzer/dashboard');
+  revalidateQaPerformanceCaches(current?.peserta_id);
   if (current?.peserta_id) {
     revalidatePath(`/qa-analyzer/agents/${current.peserta_id}`);
   }
@@ -457,8 +475,7 @@ export async function createPerfectScoreSessionAction(
   });
 
   revalidatePath('/qa-analyzer/input');
-  revalidatePath('/qa-analyzer/dashboard');
-  revalidatePath(`/qa-analyzer/agents/${peserta_id}`);
+  revalidateQaPerformanceCaches(peserta_id);
   
   return data ?? [];
 }
@@ -472,14 +489,14 @@ export async function getDashboardDataAction(service: string, folderIds: string[
     qaServiceServer.getPeriods(),
     qaServiceServer.getIndicators(service),
     qaServiceServer.getAvailableYears(),
-    profilerServiceServer.getFolders()
+   profilerServiceServer.getFolders()
   ]);
   
   const context = { periods, indicators };
 
    const [periodData, trendData] = await Promise.all([
-     qaServiceServer.getConsolidatedDashboardDataByRange(service, folderIds, context, year, startMonth, endMonth),
-     qaServiceServer.getConsolidatedTrendDataByRange(service, folderIds, context, year, startMonth, endMonth)
+     qaServiceServer.getDashboardRangeData(service, folderIds, context, year, startMonth, endMonth),
+     qaServiceServer.getDashboardRangeTrendData(service, folderIds, context, year, startMonth, endMonth)
    ]);
    
    if (!periodData || !trendData) {
@@ -523,7 +540,7 @@ export async function getTrendByRangeAction(
   
   const context = { periods, indicators };
   
-  return await qaServiceServer.getConsolidatedTrendDataByRange(
+  return await qaServiceServer.getDashboardRangeTrendData(
     service, 
     folderIds, 
     context, 
@@ -538,9 +555,25 @@ export async function getAvailableYearsAction() {
   return await qaServiceServer.getAvailableYears();
 }
 
+export async function getAgentPeriodsAction(agentId: string, year: number) {
+  const { qaServiceServer } = await import('./services/qaService.server');
+  return await qaServiceServer.getAgentPeriodSummaries(agentId, year);
+}
+
 export async function getAgentTemuanAction(agentId: string, year: number, page: number) {
   const { qaServiceServer } = await import('./services/qaService.server');
   return await qaServiceServer.getAgentWithTemuan(agentId, year, page);
+}
+
+export async function getAgentTemuanPageAction(
+  agentId: string,
+  year: number,
+  periodId: string,
+  serviceType: string,
+  page: number
+) {
+  const { qaServiceServer } = await import('./services/qaService.server');
+  return await qaServiceServer.getAgentTemuanPage(agentId, year, periodId, serviceType, page);
 }
 
 export async function getRankingAgenAction(
@@ -626,7 +659,7 @@ export async function updateServiceWeightAction(
 
   revalidatePath('/qa-analyzer/settings');
   revalidatePath('/qa-analyzer/input');
-  revalidatePath('/qa-analyzer/dashboard');
+  revalidateQaPerformanceCaches();
   revalidateTag('indicators');
 
   return data;

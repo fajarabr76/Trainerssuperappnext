@@ -50,18 +50,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   const [enableImageGeneration, setEnableImageGeneration] = useState(localSettings.enableImageGeneration ?? true);
   const [globalConsumerTypeId, setGlobalConsumerTypeId] = useState(localSettings.globalConsumerTypeId || 'random');
   const [selectedModel, setSelectedModel] = useState(localSettings.selectedModel || 'gemini-3-flash-preview');
+  const defaultModelId = AI_MODELS[0]?.id || 'gemini-3-flash-preview';
 
   // Sync state when modal opens to ensure fresh data
   useEffect(() => {
     if (isOpen) {
-        setLocalSettings(settings);
+        const nextSelectedModel = settings.selectedModel && AI_MODELS.some(model => model.id === settings.selectedModel)
+          ? settings.selectedModel
+          : defaultModelId;
+        setLocalSettings({ ...settings, selectedModel: nextSelectedModel });
         setCustomSenderName(settings.customIdentity?.senderName || '');
         setCustomBodyName(settings.customIdentity?.bodyName || '');
         setCustomEmail(settings.customIdentity?.email || '');
         setCustomCity(settings.customIdentity?.city || '');
         setEnableImageGeneration(settings.enableImageGeneration ?? true);
         setGlobalConsumerTypeId(settings.globalConsumerTypeId || 'random');
-        setSelectedModel(settings.selectedModel || 'gemini-3-flash-preview');
+        setSelectedModel(nextSelectedModel);
         
         // Reset forms
         setEditingScenarioId(null);

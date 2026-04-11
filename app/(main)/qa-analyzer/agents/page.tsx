@@ -22,7 +22,7 @@ export default async function AgentDirectoryPage() {
 
   // Fetch initial data
   const [agents, folderData] = await Promise.all([
-    qaServiceServer.getAgentListWithScores(),
+    qaServiceServer.getAgentDirectorySummary(),
     supabase.from('profiler_folders').select('name').order('created_at', { ascending: true })
   ]);
 

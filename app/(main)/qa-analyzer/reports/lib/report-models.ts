@@ -17,9 +17,6 @@ export function getReportAiModelOptions(): ReportAiModelOption[] {
     if (m.id === 'gemini-3-flash-preview' && envBool(process.env.REPORT_DISABLE_GEMINI_FLASH)) {
       return false;
     }
-    if (m.id === 'qwen/qwen3-next-80b-a3b-instruct:free' && envBool(process.env.REPORT_DISABLE_QWEN_80B)) {
-      return false;
-    }
     return true;
   });
 }

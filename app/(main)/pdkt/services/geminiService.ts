@@ -96,6 +96,9 @@ const getSystemInstruction = (config: SessionConfig, hasCustomImages: boolean) =
        - Ceritakan kronologi dengan sangat rinci. Masukkan curhatan pribadi yang tidak relevan (distraksi) tentang pekerjaan, keluarga, atau perasaan Anda untuk menyembunyikan inti masalah.
        - Tujuannya adalah melatih agen untuk "mencari jarum di tumpukan jerami".
        - Gunakan paragraf narasi yang panjang. Jangan gunakan bullet points.
+       - Tetap gunakan Bahasa Indonesia yang natural seperti ditulis konsumen Indonesia asli, bukan hasil terjemahan literal.
+       - Hindari bahasa yang terlalu kaku, terlalu formal, atau terasa seperti template mesin.
+       - Jangan sengaja membuat typo atau ejaan rusak. Jika ingin santai, tetap harus wajar dan mudah dipahami.
 
     3. KONTEKS MASALAH:
        - Gabungkan SEMUA skenario masalah di atas menjadi satu cerita utuh.

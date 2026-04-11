@@ -1,27 +1,17 @@
-import { createClient } from '@/app/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import DashboardClient from './DashboardClient';
 import { qaServiceServer } from '../qa-analyzer/services/qaService.server';
 import { activityServiceServer } from '@/app/lib/services/activityService.server';
 import { normalizeActionText } from '@/app/lib/utils';
+import { getCurrentUserContext } from '@/app/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
+  const { user, profile, role } = await getCurrentUserContext();
   if (!user) {
     redirect('/?auth=login');
   }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, full_name')
-    .eq('id', user.id)
-    .single();
-
-  const role = profile?.role || 'trainer';
 
   // 1. Fetch base data
   const periods = await qaServiceServer.getPeriods();

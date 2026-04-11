@@ -143,6 +143,13 @@ export interface Agent {
   bergabung_date?: string | null;
 }
 
+export interface AgentDirectoryEntry extends Agent {
+  avgScore: number | null;
+  trend: 'up' | 'down' | 'same' | 'none';
+  trendValue: number | null;
+  atRisk: boolean;
+}
+
 export interface TrendDataset {
   label: string;
   data: number[];
@@ -179,11 +186,28 @@ export interface ExportData {
 
 export interface AgentDetailData {
   indicators: QAIndicator[];
+  periodSummaries: AgentPeriodSummary[];
+  selectedPeriod?: AgentPeriodSummary | null;
   temuan: QATemuan[];
+  temuanHasMore?: boolean;
+  temuanTotal?: number;
   personalTrend: TrendData;
   availableYears?: number[];
   scoreHistory?: ScoreResult[];
   weights?: Record<ServiceType, ServiceWeight>;
+}
+
+export interface AgentPeriodSummary {
+  id: string;
+  month: number;
+  year: number;
+  label: string;
+  serviceType: ServiceType;
+  finalScore: number;
+  nonCriticalScore: number;
+  criticalScore: number;
+  sessionCount: number;
+  findingsCount: number;
 }
 
 export interface ScoreResult {

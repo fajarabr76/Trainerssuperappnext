@@ -2,6 +2,8 @@ import { createClient } from '@/app/lib/supabase/server';
 import { unstable_cache } from 'next/cache';
 import { getCachedFolderNames, getCachedAvailableYears } from '@/lib/cache/user-cache';
 import { 
+  AgentDirectoryEntry,
+  AgentPeriodSummary,
   QAPeriod, 
   QAIndicator, 
   QATemuan, 
@@ -29,6 +31,9 @@ import { createClient as createJSClient } from '@supabase/supabase-js';
 
 const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+export const QA_DASHBOARD_RANGE_TAG = 'qa-dashboard-range';
+export const QA_AGENT_DIRECTORY_TAG = 'qa-agent-directory';
+export const QA_AGENT_DETAIL_TAG = 'qa-agent-detail';
 
 // Lazy Service Role client helper (Server-side only)
 function getServiceSupabase() {
@@ -97,6 +102,274 @@ const cachedFetchServiceWeights = unstable_cache(
   },
   ['qa_service_weights_global'],
   { revalidate: 3600, tags: ['indicators'] } // Using indicators tag for easy revalidation
+);
+
+function decodeFolderIds(folderIdsKey: string): string[] {
+  if (!folderIdsKey) return [];
+
+  try {
+    const parsed = JSON.parse(folderIdsKey);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function encodeFolderIds(folderIds: string[]): string {
+  return JSON.stringify([...folderIds].sort());
+}
+
+function formatPeriodLabel(month: number, year: number) {
+  return `${MONTHS_SHORT[month - 1]} ${String(year).slice(-2)}`;
+}
+
+function unwrapPeriod(
+  value: { month: number; year: number } | Array<{ month: number; year: number }> | null | undefined
+) {
+  if (Array.isArray(value)) {
+    return value[0] ?? null;
+  }
+
+  return value ?? null;
+}
+
+function normalizeAgentDirectoryEntry(raw: Record<string, unknown>): AgentDirectoryEntry {
+  const avgScore = typeof raw.avgScore === 'number'
+    ? raw.avgScore
+    : typeof raw.avgscore === 'number'
+      ? raw.avgscore
+      : null;
+
+  const trendValue = typeof raw.trendValue === 'number'
+    ? raw.trendValue
+    : typeof raw.trendvalue === 'number'
+      ? raw.trendvalue
+      : null;
+
+  const atRisk = typeof raw.atRisk === 'boolean'
+    ? raw.atRisk
+    : typeof raw.atrisk === 'boolean'
+      ? raw.atrisk
+      : false;
+
+  return {
+    id: String(raw.id ?? ''),
+    nama: String(raw.nama ?? ''),
+    tim: String(raw.tim ?? ''),
+    batch: String(raw.batch ?? raw.batch_name ?? ''),
+    batch_name: String(raw.batch_name ?? raw.batch ?? ''),
+    foto_url: typeof raw.foto_url === 'string' ? raw.foto_url : null,
+    jabatan: typeof raw.jabatan === 'string' ? raw.jabatan : null,
+    avgScore,
+    trend: raw.trend === 'up' || raw.trend === 'down' || raw.trend === 'same' || raw.trend === 'none'
+      ? raw.trend
+      : 'none',
+    trendValue,
+    atRisk,
+  };
+}
+
+function measureStart() {
+  return typeof performance !== 'undefined' ? performance.now() : Date.now();
+}
+
+function logServerMetric(label: string, start: number, metadata?: Record<string, unknown>) {
+  const end = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  const durationMs = Number((end - start).toFixed(1));
+  console.info(`[Perf] ${label} ${durationMs}ms`, metadata ?? {});
+}
+
+const cachedFetchDashboardRangeData = unstable_cache(
+  async (serviceType: string, folderIdsKey: string, year: number, startMonth: number, endMonth: number) => {
+    const serviceSupabase = getServiceSupabase();
+    if (!serviceSupabase) return null;
+
+    const folderIds = decodeFolderIds(folderIdsKey);
+    const { data, error } = await serviceSupabase.rpc('get_qa_dashboard_range_data', {
+      p_service_type: serviceType,
+      p_year: year,
+      p_start_month: startMonth,
+      p_end_month: endMonth,
+      p_folder_ids: folderIds,
+    });
+
+    if (error) {
+      console.warn('[RPC] get_qa_dashboard_range_data error:', error.message);
+      return null;
+    }
+
+    return data as {
+      summary: DashboardSummary;
+      paretoData: ParetoData[];
+      serviceData: ServiceComparisonData[];
+      donutData: CriticalVsNonCriticalData;
+      topAgents: TopAgentData[];
+    } | null;
+  },
+  ['qa_dashboard_range_data'],
+  { revalidate: 300, tags: [QA_DASHBOARD_RANGE_TAG] }
+);
+
+const cachedFetchDashboardRangeTrend = unstable_cache(
+  async (serviceType: string, folderIdsKey: string, year: number, startMonth: number, endMonth: number) => {
+    const serviceSupabase = getServiceSupabase();
+    if (!serviceSupabase) return null;
+
+    const folderIds = decodeFolderIds(folderIdsKey);
+    const { data, error } = await serviceSupabase.rpc('get_qa_dashboard_range_trend_data', {
+      p_service_type: serviceType,
+      p_year: year,
+      p_start_month: startMonth,
+      p_end_month: endMonth,
+      p_folder_ids: folderIds,
+    });
+
+    if (error) {
+      console.warn('[RPC] get_qa_dashboard_range_trend_data error:', error.message);
+      return null;
+    }
+
+    return data as {
+      sparklines: Record<string, TrendPoint[]>;
+      paramTrend: { labels: string[]; datasets: Array<{ label: string; data: number[]; isTotal: boolean }> };
+    } | null;
+  },
+  ['qa_dashboard_range_trend_data'],
+  { revalidate: 300, tags: [QA_DASHBOARD_RANGE_TAG] }
+);
+
+const cachedFetchAgentDirectorySummary = unstable_cache(
+  async (year: number): Promise<AgentDirectoryEntry[] | null> => {
+    const serviceSupabase = getServiceSupabase();
+    if (!serviceSupabase) return null;
+
+    const pageSize = 500;
+    let from = 0;
+    let totalCount: number | null = null;
+    const rows: Record<string, unknown>[] = [];
+
+    while (totalCount === null || from < totalCount) {
+      const { data, error, count } = await serviceSupabase
+        .rpc('get_qa_agent_directory_summary', {
+          p_year: year,
+        }, {
+          count: 'exact',
+        })
+        .range(from, from + pageSize - 1);
+
+      if (error) {
+        console.warn('[RPC] get_qa_agent_directory_summary error:', error.message);
+        return null;
+      }
+
+      if (totalCount === null) {
+        totalCount = count ?? data?.length ?? 0;
+      }
+
+      if (!data || data.length === 0) {
+        break;
+      }
+
+      rows.push(...(data as Record<string, unknown>[]));
+
+      if (data.length < pageSize) {
+        break;
+      }
+
+      from += pageSize;
+    }
+
+    return rows.map((entry) => normalizeAgentDirectoryEntry(entry));
+  },
+  ['qa_agent_directory_summary'],
+  { revalidate: 300, tags: [QA_AGENT_DIRECTORY_TAG] }
+);
+
+const cachedFetchAgentPeriodSummaries = unstable_cache(
+  async (agentId: string, year: number): Promise<AgentPeriodSummary[] | null> => {
+    const serviceSupabase = getServiceSupabase();
+    if (!serviceSupabase) return null;
+
+    const [{ data: temuanRaw, error: temuanError }, indicators, weights] = await Promise.all([
+      serviceSupabase
+        .from('qa_temuan')
+        .select('indicator_id, nilai, no_tiket, service_type, created_at, period_id, qa_periods(month, year)')
+        .eq('peserta_id', agentId)
+        .eq('tahun', year)
+        .order('created_at', { ascending: false }),
+      cachedFetchIndicators(),
+      cachedFetchServiceWeights(),
+    ]);
+
+    if (temuanError) {
+      console.warn('[Cache] agent period summaries error:', temuanError.message);
+      return null;
+    }
+
+    const temuan = ((temuanRaw ?? []) as Array<{
+      indicator_id: string;
+      nilai: number;
+      no_tiket?: string | null;
+      service_type: ServiceType;
+      created_at?: string;
+      period_id: string;
+      qa_periods?: { month: number; year: number } | Array<{ month: number; year: number }> | null;
+    }>).map((item) => ({
+      ...item,
+      qa_periods: unwrapPeriod(item.qa_periods),
+    }));
+
+    const periodsMap = new Map<string, AgentPeriodSummary>();
+    const grouped = new Map<string, typeof temuan>();
+
+    temuan.forEach((item) => {
+      if (!item.qa_periods) return;
+      const serviceType = item.service_type;
+      const key = `${item.period_id}:${serviceType}`;
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key)!.push(item);
+    });
+
+    grouped.forEach((items, key) => {
+      const sample = items[0];
+      const period = sample.qa_periods;
+      if (!period) return;
+
+      const serviceIndicators = indicators.filter((indicator) => indicator.service_type === sample.service_type);
+      const score = calculateQAScoreFromTemuan(
+        serviceIndicators,
+        items.map((item) => ({
+          indicator_id: item.indicator_id,
+          nilai: item.nilai,
+          no_tiket: item.no_tiket,
+          created_at: item.created_at,
+          period_id: item.period_id,
+        })),
+        weights[sample.service_type] || DEFAULT_SERVICE_WEIGHTS[sample.service_type]
+      );
+
+      periodsMap.set(key, {
+        id: sample.period_id,
+        month: period.month,
+        year: period.year,
+        label: formatPeriodLabel(period.month, period.year),
+        serviceType: sample.service_type,
+        finalScore: score.finalScore,
+        nonCriticalScore: score.nonCriticalScore,
+        criticalScore: score.criticalScore,
+        sessionCount: score.sessionCount,
+        findingsCount: items.length,
+      });
+    });
+
+    return [...periodsMap.values()].sort((a, b) => {
+      if (a.year !== b.year) return b.year - a.year;
+      if (a.month !== b.month) return b.month - a.month;
+      return a.serviceType.localeCompare(b.serviceType);
+    });
+  },
+  ['qa_agent_period_summaries'],
+  { revalidate: 300, tags: [QA_AGENT_DETAIL_TAG] }
 );
 
 export const qaServiceServer = {
@@ -190,6 +463,16 @@ export const qaServiceServer = {
       ...data,
       batch: data.batch_name
     };
+  },
+
+  async getAgentDirectorySummary(year: number = new Date().getFullYear()) {
+    const startedAt = measureStart();
+    // Keep directory scores aligned with the detail page by using the same
+    // TypeScript scoring path, which already paginates qa_temuan fetches past
+    // the 1000-row PostgREST cap.
+    const accurate = await this.getAgentListWithScores(year);
+    logServerMetric('qa.agentDirectorySummary.accurate', startedAt, { year, count: accurate.length });
+    return accurate;
   },
 
   async getAgentListWithScores(year: number = new Date().getFullYear()) {
@@ -330,6 +613,123 @@ export const qaServiceServer = {
     });
 
     return [...agentDataMap.values()];
+  },
+
+  async getAgentPeriodSummaries(agentId: string, year: number = new Date().getFullYear()) {
+    const startedAt = measureStart();
+    const cached = await cachedFetchAgentPeriodSummaries(agentId, year);
+    if (cached) {
+      logServerMetric('qa.agentPeriodSummaries.cache', startedAt, { agentId, year, periods: cached.length });
+      return { periods: cached };
+    }
+
+    const supabase = await createClient();
+    const [{ data: temuanRaw, error }, allIndicators, weights] = await Promise.all([
+      supabase
+        .from('qa_temuan')
+        .select('indicator_id, nilai, no_tiket, service_type, created_at, period_id, qa_periods(month, year)')
+        .eq('peserta_id', agentId)
+        .eq('tahun', year)
+        .order('created_at', { ascending: false }),
+      this.getIndicators(),
+      this.getServiceWeights(),
+    ]);
+
+    if (error) throw error;
+
+    const temuan = ((temuanRaw ?? []) as Array<{
+      indicator_id: string;
+      nilai: number;
+      no_tiket?: string | null;
+      service_type: ServiceType;
+      created_at?: string;
+      period_id: string;
+      qa_periods?: { month: number; year: number } | Array<{ month: number; year: number }> | null;
+    }>).map((item) => ({
+      ...item,
+      qa_periods: unwrapPeriod(item.qa_periods),
+    }));
+
+    const grouped = new Map<string, typeof temuan>();
+    temuan.forEach((item) => {
+      if (!item.qa_periods) return;
+      const key = `${item.period_id}:${item.service_type}`;
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key)!.push(item);
+    });
+
+    const periods = [...grouped.values()]
+      .map((items) => {
+        const sample = items[0];
+        const period = sample.qa_periods!;
+        const indicators = allIndicators.filter((indicator) => indicator.service_type === sample.service_type);
+        const score = calculateQAScoreFromTemuan(
+          indicators,
+          items.map((item) => ({
+            indicator_id: item.indicator_id,
+            nilai: item.nilai,
+            no_tiket: item.no_tiket,
+            created_at: item.created_at,
+            period_id: item.period_id,
+          })),
+          weights[sample.service_type] || DEFAULT_SERVICE_WEIGHTS[sample.service_type]
+        );
+
+        return {
+          id: sample.period_id,
+          month: period.month,
+          year: period.year,
+          label: formatPeriodLabel(period.month, period.year),
+          serviceType: sample.service_type,
+          finalScore: score.finalScore,
+          nonCriticalScore: score.nonCriticalScore,
+          criticalScore: score.criticalScore,
+          sessionCount: score.sessionCount,
+          findingsCount: items.length,
+        };
+      })
+      .sort((a, b) => {
+        if (a.year !== b.year) return b.year - a.year;
+        if (a.month !== b.month) return b.month - a.month;
+        return a.serviceType.localeCompare(b.serviceType);
+      });
+
+    logServerMetric('qa.agentPeriodSummaries.fallback', startedAt, { agentId, year, periods: periods.length });
+    return { periods };
+  },
+
+  async getAgentTemuanPage(
+    agentId: string,
+    year: number,
+    periodId: string,
+    serviceType: string,
+    page: number,
+    pageSize: number = 50
+  ) {
+    const supabase = await createClient();
+    const from = Math.max(page, 0) * pageSize;
+    const to = from + pageSize;
+
+    const { data, error, count } = await supabase
+      .from('qa_temuan')
+      .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)', {
+        count: 'exact',
+      })
+      .eq('peserta_id', agentId)
+      .eq('tahun', year)
+      .eq('period_id', periodId)
+      .eq('service_type', serviceType)
+      .order('created_at', { ascending: false })
+      .range(from, to - 1);
+
+    if (error) throw error;
+
+    const total = count ?? 0;
+    return {
+      temuan: (data ?? []) as QATemuan[],
+      total,
+      hasMore: to < total,
+    };
   },
 
 
@@ -1089,6 +1489,74 @@ export const qaServiceServer = {
     }
 
     return result;
+  },
+
+  async getDashboardRangeData(
+    serviceType: string,
+    folderIds: string[] = [],
+    context: SharedContext,
+    year: number,
+    startMonth: number,
+    endMonth: number
+  ) {
+    const startedAt = measureStart();
+    const cached = await cachedFetchDashboardRangeData(
+      serviceType,
+      encodeFolderIds(folderIds),
+      year,
+      startMonth,
+      endMonth
+    );
+
+    if (cached) {
+      logServerMetric('qa.dashboardRangeData.cache', startedAt, { serviceType, year, startMonth, endMonth });
+      return cached;
+    }
+
+    const fallback = await this.getConsolidatedDashboardDataByRange(
+      serviceType,
+      folderIds,
+      context,
+      year,
+      startMonth,
+      endMonth
+    );
+    logServerMetric('qa.dashboardRangeData.fallback', startedAt, { serviceType, year, startMonth, endMonth });
+    return fallback;
+  },
+
+  async getDashboardRangeTrendData(
+    serviceType: string,
+    folderIds: string[] = [],
+    context: SharedContext,
+    year: number,
+    startMonth: number,
+    endMonth: number
+  ) {
+    const startedAt = measureStart();
+    const cached = await cachedFetchDashboardRangeTrend(
+      serviceType,
+      encodeFolderIds(folderIds),
+      year,
+      startMonth,
+      endMonth
+    );
+
+    if (cached) {
+      logServerMetric('qa.dashboardRangeTrend.cache', startedAt, { serviceType, year, startMonth, endMonth });
+      return cached;
+    }
+
+    const fallback = await this.getConsolidatedTrendDataByRange(
+      serviceType,
+      folderIds,
+      context,
+      year,
+      startMonth,
+      endMonth
+    );
+    logServerMetric('qa.dashboardRangeTrend.fallback', startedAt, { serviceType, year, startMonth, endMonth });
+    return fallback;
   },
 
   async getConsolidatedTrendData(

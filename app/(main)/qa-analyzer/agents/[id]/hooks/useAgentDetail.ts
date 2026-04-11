@@ -2,26 +2,25 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Agent, 
-  AgentDetailData, 
-  QATemuan, 
-  PeriodSelection, 
-  EditFormState, 
+import {
+  Agent,
+  AgentDetailData,
+  AgentPeriodSummary,
+  QATemuan,
+  PeriodSelection,
+  EditFormState,
   GroupedTemuan,
   CoachingInsight,
   ScoreResult,
-  calculateQAScoreFromTemuan,
-  ServiceType,
-  DEFAULT_SERVICE_WEIGHTS
 } from '../../../lib/qa-types';
 import { User } from '@supabase/supabase-js';
-import { 
-  getAgentTemuanAction, 
-  getPersonalTrendAction, 
-  updateTemuanAction, 
+import {
   deleteTemuanAction,
-  getAgentExportDataAction
+  getAgentExportDataAction,
+  getAgentPeriodsAction,
+  getAgentTemuanPageAction,
+  getPersonalTrendAction,
+  updateTemuanAction,
 } from '../../../actions';
 
 interface UseAgentDetailProps {
@@ -32,116 +31,107 @@ interface UseAgentDetailProps {
   initialData: AgentDetailData;
 }
 
-export function useAgentDetail({ 
-  agentId, 
-  user, 
-  role, 
-  initialAgent, 
-  initialData 
+function toScoreResult(period: AgentPeriodSummary): ScoreResult {
+  return {
+    month: period.month,
+    year: period.year,
+    finalScore: period.finalScore,
+    nonCriticalScore: period.nonCriticalScore,
+    criticalScore: period.criticalScore,
+    sessionCount: period.sessionCount,
+    service_type: period.serviceType,
+  };
+}
+
+export function useAgentDetail({
+  agentId,
+  user,
+  role,
+  initialAgent,
+  initialData,
 }: UseAgentDetailProps) {
   const router = useRouter();
-  
-  // --- States ---
   const [loadingTemuan, setLoadingTemuan] = useState(false);
   const [loadingTrend, setLoadingTrend] = useState(false);
   const [exporting, setExporting] = useState(false);
-  
-  const [selectedPeriod, setSelectedPeriod] = useState<PeriodSelection | null>(null);
   const [timeframe, setTimeframe] = useState<'3m' | '6m' | 'all'>('3m');
   const [activeSection, setActiveSection] = useState<'summary' | 'trend' | 'temuan'>('summary');
   const [trendMounted, setTrendMounted] = useState(false);
   const [temuanMounted, setTemuanMounted] = useState(false);
   const [activeTrendFilter, setActiveTrendFilter] = useState('all');
   const manualScrollRef = useRef<number>(0);
-  
+
   const [agent] = useState<Agent>(initialAgent);
   const [data, setData] = useState<AgentDetailData>(initialData);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodSelection | null>(initialData.selectedPeriod ?? initialData.periodSummaries[0] ?? null);
+  const [selectedYear, setSelectedYear] = useState(initialData.selectedPeriod?.year ?? new Date().getFullYear());
   const [currentPage, setCurrentPage] = useState(0);
-  // Improved hasMore: if we fetched more than 50 initially, we definitely have everything for the year
-  const [hasMore, setHasMore] = useState(initialData.temuan.length === 50 && !initialData.availableYears); 
-  
+  const [hasMore, setHasMore] = useState(Boolean(initialData.temuanHasMore));
+  const [loadedPeriodKey, setLoadedPeriodKey] = useState<string | null>(
+    initialData.selectedPeriod ? `${initialData.selectedPeriod.id}:${initialData.selectedPeriod.serviceType}` : null
+  );
+
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  
-  // Edit State
   const [editingTemuan, setEditingTemuan] = useState<QATemuan | null>(null);
   const [editForm, setEditForm] = useState<EditFormState>({ nilai: 0, ketidaksesuaian: '', sebaiknya: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // --- Computed Values ---
   const indicatorsMetadata = data.indicators;
   const temuan = data.temuan;
   const personalTrend = data.personalTrend;
+  const periodSummaries = data.periodSummaries;
 
-  // Calculate score for each period found in temuan
-  const scoreHistory = useMemo((): ScoreResult[] => {
-    const periods: Record<string, { month: number; year: number; serviceType: string; items: QATemuan[] }> = {};
-    
-    temuan.forEach(t => {
-      // Use qa_periods instead of created_at for accurate scoring periods
-      const month = t.qa_periods?.month;
-      const year = t.qa_periods?.year;
-      
-      if (!month || !year) return; // Skip temuan without period metadata
-      
-      const serviceType = t.service_type || 'Unknown';
-      const key = `${month}-${year}-${serviceType}`;
-      
-      if (!periods[key]) {
-        periods[key] = { month, year, serviceType, items: [] };
-      }
-      periods[key].items.push(t);
-    });
-    
-    return Object.values(periods).map(p => {
-      // Logic from qa-types used directly via static import
-      // Bug Fix: Filter indicators by correct service_type for each period to match SQL RPC logic
-      const filteredIndicators = indicatorsMetadata.filter(i => i.service_type === p.serviceType);
-      const activeWeight = (data.weights && data.weights[p.serviceType as ServiceType]) || DEFAULT_SERVICE_WEIGHTS[p.serviceType as ServiceType] || DEFAULT_SERVICE_WEIGHTS['call'];
-      const score = calculateQAScoreFromTemuan(filteredIndicators, p.items, activeWeight);
-      
-      return {
-        month: p.month,
-        year: p.year,
-        service_type: p.serviceType as ServiceType,
-        finalScore: score.finalScore,
-        nonCriticalScore: score.nonCriticalScore,
-        criticalScore: score.criticalScore,
-        sessionCount: score.sessionCount
-      };
-    });
-  }, [temuan, indicatorsMetadata, data.weights]);
+  const scoreHistory = useMemo(() => periodSummaries.map(toScoreResult), [periodSummaries]);
 
   const sortedPeriods = useMemo(() => {
-    return [...scoreHistory]
-      .sort((a, b) => {
-        if (a.year !== b.year) return b.year - a.year;
-        return b.month - a.month;
-      })
-      .map(ind => ({
-        month: ind.month,
-        year: ind.year,
-        label: `${['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'][ind.month - 1]} ${ind.year}`,
-        serviceType: ind.service_type || 'Unknown'
-      }));
-  }, [scoreHistory]);
+    return periodSummaries.map((period) => ({
+      month: period.month,
+      year: period.year,
+      label: period.label,
+      serviceType: period.serviceType,
+      id: period.id,
+    }));
+  }, [periodSummaries]);
 
   const selectedScore = useMemo((): ScoreResult | null => {
     if (!selectedPeriod) return null;
-    return scoreHistory.find(i => i.month === selectedPeriod.month && i.year === selectedPeriod.year && i.service_type === selectedPeriod.serviceType) || null;
-  }, [scoreHistory, selectedPeriod]);
+    const summary = periodSummaries.find(
+      (period) =>
+        period.id === selectedPeriod.id &&
+        period.month === selectedPeriod.month &&
+        period.year === selectedPeriod.year &&
+        period.serviceType === selectedPeriod.serviceType
+    );
+
+    return summary ? toScoreResult(summary) : null;
+  }, [periodSummaries, selectedPeriod]);
 
   const prevPeriod = useMemo(() => {
     if (!selectedPeriod) return null;
-    const idx = sortedPeriods.findIndex(p => p.month === selectedPeriod.month && p.year === selectedPeriod.year && p.serviceType === selectedPeriod.serviceType);
-    return idx < sortedPeriods.length - 1 ? sortedPeriods[idx + 1] : null;
-  }, [sortedPeriods, selectedPeriod]);
+    const index = sortedPeriods.findIndex(
+      (period) =>
+        period.id === selectedPeriod.id &&
+        period.month === selectedPeriod.month &&
+        period.year === selectedPeriod.year &&
+        period.serviceType === selectedPeriod.serviceType
+    );
+
+    return index >= 0 && index < sortedPeriods.length - 1 ? sortedPeriods[index + 1] : null;
+  }, [selectedPeriod, sortedPeriods]);
 
   const prevScore = useMemo((): ScoreResult | null => {
     if (!prevPeriod) return null;
-    return scoreHistory.find(i => i.month === prevPeriod.month && i.year === prevPeriod.year && i.service_type === prevPeriod.serviceType) || null;
-  }, [scoreHistory, prevPeriod]);
+    const summary = periodSummaries.find(
+      (period) =>
+        period.id === prevPeriod.id &&
+        period.month === prevPeriod.month &&
+        period.year === prevPeriod.year &&
+        period.serviceType === prevPeriod.serviceType
+    );
+
+    return summary ? toScoreResult(summary) : null;
+  }, [periodSummaries, prevPeriod]);
 
   const trendDir = useMemo((): 'up' | 'down' | 'same' | 'none' => {
     if (!selectedScore || !prevScore) return 'none';
@@ -150,76 +140,59 @@ export function useAgentDetail({
     return 'same';
   }, [selectedScore, prevScore]);
 
-  const selectedTemuan = useMemo(() => {
-    if (!selectedPeriod) return [];
-    
-    // Strict filtering by period and service_type
-    return temuan.filter(t => {
-      const isMonthMatch = t.qa_periods?.month === selectedPeriod.month;
-      const isYearMatch = t.qa_periods?.year === selectedPeriod.year;
-      
-      // Ensure strict case-insensitive service type matching to avoid '0' bug
-      const itemService = (t.service_type || '').toLowerCase();
-      const targetService = (selectedPeriod.serviceType || '').toLowerCase();
-      const isServiceMatch = itemService === targetService;
-      
-      return isMonthMatch && isYearMatch && isServiceMatch;
-    });
-  }, [temuan, selectedPeriod]);
-
   const automatedCoaching = useMemo((): CoachingInsight | null => {
-    if (!selectedTemuan.length) return null;
-    const criticals = selectedTemuan.filter(t => t.nilai === 0);
-    const target = criticals.length > 0 ? criticals : selectedTemuan.filter(t => t.nilai === 1);
-    
+    if (!temuan.length) return null;
+    const criticals = temuan.filter((item) => item.nilai === 0);
+    const target = criticals.length > 0 ? criticals : temuan.filter((item) => item.nilai === 1);
+
     if (!target.length) return null;
 
     const counts: Record<string, number> = {};
-    target.forEach(t => {
-      const name = t.qa_indicators?.name || 'Unknown';
+    target.forEach((item) => {
+      const name = item.qa_indicators?.name || 'Unknown';
       counts[name] = (counts[name] || 0) + 1;
     });
 
     const topParam = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-    const example = target.find(t => t.qa_indicators?.name === topParam[0]);
+    const example = target.find((item) => item.qa_indicators?.name === topParam[0]);
 
     return {
       parameter: topParam[0],
       count: topParam[1],
       recommendation: example?.sebaiknya || 'Tingkatkan kualitas pada parameter ini.',
-      isCritical: criticals.length > 0
+      isCritical: criticals.length > 0,
     };
-  }, [selectedTemuan]);
+  }, [temuan]);
 
   const groupedTemuan = useMemo((): GroupedTemuan[] => {
     const groups: Record<string, QATemuan[]> = {};
-    selectedTemuan.forEach(t => {
-      const key = t.no_tiket || `No Ticket-${t.id}`;
+    temuan.forEach((item) => {
+      const key = item.no_tiket || `No Ticket-${item.id}`;
       if (!groups[key]) groups[key] = [];
-      groups[key].push(t);
+      groups[key].push(item);
     });
 
-    return Object.entries(groups).map(([no_tiket, items], idx) => ({
-      urutan: idx + 1,
+    return Object.entries(groups).map(([no_tiket, items], index) => ({
+      urutan: index + 1,
       no_tiket: no_tiket.startsWith('No Ticket-') ? null : no_tiket,
-      items
+      items,
     }));
-  }, [selectedTemuan]);
+  }, [temuan]);
 
-  // --- Effects ---
+  const availableYears = initialData.availableYears || [new Date().getFullYear()];
+
   useEffect(() => {
     if (sortedPeriods.length > 0 && !selectedPeriod) {
       setSelectedPeriod(sortedPeriods[0]);
     }
-  }, [sortedPeriods, selectedPeriod]);
+  }, [selectedPeriod, sortedPeriods]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        // Skip observer updates if a manual scroll was triggered recently
         if (Date.now() - manualScrollRef.current < 800) return;
 
-        entries.forEach(entry => {
+        entries.forEach((entry) => {
           if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
             const id = entry.target.id;
             if (id === 'section-summary') setActiveSection('summary');
@@ -234,116 +207,160 @@ export function useAgentDetail({
           }
         });
       },
-      { 
-        root: scrollContainerRef.current, 
+      {
+        root: scrollContainerRef.current,
         threshold: [0.1, 0.5, 0.8],
-        rootMargin: '-100px 0px -200px 0px' 
+        rootMargin: '-100px 0px -200px 0px',
       }
     );
 
-    const sections = ['section-summary', 'section-trend', 'section-temuan'];
-    sections.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) observer.observe(el);
+    ['section-summary', 'section-trend', 'section-temuan'].forEach((id) => {
+      const element = document.getElementById(id);
+      if (element) observer.observe(element);
     });
 
     return () => observer.disconnect();
   }, []);
 
-  // --- Handlers ---
   const scrollToSection = useCallback((sectionId: string) => {
-    const el = document.getElementById(sectionId);
-    if (el && scrollContainerRef.current) {
-      // Mark as manual scroll to prevent observer from overriding state during smooth scroll
+    const element = document.getElementById(sectionId);
+    if (element && scrollContainerRef.current) {
       manualScrollRef.current = Date.now();
 
-      // Manually set active section for immediate feedback
       const key = sectionId.replace('section-', '');
       if (key === 'summary' || key === 'trend' || key === 'temuan') {
         setActiveSection(key);
       }
-      
-      const top = el.offsetTop - 140; // Adjusted offset for new sticky bar height
+
+      const top = element.offsetTop - 140;
       scrollContainerRef.current.scrollTo({ top, behavior: 'smooth' });
     }
   }, []);
+
+  const loadPeriodData = useCallback(async (
+    period: PeriodSelection,
+    options?: { forceTrend?: boolean }
+  ) => {
+    setLoadingTemuan(true);
+    try {
+      const periodKey = `${period.id}:${period.serviceType}`;
+      const shouldRefreshTrend = options?.forceTrend || !loadedPeriodKey || !loadedPeriodKey.endsWith(`:${period.serviceType}`);
+
+      const [pageResult, trendResult] = await Promise.all([
+        getAgentTemuanPageAction(agentId, selectedYear, period.id!, period.serviceType, 0),
+        shouldRefreshTrend ? getPersonalTrendAction(agentId, timeframe, period.serviceType) : Promise.resolve(null),
+      ]);
+
+      setData((prev) => ({
+        ...prev,
+        temuan: pageResult.temuan,
+        personalTrend: trendResult ?? prev.personalTrend,
+      }));
+      setCurrentPage(0);
+      setHasMore(pageResult.hasMore);
+      setLoadedPeriodKey(periodKey);
+    } finally {
+      setLoadingTemuan(false);
+    }
+  }, [agentId, loadedPeriodKey, selectedYear, timeframe]);
+
+  const handleSelectedPeriodChange = useCallback(async (period: PeriodSelection) => {
+    setSelectedPeriod(period);
+    await loadPeriodData(period);
+  }, [loadPeriodData]);
 
   const handleYearChange = async (year: number) => {
     if (year === selectedYear) return;
     setLoadingTemuan(true);
     try {
-      // MODIFIED: Fetch ALL data for the year (no page param) to ensure accurate scoring history
-      const res = await getAgentTemuanAction(agentId, year, -1 as any); 
-      setData(prev => ({ ...prev, temuan: res.temuan, indicators: prev.indicators }));
+      const periodsResult = await getAgentPeriodsAction(agentId, year);
+      const nextPeriod = periodsResult.periods[0] ?? null;
+
+      if (!nextPeriod) {
+        setData((prev) => ({ ...prev, periodSummaries: [], temuan: [] }));
+        setSelectedPeriod(null);
+        setSelectedYear(year);
+        setCurrentPage(0);
+        setHasMore(false);
+        setLoadedPeriodKey(null);
+        return;
+      }
+
+      const [pageResult, trendResult] = await Promise.all([
+        getAgentTemuanPageAction(agentId, year, nextPeriod.id, nextPeriod.serviceType, 0),
+        getPersonalTrendAction(agentId, timeframe, nextPeriod.serviceType),
+      ]);
+
+      setData((prev) => ({
+        ...prev,
+        periodSummaries: periodsResult.periods,
+        temuan: pageResult.temuan,
+        personalTrend: trendResult,
+      }));
       setSelectedYear(year);
+      setSelectedPeriod(nextPeriod);
       setCurrentPage(0);
-      // Since we fetched all, hasMore is false
-      setHasMore(false);
-      setSelectedPeriod(null); 
+      setHasMore(pageResult.hasMore);
+      setLoadedPeriodKey(`${nextPeriod.id}:${nextPeriod.serviceType}`);
     } catch (err) {
-      console.error('Gagal mengambil data tahun ' + year, err);
+      console.error(`Gagal mengambil data tahun ${year}`, err);
     } finally {
       setLoadingTemuan(false);
     }
   };
 
   const handlePageChange = async (page: number) => {
-    if (page <= currentPage || page < 0) return;
-
-    // Check if we've already fetched this page forward
-    const alreadyFetchedCount = data.temuan.length;
-    const targetCount = (page + 1) * 50;
-    
-    if (alreadyFetchedCount >= targetCount) {
-      setCurrentPage(page);
-      return;
-    }
+    if (!selectedPeriod || page <= currentPage || page < 0) return;
 
     setLoadingTemuan(true);
     try {
-      const res = await getAgentTemuanAction(agentId, selectedYear, page);
-      // Only append new findings to avoid duplication while keeping previous data for scoreHistory accuracy
-      setData(prev => ({ 
-        ...prev, 
-        temuan: [...prev.temuan, ...res.temuan] 
+      const result = await getAgentTemuanPageAction(
+        agentId,
+        selectedYear,
+        selectedPeriod.id!,
+        selectedPeriod.serviceType,
+        page
+      );
+
+      setData((prev) => ({
+        ...prev,
+        temuan: [...prev.temuan, ...result.temuan],
       }));
       setCurrentPage(page);
-      setHasMore(res.temuan.length === 50);
+      setHasMore(result.hasMore);
     } catch (err) {
-      console.error('Gagal mengambil halaman ' + page, err);
+      console.error(`Gagal mengambil halaman ${page}`, err);
     } finally {
       setLoadingTemuan(false);
     }
   };
 
-  const handleTimeframeChange = useCallback(async (tf: '3m' | '6m' | 'all') => {
+  const handleTimeframeChange = useCallback(async (nextTimeframe: '3m' | '6m' | 'all') => {
     setLoadingTrend(true);
     try {
-      const targetService = selectedPeriod?.serviceType || (temuan[0]?.service_type) || 'call';
-      const res = await getPersonalTrendAction(agentId, tf, targetService);
-      setData(prev => ({ ...prev, personalTrend: res }));
-      setTimeframe(tf);
+      const targetService = selectedPeriod?.serviceType || sortedPeriods[0]?.serviceType || 'call';
+      const result = await getPersonalTrendAction(agentId, nextTimeframe, targetService);
+      setData((prev) => ({ ...prev, personalTrend: result }));
+      setTimeframe(nextTimeframe);
     } catch (err) {
       console.error('Gagal memuat tren', err);
     } finally {
       setLoadingTrend(false);
     }
-  }, [agentId, selectedPeriod?.serviceType, temuan]);
+  }, [agentId, selectedPeriod?.serviceType, sortedPeriods]);
 
-  // Refetch trend when service type changes via period selection
-  useEffect(() => {
-    if (selectedPeriod?.serviceType) {
-      handleTimeframeChange(timeframe);
-    }
-  }, [selectedPeriod?.serviceType, timeframe, handleTimeframeChange]);
-
-  const startEdit = (t: QATemuan) => {
-    setEditingTemuan(t);
+  const startEdit = (temuanItem: QATemuan) => {
+    setEditingTemuan(temuanItem);
     setEditForm({
-      nilai: t.nilai,
-      ketidaksesuaian: t.ketidaksesuaian || '',
-      sebaiknya: t.sebaiknya || ''
+      nilai: temuanItem.nilai,
+      ketidaksesuaian: temuanItem.ketidaksesuaian || '',
+      sebaiknya: temuanItem.sebaiknya || '',
     });
+  };
+
+  const refreshCurrentPeriodSummary = async () => {
+    const result = await getAgentPeriodsAction(agentId, selectedYear);
+    setData((prev) => ({ ...prev, periodSummaries: result.periods }));
   };
 
   const handleEditSave = async () => {
@@ -351,11 +368,12 @@ export function useAgentDetail({
     setIsSubmitting(true);
     try {
       const updated = await updateTemuanAction(editingTemuan.id, editForm);
-      setData(prev => ({
+      setData((prev) => ({
         ...prev,
-        temuan: prev.temuan.map(t => t.id === editingTemuan.id ? updated : t)
+        temuan: prev.temuan.map((item) => (item.id === editingTemuan.id ? updated : item)),
       }));
       setEditingTemuan(null);
+      await refreshCurrentPeriodSummary();
     } catch (err) {
       console.error('Gagal menyimpan perubahan', err);
     } finally {
@@ -368,10 +386,11 @@ export function useAgentDetail({
     setDeletingId(id);
     try {
       await deleteTemuanAction(id);
-      setData(prev => ({
+      setData((prev) => ({
         ...prev,
-        temuan: prev.temuan.filter(t => t.id !== id)
+        temuan: prev.temuan.filter((item) => item.id !== id),
       }));
+      await refreshCurrentPeriodSummary();
     } catch (err) {
       console.error('Gagal menghapus temuan', err);
     } finally {
@@ -389,51 +408,51 @@ export function useAgentDetail({
       const summaryRows: (string | number | undefined)[][] = [
         ['Laporan SIDAK'], [''],
         ['Nama Agent', exportData.agent.nama], ['Tim', exportData.agent.tim], ['Folder', exportData.agent.batch],
-        ['Tanggal Export', new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})],
+        ['Tanggal Export', new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })],
         [''], ['RINGKASAN SKOR PER PERIODE'],
         ['Periode', 'Layanan', 'Skor Akhir', 'Non-Critical', 'Critical'],
       ];
-      exportData.periods.forEach(p => {
-        const monthLabel = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][p.month-1];
+      exportData.periods.forEach((period) => {
+        const monthLabel = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][period.month - 1];
         summaryRows.push([
-          `${monthLabel} ${p.year}`, 
-          p.service_type.toUpperCase(),
-          p.score.toFixed(2), 
-          p.ncScore.toFixed(2), 
-          p.crScore.toFixed(2)
+          `${monthLabel} ${period.year}`,
+          period.service_type.toUpperCase(),
+          period.score.toFixed(2),
+          period.ncScore.toFixed(2),
+          period.crScore.toFixed(2),
         ]);
       });
       const ws1 = XLSX.utils.aoa_to_sheet(summaryRows);
-      ws1['!cols'] = [{wch:24},{wch:12},{wch:14},{wch:14},{wch:14}];
+      ws1['!cols'] = [{ wch: 24 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
       XLSX.utils.book_append_sheet(wb, ws1, 'Ringkasan');
 
-      exportData.periods.forEach(p => {
-        const monthShort = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][p.month-1];
-        const svcLabel = p.service_type === 'call' ? 'Call' : p.service_type === 'email' ? 'Email' : p.service_type.charAt(0).toUpperCase() + p.service_type.slice(1);
-        const sheetName = `${monthShort} ${p.year} (${svcLabel})`.slice(0,31);
-        
+      exportData.periods.forEach((period) => {
+        const monthShort = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'][period.month - 1];
+        const svcLabel = period.service_type === 'call' ? 'Call' : period.service_type === 'email' ? 'Email' : `${period.service_type.charAt(0).toUpperCase()}${period.service_type.slice(1)}`;
+        const sheetName = `${monthShort} ${period.year} (${svcLabel})`.slice(0, 31);
+
         const rows: (string | number | undefined)[][] = [
-          [`${['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][p.month-1]} ${p.year} - ${svcLabel}`], [''],
-          [`Skor Akhir: ${p.score.toFixed(2)}`], [`Non-Critical: ${p.ncScore.toFixed(2)}`], [`Critical: ${p.crScore.toFixed(2)}`],
+          [`${['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][period.month - 1]} ${period.year} - ${svcLabel}`], [''],
+          [`Skor Akhir: ${period.score.toFixed(2)}`], [`Non-Critical: ${period.ncScore.toFixed(2)}`], [`Critical: ${period.crScore.toFixed(2)}`],
           [''], ['No. Tiket', 'Kategori', 'Parameter', 'Nilai', 'Keterangan', 'Ketidaksesuaian', 'Sebaiknya'],
         ];
-        p.temuan.forEach(t => {
+        period.temuan.forEach((item) => {
           rows.push([
-            t.no_tiket ?? '-',
-            t.qa_indicators?.category === 'critical' ? 'Critical' : 'Non-Critical',
-            t.qa_indicators?.name ?? '-',
-            t.nilai,
-            { 0: 'CRITICAL', 1: 'DEFICIT', 2: 'GOOD', 3: 'EXCELLENT' }[t.nilai] || '-',
-            t.ketidaksesuaian ?? '-',
-            t.sebaiknya ?? '-',
+            item.no_tiket ?? '-',
+            item.qa_indicators?.category === 'critical' ? 'Critical' : 'Non-Critical',
+            item.qa_indicators?.name ?? '-',
+            item.nilai,
+            { 0: 'CRITICAL', 1: 'DEFICIT', 2: 'GOOD', 3: 'EXCELLENT' }[item.nilai] || '-',
+            item.ketidaksesuaian ?? '-',
+            item.sebaiknya ?? '-',
           ]);
         });
         const ws = XLSX.utils.aoa_to_sheet(rows);
-        ws['!cols'] = [{wch:14},{wch:14},{wch:32},{wch:8},{wch:14},{wch:30},{wch:30}];
+        ws['!cols'] = [{ wch: 14 }, { wch: 14 }, { wch: 32 }, { wch: 8 }, { wch: 14 }, { wch: 30 }, { wch: 30 }];
         XLSX.utils.book_append_sheet(wb, ws, sheetName);
       });
 
-      XLSX.writeFile(wb, `QA_${exportData.agent.nama.replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.xlsx`);
+      XLSX.writeFile(wb, `QA_${exportData.agent.nama.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`);
     } catch (err) {
       console.error('Gagal mengekspor data', err);
     } finally {
@@ -446,12 +465,11 @@ export function useAgentDetail({
   };
 
   return {
-    // State
     loadingTemuan,
     loadingTrend,
     exporting,
     selectedPeriod,
-    setSelectedPeriod,
+    setSelectedPeriod: handleSelectedPeriodChange,
     timeframe,
     activeSection,
     trendMounted,
@@ -468,8 +486,6 @@ export function useAgentDetail({
     setEditForm,
     isSubmitting,
     deletingId,
-    
-    // Computed
     indicators: indicatorsMetadata,
     temuan,
     personalTrend,
@@ -479,8 +495,6 @@ export function useAgentDetail({
     trendDir,
     automatedCoaching,
     groupedTemuan,
-    
-    // Actions
     scrollToSection,
     startEdit,
     handleEditSave,
@@ -491,6 +505,6 @@ export function useAgentDetail({
     handleExport,
     handleTambahTemuan,
     setEditingTemuan,
-    availableYears: initialData.availableYears || [new Date().getFullYear()]
+    availableYears,
   };
 }

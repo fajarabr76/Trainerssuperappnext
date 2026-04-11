@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { startTransition, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -26,8 +26,6 @@ import TopAgentsTable from './components/TopAgentsTable';
 import ParetoChart from './components/ParetoChart';
 import FatalDonutChart from './components/FatalDonutChart';
 import ParamTrendChart, { TREND_COLORS } from './components/ParamTrendChart';
-import { getDashboardDataAction, getTrendByRangeAction } from '../actions';
-import { MonthRangePicker } from '@/app/components/ui/MonthRangePicker';
 
 interface QaDashboardClientProps {
   user: any;
@@ -109,7 +107,9 @@ export default function QaDashboardClient({
     params.delete('timeframe');
     
     setLoading(true);
-    router.push(`?${params.toString()}`);
+    startTransition(() => {
+      router.replace(`?${params.toString()}`);
+    });
   };
 
   const handleYearChange = (year: number) => {

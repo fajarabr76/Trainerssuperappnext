@@ -92,37 +92,37 @@ export const DEFAULT_CONSUMER_TYPES: ConsumerType[] = [
   { 
     id: 'marah', 
     name: 'Marah & Emosional',
-    description: 'Konsumen sangat marah, emosional, and tidak sabaran. Merasa dirugikan and menuntut solusi instan. Sering menggunakan tanda seru.',
+    description: 'Konsumen sangat marah, emosional, dan tidak sabaran. Merasa dirugikan dan menuntut solusi instan. Sering menggunakan tanda seru.',
     difficulty: ConsumerDifficulty.Hard
   },
   { 
     id: 'bingung', 
     name: 'Bingung & Gaptek',
-    description: 'Konsumen kebingungan, tidak terlalu paham teknologi (gaptek), and sering bertanya ulang untuk memastikan hal-hal dasar.',
+    description: 'Konsumen kebingungan, tidak terlalu paham teknologi (gaptek), dan sering bertanya ulang untuk memastikan hal-hal dasar.',
     difficulty: ConsumerDifficulty.Medium
   },
   { 
     id: 'kritis', 
     name: 'Kritis & Detail',
-    description: 'Konsumen sangat kritis, menanyakan detail aturan, dasar hukum, and tidak mudah percaya dengan jawaban template. Ingin tahu SOP-nya.',
+    description: 'Konsumen sangat kritis, menanyakan detail aturan, dasar hukum, dan tidak mudah percaya dengan jawaban template. Ingin tahu SOP-nya.',
     difficulty: ConsumerDifficulty.Hard
   },
   { 
     id: 'ramah', 
     name: 'Ramah & Kooperatif',
-    description: 'Konsumen sangat ramah, sopan, and kooperatif dalam memberikan data yang diminta. Sangat menghargai bantuan petugas.',
+    description: 'Konsumen sangat ramah, sopan, dan kooperatif dalam memberikan data yang diminta. Sangat menghargai bantuan petugas.',
     difficulty: ConsumerDifficulty.Easy
   },
   { 
     id: 'terburu-buru', 
     name: 'Terburu-buru',
-    description: 'Konsumen sedang dalam perjalanan atau rapat, ingin jawaban singkat and cepat tanpa banyak basa-basi.',
+    description: 'Konsumen sedang dalam perjalanan atau rapat, ingin jawaban singkat dan cepat tanpa banyak basa-basi.',
     difficulty: ConsumerDifficulty.Medium
   },
   { 
     id: 'pasrah', 
     name: 'Pasrah & Sedih',
-    description: 'Konsumen merasa putus asa karena masalah keuangan ini, berbicara dengan nada sedih and memohon bantuan.',
+    description: 'Konsumen merasa putus asa karena masalah keuangan ini, berbicara dengan nada sedih dan memohon bantuan.',
     difficulty: ConsumerDifficulty.Medium
   }
 ];
