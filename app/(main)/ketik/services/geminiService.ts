@@ -3,6 +3,33 @@ import { generateGeminiContent } from '@/app/actions/gemini';
 import { generateOpenRouterContent } from '@/app/actions/openrouter';
 import { getProviderFromModelId } from '@/app/lib/ai-models';
 
+function sanitizeConsumerText(rawText: string): string {
+  if (!rawText) return rawText;
+
+  let text = rawText.trim();
+
+  // Strip common transcript prefixes the model sometimes echoes back.
+  text = text
+    .replace(/^(Agen|Agent|CS|Customer Service)\s*:\s*[\s\S]*?\n{1,2}/i, '')
+    .replace(/^(Konsumen|Pelanggan|Customer|Nasabah|Klien|User|Pengguna|Bapak\/Ibu)\s*:\s*/i, '');
+
+  // If the model still returns multiple transcript lines, keep only consumer-side lines.
+  if (/(^|\n)\s*(Agen|Agent|CS|Customer Service)\s*:/i.test(text)) {
+    const consumerLines = text
+      .split('\n')
+      .map(line => line.trim())
+      .filter(Boolean)
+      .filter(line => !/^(Agen|Agent|CS|Customer Service)\s*:/i.test(line))
+      .map(line => line.replace(/^(Konsumen|Pelanggan|Customer|Nasabah|Klien|User|Pengguna|Bapak\/Ibu)\s*:\s*/i, ''));
+
+    if (consumerLines.length > 0) {
+      text = consumerLines.join(' ');
+    }
+  }
+
+  return text.trim();
+}
+
 /**
  * Helper to call the appropriate AI provider based on model ID.
  */
@@ -89,13 +116,13 @@ ${scenario.script}`
     : '';
 
   const systemInstruction = `
-Anda berperan sebagai konsumen Kontak OJK 157.
+ROLEPLAY: Anda adalah KONSUMEN yang sedang menghubungi Kontak OJK 157 melalui chat. Anda bukan agen, bukan petugas, dan bukan AI.
 IDENTITAS ANDA (WAJIB KONSISTEN):
 - Nama: ${config.identity.name}
 - Kota Domisili: ${config.identity.city}
 - Nomor HP: ${config.identity.phone}
 
-Sifat Anda: ${config.consumerType.description}.
+KARAKTER ANDA: ${config.consumerType.description}.
 Masalah Anda: ${scenario.description}.
 
 ${scriptInstruction}
@@ -107,6 +134,8 @@ ATURAN BALASAN:
 1a. Gunakan Bahasa Indonesia percakapan sehari-hari yang terasa seperti orang Indonesia asli, bukan hasil terjemahan literal.
 1b. Hindari bahasa yang terlalu kaku, terlalu baku, atau terdengar seperti template CS formal kecuali memang sesuai karakter konsumen.
 1c. Jangan sengaja membuat typo, ejaan rusak, atau campuran kata asing yang aneh. Boleh santai, tetapi tetap wajar dan mudah dipahami.
+1d. Anda sedang mencari bantuan, klarifikasi, atau tindak lanjut dari OJK. Jangan berbicara seperti petugas internal OJK.
+1e. Jangan terlalu teatrikal, dramatis, atau dibuat-buat. Emosi boleh ada, tetapi tetap terdengar seperti manusia biasa.
 2. Gunakan tag [BREAK] untuk memisahkan pesan jika ingin mengirim beberapa chat beruntun (maksimal 3 chat beruntun).
 3. Gunakan tag [SISTEM] jika melakukan aksi fisik (misal: [SISTEM] Konsumen mengirim tangkapan layar).
 4. Jika Anda ingin mengirim gambar, gunakan [SISTEM] diikuti dengan [SEND_IMAGE: indeks]. Misal: "[SISTEM] Mengirim bukti transfer [SEND_IMAGE: 0]".
@@ -114,14 +143,29 @@ ATURAN BALASAN:
 6. Jangan pernah mengakui bahwa Anda adalah AI. Tetaplah dalam karakter sebagai konsumen yang sedang menghadapi masalah keuangan/perbankan.
 7. KONSISTENSI DATA: Jika agen meminta data pribadi (Nama/HP/Kota), berikan data DI ATAS. JANGAN MENGARANG DATA BARU yang berbeda dengan profil ini.
 8. Jika ada skrip percakapan, perlakukan skrip itu sebagai arahan fleksibel: usahakan mengikuti alurnya, tetapi tetap responsif terhadap pertanyaan agen dan jangan memaksakan percakapan menjadi kaku.
+9. JANGAN menulis ulang pesan agen. JANGAN gunakan format transkrip seperti "Agen:" atau "Konsumen:".
+10. Output Anda harus berupa isi chat konsumen SAJA, bukan dialog dua arah, bukan analisis, bukan narasi panggung.
+11. Jika agen salah paham atau memberi jawaban ngawur, reaksi Anda harus sesuai karakter: bisa bingung, kesal, kritis, atau minta penjelasan ulang. Tetap sebagai konsumen.
+12. Jika Anda ingin meminta tindak lanjut ke OJK, lakukan secara realistis sesuai peran konsumen, misalnya meminta arahan, kanal pelaporan, atau langkah berikutnya. Jangan menuntut tindakan internal yang mustahil Anda verifikasi saat itu juga kecuali memang sesuai karakter marah.
   `;
 
   const historyText = chatHistory
     .filter(m => m.sender !== 'system')
-    .map(m => `${m.sender === 'agent' ? 'Agen' : 'Konsumen'}: ${m.text}`)
+    .map(m => `${m.sender === 'agent' ? '[Pesan Agen]' : '[Pesan Anda Sebelumnya]'} ${m.text}`)
     .join('\n');
 
-  const prompt = `Skenario Saat Ini: ${scenario.title}\n\nRiwayat Chat:\n${historyText}\n\n${extraPrompt || 'Balas sebagai konsumen:'}`;
+  const prompt = `Skenario Saat Ini: ${scenario.title}
+
+Riwayat Chat:
+${historyText}
+
+Instruksi akhir:
+- Balas hanya sebagai konsumen.
+- Tulis 1 sampai 3 chat pendek yang relevan.
+- Jangan gunakan prefix nama pembicara.
+- Jangan ulangi isi pesan agen.
+
+${extraPrompt || 'Balas sebagai konsumen:'}`;
 
   try {
     const response = await callAI({
@@ -140,7 +184,8 @@ ATURAN BALASAN:
           'Maaf, layanan AI sementara tidak tersedia. Silakan tunggu sebentar lalu kirim pesan lagi.',
       };
     }
-    return { success: true, text: response.text || '[NO_RESPONSE]' };
+    const sanitizedText = sanitizeConsumerText(response.text || '[NO_RESPONSE]');
+    return { success: true, text: sanitizedText || '[NO_RESPONSE]' };
   } catch (error) {
     console.error('[Ketik] Gemini Error:', error);
     return {
@@ -155,7 +200,7 @@ export async function generateFirstMessage(
   scenario: Scenario
 ): Promise<string> {
   const systemInstruction = `
-Anda adalah seorang konsumen OJK (Otoritas Jasa Keuangan) yang baru saja membuka chat untuk mengadu.
+ROLEPLAY: Anda adalah seorang konsumen yang baru membuka chat ke Kontak OJK 157 untuk mengadukan masalah.
 Identitas: ${config.identity.name} dari ${config.identity.city}.
 Skenario: ${scenario.title} - ${scenario.description}.
 Tipe Konsumen: ${config.consumerType.name}.
@@ -166,6 +211,7 @@ Gunakan Bahasa Indonesia yang natural seperti chat konsumen Indonesia sehari-har
 Hindari bahasa terlalu formal, terlalu baku, atau terasa seperti terjemahan.
 Jangan sengaja membuat typo.
 Langsung saja ke intinya, jangan terlalu banyak basa-basi.
+Jangan gunakan format seperti "Konsumen:" atau menulis ulang ucapan petugas.
   `;
 
   try {
@@ -176,7 +222,9 @@ Langsung saja ke intinya, jangan terlalu banyak basa-basi.
       temperature: 0.9,
     });
 
-    return response.success ? (response.text || `Halo, saya ${config.identity.name}. Saya ingin bertanya tentang ${scenario.title}.`) : `Halo, saya ${config.identity.name} dari ${config.identity.city}. Saya ingin bertanya tentang ${scenario.title}.`;
+    return response.success
+      ? (sanitizeConsumerText(response.text || `Halo, saya ${config.identity.name}. Saya ingin bertanya tentang ${scenario.title}.`) || `Halo, saya ${config.identity.name}. Saya ingin bertanya tentang ${scenario.title}.`)
+      : `Halo, saya ${config.identity.name} dari ${config.identity.city}. Saya ingin bertanya tentang ${scenario.title}.`;
   } catch (error) {
     console.error("First message error:", error);
     return `Halo, saya ${config.identity.name} dari ${config.identity.city}. Saya ingin bertanya tentang ${scenario.title}.`;

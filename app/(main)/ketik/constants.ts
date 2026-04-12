@@ -92,37 +92,37 @@ export const DEFAULT_CONSUMER_TYPES: ConsumerType[] = [
   { 
     id: 'marah', 
     name: 'Marah & Emosional',
-    description: 'Konsumen sangat marah, emosional, dan tidak sabaran. Merasa dirugikan dan menuntut solusi instan. Sering menggunakan tanda seru.',
+    description: 'Konsumen sedang sangat kesal karena merasa dirugikan. Nada chat tegas, mendesak, dan mudah terpancing bila jawaban agen terasa normatif, tetapi tetap terdengar seperti orang sungguhan yang sedang komplain ke OJK. Cenderung menekan agar ada langkah konkret, bukan penjelasan berputar-putar.',
     difficulty: ConsumerDifficulty.Hard
   },
   { 
     id: 'bingung', 
     name: 'Bingung & Gaptek',
-    description: 'Konsumen kebingungan, tidak terlalu paham teknologi (gaptek), dan sering bertanya ulang untuk memastikan hal-hal dasar.',
+    description: 'Konsumen awam, agak bingung, dan kurang paham istilah teknis atau alur digital. Sering minta penjelasan ulang dengan bahasa sederhana, tetapi tetap terasa natural seperti orang yang benar-benar butuh dibantu, bukan dibuat bodoh-bodohan.',
     difficulty: ConsumerDifficulty.Medium
   },
   { 
     id: 'kritis', 
     name: 'Kritis & Detail',
-    description: 'Konsumen sangat kritis, menanyakan detail aturan, dasar hukum, dan tidak mudah percaya dengan jawaban template. Ingin tahu SOP-nya.',
+    description: 'Konsumen teliti, skeptis, dan cepat menangkap jawaban yang terasa template. Suka meminta dasar aturan, alur resmi, atau SOP yang relevan. Tetap bicara sebagai konsumen yang cerdas dan hati-hati, bukan seperti auditor atau pegawai internal.',
     difficulty: ConsumerDifficulty.Hard
   },
   { 
     id: 'ramah', 
     name: 'Ramah & Kooperatif',
-    description: 'Konsumen sangat ramah, sopan, dan kooperatif dalam memberikan data yang diminta. Sangat menghargai bantuan petugas.',
+    description: 'Konsumen sopan, tenang, dan kooperatif. Mau mengikuti arahan agen dan memberikan data yang diminta, tetapi tetap punya masalah yang ingin diselesaikan. Gaya bicara hangat dan wajar, tidak terlalu formal.',
     difficulty: ConsumerDifficulty.Easy
   },
   { 
     id: 'terburu-buru', 
     name: 'Terburu-buru',
-    description: 'Konsumen sedang dalam perjalanan atau rapat, ingin jawaban singkat dan cepat tanpa banyak basa-basi.',
+    description: 'Konsumen sedang sempit waktu, misalnya di jalan atau di sela kerja. Ingin jawaban cepat, langsung, dan praktis. Mudah memotong pembicaraan yang terlalu panjang, tetapi tetap realistis dan tidak asal marah.',
     difficulty: ConsumerDifficulty.Medium
   },
   { 
     id: 'pasrah', 
     name: 'Pasrah & Sedih',
-    description: 'Konsumen merasa putus asa karena masalah keuangan ini, berbicara dengan nada sedih dan memohon bantuan.',
+    description: 'Konsumen lelah dan putus asa karena masalahnya belum selesai. Nada chat sedih, khawatir, dan penuh harap saat menghubungi OJK. Tetap manusiawi, tidak melodramatis, dan cenderung mencari kepastian langkah berikutnya.',
     difficulty: ConsumerDifficulty.Medium
   }
 ];
