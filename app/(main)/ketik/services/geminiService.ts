@@ -45,7 +45,7 @@ async function callAI(options: {
   const isOpenRouter = provider === 'openrouter';
   const providerSystemInstruction =
     isOpenRouter && options.strictScriptMode
-      ? `${options.systemInstruction}\n\nOPENROUTER SCRIPT MODE (WAJIB PATUH):\n- Ikuti system instruction dan skrip percakapan dengan lebih ketat daripada biasanya.\n- Jangan menambah detail baru yang tidak ada di identitas, masalah, atau skrip kecuali benar-benar diperlukan untuk menjawab secara natural.\n- Prioritaskan konsistensi karakter, alur skrip, dan jawaban singkat yang relevan.\n- Jika skrip memberi arah percakapan, anggap itu sebagai batas perilaku utama, bukan sekadar saran ringan.\n- Bila ragu, pilih jawaban yang paling dekat dengan isi skrip dan riwayat chat, bukan yang paling kreatif.`
+      ? `${options.systemInstruction}\n\nOPENROUTER SCRIPT MODE (WAJIB PATUH):\n- Ikuti system instruction dan skrip percakapan dengan ketat, tetapi tetap terdengar seperti chat manusia sungguhan.\n- Jangan menambah detail baru yang tidak ada di identitas, masalah, atau skrip kecuali benar-benar diperlukan untuk menjawab secara natural.\n- Prioritaskan konsistensi karakter, alur skrip, dan jawaban singkat yang relevan.\n- Jika skrip memberi arah percakapan, anggap itu sebagai batas perilaku utama, bukan sekadar saran ringan.\n- Hindari jawaban template yang berulang, frasa klise yang sama, atau struktur kalimat yang terlalu seragam di setiap balasan.\n- Bila ragu, pilih jawaban yang paling dekat dengan isi skrip dan riwayat chat, sambil tetap mempertahankan variasi diksi yang wajar.`
       : options.systemInstruction;
 
   const callPayload = {
@@ -53,7 +53,7 @@ async function callAI(options: {
     systemInstruction: providerSystemInstruction,
     contents: [{ role: 'user', parts: [{ text: options.prompt }] }],
     temperature: isOpenRouter && options.strictScriptMode
-      ? Math.min(options.temperature ?? 0.7, 0.35)
+      ? Math.min(options.temperature ?? 0.82, 0.55)
       : options.temperature,
     responseMimeType: options.responseMimeType,
   };
@@ -136,6 +136,8 @@ ATURAN BALASAN:
 1c. Jangan sengaja membuat typo, ejaan rusak, atau campuran kata asing yang aneh. Boleh santai, tetapi tetap wajar dan mudah dipahami.
 1d. Anda sedang mencari bantuan, klarifikasi, atau tindak lanjut dari OJK. Jangan berbicara seperti petugas internal OJK.
 1e. Jangan terlalu teatrikal, dramatis, atau dibuat-buat. Emosi boleh ada, tetapi tetap terdengar seperti manusia biasa.
+1f. Variasikan diksi, ritme, dan cara bertanya dari satu balasan ke balasan lain agar tidak terdengar monoton atau terlalu template.
+1g. Sesekali boleh memakai respons sangat singkat, respons yang agak ragu, atau respons yang lebih to the point, selama tetap sesuai karakter dan konteks.
 2. Gunakan tag [BREAK] untuk memisahkan pesan jika ingin mengirim beberapa chat beruntun (maksimal 3 chat beruntun).
 3. Gunakan tag [SISTEM] jika melakukan aksi fisik (misal: [SISTEM] Konsumen mengirim tangkapan layar).
 4. Jika Anda ingin mengirim gambar, gunakan [SISTEM] diikuti dengan [SEND_IMAGE: indeks]. Misal: "[SISTEM] Mengirim bukti transfer [SEND_IMAGE: 0]".
@@ -164,6 +166,7 @@ Instruksi akhir:
 - Tulis 1 sampai 3 chat pendek yang relevan.
 - Jangan gunakan prefix nama pembicara.
 - Jangan ulangi isi pesan agen.
+- Hindari mengulang pola kalimat atau frasa yang sama seperti balasan sebelumnya kecuali memang sangat natural.
 
 ${extraPrompt || 'Balas sebagai konsumen:'}`;
 
@@ -172,7 +175,7 @@ ${extraPrompt || 'Balas sebagai konsumen:'}`;
       model: config.model || 'gemini-3-flash-preview',
       prompt,
       systemInstruction,
-      temperature: 0.7,
+      temperature: 0.82,
       strictScriptMode: Boolean(scenario.script),
     });
 

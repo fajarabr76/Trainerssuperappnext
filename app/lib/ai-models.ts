@@ -21,12 +21,6 @@ export const AI_MODELS = [
     provider: 'openrouter' as const 
   },
   { 
-    id: 'google/gemma-3n-e2b-it:free', 
-    name: 'Gemma 3N E2B IT', 
-    description: 'Model Google yang lebih ringan untuk respons cepat.', 
-    provider: 'openrouter' as const 
-  },
-  { 
     id: 'z-ai/glm-4.5-air:free', 
     name: 'GLM 4.5 Air', 
     description: 'Model ringkas dengan kemampuan reasoning yang baik.', 

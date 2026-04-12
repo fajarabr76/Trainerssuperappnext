@@ -29,6 +29,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   const [newScenarioTitle, setNewScenarioTitle] = useState('');
   const [newScenarioDesc, setNewScenarioDesc] = useState('');
   const [newScenarioScript, setNewScenarioScript] = useState('');
+  const [isScenarioScriptEnabled, setIsScenarioScriptEnabled] = useState(false);
   const [newScenarioImages, setNewScenarioImages] = useState<string[]>([]);
 
   // Consumer Form State
@@ -116,6 +117,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     setNewScenarioTitle('');
     setNewScenarioDesc('');
     setNewScenarioScript('');
+    setIsScenarioScriptEnabled(false);
     setNewScenarioCategory('');
     setNewScenarioImages([]);
     setIsNewCategoryInput(false);
@@ -135,6 +137,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     setNewScenarioTitle(scenario.title);
     setNewScenarioDesc(scenario.description);
     setNewScenarioScript(scenario.script || '');
+    setIsScenarioScriptEnabled(Boolean(scenario.script?.trim()));
     setNewScenarioImages(scenario.images || []);
     setIsNewCategoryInput(!categories.includes(scenario.category));
 
@@ -188,7 +191,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                 category,
                 title: newScenarioTitle,
                 description: newScenarioDesc,
-                script: newScenarioScript,
+                script: isScenarioScriptEnabled ? newScenarioScript : '',
                 images: newScenarioImages
               }
             : s
@@ -200,7 +203,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
         category,
         title: newScenarioTitle,
         description: newScenarioDesc,
-        script: newScenarioScript,
+        script: isScenarioScriptEnabled ? newScenarioScript : '',
         isActive: true,
         images: newScenarioImages
       };
@@ -332,13 +335,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                 </div>
               </div>
               <div className="flex items-center gap-4 relative z-10">
-                <button
-                  onClick={handleSave}
-                  className="px-8 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-2xl shadow-primary/20 flex items-center gap-3 group"
-                >
-                  <Save className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                  <span>Simpan Perubahan</span>
-                </button>
                 <button
                   onClick={handleClose}
                   className="w-12 h-12 flex items-center justify-center bg-foreground/5 hover:bg-foreground/10 rounded-2xl text-foreground/40 hover:text-foreground transition-all border border-transparent hover:border-border/50"
@@ -533,12 +529,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                             <textarea className="w-full rounded-2xl border border-border/50 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none resize-none transition-all" rows={3} value={newScenarioDesc} onChange={(e) => setNewScenarioDesc(e.target.value)} />
                         </div>
                         <div className="col-span-2">
-                             <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-widest mb-3 ml-1">Skrip Percakapan (Opsional)</label>
+                             <div className="flex items-center justify-between gap-4 mb-3">
+                               <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-widest ml-1">Skrip Percakapan</label>
+                               <button
+                                 type="button"
+                                 onClick={() => setIsScenarioScriptEnabled((prev) => !prev)}
+                                 className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${
+                                   isScenarioScriptEnabled
+                                     ? 'bg-primary/10 text-primary border-primary/20'
+                                     : 'bg-foreground/5 text-foreground/40 border-border/50'
+                                 }`}
+                               >
+                                 <span
+                                   className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
+                                     isScenarioScriptEnabled
+                                       ? 'bg-primary border-primary text-white'
+                                       : 'border-foreground/20 bg-transparent text-transparent'
+                                   }`}
+                                 >
+                                   <Check className="w-3 h-3" />
+                                 </span>
+                                 {isScenarioScriptEnabled ? 'Ikuti Skrip' : 'Sangat Kreatif'}
+                               </button>
+                             </div>
                              <textarea
-                               className="w-full rounded-2xl border border-border/50 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none resize-none transition-all placeholder:text-foreground/20"
+                               className={`w-full rounded-2xl border p-4 text-sm outline-none resize-none transition-all placeholder:text-foreground/20 ${
+                                 isScenarioScriptEnabled
+                                   ? 'border-border/50 bg-foreground/5 text-foreground focus:ring-2 focus:ring-primary'
+                                   : 'border-border/30 bg-foreground/[0.03] text-foreground/30 cursor-not-allowed'
+                               }`}
                                rows={12}
                                value={newScenarioScript}
                                onChange={(e) => setNewScenarioScript(e.target.value)}
+                               disabled={!isScenarioScriptEnabled}
                                placeholder={`Contoh format 1 - Dialog:
 Agent: Selamat pagi, ada yang bisa saya bantu?
 Konsumen: Mas saya ada masalah transaksi.
@@ -563,11 +586,13 @@ Akhir:
 - Konsumen berterima kasih setelah mendapat langkah lanjut.`}
                              />
                              <p className="mt-3 text-xs text-foreground/45 leading-relaxed font-medium">
+                               Checklist <span className="font-black text-foreground/60">Ikuti Skrip</span> untuk mengaktifkan kolom ini. Saat tidak dicentang, konsumen akan dibiarkan lebih bebas dan kreatif mengikuti konteks skenario. Saat dicentang, AI akan berusaha mengikuti skrip sebagai panduan alur.
+                             </p>
+                             <p className="mt-2 text-xs text-foreground/45 leading-relaxed font-medium">
                                Anda bisa menulis skrip dalam format dialog seperti <span className="font-black text-foreground/60">Agent:</span> /
                                <span className="font-black text-foreground/60"> Konsumen:</span> atau dalam format poin alur seperti
                                <span className="font-black text-foreground/60"> Awal</span>, <span className="font-black text-foreground/60">Jika agen bertanya</span>,
-                               dan <span className="font-black text-foreground/60">Akhir</span>. AI akan berusaha mengikuti skrip ini sebagai panduan,
-                               tetapi tetap menjawab secara natural sesuai pertanyaan agen dan situasi percakapan.
+                               dan <span className="font-black text-foreground/60">Akhir</span>. AI akan tetap menjawab secara natural sesuai pertanyaan agen dan situasi percakapan.
                              </p>
                         </div>
                         <div className="col-span-2">

@@ -56,7 +56,10 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
         setError(error.message);
         setLoading(false);
       } else {
-        router.push('/dashboard');
+        // Wait for Supabase session propagation so middleware sees the new auth state.
+        await supabase.auth.getSession();
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        router.replace('/dashboard');
         router.refresh();
       }
     } else {

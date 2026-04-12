@@ -42,6 +42,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [isTimedOut, setIsTimedOut] = useState(false);
   const [isSessionEnded, setIsSessionEnded] = useState(false);
   const [timeLeft, setTimeLeft] = useState(config.simulationDuration * 60);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -61,6 +62,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [isReviewMode, isSessionEnded]);
 
   useEffect(() => {
+    if (isReviewMode || isSessionEnded) return;
+
+    const timer = setInterval(() => {
+      setElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isReviewMode, isSessionEnded]);
+
+  useEffect(() => {
     if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
         textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
@@ -73,7 +84,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     
     try {
       const currentHistory = [...messages];
-      const result = await generateConsumerResponse(config, scenario, currentHistory);
+      const result = await generateConsumerResponse(
+        config,
+        scenario,
+        currentHistory,
+        `WAKTU SIMULASI SUDAH HABIS SAAT INI. Anda HARUS menutup percakapan sekarang juga secara natural sebagai konsumen.
+- Balasan harus mengarah ke penutupan chat, bukan melanjutkan diskusi.
+- Berikan alasan manusiawi yang singkat dan wajar, misalnya harus pergi, sinyal jelek, baterai habis, sedang rapat, atau mau lanjut nanti.
+- Jika masih perlu, Anda boleh menambahkan satu pesan penutup singkat setelahnya dengan [BREAK].
+- Jangan gunakan [NO_RESPONSE].`
+      );
 
       if (!result.success) {
         setIsLoading(false);
@@ -122,18 +142,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (isReviewMode || isSessionEnded) return;
 
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          handleSessionTimeout();
-          return 0;
-        }
-        return prev - 1;
-      });
+      setTimeLeft((prev) => (prev <= 1 ? 0 : prev - 1));
     }, 1000);
 
     return () => clearInterval(timer);
   }, [isReviewMode, isSessionEnded, handleSessionTimeout]);
+
+  useEffect(() => {
+    if (isReviewMode || isSessionEnded || isTimedOut || timeLeft > 0) return;
+    handleSessionTimeout();
+  }, [isReviewMode, isSessionEnded, isTimedOut, timeLeft, handleSessionTimeout]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -337,6 +355,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             {!isReviewMode ? (
                 <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-[10px] font-black uppercase tracking-widest text-module-ketik">Online</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-foreground/40 tabular-nums">
+                      {formatTime(elapsedSeconds)}
+                    </span>
                     <span className="w-1 h-1 bg-module-ketik rounded-full animate-pulse"></span>
                 </div>
             ) : (
