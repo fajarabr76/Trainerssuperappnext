@@ -106,15 +106,6 @@ export default function DashboardClient({
         {/* Top Header */}
         <div className="sticky top-0 z-30 flex items-center justify-between px-8 py-5 bg-background/60 backdrop-blur-xl border-b border-border/40">
           <div className="flex items-center gap-4">
-            <div className="hidden md:flex flex-col">
-              <span className="text-[10px] font-mono uppercase tracking-widest opacity-70">Status Sesi</span>
-              <span className="text-xs font-bold text-emerald-500 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Aktif & Terenkripsi
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
             <ThemeToggle />
             <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-sm">
               {user?.email?.charAt(0).toUpperCase()}

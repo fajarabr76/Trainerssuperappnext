@@ -136,11 +136,9 @@ export default function QaDashboardClient({
         <div className="sticky top-0 z-30 flex items-center justify-between p-6 bg-background/80 backdrop-blur-md border-b border-border/50">
           <div className="flex items-center gap-4">
             <div className="h-8 w-px bg-border mx-2 hidden md:block" />
-            <div className="hidden md:flex flex-col">
-              <span className="text-[10px] font-mono uppercase tracking-widest opacity-40">Status Sesi</span>
-              <span className="text-xs font-bold text-emerald-500 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Aktif & Terenkripsi
+            <div className="hidden md:flex flex-col leading-none">
+              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-foreground/70">
+                Trainers SuperApp
               </span>
             </div>
           </div>
@@ -166,7 +164,7 @@ export default function QaDashboardClient({
                 <span className="text-foreground font-medium">SIDAK</span>
               </div>
               <h1 className="text-4xl lg:text-5xl font-bold tracking-tighter mb-4 bg-gradient-to-r from-foreground to-foreground/50 bg-clip-text text-transparent">
-                SIDAK Performance Dashboard
+                Trainers SuperApp
               </h1>
               <p className="text-lg text-foreground/40 font-light max-w-2xl leading-relaxed">
                 Pantau performa kualitas, analisis akar masalah, dan temukan area perbaikan untuk tim Anda.

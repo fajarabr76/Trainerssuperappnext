@@ -72,11 +72,17 @@ export interface EvaluationResult {
   contentGaps: string[];
 }
 
+export type EvaluationStatus = 'processing' | 'completed' | 'failed';
+
 export interface SessionHistory {
   id: string;
   timestamp: Date;
   config: SessionConfig;
   emails: EmailMessage[];
   evaluation: EvaluationResult | null;
+  evaluationStatus: EvaluationStatus;
+  evaluationError?: string | null;
+  evaluationStartedAt?: string | null;
+  evaluationCompletedAt?: string | null;
   timeTaken: number | null;
 }

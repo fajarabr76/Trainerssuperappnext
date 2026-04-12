@@ -308,6 +308,44 @@ export async function updatePeserta(id: string, data: Partial<Peserta>, path?: s
   if (path) revalidatePath(path);
 }
 
+export async function movePesertaToBatch(ids: string[], targetBatch: string) {
+  const user = await validateRole();
+  const supabase = await createClient();
+
+  if (ids.length === 0) return { moved: 0 };
+
+  const { error } = await supabase
+    .from('profiler_peserta')
+    .update({ batch_name: targetBatch })
+    .in('id', ids);
+  if (error) throw error;
+
+  await supabase.from('activity_logs').insert({
+    user_id: user.id,
+    user_name: user.email,
+    action: `Memindahkan ${ids.length} peserta ke batch: ${targetBatch}`,
+    module: 'KTP',
+    type: 'edit'
+  });
+
+  revalidatePath('/profiler');
+  return { moved: ids.length };
+}
+
+export async function reorderPesertaBatch(orderUpdates: Array<{ id: string; nomor_urut: number }>) {
+  await validateRole();
+  const supabase = await createClient();
+
+  if (orderUpdates.length === 0) return;
+
+  const { error } = await supabase.rpc('bulk_reorder_profiler_peserta', {
+    p_updates: orderUpdates,
+  });
+
+  if (error) throw error;
+  revalidatePath('/profiler');
+}
+
 export async function deletePeserta(id: string, path?: string) {
   const user = await validateRole();
   const supabase = await createClient();
@@ -331,13 +369,25 @@ export async function deletePeserta(id: string, path?: string) {
 }
 
 export async function bulkCreatePeserta(pesertaList: Peserta[], path?: string) {
-  await validateRole();
+  const user = await validateRole();
   const supabase = await createClient();
+  if (pesertaList.length === 0) return;
+
   const { error } = await supabase
     .from('profiler_peserta')
     .insert(pesertaList);
   if (error) throw error;
+
+  await supabase.from('activity_logs').insert({
+    user_id: user.id,
+    user_name: user.email,
+    action: `Import ${pesertaList.length} peserta ke KTP`,
+    module: 'KTP',
+    type: 'add'
+  });
+
   if (path) revalidatePath(path);
+  else revalidatePath('/profiler');
 }
 
 export async function getGlobalPesertaPool(excludeBatch: string) {

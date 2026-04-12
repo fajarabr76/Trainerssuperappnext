@@ -24,6 +24,15 @@ function revalidateQaPerformanceCaches(agentId?: string) {
   }
 }
 
+function revalidateQaTemuanCaches(agentId?: string) {
+  revalidatePath('/qa-analyzer/input');
+  revalidateTag(QA_AGENT_DETAIL_TAG);
+
+  if (agentId) {
+    revalidatePath(`/qa-analyzer/agents/${agentId}`);
+  }
+}
+
 
 export async function getAgentExportDataAction(agentId: string): Promise<ExportData> {
   const { qaServiceServer } = await import('./services/qaService.server');
@@ -249,8 +258,7 @@ export async function createTemuanAction(
     type: 'add'
   });
 
-  revalidatePath('/qa-analyzer/input');
-  revalidateQaPerformanceCaches(peserta_id);
+  revalidateQaTemuanCaches(peserta_id);
   return data;
 }
 
@@ -317,8 +325,7 @@ export async function createTemuanBatchAction(
     type: 'add'
   });
 
-  revalidatePath('/qa-analyzer/input');
-  revalidateQaPerformanceCaches(peserta_id);
+  revalidateQaTemuanCaches(peserta_id);
   
   return data ?? [];
 }
@@ -353,11 +360,7 @@ export async function updateTemuanAction(
     .single();
   if (error) throw error;
   
-  revalidatePath('/qa-analyzer/input');
-  revalidateQaPerformanceCaches(data?.peserta_id);
-  if (data?.peserta_id) {
-    revalidatePath(`/qa-analyzer/agents/${data.peserta_id}`);
-  }
+  revalidateQaTemuanCaches(data?.peserta_id);
   
   return data;
 }
@@ -395,11 +398,7 @@ export async function deleteTemuanAction(id: string) {
     type: 'delete'
   });
   
-  revalidatePath('/qa-analyzer/input');
-  revalidateQaPerformanceCaches(current?.peserta_id);
-  if (current?.peserta_id) {
-    revalidatePath(`/qa-analyzer/agents/${current.peserta_id}`);
-  }
+  revalidateQaTemuanCaches(current?.peserta_id);
 }
 
 export async function getAgentsByFolderAction(batch: string) {
@@ -474,8 +473,7 @@ export async function createPerfectScoreSessionAction(
     type: 'add'
   });
 
-  revalidatePath('/qa-analyzer/input');
-  revalidateQaPerformanceCaches(peserta_id);
+  revalidateQaTemuanCaches(peserta_id);
   
   return data ?? [];
 }

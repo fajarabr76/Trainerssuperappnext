@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Trash2, Calendar, Mail, Clock, ChevronRight, History as HistoryIcon, Eye, User, Tag } from 'lucide-react';
+import { X, Trash2, Calendar, Mail, Clock, ChevronRight, History as HistoryIcon, Eye, User, Tag, Loader2, AlertTriangle } from 'lucide-react';
 import { SessionHistory } from '../types';
 
 interface HistoryModalProps {
@@ -90,6 +90,11 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                     const scoreColor = score >= 80 ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 
                                      score >= 60 ? 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20' : 
                                      'text-red-600 dark:text-red-400 bg-red-500/10 border-red-500/20';
+                    const statusBadge = session.evaluationStatus === 'processing'
+                      ? 'text-sky-600 dark:text-sky-400 bg-sky-500/10 border-sky-500/20'
+                      : session.evaluationStatus === 'failed'
+                        ? 'text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20'
+                        : scoreColor;
                     
                     const lastEmail = session.emails[session.emails.length - 1];
                     const subject = lastEmail?.subject || 'Tanpa Subjek';
@@ -104,8 +109,20 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                         <div className="flex justify-between items-start mb-4">
                           <div className="space-y-1">
                             <div className="flex items-center gap-3 mb-2">
-                              <div className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border ${scoreColor}`}>
-                                Skor: {score}
+                              <div className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border flex items-center gap-1.5 ${statusBadge}`}>
+                                {session.evaluationStatus === 'processing' ? (
+                                  <>
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                    Evaluasi
+                                  </>
+                                ) : session.evaluationStatus === 'failed' ? (
+                                  <>
+                                    <AlertTriangle className="w-3 h-3" />
+                                    Gagal
+                                  </>
+                                ) : (
+                                  <>Skor: {score}</>
+                                )}
                               </div>
                               <div className="flex items-center gap-1.5 text-[10px] text-foreground/30 font-mono uppercase tracking-wider">
                                 <Calendar className="w-3 h-3" />
@@ -151,6 +168,11 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                           {session.config.scenarios.length > 2 && (
                             <div className="text-[10px] text-foreground/30 px-2 py-1.5">
                               +{session.config.scenarios.length - 2} lainnya
+                            </div>
+                          )}
+                          {session.evaluationStatus === 'failed' && session.evaluationError && (
+                            <div className="text-[10px] text-rose-500 px-2 py-1.5 max-w-full truncate">
+                              {session.evaluationError}
                             </div>
                           )}
                           {session.timeTaken && (

@@ -14,6 +14,7 @@ import {
   ShieldAlert,
   CheckCircle2,
   AlertCircle,
+  Loader2,
   X,
   Paperclip,
   Search,
@@ -22,7 +23,7 @@ import {
   Trash2,
   MoreVertical
 } from 'lucide-react';
-import { EmailMessage, SessionConfig, EvaluationResult } from '../types';
+import { EmailMessage, SessionConfig, EvaluationResult, EvaluationStatus } from '../types';
 
 interface EmailInterfaceProps {
   emails: EmailMessage[];
@@ -31,6 +32,8 @@ interface EmailInterfaceProps {
   config: SessionConfig;
   onEndSession: () => void;
   evaluation: EvaluationResult | null;
+  evaluationStatus: EvaluationStatus | null;
+  evaluationError: string | null;
   timeTaken: number | null;
 }
 
@@ -43,6 +46,8 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
   config, 
   onEndSession, 
   evaluation, 
+  evaluationStatus,
+  evaluationError,
   timeTaken 
 }) => {
   const [replyText, setReplyText] = useState('');
@@ -81,6 +86,8 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
     : (isLoading ? "Tiket Baru Masuk..." : "No Subject");
     
   const hasAgentReplied = emails.some(e => e.isAgent);
+  const isEvaluationProcessing = evaluationStatus === 'processing';
+  const isEvaluationFailed = evaluationStatus === 'failed';
 
   return (
     <div data-module="pdkt" className="module-clean-app flex flex-col h-full bg-background text-foreground transition-colors duration-300 relative">
@@ -128,7 +135,9 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
             <div className="flex items-center gap-4 mt-1.5">
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                 <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Active Ticket</span>
+                <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">
+                  {isEvaluationProcessing ? 'Evaluasi Berjalan' : isEvaluationFailed ? 'Evaluasi Gagal' : 'Active Ticket'}
+                </span>
               </div>
               <div className="module-clean-panel flex items-center gap-3 px-3 py-1 rounded-full">
                 <span className="text-[10px] text-foreground font-black uppercase tracking-[0.2em]">
@@ -275,6 +284,30 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
             </div>
           )}
 
+          {!isLoading && isEvaluationProcessing && (
+            <div className="module-clean-panel flex flex-col items-center justify-center p-12 rounded-[3rem] border-2 border-dashed border-sky-500/20">
+              <Loader2 className="w-10 h-10 text-sky-500 animate-spin mb-5" />
+              <p className="text-sky-500 font-black text-[11px] uppercase tracking-[0.3em] text-center">
+                Evaluasi sedang diproses
+              </p>
+              <p className="text-foreground/40 text-xs text-center mt-3 max-w-md">
+                Riwayat email sudah tersimpan. Hasil evaluasi akan muncul otomatis saat selesai.
+              </p>
+            </div>
+          )}
+
+          {!isLoading && isEvaluationFailed && (
+            <div className="module-clean-panel p-8 rounded-[2.5rem] border border-rose-500/20 bg-rose-500/5">
+              <div className="flex items-center gap-3 mb-3">
+                <AlertCircle className="w-5 h-5 text-rose-500" />
+                <h3 className="text-lg font-black tracking-tight text-rose-500">Evaluasi belum berhasil</h3>
+              </div>
+              <p className="text-sm text-foreground/60 leading-relaxed">
+                {evaluationError || 'Terjadi gangguan saat menjalankan evaluasi AI untuk sesi ini.'}
+              </p>
+            </div>
+          )}
+
           {/* Evaluation Result */}
           {evaluation && (
             <motion.div 
@@ -416,7 +449,7 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
                   disabled={!replyText.trim() || isLoading}
                   className="bg-primary hover:bg-primary/90 text-primary-foreground px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl shadow-primary/20 flex items-center gap-4 disabled:opacity-50 transition-all group"
                 >
-                  {isLoading ? "Mengirim..." : "Kirim & Evaluasi"}
+                  {isLoading ? "Mengirim..." : "Kirim"}
                   {!isLoading && <Send className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />}
                 </button>
               </div>
@@ -424,7 +457,7 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
           )
         ) : (
           <div className="text-center p-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            {evaluation ? "Tiket telah dievaluasi" : "Menunggu evaluasi..."}
+            {evaluation ? "Tiket telah dievaluasi" : isEvaluationFailed ? "Evaluasi gagal diproses" : "Menunggu evaluasi..."}
           </div>
         )}
       </div>

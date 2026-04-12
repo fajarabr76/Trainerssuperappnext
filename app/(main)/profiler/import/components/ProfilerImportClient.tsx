@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx';
 import { Peserta, labelJabatan, DEFAULT_TIMS } from '../../lib/profiler-types';
 import { ProfilerYear, ProfilerFolder } from '../../services/profilerService';
 import { ExcelTemplateService } from '../../components/ExcelTemplateService';
-import { createPeserta, getPesertaByBatch } from '../../actions';
+import { bulkCreatePeserta, createPeserta, getPesertaByBatch } from '../../actions';
 import { createClient } from '@/app/lib/supabase/client';
 
 type RowResult = { nama: string; status: 'success' | 'error' | 'skipped'; message?: string };
@@ -41,6 +41,8 @@ const TEMPLATE_COLUMNS = [
   { header: 'Catatan Tambahan',         key: 'catatan_tambahan',        required: false, contoh: 'Juara 1 Public Speaking 2024', width: 35 },
   { header: 'Keterangan',               key: 'keterangan',              required: false, contoh: 'Dalam masa percobaan', width: 30 },
 ];
+
+const IMPORT_CHUNK_SIZE = 100;
 
 interface ProfilerImportClientProps {
   batchName: string;
@@ -86,6 +88,7 @@ export default function ProfilerImportClient({
       const importedThisRun = new Set<string>();
 
       const res: RowResult[] = [];
+      const validRows: Peserta[] = [];
 
       const HEADER_MAP: Record<string, keyof Peserta> = {};
       TEMPLATE_COLUMNS.forEach(c => {
@@ -121,12 +124,26 @@ export default function ProfilerImportClient({
           continue;
         }
 
+        importedThisRun.add(namaKey);
+        validRows.push(mapped as Peserta);
+      }
+
+      for (let index = 0; index < validRows.length; index += IMPORT_CHUNK_SIZE) {
+        const chunk = validRows.slice(index, index + IMPORT_CHUNK_SIZE);
         try {
-          await createPeserta(mapped as Peserta);
-          importedThisRun.add(namaKey);
-          res.push({ nama, status: 'success' });
-        } catch (err: any) {
-          res.push({ nama, status: 'error', message: err.message });
+          await bulkCreatePeserta(chunk);
+          chunk.forEach(item => {
+            res.push({ nama: item.nama || 'Tanpa Nama', status: 'success' });
+          });
+        } catch (chunkError) {
+          for (const item of chunk) {
+            try {
+              await createPeserta(item);
+              res.push({ nama: item.nama || 'Tanpa Nama', status: 'success' });
+            } catch (rowError: any) {
+              res.push({ nama: item.nama || 'Tanpa Nama', status: 'error', message: rowError.message });
+            }
+          }
         }
       }
 

@@ -14,6 +14,8 @@ import { ProfilerYear, ProfilerFolder } from '../../services/profilerService';
 import { uploadFoto } from '../../services/profilerService';
 import { 
   updatePeserta, 
+  movePesertaToBatch,
+  reorderPesertaBatch,
   deletePeserta, 
   getTimList,
   getOriginalPeserta
@@ -39,7 +41,7 @@ const MoveFolderModal: React.FC<{
     if (!targetFolder) return;
     setMoving(true);
     try {
-      await Promise.all(selectedIds.map(id => updatePeserta(id, { batch_name: targetFolder })));
+      await movePesertaToBatch(selectedIds, targetFolder);
       onMoved(selectedIds, targetFolder);
       onClose();
     } catch (err: any) {
@@ -375,7 +377,11 @@ export default function ProfilerTableClient({
   const saveOrder = async () => {
     setSavingOrder(true);
     try {
-      await Promise.all(peserta.map((p, idx) => updatePeserta(p.id!, { nomor_urut: idx + 1 })));
+      await reorderPesertaBatch(
+        peserta
+          .filter((p): p is Peserta & { id: string } => Boolean(p.id))
+          .map((p, idx) => ({ id: p.id, nomor_urut: idx + 1 }))
+      );
       setOrderChanged(false);
       setSortMode(false);
     } catch (err: any) { alert('Gagal menyimpan urutan: ' + err.message); }

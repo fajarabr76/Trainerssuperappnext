@@ -18,15 +18,16 @@ const ChartTooltip = ({ active, payload, label }: any) => {
   const item = payload[0];
   // Recharts payload structure varies slightly between Pie and Bar
   const color = item.payload?.fill || item.color || item.fill;
-  const name = item.name || label;
+  const name = item.payload?.name || label || item.name || 'Data';
   const value = item.value;
+  const suffix = typeof value === 'number' ? 'peserta' : '';
 
   return (
     <div className="bg-card border border-border/40 rounded-xl px-4 py-2.5 shadow-lg text-sm transition-all duration-200">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 min-w-[140px]">
         <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 animate-pulse" style={{ backgroundColor: color }} />
         <span className="font-bold text-foreground">{name}</span>
-        <span className="text-foreground/60 font-medium ml-auto pl-2">{value}</span>
+        <span className="text-foreground/60 font-medium ml-auto pl-2">{value}{suffix ? ` ${suffix}` : ''}</span>
       </div>
     </div>
   );

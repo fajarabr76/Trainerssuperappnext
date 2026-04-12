@@ -547,7 +547,7 @@ export default function ProfilerExportClient({
       <div className="max-w-2xl mx-auto space-y-4">
 
         <div className="flex items-center gap-3">
-          <button onClick={() => router.push(`/profiler/table?batch=${encodeURIComponent(selectedBatch)}`)}
+          <button onClick={() => router.push('/profiler')}
             className="flex items-center gap-1.5 text-sm text-foreground/60 hover:text-foreground transition-opacity font-medium">
             <ArrowLeft className="w-4 h-4" /> Kembali
           </button>

@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { SettingsModal } from './components/SettingsModal';
 import { EmailInterface } from './components/EmailInterface';
 import { HistoryModal } from './components/HistoryModal';
-import { AppSettings, SessionConfig, Identity, ConsumerType, EmailMessage, EvaluationResult, SessionHistory } from './types';
+import { AppSettings, SessionConfig, Identity, ConsumerType, EmailMessage, EvaluationResult, SessionHistory, EvaluationStatus } from './types';
 import { DEFAULT_SCENARIOS, DEFAULT_CONSUMER_TYPES, DUMMY_CITIES, DUMMY_PROFILES } from './constants';
-import { initializeEmailSession, evaluateAgentResponse } from './services/geminiService';
+import { initializeEmailSession } from './services/geminiService';
 import { loadPdktSettings, savePdktSettings, defaultPdktSettings } from './services/settingService';
 
 import { useRouter } from 'next/navigation';
@@ -40,8 +40,24 @@ const PdktPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentConfig, setCurrentConfig] = useState<SessionConfig | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
+  const [evaluationStatus, setEvaluationStatus] = useState<EvaluationStatus | null>(null);
+  const [evaluationError, setEvaluationError] = useState<string | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
   const [timeTaken, setTimeTaken] = useState<number | null>(null);
+
+  const mapSessionHistory = useCallback((item: any): SessionHistory => ({
+    id: item.id,
+    timestamp: safeDate(item.timestamp),
+    config: item.config,
+    emails: item.emails,
+    evaluation: item.evaluation,
+    evaluationStatus: item.evaluation_status || (item.evaluation ? 'completed' : 'processing'),
+    evaluationError: item.evaluation_error,
+    evaluationStartedAt: item.evaluation_started_at,
+    evaluationCompletedAt: item.evaluation_completed_at,
+    timeTaken: item.time_taken,
+  }), []);
 
   // ── Get User ──────────────────────────────────────────
   useEffect(() => {
@@ -63,40 +79,79 @@ const PdktPage: React.FC = () => {
   }, [user]);
 
   // ── Load history dari Supabase ────────────────────────
+  const fetchHistory = useCallback(async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('pdkt_history')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('timestamp', { ascending: false });
+
+    if (error) { 
+      console.error('Error fetching PDKT history:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      }); 
+      return; 
+    }
+
+    if (data) {
+      setHistory(data.map(mapSessionHistory));
+    }
+  }, [mapSessionHistory, user]);
+
   useEffect(() => {
     if (!user) return;
 
-    const fetchHistory = async () => {
-      const { data, error } = await supabase
-        .from('pdkt_history')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('timestamp', { ascending: false });
-
-      if (error) { 
-        console.error('Error fetching PDKT history:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        }); 
-        return; 
-      }
-
-      if (data) {
-        setHistory(data.map(item => ({
-          id: item.id,
-          timestamp: safeDate(item.timestamp),
-          config: item.config,
-          emails: item.emails,
-          evaluation: item.evaluation,
-          timeTaken: item.time_taken,
-        })));
-      }
+    const run = async () => {
+      await fetchHistory();
     };
 
-    fetchHistory();
-  }, [user, supabase]);
+    run();
+  }, [fetchHistory, user]);
+
+  const refreshCurrentSession = useCallback(async (sessionId: string) => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('pdkt_history')
+      .select('*')
+      .eq('id', sessionId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (error || !data) {
+      if (error) {
+        console.error('Error refreshing current PDKT session:', error);
+      }
+      return;
+    }
+
+    const mapped = mapSessionHistory(data);
+    setHistory(prev => {
+      const next = prev.filter(item => item.id !== mapped.id);
+      return [mapped, ...next];
+    });
+    setCurrentConfig(mapped.config);
+    setEmails(mapped.emails);
+    setEvaluation(mapped.evaluation);
+    setEvaluationStatus(mapped.evaluationStatus);
+    setEvaluationError(mapped.evaluationError || null);
+    setTimeTaken(mapped.timeTaken);
+  }, [mapSessionHistory, user]);
+
+  useEffect(() => {
+    if (!currentSessionId || evaluationStatus !== 'processing' || view !== 'email') return;
+
+    const timer = window.setInterval(() => {
+      void refreshCurrentSession(currentSessionId);
+    }, 4000);
+
+    return () => window.clearInterval(timer);
+  }, [currentSessionId, evaluationStatus, refreshCurrentSession, view]);
 
   // ── Simpan settings ke localStorage + Supabase ────────
   const handleSaveSettings = async (newSettings: AppSettings) => {
@@ -143,6 +198,9 @@ const PdktPage: React.FC = () => {
     setIsLoading(true);
     setEmails([]);
     setEvaluation(null);
+    setEvaluationStatus(null);
+    setEvaluationError(null);
+    setCurrentSessionId(null);
 
     try {
       console.log('[PDKT] Starting session with config:', config);
@@ -171,9 +229,6 @@ const PdktPage: React.FC = () => {
   };
 
   const handleSendReply = async (text: string) => {
-    const lastConsumerEmail = emails.filter(e => !e.isAgent).pop();
-    const consumerContext = lastConsumerEmail ? lastConsumerEmail.body : 'Konteks tidak ditemukan.';
-
     const agentEmail: EmailMessage = {
       id: Date.now().toString(),
       from: 'cc.ojk@ojk.go.id',
@@ -189,9 +244,6 @@ const PdktPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const result = await evaluateAgentResponse(text, consumerContext);
-      setEvaluation(result);
-
       let duration = 0;
       if (sessionStartTime) {
         duration = Math.floor((Date.now() - sessionStartTime) / 1000);
@@ -204,7 +256,9 @@ const PdktPage: React.FC = () => {
           timestamp: new Date().toISOString(),
           config: currentConfig,
           emails: updatedEmails,
-          evaluation: result,
+          evaluation: null,
+          evaluation_status: 'processing',
+          evaluation_error: null,
           time_taken: duration,
         };
 
@@ -215,34 +269,26 @@ const PdktPage: React.FC = () => {
           .single();
 
         if (historyData) {
-          setHistory(prev => [{
-            id: historyData.id,
-            timestamp: safeDate(historyData.timestamp),
-            config: historyData.config,
-            emails: historyData.emails,
-            evaluation: historyData.evaluation,
-            timeTaken: historyData.time_taken,
-          }, ...prev]);
+          const mapped = mapSessionHistory(historyData);
+          setHistory(prev => [mapped, ...prev]);
+          setCurrentSessionId(mapped.id);
+          setEvaluation(null);
+          setEvaluationStatus(mapped.evaluationStatus);
+          setEvaluationError(mapped.evaluationError || null);
+
+          void fetch('/api/pdkt/evaluate', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ historyId: mapped.id }),
+            keepalive: true,
+          });
         }
-
-        // 3. Save to results table (new)
-        const resultData = {
-          user_id: user.id,
-          module: 'pdkt',
-          score: result.score,
-          details: {
-            subject: updatedEmails.length > 0 ? updatedEmails[0].subject : 'No Subject',
-            feedback: result.feedback,
-            consumer: currentConfig.identity.name,
-            timeTaken: duration
-          }
-        };
-
-        await supabase.from('results').insert([resultData]);
       }
     } catch (e) {
       console.error(e);
-      alert('Gagal mengevaluasi jawaban.');
+      alert('Gagal menyimpan tanggapan.');
     } finally {
       setIsLoading(false);
     }
@@ -253,6 +299,9 @@ const PdktPage: React.FC = () => {
     setEmails([]);
     setCurrentConfig(null);
     setEvaluation(null);
+    setEvaluationStatus(null);
+    setEvaluationError(null);
+    setCurrentSessionId(null);
     setSessionStartTime(null);
     setTimeTaken(null);
   };
@@ -261,6 +310,9 @@ const PdktPage: React.FC = () => {
     setCurrentConfig(session.config);
     setEmails(session.emails);
     setEvaluation(session.evaluation);
+    setEvaluationStatus(session.evaluationStatus);
+    setEvaluationError(session.evaluationError || null);
+    setCurrentSessionId(session.id);
     setTimeTaken(session.timeTaken);
     setView('email');
     setIsHistoryOpen(false);
@@ -352,7 +404,7 @@ const PdktPage: React.FC = () => {
               <motion.button 
                 whileHover={{ scale: 1.02, y: -1 }} 
                 whileTap={{ scale: 0.98 }} 
-                onClick={() => setIsHistoryOpen(true)} 
+                onClick={async () => { await fetchHistory(); setIsHistoryOpen(true); }} 
                 className="module-clean-button-secondary w-full h-14 px-6 rounded-2xl font-black text-[11px] uppercase tracking-[0.22em] flex items-center justify-center gap-3 transition-all"
               >
                 <History className="w-4 h-4 opacity-50" />
@@ -374,7 +426,17 @@ const PdktPage: React.FC = () => {
           >
             {currentConfig && (
               <div data-module="pdkt" className="module-clean-app module-clean-shell w-full h-full md:rounded-[3rem] overflow-hidden relative flex flex-col">
-                <EmailInterface emails={emails} onSendReply={handleSendReply} isLoading={isLoading} config={currentConfig} onEndSession={endSession} evaluation={evaluation} timeTaken={timeTaken} />
+                <EmailInterface
+                  emails={emails}
+                  onSendReply={handleSendReply}
+                  isLoading={isLoading}
+                  config={currentConfig}
+                  onEndSession={endSession}
+                  evaluation={evaluation}
+                  evaluationStatus={evaluationStatus}
+                  evaluationError={evaluationError}
+                  timeTaken={timeTaken}
+                />
               </div>
             )}
           </motion.div>

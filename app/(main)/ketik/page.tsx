@@ -154,12 +154,7 @@ export default function AppKetik() {
     if (user && currentConfig && currentScenario && messages.length > 0 && currentScenario.id !== 'review') {
       setIsLoading(true);
       try {
-        // 1. Generate Score via AI
-        const { score, feedback } = await import('./services/geminiService').then(m => 
-          m.generateScore(currentConfig, currentScenario, messages)
-        );
-
-        // 2. Save to ketik_history (existing)
+        // Save conversation history only. Ketik no longer performs end-session evaluation.
         const sessionData = {
           user_id: user.id,
           date: new Date().toISOString(),
@@ -183,22 +178,6 @@ export default function AppKetik() {
             messages: historyData.messages,
           }, ...history]);
         }
-
-        // 3. Save to results table (new)
-        const resultData = {
-          user_id: user.id,
-          module: 'ketik',
-          score: score,
-          details: {
-            scenario: currentScenario.title,
-            feedback: feedback,
-            consumer: currentConfig.identity.name,
-            messageCount: messages.length
-          }
-        };
-
-        await supabase.from('results').insert([resultData]);
-
       } catch (err) {
         console.error('Error ending session:', err);
       } finally {

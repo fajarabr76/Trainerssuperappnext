@@ -230,15 +230,10 @@ export default function ProfilerLandingClient({
           </button>
         </div>
         
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-xl shadow-primary/20 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-            <Users className="w-5 h-5 text-primary-foreground relative z-10" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-black tracking-tighter uppercase leading-none">KTP</span>
-            <span className="text-[10px] font-mono uppercase tracking-[0.2em] opacity-70">Kotak Tool Profil</span>
-          </div>
+        <div className="flex flex-col items-center text-center leading-none">
+          <span className="text-[10px] font-black uppercase tracking-[0.25em] text-foreground/80">
+            Trainers SuperApp
+          </span>
         </div>
         
         <div className="flex-1 flex justify-end">
@@ -399,7 +394,7 @@ export default function ProfilerLandingClient({
               {hasPeserta && (
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                   <StatCard label="Total Agen" value={String(count)} />
-                  <StatCard label="Batch Aktif" value={selectedBatch} small />
+                  <StatCard label="Folder Saat Ini" value={selectedBatch} small />
                   <button
                     onClick={() => setShowBirthdayModal(true)}
                     className="group relative overflow-hidden bg-primary/5 border border-primary/10 rounded-2xl p-4 text-left hover:shadow-lg hover:shadow-primary/5 transition-all"

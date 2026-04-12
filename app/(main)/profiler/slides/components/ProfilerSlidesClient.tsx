@@ -190,7 +190,7 @@ export default function ProfilerSlidesClient({
       {/* Top Bar */}
       <div className="flex items-center justify-between px-5 py-3 bg-background/80 backdrop-blur-xl border-b border-border/40 shadow-sm sticky top-0 z-[60]">
         <button
-          onClick={() => router.push(`/profiler/table?batch=${encodeURIComponent(batchName)}`)}
+          onClick={() => router.push('/profiler')}
           className="flex items-center gap-1.5 text-sm font-bold tracking-tight text-primary hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg px-2 py-1 -ml-2"
         >
           <ArrowLeft size={15} /> Kembali
