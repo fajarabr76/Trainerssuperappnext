@@ -12,7 +12,7 @@ export async function generateOpenRouterContent(options: {
   responseMimeType?: string;
 }) {
   const apiKey = process.env.OPENROUTER_API_KEY;
-  const modelId = options.model || 'nvidia/nemotron-3-nano-30b-a3b:free';
+  const modelId = options.model || 'z-ai/glm-4.5-air:free';
 
   if (!apiKey) {
     return { success: false, error: "OPENROUTER_API_KEY is not set in environment variables." };

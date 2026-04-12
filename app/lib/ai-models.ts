@@ -15,12 +15,6 @@ export const AI_MODELS = [
 
   // OpenRouter
   { 
-    id: 'nvidia/nemotron-3-nano-30b-a3b:free', 
-    name: 'Nemotron 3 Nano 30B', 
-    description: 'Model NVIDIA yang ringan dan responsif untuk percakapan cepat.', 
-    provider: 'openrouter' as const 
-  },
-  { 
     id: 'z-ai/glm-4.5-air:free', 
     name: 'GLM 4.5 Air', 
     description: 'Model ringkas dengan kemampuan reasoning yang baik.', 

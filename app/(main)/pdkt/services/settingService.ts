@@ -10,7 +10,7 @@ export const defaultPdktSettings: AppSettings = {
   consumerTypes: DEFAULT_CONSUMER_TYPES,
   enableImageGeneration: true,
   globalConsumerTypeId: 'random',
-  selectedModel: 'minimax/minimax-m2.5:free',
+  selectedModel: 'z-ai/glm-4.5-air:free',
 };
 
 export async function loadPdktSettings(): Promise<AppSettings> {
