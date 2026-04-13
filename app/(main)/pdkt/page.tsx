@@ -346,7 +346,7 @@ const PdktPage: React.FC = () => {
             <div className="absolute top-8 left-8 z-20">
               <Link href="/dashboard"
                 className="module-clean-button-secondary w-10 h-10 flex items-center justify-center rounded-xl
-                           text-foreground/40 hover:text-foreground hover:bg-foreground/10
+                           text-muted-foreground hover:text-foreground hover:bg-foreground/10
                            transition-all group">
                 <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
               </Link>
@@ -413,7 +413,7 @@ const PdktPage: React.FC = () => {
             </div>
 
             <div className="mt-16 pt-8 border-t border-border/50 flex flex-col items-center gap-1.5">
-              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-foreground/40">Trainers SuperApp | Made by Fajar & Ratna</p>
+              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Trainers SuperApp | Made by Fajar & Ratna</p>
             </div>
           </motion.div>
         ) : (

@@ -419,12 +419,12 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
 
             {/* Info Text */}
             <h1 className="text-3xl md:text-5xl font-bold mb-2 tracking-tight text-foreground text-center">{config.identity.name}</h1>
-            <p className="text-base md:text-xl text-foreground/60 mb-8 font-medium text-center">{config.identity.phone} • {config.identity.city}</p>
+            <p className="text-base md:text-xl text-muted-foreground mb-8 font-medium text-center">{config.identity.phone} • {config.identity.city}</p>
 
             {/* AGENT VOICE INDICATOR */}
             {!isOnHold && connectionState === "Tersambung" && (
                 <div className="w-full max-w-sm md:max-w-md mb-8 flex flex-col gap-1">
-                    <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-foreground/40 mb-1">
+                    <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-1">
                         <span>Indikator Nada Suara Anda</span>
                         <span className={volStatus.color.replace('bg-', 'text-')}>{volStatus.label}</span>
                     </div>
@@ -487,7 +487,7 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
                     </svg>
                 )}
             </button>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-foreground/40 hidden md:block">Hold</span>
+            <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground hidden md:block">Hold</span>
          </div>
 
          {/* Mute Button */}
@@ -509,7 +509,7 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
                     </svg>
                 )}
             </button>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-foreground/40 hidden md:block">Mic</span>
+            <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground hidden md:block">Mic</span>
          </div>
 
          {/* End Call Button */}

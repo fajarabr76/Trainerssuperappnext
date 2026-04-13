@@ -19,7 +19,7 @@ interface ChatInterfaceProps {
 const TickIcon: React.FC<{ status?: string }> = ({ status }) => {
   if (!status) return null;
 
-  const color = status === 'read' ? 'text-primary' : 'text-foreground/30';
+  const color = status === 'read' ? 'text-primary' : 'text-muted-foreground';
 
   if (status === 'sent') {
     return <Check className={`w-3.5 h-3.5 ${color}`} />;
@@ -316,7 +316,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             {isReviewMode && (
                 <button 
                     onClick={() => onEndSession(messages)}
-                    className="flex items-center gap-2 text-foreground/40 hover:text-foreground transition-all group"
+                    className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-all group"
                 >
                     <div className="module-clean-button-secondary w-10 h-10 rounded-xl flex items-center justify-center transition-all">
                       <ArrowLeft className="w-5 h-5" />
@@ -344,18 +344,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <div className="module-clean-panel flex items-center gap-3 mt-1.5 px-4 py-1 rounded-full">
                 <div className="flex items-center gap-1.5">
                    <Phone className="w-3 h-3 text-primary" />
-                   <span className="text-[10px] font-black uppercase tracking-widest text-foreground/60">{config.identity.phone}</span>
+                   <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{config.identity.phone}</span>
                 </div>
                 <span className="w-1 h-1 bg-foreground/20 rounded-full"></span>
                 <div className="flex items-center gap-1.5">
                    <div className="text-[10px] text-primary">📍</div>
-                   <span className="text-[10px] font-black uppercase tracking-widest text-foreground/60">{config.identity.city}</span>
+                   <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{config.identity.city}</span>
                 </div>
             </div>
             {!isReviewMode ? (
                 <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-[10px] font-black uppercase tracking-widest text-module-ketik">Online</span>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-foreground/40 tabular-nums">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground tabular-nums">
                       {formatTime(elapsedSeconds)}
                     </span>
                     <span className="w-1 h-1 bg-module-ketik rounded-full animate-pulse"></span>
@@ -462,7 +462,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                             {renderMessageContent(msg.text)}
                         </div>
                         {/* Timestamp */}
-                        <div className={`text-[9px] font-black uppercase tracking-widest flex items-center justify-end gap-2 mt-2 ${isAgent ? 'text-white/80' : 'text-foreground/60'}`}>
+                        <div className={`text-[9px] font-black uppercase tracking-widest flex items-center justify-end gap-2 mt-2 ${isAgent ? 'text-white/80' : 'text-muted-foreground'}`}>
                              <span>
                                 {!isNaN(new Date(msg.timestamp).getTime()) 
                                     ? new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
@@ -531,7 +531,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   className={`w-14 h-14 rounded-[2rem] flex items-center justify-center transition-all ${
                       inputText.trim() 
                       ? 'module-clean-button-primary text-white' 
-                      : 'bg-foreground/5 text-foreground/20'
+                      : 'bg-foreground/5 text-muted-foreground'
                   }`}
               >
                   <Send className={`w-6 h-6 ${inputText.trim() ? 'translate-x-0.5 -translate-y-0.5' : ''}`} />
@@ -541,7 +541,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       ) : (
         <div className="module-clean-toolbar p-8 border-t z-40 shrink-0 text-center flex items-center justify-center gap-3">
           <Lock className="w-4 h-4 text-orange-500/50" />
-          <span className="text-[10px] font-extrabold uppercase tracking-[0.3em] text-foreground/30">
+          <span className="text-[10px] font-extrabold uppercase tracking-[0.3em] text-muted-foreground">
             Mode Review &bull; Hanya Baca
           </span>
         </div>

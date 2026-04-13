@@ -319,7 +319,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
             </button>
             <button 
                 onClick={handleClose} 
-                className="w-9 h-9 flex items-center justify-center bg-foreground/5 hover:bg-foreground/10 rounded-full text-foreground/60 transition-all"
+                className="w-9 h-9 flex items-center justify-center bg-foreground/5 hover:bg-foreground/10 rounded-full text-muted-foreground transition-all"
             >
                 <X className="w-5 h-5" />
             </button>
@@ -336,7 +336,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all relative ${
                   activeTab === tab.id 
                     ? 'text-foreground shadow-sm' 
-                    : 'text-foreground/40 hover:text-foreground/60'
+                    : 'text-muted-foreground hover:text-muted-foreground'
                 }`}
               >
                 {activeTab === tab.id && (

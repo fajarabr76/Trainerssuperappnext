@@ -22,8 +22,8 @@ const timTheme = (tim: string) => {
 const Cell = ({ label, value, icon: Icon, multiline = false }: { label: string; value?: string | null; icon?: any; multiline?: boolean }) => (
   <div className="flex flex-col gap-1">
     <div className="flex items-center gap-1.5">
-      {Icon && <Icon className="w-3 h-3 text-gray-500 dark:text-gray-400" />}
-      <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 leading-none">
+      {Icon && <Icon className="w-3 h-3 text-muted-foreground" />}
+      <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground leading-none">
         {label}
       </span>
     </div>
@@ -169,7 +169,7 @@ export default function ProfilerSlidesClient({
             className={`px-6 py-2 rounded-xl text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
               activeTab === 'table'
                 ? 'bg-background text-primary shadow-sm'
-                : 'text-foreground/40 hover:text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             Daftar Peserta
@@ -179,7 +179,7 @@ export default function ProfilerSlidesClient({
             className={`px-6 py-2 rounded-xl text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
               activeTab === 'slides'
                 ? 'bg-background text-primary shadow-sm'
-                : 'text-foreground/40 hover:text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             Tampilan Slide
@@ -204,7 +204,7 @@ export default function ProfilerSlidesClient({
               <span className="text-sm font-black tracking-tight text-foreground">{batchName}</span>
               <ChevronDown className={`w-3.5 h-3.5 text-primary transition-transform duration-300 ${showFolderDropdown ? 'rotate-180' : ''}`} />
             </div>
-            <p className="text-[10px] text-foreground/40 font-bold">{index + 1} / {initialPeserta.length}</p>
+            <p className="text-[10px] text-muted-foreground font-bold">{index + 1} / {initialPeserta.length}</p>
           </button>
 
           <AnimatePresence>
@@ -221,7 +221,7 @@ export default function ProfilerSlidesClient({
                     if (yearFolders.length === 0) return null;
                     return (
                       <div key={year.id} className="space-y-1">
-                        <p className="text-[9px] font-black text-foreground/40 uppercase tracking-[0.2em] px-3 py-1">{year.label}</p>
+                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] px-3 py-1">{year.label}</p>
                         <div className="space-y-0.5">
                           {yearFolders.map(folder => (
                             <button
@@ -234,7 +234,7 @@ export default function ProfilerSlidesClient({
                               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                                 folder.name === batchName
                                   ? 'bg-primary text-primary-foreground font-bold'
-                                  : 'hover:bg-muted text-foreground/60 hover:text-foreground'
+                                  : 'hover:bg-muted text-muted-foreground hover:text-foreground'
                               }`}
                             >
                               <span className="truncate">{folder.name}</span>
@@ -255,14 +255,14 @@ export default function ProfilerSlidesClient({
           <div className="flex items-center bg-muted/30 rounded-xl p-1 border border-border/40">
             <button
               onClick={() => setOrientation('landscape')}
-              className={`p-1.5 rounded-lg flex items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${orientation === 'landscape' ? 'bg-background text-primary shadow-sm' : 'text-foreground/40 hover:text-foreground'}`}
+              className={`p-1.5 rounded-lg flex items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${orientation === 'landscape' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
               title="Landscape (16:9)"
             >
               <Monitor size={14} />
             </button>
             <button
               onClick={() => setOrientation('portrait')}
-              className={`p-1.5 rounded-lg flex items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${orientation === 'portrait' ? 'bg-background text-primary shadow-sm' : 'text-foreground/40 hover:text-foreground'}`}
+              className={`p-1.5 rounded-lg flex items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${orientation === 'portrait' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
               title="Portrait (A4)"
             >
               <Smartphone size={14} />
@@ -298,7 +298,7 @@ export default function ProfilerSlidesClient({
       {/* Slide Stage */}
       <div className="flex-1 flex flex-col items-center justify-center p-4 min-h-0 overflow-hidden">
         {!p ? (
-          <p className="text-sm text-foreground/40 font-medium tracking-tight">Belum ada peserta.</p>
+          <p className="text-sm text-muted-foreground font-medium tracking-tight">Belum ada peserta.</p>
         ) : (
           <div className="relative flex items-center justify-center w-full h-full">
             <div
@@ -341,11 +341,11 @@ export default function ProfilerSlidesClient({
                         </div>
 
                         <div className="w-full flex-shrink-0 bg-card border border-border/40 rounded-3xl text-center p-4 shadow-sm">
-                          <p className="text-[9px] text-foreground/40 font-bold uppercase tracking-[0.15em] mb-1">Masa Dinas</p>
+                          <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-[0.15em] mb-1">Masa Dinas</p>
                           <p className="text-[22px] font-black tracking-tight text-foreground leading-none">
                             {p.bergabung_date ? hitungMasaDinas(p.bergabung_date) : '-'}
                           </p>
-                          <p className="text-[10px] text-foreground/40 mt-1.5 font-medium tracking-tight">
+                          <p className="text-[10px] text-muted-foreground mt-1.5 font-medium tracking-tight">
                             {p.bergabung_date ? `Sejak ${formatTanggal(p.bergabung_date)}` : '-'}
                           </p>
                         </div>
@@ -360,7 +360,7 @@ export default function ProfilerSlidesClient({
                             ['Status', p.status_perkawinan],
                           ].filter(([, v]) => v).map(([label, value]) => (
                             <div key={label as string} className="flex items-center justify-between gap-2 px-1">
-                              <span className="text-[9px] font-bold uppercase tracking-widest text-foreground/40 flex-shrink-0">{label}</span>
+                              <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground flex-shrink-0">{label}</span>
                               <span className="text-[10px] font-bold tracking-tight text-foreground/80 text-right truncate">{value as string}</span>
                             </div>
                           ))}
@@ -371,7 +371,7 @@ export default function ProfilerSlidesClient({
                       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto px-10 py-8 gap-6 box-border pb-12">
                         <div className="flex flex-col gap-3 flex-shrink-0">
                           <div className="flex items-center gap-3">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">Data Pekerjaan</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Data Pekerjaan</span>
                             <div className="flex-1 h-px bg-border/40" />
                           </div>
                           <div className="grid grid-cols-3 gap-x-8 gap-y-4">
@@ -386,7 +386,7 @@ export default function ProfilerSlidesClient({
 
                         <div className="flex flex-col gap-3 flex-shrink-0">
                           <div className="flex items-center gap-3">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">Latar Belakang</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Latar Belakang</span>
                             <div className="flex-1 h-px bg-border/40" />
                           </div>
                           <div className="grid grid-cols-3 gap-x-8 gap-y-4">
@@ -423,8 +423,8 @@ export default function ProfilerSlidesClient({
                           )}
                           {p.keterangan && (
                             <div className="flex-1 bg-muted/30 border border-border/40 rounded-3xl p-4 shadow-sm">
-                              <p className="text-[9px] font-black text-foreground/40 uppercase tracking-[0.2em] mb-1.5">Keterangan</p>
-                              <p className="text-[11px] text-foreground/60 leading-relaxed line-clamp-2 font-medium tracking-tight">{p.keterangan}</p>
+                              <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1.5">Keterangan</p>
+                              <p className="text-[11px] text-foreground/70 leading-relaxed line-clamp-2 font-medium tracking-tight">{p.keterangan}</p>
                             </div>
                           )}
                         </div>
@@ -454,23 +454,23 @@ export default function ProfilerSlidesClient({
 
                       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 flex-shrink-0">
                         <div className="bg-muted/30 border border-border/40 rounded-[20px] p-3 text-center shadow-sm">
-                          <p className="text-[8px] text-foreground/40 font-bold uppercase tracking-widest mb-1">Masa Dinas</p>
+                          <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Masa Dinas</p>
                           <p className="text-lg font-black text-foreground tracking-tight leading-none">{p.bergabung_date ? hitungMasaDinas(p.bergabung_date) : '-'}</p>
                         </div>
                         <div className="bg-muted/30 border border-border/40 rounded-[20px] p-3 text-center shadow-sm">
-                          <p className="text-[8px] text-foreground/40 font-bold uppercase tracking-widest mb-1">Usia</p>
+                          <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Usia</p>
                           <p className="text-lg font-black text-foreground tracking-tight leading-none">{p.tgl_lahir ? `${hitungUsia(p.tgl_lahir)} Thn` : '-'}</p>
                         </div>
                         <div className="bg-muted/30 border border-border/40 rounded-[20px] p-3 text-center shadow-sm">
-                          <p className="text-[8px] text-foreground/40 font-bold uppercase tracking-widest mb-1">Tgl Lahir</p>
+                          <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Tgl Lahir</p>
                           <p className="text-[10px] font-black text-foreground tracking-tight leading-none mt-1">{p.tgl_lahir ? formatTanggal(p.tgl_lahir) : '-'}</p>
                         </div>
                         <div className="bg-muted/30 border border-border/40 rounded-[20px] p-3 text-center shadow-sm">
-                          <p className="text-[8px] text-foreground/40 font-bold uppercase tracking-widest mb-1">Agama</p>
+                          <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Agama</p>
                           <p className="text-xs font-black text-foreground tracking-tight leading-none mt-1">{p.agama || '-'}</p>
                         </div>
                         <div className="bg-muted/30 border border-border/40 rounded-[20px] p-3 text-center shadow-sm">
-                          <p className="text-[8px] text-foreground/40 font-bold uppercase tracking-widest mb-1">Status</p>
+                          <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Status</p>
                           <p className="text-xs font-black text-foreground tracking-tight leading-none mt-1 truncate">{p.status_perkawinan || '-'}</p>
                         </div>
                       </div>
@@ -478,7 +478,7 @@ export default function ProfilerSlidesClient({
                       <div className="flex flex-col gap-4 flex-1">
                         <div className="flex flex-col gap-3 flex-shrink-0">
                           <div className="flex items-center gap-3">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">Data Pekerjaan</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Data Pekerjaan</span>
                             <div className="flex-1 h-px bg-border/40" />
                           </div>
                           <div className="grid grid-cols-2 gap-x-6 gap-y-3">
@@ -493,7 +493,7 @@ export default function ProfilerSlidesClient({
 
                         <div className="flex flex-col gap-3 flex-shrink-0">
                           <div className="flex items-center gap-3">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40">Latar Belakang</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Latar Belakang</span>
                             <div className="flex-1 h-px bg-border/40" />
                           </div>
                           <div className="grid grid-cols-2 gap-x-6 gap-y-3">
@@ -532,8 +532,8 @@ export default function ProfilerSlidesClient({
                         )}
                         {p.keterangan && (
                           <div className="w-full bg-muted/30 border border-border/40 rounded-3xl p-5 shadow-sm">
-                            <p className="text-[9px] font-black text-foreground/40 uppercase tracking-[0.2em] mb-1.5">Keterangan</p>
-                            <p className="text-[11px] text-foreground/60 leading-relaxed font-medium tracking-tight">{p.keterangan}</p>
+                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1.5">Keterangan</p>
+                            <p className="text-[11px] text-foreground/70 leading-relaxed font-medium tracking-tight">{p.keterangan}</p>
                           </div>
                         )}
                       </div>
@@ -559,8 +559,8 @@ export default function ProfilerSlidesClient({
         </button>
         <div className="flex items-center gap-2 px-4 py-1.5 bg-muted/30 rounded-full border border-border/40">
           <span className="text-sm font-bold text-foreground tabular-nums tracking-tight">{index + 1}</span>
-          <span className="text-xs text-foreground/40 font-bold">/</span>
-          <span className="text-xs font-bold text-foreground/40 tabular-nums tracking-tight">{initialPeserta.length}</span>
+          <span className="text-xs text-muted-foreground font-bold">/</span>
+          <span className="text-xs font-bold text-muted-foreground tabular-nums tracking-tight">{initialPeserta.length}</span>
         </div>
         <button
           onClick={next}

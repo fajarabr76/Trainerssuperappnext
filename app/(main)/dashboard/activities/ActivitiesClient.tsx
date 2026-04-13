@@ -67,7 +67,7 @@ export default function ActivitiesClient({
 
       <div className="p-8 xl:p-12 max-w-7xl mx-auto relative z-10 -mt-14">
         <header className="mb-12">
-           <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-foreground/60 hover:text-primary transition-colors mb-6 group">
+           <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors mb-6 group">
             <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Kembali ke Dashboard
           </Link>
           <div className="flex items-center gap-4">
@@ -76,7 +76,7 @@ export default function ActivitiesClient({
               </div>
               <div>
                    <h1 className="text-4xl font-black tracking-tighter">Riwayat Aktivitas</h1>
-                   <p className="text-foreground/60 text-sm font-medium mt-1 uppercase tracking-widest opacity-80">Audit Log Seluruh Pengguna & Sistem</p>
+                   <p className="text-muted-foreground text-sm font-medium mt-1 uppercase tracking-widest opacity-80">Audit Log Seluruh Pengguna & Sistem</p>
               </div>
           </div>
         </header>
@@ -84,7 +84,7 @@ export default function ActivitiesClient({
         {/* Filters */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <div className="relative md:col-span-2">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input 
               type="text" 
               placeholder="Cari user atau aktivitas..." 
@@ -94,7 +94,7 @@ export default function ActivitiesClient({
             />
           </div>
           <div className="relative">
-            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40" />
+            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <select 
               className="w-full pl-12 pr-4 py-3 bg-card border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none appearance-none font-medium"
               value={filterType}

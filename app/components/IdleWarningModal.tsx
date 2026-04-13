@@ -65,7 +65,7 @@ export default function IdleWarningModal({
               {/* Title & Info */}
               <div className="space-y-3 mb-10">
                 <h2 className="text-3xl font-black tracking-tight text-foreground">Sesi Akan Berakhir</h2>
-                <p className="text-foreground/60 text-sm leading-relaxed max-w-sm mx-auto">
+                <p className="text-muted-foreground text-sm leading-relaxed max-w-sm mx-auto">
                     Anda sudah tidak aktif selama beberapa waktu. Demi keamanan data, sesi Anda akan otomatis diakhiri dalam:
                 </p>
                 
@@ -98,14 +98,14 @@ export default function IdleWarningModal({
                 </button>
                 <button
                   onClick={onLogout}
-                  className="flex-1 px-8 py-4 bg-foreground/5 text-foreground/60 hover:text-red-500 hover:bg-red-500/10 rounded-2xl text-sm font-bold active:scale-[0.98] transition-all flex items-center justify-center gap-2 border border-transparent hover:border-red-500/20"
+                  className="flex-1 px-8 py-4 bg-foreground/5 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-2xl text-sm font-bold active:scale-[0.98] transition-all flex items-center justify-center gap-2 border border-transparent hover:border-red-500/20"
                 >
                   <LogOut className="w-4 h-4" />
                   Selesaikan Sesi
                 </button>
               </div>
 
-              <div className="mt-8 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-foreground/30">
+              <div className="mt-8 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                 <ShieldAlert className="w-3 h-3" />
                 Sistem Keamanan Otomatis Aktif
               </div>

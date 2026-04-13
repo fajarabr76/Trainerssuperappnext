@@ -12,7 +12,7 @@ import { createClient } from '@/app/lib/supabase/client';
 const DEFAULT_TIMS = ['Telepon', 'Media Sosial', 'Walk-in', 'Lainnya'];
 
 const inputClass = "w-full px-4 py-3 rounded-xl border border-border/40 bg-background text-sm text-foreground placeholder-foreground/20 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background";
-const labelClass = "block text-[10px] font-bold uppercase tracking-widest text-foreground/40 mb-2 px-1";
+const labelClass = "block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2 px-1";
 const sectionClass = "bg-card border border-border/40 rounded-[2rem] p-8 space-y-6 shadow-sm";
 
 interface ProfilerAddClientProps {
@@ -123,12 +123,12 @@ export default function ProfilerAddClient({ batchName, initialTimList }: Profile
 
         {/* Header */}
         <div className="flex items-center justify-between">
-          <button onClick={() => router.back()} className="flex items-center gap-2 text-sm text-foreground/40 hover:text-primary transition-colors font-medium group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg px-2 py-1 -ml-2">
+          <button onClick={() => router.back()} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors font-medium group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg px-2 py-1 -ml-2">
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Kembali
           </button>
           <div className="text-center">
             <h1 className="text-xl font-bold tracking-tight text-foreground">Tambah Data KTP</h1>
-            <p className="text-[10px] font-mono uppercase tracking-widest text-foreground/30 mt-1">{batchName}</p>
+            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mt-1">{batchName}</p>
           </div>
           <button onClick={handleSubmit} disabled={loading}
             className="flex items-center gap-2 px-6 py-2.5 bg-primary hover:opacity-90 disabled:opacity-50 text-primary-foreground rounded-xl text-sm font-bold shadow-md shadow-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background hover:shadow-lg">
@@ -158,7 +158,7 @@ export default function ProfilerAddClient({ batchName, initialTimList }: Profile
                 Pilih Foto
                 <input type="file" accept="image/*" onChange={handleFoto} className="hidden" />
               </label>
-              <p className="text-[10px] text-foreground/30 uppercase tracking-widest font-medium">JPG/PNG, maks 5MB. Auto-compress.</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">JPG/PNG, maks 5MB. Auto-compress.</p>
             </div>
           </div>
 
@@ -196,12 +196,12 @@ export default function ProfilerAddClient({ batchName, initialTimList }: Profile
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
                     selectedTim === tim
                       ? 'bg-primary border-primary text-primary-foreground shadow-md shadow-primary/10'
-                      : 'bg-background border-border/40 text-foreground/60 hover:border-primary/30'
+                      : 'bg-background border-border/40 text-muted-foreground hover:border-primary/30'
                   }`}>
                   {tim}
                   {!DEFAULT_TIMS.includes(tim) && (
                     <span onClick={e => handleRemoveTim(tim, e)}
-                      className={`ml-1 hover:opacity-70 ${selectedTim === tim ? 'text-primary-foreground' : 'text-foreground/30'}`}>
+                      className={`ml-1 hover:opacity-70 ${selectedTim === tim ? 'text-primary-foreground' : 'text-muted-foreground'}`}>
                       <X className="w-3 h-3" />
                     </span>
                   )}
@@ -319,7 +319,7 @@ export default function ProfilerAddClient({ batchName, initialTimList }: Profile
         {/* Data Sensitif */}
         <div className={sectionClass}>
           <h2 className="text-sm font-semibold text-foreground tracking-tight">🔒 Data Sensitif</h2>
-          <p className="text-xs text-foreground/40 font-medium">Data ini tidak tampil di slide PPTX secara default.</p>
+          <p className="text-xs text-muted-foreground font-medium">Data ini tidak tampil di slide PPTX secara default.</p>
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
               <label className={labelClass}>No. KTP</label>
@@ -394,7 +394,7 @@ export default function ProfilerAddClient({ batchName, initialTimList }: Profile
         {/* Catatan Tambahan */}
         <div className={sectionClass}>
           <h2 className="text-sm font-semibold text-foreground tracking-tight">⭐ Catatan Tambahan</h2>
-          <p className="text-xs text-foreground/40 font-medium">Prestasi, bakat, hobi, atau hal unik lainnya.</p>
+          <p className="text-xs text-muted-foreground font-medium">Prestasi, bakat, hobi, atau hal unik lainnya.</p>
           <textarea rows={3} placeholder="Contoh: 🏆 Juara 1 Public Speaking 2024&#10;🎸 Hobi: Bermain gitar&#10;💡 Bakat: Desain grafis" className={inputClass}
             value={form.catatan_tambahan || ''} onChange={e => set('catatan_tambahan', e.target.value)} />
         </div>

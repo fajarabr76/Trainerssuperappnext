@@ -47,7 +47,7 @@ export const MaintenanceModal = ({ isOpen }: MaintenanceModalProps) => {
               Akses Dibatasi
             </h3>
             
-            <p className="text-sm text-foreground/60 leading-relaxed mb-8 font-medium px-4">
+            <p className="text-sm text-muted-foreground leading-relaxed mb-8 font-medium px-4">
               Modul ini tidak berjalan dengan baik pada aplikasi ini. <br />
               <span className="text-destructive font-bold">Silakan menghubungi trainer</span> untuk informasi lebih lanjut.
             </p>

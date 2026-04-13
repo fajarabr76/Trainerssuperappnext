@@ -158,7 +158,7 @@ export default function QaDashboardClient({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <div className="flex items-center gap-2 text-sm text-foreground/60 mb-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
                 <Link href="/dashboard" className="hover:text-primary transition-colors">Dashboard</Link>
                 <span>/</span>
                 <span className="text-foreground font-medium">SIDAK</span>
@@ -166,7 +166,7 @@ export default function QaDashboardClient({
               <h1 className="text-4xl lg:text-5xl font-bold tracking-tighter mb-4 bg-gradient-to-r from-foreground to-foreground/50 bg-clip-text text-transparent">
                 Trainers SuperApp
               </h1>
-              <p className="text-lg text-foreground/40 font-light max-w-2xl leading-relaxed">
+              <p className="text-lg text-muted-foreground font-light max-w-2xl leading-relaxed">
                 Pantau performa kualitas, analisis akar masalah, dan temukan area perbaikan untuk tim Anda.
               </p>
             </motion.div>
@@ -190,12 +190,12 @@ export default function QaDashboardClient({
             </div>
 
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-32 text-foreground/40">
+              <div className="flex flex-col items-center justify-center py-32 text-muted-foreground">
                 <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
                 <p>Membarui data SIDAK...</p>
               </div>
             ) : !displayData.summary ? (
-              <div className="flex flex-col items-center justify-center py-32 text-foreground/40 bg-card rounded-2xl border border-dashed border-border">
+              <div className="flex flex-col items-center justify-center py-32 text-muted-foreground bg-card rounded-2xl border border-dashed border-border">
                 <AlertTriangle className="w-12 h-12 text-yellow-500 mb-4 opacity-50" />
                 <p className="text-lg font-medium text-foreground mb-1">Tidak Ada Data</p>
                 <p className="text-sm">Silakan pilih periode atau tim yang berbeda.</p>
@@ -286,7 +286,7 @@ export default function QaDashboardClient({
                   </div>
 
                   {isTrendEmpty ? (
-                    <div className="flex flex-col items-center justify-center py-24 text-foreground/40 bg-background/20 rounded-2xl border border-dashed border-border/50">
+                    <div className="flex flex-col items-center justify-center py-24 text-muted-foreground bg-background/20 rounded-2xl border border-dashed border-border/50">
                       <AlertTriangle className="w-8 h-8 text-yellow-500 mb-3 opacity-30" />
                       <p className="text-sm font-medium">Tidak ada data pada rentang bulan ini</p>
                     </div>
@@ -320,10 +320,10 @@ export default function QaDashboardClient({
                           );
                         })}
                       </div>
-                      <p className="text-xs text-foreground/40 mt-1 mb-3">
+                      <p className="text-xs text-muted-foreground mt-1 mb-3">
                         Klik parameter untuk menampilkan tren spesifik
                       </p>
-                      <div className="h-[350px] w-full">
+                      <div className="h-[350px] w-full rounded-[2rem] border border-border/40 bg-background/60 dark:bg-white/[0.04] p-3 shadow-inner">
                         <ParamTrendChart 
                           data={displayData.paramTrend} 
                           showParameters={true} 
@@ -342,11 +342,11 @@ export default function QaDashboardClient({
                   </h2>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2">
-                      <h3 className="text-sm font-medium text-foreground/60 mb-4">Pareto Kategori Temuan (80/20 Rule)</h3>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-4">Pareto Kategori Temuan (80/20 Rule)</h3>
                       <ParetoChart data={displayData.paretoData} />
                     </div>
                     <div>
-                      <h3 className="text-sm font-medium text-foreground/60 mb-4 text-center">Proporsi Critical vs Non-Critical</h3>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-4 text-center">Proporsi Critical vs Non-Critical</h3>
                       {displayData.donutData && <FatalDonutChart data={displayData.donutData} />}
                     </div>
                   </div>

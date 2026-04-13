@@ -111,7 +111,7 @@ export default function QaPeriodsClient({ user, role, initialPeriods }: QaPeriod
 
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <p className="text-xs text-foreground/40 mb-2 font-bold uppercase tracking-wider">Bulan</p>
+                  <p className="text-xs text-muted-foreground mb-2 font-bold uppercase tracking-wider">Bulan</p>
                   <div className="grid grid-cols-4 gap-1.5">
                     {MONTHS.map((m, i) => (
                       <button
@@ -120,7 +120,7 @@ export default function QaPeriodsClient({ user, role, initialPeriods }: QaPeriod
                         className={`py-2 rounded-xl text-[10px] font-bold uppercase transition-all border ${
                           selectedMonth === i + 1
                             ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20'
-                            : 'bg-foreground/5 text-foreground/60 border-transparent hover:border-primary/40'
+                            : 'bg-foreground/5 text-muted-foreground border-transparent hover:border-primary/40'
                         }`}
                       >
                         {m.slice(0, 3)}
@@ -130,7 +130,7 @@ export default function QaPeriodsClient({ user, role, initialPeriods }: QaPeriod
                 </div>
 
                 <div>
-                  <p className="text-xs text-foreground/40 mb-2 font-bold uppercase tracking-wider">Tahun</p>
+                  <p className="text-xs text-muted-foreground mb-2 font-bold uppercase tracking-wider">Tahun</p>
                   <div className="flex flex-col gap-1.5">
                     {YEAR_OPTIONS.map(y => (
                       <button
@@ -139,7 +139,7 @@ export default function QaPeriodsClient({ user, role, initialPeriods }: QaPeriod
                         className={`py-2 px-4 rounded-xl text-xs font-bold transition-all border ${
                           selectedYear === y
                             ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20'
-                            : 'bg-foreground/5 text-foreground/60 border-transparent hover:border-primary/40'
+                            : 'bg-foreground/5 text-muted-foreground border-transparent hover:border-primary/40'
                         }`}
                       >
                         {y}
@@ -170,7 +170,7 @@ export default function QaPeriodsClient({ user, role, initialPeriods }: QaPeriod
                 </button>
                 <button
                   onClick={() => setShowForm(false)}
-                  className="px-6 py-3 bg-foreground/5 hover:bg-foreground/10 text-foreground/60 rounded-2xl text-sm font-bold transition-all"
+                  className="px-6 py-3 bg-foreground/5 hover:bg-foreground/10 text-muted-foreground rounded-2xl text-sm font-bold transition-all"
                 >
                   Batal
                 </button>
@@ -179,7 +179,7 @@ export default function QaPeriodsClient({ user, role, initialPeriods }: QaPeriod
           ) : role !== 'leader' ? (
             <button
               onClick={() => { setShowForm(true); setErrorMsg(null); }}
-              className="w-full h-14 flex items-center justify-center gap-2 bg-card border border-dashed border-border hover:border-primary/40 hover:bg-primary/5 rounded-2xl text-sm font-bold text-foreground/40 hover:text-primary transition-all group"
+              className="w-full h-14 flex items-center justify-center gap-2 bg-card border border-dashed border-border hover:border-primary/40 hover:bg-primary/5 rounded-2xl text-sm font-bold text-muted-foreground hover:text-primary transition-all group"
             >
               <div className="w-8 h-8 rounded-lg bg-foreground/5 group-hover:bg-primary/10 flex items-center justify-center transition-colors">
                 <Plus className="w-4 h-4" />
@@ -192,10 +192,10 @@ export default function QaPeriodsClient({ user, role, initialPeriods }: QaPeriod
             {periods.length === 0 ? (
               <div className="text-center py-20 bg-card/30 rounded-3xl border border-dashed border-border">
                 <div className="w-16 h-16 rounded-3xl bg-foreground/5 flex items-center justify-center mx-auto mb-4">
-                  <CalendarDays className="w-8 h-8 text-foreground/20" />
+                  <CalendarDays className="w-8 h-8 text-muted-foreground" />
                 </div>
-                <p className="text-sm text-foreground/60 font-bold">Belum ada periode</p>
-                <p className="text-xs text-foreground/40 mt-1">Tambahkan periode pelaporan pertama untuk mulai penilaian</p>
+                <p className="text-sm text-muted-foreground font-bold">Belum ada periode</p>
+                <p className="text-xs text-muted-foreground mt-1">Tambahkan periode pelaporan pertama untuk mulai penilaian</p>
               </div>
             ) : (
               <div className="space-y-8">
@@ -205,7 +205,7 @@ export default function QaPeriodsClient({ user, role, initialPeriods }: QaPeriod
                     <div key={year} className="space-y-4">
                       <div className="flex items-center gap-2 px-1">
                         <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                        <p className="text-xs font-black uppercase tracking-[0.2em] text-foreground/40">
+                        <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">
                           TAHUN {year}
                         </p>
                       </div>
@@ -228,12 +228,12 @@ export default function QaPeriodsClient({ user, role, initialPeriods }: QaPeriod
                                 <p className="text-sm font-bold text-foreground">
                                   {MONTHS[period.month - 1]}
                                 </p>
-                                <p className="text-[10px] font-black uppercase tracking-wider text-foreground/40">{year}</p>
+                                <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">{year}</p>
                               </div>
                               {role !== 'leader' && (
                                 <button
                                   onClick={() => { setErrorMsg(null); setConfirmDelete(period); }}
-                                  className="opacity-0 group-hover:opacity-100 p-2 rounded-xl text-foreground/20 hover:text-destructive hover:bg-destructive/10 transition-all"
+                                  className="opacity-0 group-hover:opacity-100 p-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </button>
@@ -268,11 +268,11 @@ export default function QaPeriodsClient({ user, role, initialPeriods }: QaPeriod
               </div>
               <h3 className="text-xl font-black text-foreground text-center mb-2">Hapus Periode?</h3>
               <div className="px-4 py-2 bg-foreground/5 rounded-xl mx-auto w-fit mb-4">
-                 <p className="text-xs font-black text-foreground/60 uppercase tracking-widest text-center">
+                 <p className="text-xs font-black text-muted-foreground uppercase tracking-widest text-center">
                   {MONTHS[confirmDelete.month - 1]} {confirmDelete.year}
                 </p>
               </div>
-              <p className="text-xs text-foreground/40 text-center mb-8 leading-relaxed">
+              <p className="text-xs text-muted-foreground text-center mb-8 leading-relaxed">
                 Penghapusan tidak dapat dibatalkan. Periode yang sudah memiliki data temuan otomatis tidak dapat dihapus.
               </p>
               <div className="flex flex-col gap-2">
@@ -286,7 +286,7 @@ export default function QaPeriodsClient({ user, role, initialPeriods }: QaPeriod
                 <button
                   onClick={() => setConfirmDelete(null)}
                   disabled={deleting}
-                  className="w-full py-4 bg-foreground/5 hover:bg-foreground/10 text-foreground/60 rounded-2xl font-bold text-sm transition-all"
+                  className="w-full py-4 bg-foreground/5 hover:bg-foreground/10 text-muted-foreground rounded-2xl font-bold text-sm transition-all"
                 >
                   Batal
                 </button>

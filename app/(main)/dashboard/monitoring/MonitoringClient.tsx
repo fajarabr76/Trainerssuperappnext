@@ -48,7 +48,7 @@ const TranscriptModal = ({ isOpen, onClose, result }: { isOpen: boolean, onClose
             </div>
           ))}
           {messages.length === 0 && (
-            <div className="text-center py-12 text-foreground/40 italic">Tidak ada transcript untuk sesi ini.</div>
+            <div className="text-center py-12 text-muted-foreground italic">Tidak ada transcript untuk sesi ini.</div>
           )}
         </div>
       );
@@ -71,13 +71,13 @@ const TranscriptModal = ({ isOpen, onClose, result }: { isOpen: boolean, onClose
                 </div>
             </div>
           )) : (
-            <div className="text-center py-12 text-foreground/40 italic">Tidak ada detail email untuk sesi ini.</div>
+            <div className="text-center py-12 text-muted-foreground italic">Tidak ada detail email untuk sesi ini.</div>
           )}
         </div>
       );
     }
 
-    return <div className="p-8 text-center text-foreground/60">Detail riwayat sedang diproses untuk modul ini.</div>;
+    return <div className="p-8 text-center text-muted-foreground">Detail riwayat sedang diproses untuk modul ini.</div>;
   };
 
   return (
@@ -105,7 +105,7 @@ const TranscriptModal = ({ isOpen, onClose, result }: { isOpen: boolean, onClose
                 }`}>
                     {result.module}
                 </span>
-                <span className="text-[10px] text-foreground/40 font-mono">• {result.user_email || 'N/A'}</span>
+                <span className="text-[10px] text-muted-foreground font-mono">• {result.user_email || 'N/A'}</span>
             </div>
           </div>
           <button onClick={onClose} className="w-10 h-10 rounded-full hover:bg-foreground/5 flex items-center justify-center transition-all">
@@ -118,7 +118,7 @@ const TranscriptModal = ({ isOpen, onClose, result }: { isOpen: boolean, onClose
         <div className="p-6 bg-foreground/[0.02] border-t border-border flex justify-between items-center">
             <div className="flex items-center gap-4">
                 <div className="flex flex-col">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-foreground/40">Durasi</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Durasi</span>
                     <span className="text-xl font-black">
                         {result.duration_seconds > 0
                           ? `${Math.floor(result.duration_seconds / 60)}m ${result.duration_seconds % 60}s`
@@ -127,7 +127,7 @@ const TranscriptModal = ({ isOpen, onClose, result }: { isOpen: boolean, onClose
                 </div>
                 {result.score !== null && (
                   <div className="flex flex-col ml-6">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-foreground/40">Skor</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Skor</span>
                     <span className={`text-xl font-black ${(result.score ?? 0) >= 80 ? 'text-emerald-500' : (result.score ?? 0) >= 60 ? 'text-yellow-500' : 'text-red-500'}`}>
                         {result.score}
                     </span>
@@ -301,7 +301,7 @@ export default function MonitoringClient({ user, role, profile }: { user: any, r
                 </div>
                 <div>
                      <h1 className="text-4xl font-black tracking-tighter">Riwayat Simulasi</h1>
-                     <p className="text-foreground/60 text-sm font-medium mt-1 uppercase tracking-widest opacity-80">Monitoring Performa Agen &amp; Transcript Sesi</p>
+                     <p className="text-muted-foreground text-sm font-medium mt-1 uppercase tracking-widest opacity-80">Monitoring Performa Agen &amp; Transcript Sesi</p>
                 </div>
             </div>
           </header>
@@ -333,7 +333,7 @@ export default function MonitoringClient({ user, role, profile }: { user: any, r
           {/* Filters */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <div className="relative md:col-span-2">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input 
                 type="text" 
                 placeholder="Cari email agen atau skenario..." 
@@ -343,7 +343,7 @@ export default function MonitoringClient({ user, role, profile }: { user: any, r
               />
             </div>
             <div className="relative">
-              <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40" />
+              <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <select 
                 className="w-full pl-12 pr-4 py-3 bg-card border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none appearance-none font-medium"
                 value={filterModule}
@@ -432,7 +432,7 @@ export default function MonitoringClient({ user, role, profile }: { user: any, r
                         <td className="px-8 py-6 text-right">
                           <button 
                             onClick={() => setSelectedResult(result)}
-                            className="px-4 py-2 bg-foreground/5 hover:bg-primary hover:text-primary-foreground text-foreground/40 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest border border-border group-hover:border-primary"
+                            className="px-4 py-2 bg-foreground/5 hover:bg-primary hover:text-primary-foreground text-muted-foreground rounded-xl transition-all font-black text-[10px] uppercase tracking-widest border border-border group-hover:border-primary"
                           >
                             Lihat Riwayat
                           </button>

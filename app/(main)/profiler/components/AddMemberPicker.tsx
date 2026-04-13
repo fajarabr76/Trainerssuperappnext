@@ -95,7 +95,7 @@ export default function AddMemberPicker({ isOpen, onClose, targetBatch, onSucces
           <p className="text-white/70 text-sm mt-1">Salin peserta dari folder lain ke {targetBatch}</p>
           
           <div className="mt-6 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50" size={18} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/80" size={18} />
             <input 
               type="text"
               placeholder="Cari nama, folder, atau tim..."

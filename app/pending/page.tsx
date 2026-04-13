@@ -38,7 +38,7 @@ export default function PendingPage() {
         </div>
 
         <h1 className="text-3xl font-bold tracking-tighter mb-4">Akun Menunggu Persetujuan</h1>
-        <p className="text-white/50 mb-12 font-light leading-relaxed">
+        <p className="text-white/80 mb-12 font-light leading-relaxed">
           Terima kasih telah mendaftar. Akun Anda saat ini sedang dalam proses peninjauan oleh tim Trainer. 
           Anda akan mendapatkan akses penuh setelah akun Anda disetujui.
         </p>
@@ -60,7 +60,7 @@ export default function PendingPage() {
         </div>
 
         <div className="mt-12 pt-8 border-t border-white/5">
-          <Link href="/" className="text-white/30 hover:text-white transition-colors text-sm flex items-center justify-center gap-2 group">
+          <Link href="/" className="text-white/70 hover:text-white transition-colors text-sm flex items-center justify-center gap-2 group">
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Kembali ke Beranda
           </Link>
         </div>

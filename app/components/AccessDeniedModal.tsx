@@ -43,7 +43,7 @@ export function AccessDeniedModal({ isOpen }: { isOpen: boolean }) {
               </div>
               
               <h2 className="text-2xl font-bold tracking-tight mb-4">Akses Terbatas</h2>
-              <p className="text-foreground/60 leading-relaxed mb-8">
+              <p className="text-muted-foreground leading-relaxed mb-8">
                 Maaf, Anda belum diberi akses untuk membuka modul ini. Silakan hubungi Trainer Anda untuk informasi lebih lanjut mengenai hak akses akun Anda.
               </p>
               

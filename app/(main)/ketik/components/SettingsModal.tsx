@@ -331,13 +331,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
               <div className="relative z-10">
                 <h2 className="text-3xl font-black text-foreground tracking-tighter">Pengaturan Simulasi</h2>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] font-black text-foreground/30 uppercase tracking-[0.3em]">Module KETIK</span>
+                  <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">Module KETIK</span>
                 </div>
               </div>
               <div className="flex items-center gap-4 relative z-10">
                 <button
                   onClick={handleClose}
-                  className="w-12 h-12 flex items-center justify-center bg-foreground/5 hover:bg-foreground/10 rounded-2xl text-foreground/40 hover:text-foreground transition-all border border-transparent hover:border-border/50"
+                  className="w-12 h-12 flex items-center justify-center bg-foreground/5 hover:bg-foreground/10 rounded-2xl text-muted-foreground hover:text-foreground transition-all border border-transparent hover:border-border/50"
                 >
                   <X className="w-6 h-6" />
                 </button>
@@ -354,7 +354,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                 className={`flex-1 flex items-center justify-center gap-3 py-3.5 text-[11px] font-black uppercase tracking-[0.2em] rounded-xl transition-all relative group ${
                   activeTab === tab.id
                     ? 'text-primary'
-                    : 'text-foreground/30 hover:text-foreground/60'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {activeTab === tab.id && (
@@ -384,7 +384,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                      <h3 className="font-black text-foreground text-xl tracking-tighter">
                         Daftar Skenario
                      </h3>
-                     <p className="text-[10px] font-black uppercase tracking-widest text-primary mt-1 opacity-60">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-primary mt-1 opacity-80">
                        {activeCount} / {totalScenarios} AKTIF
                      </p>
                  </div>
@@ -393,7 +393,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                      <button
                         onClick={handleSelectAll}
                         disabled={allSelected}
-                        className="px-5 py-2.5 bg-foreground/5 border border-border/50 rounded-xl text-[10px] font-black uppercase tracking-widest text-foreground/60 hover:bg-foreground/10 hover:text-foreground transition-all disabled:opacity-30 shadow-sm"
+                        className="px-5 py-2.5 bg-foreground/5 border border-border/50 rounded-xl text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:bg-foreground/10 hover:text-foreground transition-all disabled:opacity-30 shadow-sm"
                      >
                         Pilih Semua
                      </button>
@@ -443,12 +443,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                                 {scenario.title}
                               </h4>
                           </div>
-                          <p className="text-sm text-foreground/50 line-clamp-2 leading-relaxed font-medium">
+                          <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed font-medium">
                               {scenario.description}
                           </p>
                            {scenario.images && scenario.images.length > 0 && (
                               <div className="mt-3">
-                                   <span className="text-[10px] bg-foreground/5 text-foreground/40 px-3 py-1.5 rounded-xl inline-flex items-center gap-2 font-black uppercase tracking-widest border border-border/50">
+                                   <span className="text-[10px] bg-foreground/5 text-muted-foreground px-3 py-1.5 rounded-xl inline-flex items-center gap-2 font-black uppercase tracking-widest border border-border/50">
                                       <ImageIcon className="w-3.5 h-3.5" /> {scenario.images.length} Lampiran
                                   </span>
                               </div>
@@ -478,7 +478,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
               {!isScenarioFormOpen ? (
                 <button
                     onClick={handleAddScenarioClick}
-                    className="w-full py-6 flex flex-col items-center justify-center gap-3 bg-card/40 backdrop-blur-md border border-dashed border-border/50 rounded-[2rem] text-foreground/40 hover:text-primary hover:border-primary/30 transition-all font-black text-xs uppercase tracking-widest shadow-sm group"
+                    className="w-full py-6 flex flex-col items-center justify-center gap-3 bg-card/40 backdrop-blur-md border border-dashed border-border/50 rounded-[2rem] text-muted-foreground hover:text-primary hover:border-primary/30 transition-all font-black text-xs uppercase tracking-widest shadow-sm group"
                 >
                     <div className="w-12 h-12 rounded-2xl bg-foreground/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
                       <Plus className="w-6 h-6" />
@@ -497,7 +497,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                     </div>
                     <div className="p-8 grid grid-cols-2 gap-6 relative z-10">
                         <div className="col-span-2">
-                             <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-widest mb-3 ml-1">Kategori</label>
+                             <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 ml-1">Kategori</label>
                              {!isNewCategoryInput ? (
                                 <div className="relative">
                                   <select
@@ -509,7 +509,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                                       {categories.map(c => <option key={c} value={c}>{c}</option>)}
                                       <option value="NEW">+ Tambah Kategori Lainnya</option>
                                   </select>
-                                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-foreground/20">
+                                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
                                     <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                                   </div>
                                 </div>
@@ -521,23 +521,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                             )}
                         </div>
                         <div className="col-span-2">
-                            <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-widest mb-3 ml-1">Judul Masalah</label>
+                            <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 ml-1">Judul Masalah</label>
                             <input type="text" className="w-full rounded-2xl border border-border/50 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-foreground/20" placeholder="Contoh: Gagal Transfer" value={newScenarioTitle} onChange={(e) => setNewScenarioTitle(e.target.value)} />
                         </div>
                         <div className="col-span-2">
-                            <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-widest mb-3 ml-1">Deskripsi Masalah</label>
+                            <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 ml-1">Deskripsi Masalah</label>
                             <textarea className="w-full rounded-2xl border border-border/50 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none resize-none transition-all" rows={3} value={newScenarioDesc} onChange={(e) => setNewScenarioDesc(e.target.value)} />
                         </div>
                         <div className="col-span-2">
                              <div className="flex items-center justify-between gap-4 mb-3">
-                               <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-widest ml-1">Skrip Percakapan</label>
+                               <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">Skrip Percakapan</label>
                                <button
                                  type="button"
                                  onClick={() => setIsScenarioScriptEnabled((prev) => !prev)}
                                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${
                                    isScenarioScriptEnabled
                                      ? 'bg-primary/10 text-primary border-primary/20'
-                                     : 'bg-foreground/5 text-foreground/40 border-border/50'
+                                     : 'bg-foreground/5 text-muted-foreground border-border/50'
                                  }`}
                                >
                                  <span
@@ -556,7 +556,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                                className={`w-full rounded-2xl border p-4 text-sm outline-none resize-none transition-all placeholder:text-foreground/20 ${
                                  isScenarioScriptEnabled
                                    ? 'border-border/50 bg-foreground/5 text-foreground focus:ring-2 focus:ring-primary'
-                                   : 'border-border/30 bg-foreground/[0.03] text-foreground/30 cursor-not-allowed'
+                                   : 'border-border/30 bg-foreground/[0.03] text-muted-foreground cursor-not-allowed'
                                }`}
                                rows={12}
                                value={newScenarioScript}
@@ -585,26 +585,26 @@ Jika agen memberi arahan pemblokiran:
 Akhir:
 - Konsumen berterima kasih setelah mendapat langkah lanjut.`}
                              />
-                             <p className="mt-3 text-xs text-foreground/45 leading-relaxed font-medium">
-                               Checklist <span className="font-black text-foreground/60">Ikuti Skrip</span> untuk mengaktifkan kolom ini. Saat tidak dicentang, konsumen akan dibiarkan lebih bebas dan kreatif mengikuti konteks skenario. Saat dicentang, AI akan berusaha mengikuti skrip sebagai panduan alur.
+                             <p className="mt-3 text-xs text-muted-foreground leading-relaxed font-medium">
+                               Checklist <span className="font-black text-foreground">Ikuti Skrip</span> untuk mengaktifkan kolom ini. Saat tidak dicentang, konsumen akan dibiarkan lebih bebas dan kreatif mengikuti konteks skenario. Saat dicentang, AI akan berusaha mengikuti skrip sebagai panduan alur.
                              </p>
-                             <p className="mt-2 text-xs text-foreground/45 leading-relaxed font-medium">
-                               Anda bisa menulis skrip dalam format dialog seperti <span className="font-black text-foreground/60">Agent:</span> /
-                               <span className="font-black text-foreground/60"> Konsumen:</span> atau dalam format poin alur seperti
-                               <span className="font-black text-foreground/60"> Awal</span>, <span className="font-black text-foreground/60">Jika agen bertanya</span>,
-                               dan <span className="font-black text-foreground/60">Akhir</span>. AI akan tetap menjawab secara natural sesuai pertanyaan agen dan situasi percakapan.
+                             <p className="mt-2 text-xs text-muted-foreground leading-relaxed font-medium">
+                               Anda bisa menulis skrip dalam format dialog seperti <span className="font-black text-foreground">Agent:</span> /
+                               <span className="font-black text-foreground"> Konsumen:</span> atau dalam format poin alur seperti
+                               <span className="font-black text-foreground"> Awal</span>, <span className="font-black text-foreground">Jika agen bertanya</span>,
+                               dan <span className="font-black text-foreground">Akhir</span>. AI akan tetap menjawab secara natural sesuai pertanyaan agen dan situasi percakapan.
                              </p>
                         </div>
                         <div className="col-span-2">
-                            <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-widest mb-3 ml-1">Lampiran Gambar</label>
+                            <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 ml-1">Lampiran Gambar</label>
                             <div className="flex items-center justify-center w-full">
                                 <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-border border-dashed rounded-[2rem] cursor-pointer bg-foreground/5 hover:bg-foreground/10 hover:border-primary/30 transition-all group">
                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                         <div className="w-12 h-12 rounded-2xl bg-foreground/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                          <ImageIcon className="w-6 h-6 text-foreground/40" />
+                                          <ImageIcon className="w-6 h-6 text-muted-foreground" />
                                         </div>
-                                        <p className="mb-1 text-xs font-black uppercase tracking-widest text-foreground/40">Drop File atau Klik</p>
-                                        <p className="text-[10px] font-medium text-foreground/20 italic">PNG, JPG (MAX. 500KB)</p>
+                                        <p className="mb-1 text-xs font-black uppercase tracking-widest text-muted-foreground">Drop File atau Klik</p>
+                                        <p className="text-[10px] font-medium text-muted-foreground italic">PNG, JPG (MAX. 500KB)</p>
                                     </div>
                                     <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
                                 </label>
@@ -631,7 +631,7 @@ Akhir:
                             )}
                         </div>
                         <div className="col-span-2 flex justify-end gap-3 pt-6 border-t border-border/50">
-                             <button onClick={handleCancelScenarioForm} className="px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-foreground/40 hover:bg-foreground/5 transition-all">Batal</button>
+                             <button onClick={handleCancelScenarioForm} className="px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:bg-foreground/5 transition-all">Batal</button>
                              <button onClick={handleSaveScenario} disabled={!newScenarioTitle} className="px-8 py-3 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30">Simpan</button>
                         </div>
                     </div>
@@ -651,7 +651,7 @@ Akhir:
                   </div>
                   <div>
                      <h3 className="font-black text-foreground text-xl tracking-tighter">Pilih Karakter Pelanggan</h3>
-                     <p className="text-sm text-foreground/50 mt-1 leading-relaxed font-medium">
+                              <p className="text-sm text-muted-foreground mt-1 leading-relaxed font-medium">
                          Pilih satu kepribadian pelanggan yang akan Anda hadapi. Karakter ini akan digunakan untuk <span className="text-foreground font-black">semua skenario</span> yang aktif.
                      </p>
                   </div>
@@ -679,7 +679,7 @@ Akhir:
                             </div>
                           )}
                       </div>
-                      <p className="text-sm text-foreground/40 mt-3 font-medium leading-relaxed">
+                      <p className="text-sm text-muted-foreground mt-3 font-medium leading-relaxed">
                           Sistem akan memilih salah satu karakter secara acak setiap kali sesi simulasi dimulai.
                       </p>
                   </div>
@@ -715,13 +715,13 @@ Akhir:
                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
                                             onClick={(e) => { e.stopPropagation(); handleEditConsumer(c); }}
-                                            className="p-2 text-foreground/40 hover:text-primary hover:bg-primary/10 rounded-xl transition-all border border-border/50"
+                                            className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-all border border-border/50"
                                         >
                                             <Edit2 className="w-4 h-4" />
                                         </button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); handleDeleteConsumer(c.id); }}
-                                            className="p-2 text-foreground/40 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all border border-border/50"
+                                            className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all border border-border/50"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
@@ -729,7 +729,7 @@ Akhir:
                                 )}
                            </div>
                         </div>
-                        <p className="text-sm text-foreground/40 leading-relaxed font-medium">
+                        <p className="text-sm text-muted-foreground leading-relaxed font-medium">
                             {c.description}
                         </p>
                      </div>
@@ -740,7 +740,7 @@ Akhir:
               {!isConsumerFormOpen && (
                  <button
                     onClick={handleAddConsumerClick}
-                    className="w-full py-6 flex flex-col items-center justify-center gap-3 bg-card/40 backdrop-blur-md border border-dashed border-border/50 rounded-[2.5rem] text-foreground/40 hover:text-primary hover:border-primary/30 transition-all font-black text-xs uppercase tracking-widest shadow-sm group"
+                    className="w-full py-6 flex flex-col items-center justify-center gap-3 bg-card/40 backdrop-blur-md border border-dashed border-border/50 rounded-[2.5rem] text-muted-foreground hover:text-primary hover:border-primary/30 transition-all font-black text-xs uppercase tracking-widest shadow-sm group"
                 >
                     <div className="w-12 h-12 rounded-2xl bg-foreground/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
                       <Plus className="w-6 h-6" />
@@ -758,11 +758,11 @@ Akhir:
                       </div>
                       <div className="p-8 space-y-6 relative z-10">
                           <div>
-                              <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-widest mb-3 ml-1">Nama Karakter</label>
+                              <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 ml-1">Nama Karakter</label>
                               <input className="w-full rounded-2xl border border-border/50 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-foreground/20" value={newConsumerName} onChange={e => setNewConsumerName(e.target.value)} placeholder="Contoh: Pelanggan Marah" />
                           </div>
                           <div>
-                              <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-widest mb-3 ml-1">Tingkat Kesulitan</label>
+                              <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 ml-1">Tingkat Kesulitan</label>
                               <div className="relative">
                                 <select className="w-full rounded-2xl border border-border/50 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none appearance-none transition-all" value={newConsumerDifficulty} onChange={e => setNewConsumerDifficulty(e.target.value as ConsumerDifficulty)}>
                                     <option value={ConsumerDifficulty.Easy}>Mudah</option>
@@ -770,17 +770,17 @@ Akhir:
                                     <option value={ConsumerDifficulty.Hard}>Sulit</option>
                                     <option value={ConsumerDifficulty.Random}>Random</option>
                                 </select>
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-foreground/20">
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
                                   <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                                 </div>
                               </div>
                           </div>
                           <div>
-                              <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-widest mb-3 ml-1">Deskripsi / AI Prompt</label>
+                              <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 ml-1">Deskripsi / AI Prompt</label>
                               <textarea className="w-full rounded-2xl border border-border/50 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none resize-none transition-all placeholder:text-foreground/20" rows={3} value={newConsumerDesc} onChange={e => setNewConsumerDesc(e.target.value)} placeholder="Deskripsikan bagaimana karakter ini berperilaku..." />
                           </div>
                           <div className="flex justify-end gap-3 pt-6 border-t border-border/50">
-                              <button onClick={handleCancelConsumerForm} className="px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-foreground/40 hover:bg-foreground/5 transition-all">Batal</button>
+                              <button onClick={handleCancelConsumerForm} className="px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:bg-foreground/5 transition-all">Batal</button>
                               <button onClick={handleSaveConsumer} className="px-8 py-3 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">Simpan</button>
                           </div>
                       </div>
@@ -801,7 +801,7 @@ Akhir:
                     </div>
                     <div>
                         <h3 className="font-black text-foreground text-xl tracking-tighter">Identitas & Greeting</h3>
-                        <p className="text-sm text-foreground/50 mt-1 leading-relaxed font-medium">
+                        <p className="text-sm text-muted-foreground mt-1 leading-relaxed font-medium">
                             Konfigurasi profil konsumen dan identitas agen untuk salam pembuka yang lebih personal.
                         </p>
                     </div>
@@ -812,19 +812,19 @@ Akhir:
                     <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -ml-32 -mb-32 pointer-events-none" />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
                         <div className="col-span-1">
-                            <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-widest mb-3 ml-1">Nama Konsumen (Lengkap)</label>
+                            <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 ml-1">Nama Konsumen (Lengkap)</label>
                             <input type="text" className="w-full rounded-2xl border border-border/50 bg-foreground/5 p-4 text-base text-foreground focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-foreground/20" placeholder="Contoh: Agus Setiawan" value={localSettings.identitySettings?.displayName || ''} onChange={(e) => handleIdentityChange('displayName', e.target.value)} />
                         </div>
                         <div className="col-span-1">
-                            <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-widest mb-3 ml-1">Nama Agen (Greeting Signature)</label>
+                            <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 ml-1">Nama Agen (Greeting Signature)</label>
                             <input type="text" className="w-full rounded-2xl border border-border/50 bg-foreground/5 p-4 text-base text-foreground focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-foreground/20" placeholder="Contoh: Fajar" value={localSettings.identitySettings?.signatureName || ''} onChange={(e) => handleIdentityChange('signatureName', e.target.value)} />
                         </div>
                         <div className="col-span-1">
-                            <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-widest mb-3 ml-1">Nomor Telepon Konsumen</label>
+                            <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 ml-1">Nomor Telepon Konsumen</label>
                             <input type="text" className="w-full rounded-2xl border border-border/50 bg-foreground/5 p-4 text-base text-foreground focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-foreground/20" placeholder="Contoh: 0812..." value={localSettings.identitySettings?.phoneNumber || ''} onChange={(e) => handleIdentityChange('phoneNumber', e.target.value)} />
                         </div>
                         <div className="col-span-1">
-                            <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-widest mb-3 ml-1">Kota Asal Konsumen</label>
+                            <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 ml-1">Kota Asal Konsumen</label>
                             <input type="text" className="w-full rounded-2xl border border-border/50 bg-foreground/5 p-4 text-base text-foreground focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-foreground/20" placeholder="Contoh: Jakarta" value={localSettings.identitySettings?.city || ''} onChange={(e) => handleIdentityChange('city', e.target.value)} />
                         </div>
                     </div>
@@ -876,7 +876,7 @@ Akhir:
                                             {model.provider}
                                           </span>
                                         </div>
-                                        <p className="text-sm text-foreground/40 mt-1 font-medium">{model.description}</p>
+                                        <p className="text-sm text-muted-foreground mt-1 font-medium">{model.description}</p>
                                     </div>
                                     {isSelected && (
                                       <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
@@ -922,7 +922,7 @@ Akhir:
                                     <span className={`text-4xl font-black tracking-tighter ${isSelected ? 'text-primary' : 'text-foreground/20'}`}>
                                       {duration}
                                     </span>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-foreground/40">Menit</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Menit</span>
                                     {isSelected && (
                                       <div className="absolute -top-3 -right-3 w-8 h-8 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 z-10">
                                         <Check className="w-4 h-4 text-white" />
@@ -949,7 +949,7 @@ Akhir:
               <div className="flex gap-4">
                 <button
                   onClick={handleClose}
-                  className="px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-foreground/40 hover:bg-foreground/5 transition-all"
+                  className="px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:bg-foreground/5 transition-all"
                 >
                   Batal
                 </button>

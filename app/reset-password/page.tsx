@@ -57,7 +57,7 @@ export default function ResetPasswordPage() {
         {!sessionReady ? (
           <div className="text-center py-12">
             <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-6" />
-            <p className="text-foreground/60 font-medium">Memvalidasi link reset password Anda...</p>
+            <p className="text-muted-foreground font-medium">Memvalidasi link reset password Anda...</p>
           </div>
         ) : success ? (
           <div className="text-center">
@@ -76,7 +76,7 @@ export default function ResetPasswordPage() {
             <p className="text-foreground/50 text-sm text-center mb-8">Masukkan password baru Anda di bawah ini.</p>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40 mb-2 pl-1">Password Baru</label>
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-2 pl-1">Password Baru</label>
                 <input
                   type="password"
                   value={password}
@@ -87,7 +87,7 @@ export default function ResetPasswordPage() {
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40 mb-2 pl-1">Konfirmasi Password</label>
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-2 pl-1">Konfirmasi Password</label>
                 <input
                   type="password"
                   value={confirm}

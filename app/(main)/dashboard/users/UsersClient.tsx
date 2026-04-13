@@ -143,13 +143,13 @@ export default function UsersClient({ user, role, profile }: { user: any, role: 
 
         <div className="p-12 max-w-6xl mx-auto relative z-10 -mt-20">
           <header className="mb-12">
-            <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-foreground/60 hover:text-primary transition-colors mb-6 group">
+            <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors mb-6 group">
               <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Kembali ke Dashboard
             </Link>
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
               <div>
                 <h1 className="text-4xl font-bold tracking-tight mb-2 text-balance">Kelola Pengguna</h1>
-                <p className="text-foreground/60">Manajemen hak akses, persetujuan pendaftaran, dan audit peran pengguna.</p>
+                <p className="text-muted-foreground">Manajemen hak akses, persetujuan pendaftaran, dan audit peran pengguna.</p>
               </div>
               <div className="flex items-center gap-2 bg-card border border-border p-1.5 rounded-2xl shadow-sm">
                 {[
@@ -163,7 +163,7 @@ export default function UsersClient({ user, role, profile }: { user: any, role: 
                     className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
                       activeTab === tab.id 
                         ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' 
-                        : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5'
                     }`}
                   >
                     {tab.label}
@@ -178,7 +178,7 @@ export default function UsersClient({ user, role, profile }: { user: any, role: 
 
           {/* Search */}
           <div className="relative mb-8">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input 
               type="text" 
               placeholder="Cari nama atau email pengguna..." 
@@ -191,14 +191,14 @@ export default function UsersClient({ user, role, profile }: { user: any, role: 
           {/* Users List */}
           <div className="space-y-4">
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-24 text-foreground/40 gap-4">
+              <div className="flex flex-col items-center justify-center py-24 text-muted-foreground gap-4">
                 <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
                 <span className="font-medium">Memproses data pengguna...</span>
               </div>
             ) : filteredUsers.length === 0 ? (
               <div className="text-center py-24 bg-card/30 border border-dashed border-border rounded-3xl">
                 <Users className="w-12 h-12 text-foreground/10 mx-auto mb-4" />
-                <p className="text-foreground/40 font-medium">Tidak ada pengguna ditemukan dalam kategori ini.</p>
+                <p className="text-muted-foreground font-medium">Tidak ada pengguna ditemukan dalam kategori ini.</p>
               </div>
             ) : (
               <AnimatePresence mode="popLayout">
@@ -228,9 +228,9 @@ export default function UsersClient({ user, role, profile }: { user: any, role: 
                           )}
                         </div>
                         <div className="flex items-center gap-3 mt-1">
-                          <span className="text-xs text-foreground/40">ID: {u.id.substring(0,8)}...</span>
+                          <span className="text-xs text-muted-foreground">ID: {u.id.substring(0,8)}...</span>
                           <span className="w-1 h-1 bg-foreground/10 rounded-full" />
-                          <span className="text-xs text-foreground/40">Daftar: {new Date(u.created_at).toLocaleDateString()}</span>
+                          <span className="text-xs text-muted-foreground">Daftar: {new Date(u.created_at).toLocaleDateString()}</span>
                         </div>
                       </div>
                     </div>
@@ -238,7 +238,7 @@ export default function UsersClient({ user, role, profile }: { user: any, role: 
                     <div className="flex flex-wrap items-center gap-4 lg:gap-8">
                       {/* Role Switcher */}
                       <div className="flex flex-col gap-2">
-                        <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-foreground/30 px-1">Peran Akses</span>
+                        <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted-foreground px-1">Peran Akses</span>
                         <div className="flex bg-foreground/5 p-1 rounded-xl border border-border/50">
                           {['Agent', 'Trainer', 'Leader'].map((r) => (
                             <button
@@ -248,7 +248,7 @@ export default function UsersClient({ user, role, profile }: { user: any, role: 
                               className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
                                 u.role?.toLowerCase() === r.toLowerCase()
                                   ? 'bg-primary text-primary-foreground shadow-md' 
-                                  : 'text-foreground/40 hover:text-foreground'
+                                  : 'text-muted-foreground hover:text-foreground'
                               } disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
                               {r}

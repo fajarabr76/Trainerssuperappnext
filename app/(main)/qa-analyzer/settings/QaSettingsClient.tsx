@@ -23,7 +23,7 @@ const CAT_LABEL: Record<Category, string> = {
 const CAT_COLOR: Record<Category, string> = {
   non_critical: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-500/20',
   critical: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/20',
-  none: 'bg-foreground/10 text-foreground/60 border-foreground/20',
+  none: 'bg-foreground/10 text-muted-foreground border-foreground/20',
 };
 
 interface EditState {
@@ -258,7 +258,7 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
                     {CAT_LABEL[ind.category].replace(' Error', '')}
                   </span>
                   {ind.has_na && (
-                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-foreground/5 text-foreground/40 border border-border uppercase tracking-widest flex items-center gap-1">
+                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-foreground/5 text-muted-foreground border border-border uppercase tracking-widest flex items-center gap-1">
                       N/A 
                     </span>
                   )}
@@ -267,14 +267,14 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
                 <button
                   onClick={() => startEdit(ind)}
-                  className="p-2 rounded-xl text-foreground/20 hover:text-primary hover:bg-primary/10 transition-colors"
+                  className="p-2 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                   aria-label="Edit parameter"
                 >
                   <Pencil className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => { setErrorMsg(null); setConfirmDelete(ind); }}
-                  className="p-2 rounded-xl text-foreground/20 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                  className="p-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                   aria-label="Hapus parameter"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -290,7 +290,7 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
               className="px-5 py-6 bg-primary/[0.03] space-y-4 overflow-hidden"
             >
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-[0.1em] text-foreground/40 px-1">Nama Parameter</label>
+                <label className="text-[10px] font-black uppercase tracking-[0.1em] text-muted-foreground px-1">Nama Parameter</label>
                 <input
                   value={editState!.name}
                   onChange={e => setEditState(s => s && ({ ...s, name: e.target.value }))}
@@ -301,7 +301,7 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-[0.1em] text-foreground/40 px-1">Kategori</label>
+                  <label className="text-[10px] font-black uppercase tracking-[0.1em] text-muted-foreground px-1">Kategori</label>
                   {!isNoCategory && (
                     <div className="flex gap-1.5 p-1 bg-foreground/5 rounded-2xl border border-border">
                       {(['non_critical', 'critical'] as Category[]).map(cat => (
@@ -312,7 +312,7 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
                               ? cat === 'critical'
                                 ? 'bg-red-500 text-white border-red-600 shadow-md shadow-red-500/20'
                                 : 'bg-blue-500 text-white border-blue-600 shadow-md shadow-blue-500/20'
-                              : 'bg-transparent text-foreground/40 border-transparent hover:text-foreground/60'
+                              : 'bg-transparent text-muted-foreground border-transparent hover:text-muted-foreground'
                           }`}>
                           {cat === 'critical' ? 'Critical' : 'Non-Crit'}
                         </button>
@@ -320,7 +320,7 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
                     </div>
                   )}
                   {isNoCategory && (
-                    <div className="px-4 py-3 bg-foreground/5 rounded-2xl border border-border text-[10px] font-black uppercase text-foreground/40">
+                    <div className="px-4 py-3 bg-foreground/5 rounded-2xl border border-border text-[10px] font-black uppercase text-muted-foreground">
                       Otomatis: Semua Parameter
                     </div>
                   )}
@@ -332,7 +332,7 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
                   )}
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-[0.1em] text-foreground/40 px-1">
+                  <label className="text-[10px] font-black uppercase tracking-[0.1em] text-muted-foreground px-1">
                     Bobot (%)
                   </label>
                   <div className="relative">
@@ -341,16 +341,16 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
                       onChange={e => setEditState(s => s && ({ ...s, bobot: e.target.value }))}
                       className="w-full pl-4 pr-10 py-3 rounded-2xl border border-border bg-card text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-foreground/30">%</span>
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">%</span>
                   </div>
                   {preview && !isNoCategory && (
-                    <div className="mt-2 text-[9px] font-black uppercase tracking-[0.05em] text-foreground/30 px-1 flex justify-between">
+                    <div className="mt-2 text-[9px] font-black uppercase tracking-[0.05em] text-muted-foreground px-1 flex justify-between">
                       <span>Preview NC: <span className={preview.pNc === 100 ? 'text-green-500' : 'text-amber-500'}>{preview.pNc}%</span></span>
                       <span>Preview CR: <span className={preview.pCr === 100 ? 'text-green-500' : 'text-amber-500'}>{preview.pCr}%</span></span>
                     </div>
                   )}
                   {preview && isNoCategory && (
-                    <div className="mt-2 text-[9px] font-black uppercase tracking-[0.05em] text-foreground/30 px-1">
+                    <div className="mt-2 text-[9px] font-black uppercase tracking-[0.05em] text-muted-foreground px-1">
                       Preview Total: <span className={allValid ? 'text-green-500' : 'text-amber-500'}>{preview.pNc + preview.pCr}%</span>
                     </div>
                   )}
@@ -402,7 +402,7 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
                 <button
                   onClick={cancelEdit}
                   disabled={savingEdit}
-                  className="px-6 py-3.5 bg-foreground/5 hover:bg-foreground/10 text-foreground/40 rounded-2xl text-xs font-black uppercase tracking-widest transition-all"
+                  className="px-6 py-3.5 bg-foreground/5 hover:bg-foreground/10 text-muted-foreground rounded-2xl text-xs font-black uppercase tracking-widest transition-all"
                 >
                   Batal
                 </button>
@@ -429,9 +429,9 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
             <div className="flex items-center gap-2.5">
               <div className={`w-2.5 h-2.5 rounded-full ${color} shadow-sm shadow-current/20`}/>
               <p className="text-sm font-black text-foreground uppercase tracking-wider">{title}</p>
-              <span className="text-[10px] font-bold text-foreground/40 bg-foreground/5 px-2 py-0.5 rounded-full">{list.length}</span>
+              <span className="text-[10px] font-bold text-muted-foreground bg-foreground/5 px-2 py-0.5 rounded-full">{list.length}</span>
             </div>
-            <p className="text-[10px] text-foreground/30 font-bold uppercase tracking-widest mt-1.5 ml-5">
+            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1.5 ml-5">
               {isWeighted ? 'Kontribusi ke skor akhir' : 'Bobot langsung ke skor akhir'}
             </p>
           </div>
@@ -460,7 +460,7 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
               <div className="w-12 h-12 bg-foreground/5 rounded-2xl flex items-center justify-center mx-auto mb-3 opacity-20">
                 <Settings className="w-6 h-6" />
               </div>
-              <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Belum ada parameter</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Belum ada parameter</p>
             </div>
           ) : (
             list.map((ind, i) => <IndicatorRow key={ind.id} ind={ind} idx={i}/>)
@@ -478,7 +478,7 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setIsMobileMenuOpen(true)}
-              className="lg:hidden p-2 rounded-lg hover:bg-foreground/5 text-foreground/60"
+              className="lg:hidden p-2 rounded-lg hover:bg-foreground/5 text-muted-foreground"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -514,7 +514,7 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
                 className={`flex-none px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
                   activeTeam === team
                     ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                    : 'text-foreground/40 hover:text-foreground/60 hover:bg-foreground/5'
+                    : 'text-muted-foreground hover:text-muted-foreground hover:bg-foreground/5'
                 }`}>
                 {SERVICE_LABELS[team] || team}
               </button>
@@ -603,7 +603,7 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
                   </button>
                   <button 
                     onClick={() => setEditingWeight(false)}
-                    className="px-6 py-3 bg-foreground/5 text-foreground/40 rounded-2xl text-[10px] font-black uppercase tracking-widest"
+                    className="px-6 py-3 bg-foreground/5 text-muted-foreground rounded-2xl text-[10px] font-black uppercase tracking-widest"
                   >
                     Batal
                   </button>
@@ -617,17 +617,17 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
                       <p className="text-[9px] font-black uppercase tracking-widest text-blue-500 mb-2">Non-Critical</p>
                       <div className="flex items-baseline gap-1.5">
                         <span className={`text-2xl font-black ${ncValid ? 'text-foreground' : 'text-amber-500'}`}>{Math.round(ncTotal * 100)}%</span>
-                        <span className="text-[10px] font-bold text-foreground/30">/ 100%</span>
+                        <span className="text-[10px] font-bold text-muted-foreground">/ 100%</span>
                       </div>
-                      <p className="text-[9px] font-bold text-foreground/40 mt-2 uppercase tracking-tight">Kontribusi {Math.round(activeWeight.non_critical_weight * 100)}% skor akhir</p>
+                      <p className="text-[9px] font-bold text-muted-foreground mt-2 uppercase tracking-tight">Kontribusi {Math.round(activeWeight.non_critical_weight * 100)}% skor akhir</p>
                     </div>
                     <div className="bg-card rounded-2xl p-4 border border-border shadow-sm">
                       <p className="text-[9px] font-black uppercase tracking-widest text-red-500 mb-2">Critical</p>
                       <div className="flex items-baseline gap-1.5">
                         <span className={`text-2xl font-black ${crValid ? 'text-foreground' : 'text-amber-500'}`}>{Math.round(crTotal * 100)}%</span>
-                        <span className="text-[10px] font-bold text-foreground/30">/ 100%</span>
+                        <span className="text-[10px] font-bold text-muted-foreground">/ 100%</span>
                       </div>
-                      <p className="text-[9px] font-bold text-foreground/40 mt-2 uppercase tracking-tight">Kontribusi {Math.round(activeWeight.critical_weight * 100)}% skor akhir</p>
+                      <p className="text-[9px] font-bold text-muted-foreground mt-2 uppercase tracking-tight">Kontribusi {Math.round(activeWeight.critical_weight * 100)}% skor akhir</p>
                     </div>
                   </>
                 )}
@@ -644,7 +644,7 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
                         CR {Math.round(crTotal * 100)}%
                       </div>
                     </div>
-                    <p className="text-[9px] font-bold text-foreground/40 uppercase tracking-widest text-center">
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest text-center">
                       Bobot Langsung ke Skor Akhir — Total harus 100%
                     </p>
                   </div>
@@ -652,12 +652,12 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
 
                 {isNoCategory && (
                   <div className="col-span-2 bg-card rounded-2xl p-4 border border-border shadow-sm">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-foreground/40 mb-2">Semua Parameter</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-2">Semua Parameter</p>
                     <div className="flex items-baseline gap-1.5">
                       <span className={`text-2xl font-black ${allValid ? 'text-foreground' : 'text-amber-500'}`}>{Math.round(allTotal * 100)}%</span>
-                      <span className="text-[10px] font-bold text-foreground/30">/ 100%</span>
+                      <span className="text-[10px] font-bold text-muted-foreground">/ 100%</span>
                     </div>
-                    <p className="text-[9px] font-bold text-foreground/40 mt-2 uppercase tracking-tight">Tidak menggunakan kategori Critical / Non-Critical</p>
+                    <p className="text-[9px] font-bold text-muted-foreground mt-2 uppercase tracking-tight">Tidak menggunakan kategori Critical / Non-Critical</p>
                   </div>
                 )}
               </div>
@@ -675,7 +675,7 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
                 <p className="text-sm font-black text-foreground uppercase tracking-widest">Tambah Parameter Baru</p>
                 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-foreground/40 px-1">Nama Parameter</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Nama Parameter</label>
                   <input
                     value={newName}
                     onChange={e => setNewName(e.target.value)}
@@ -687,7 +687,7 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
                 <div className="grid grid-cols-2 gap-4">
                   {!isNoCategory && (
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-foreground/40 px-1">Kategori</label>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Kategori</label>
                       <select
                         value={newCategory}
                         onChange={e => setNewCategory(e.target.value as Category)}
@@ -700,21 +700,21 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
                   )}
                   {isNoCategory && (
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-foreground/40 px-1">Kategori</label>
-                      <div className="w-full px-4 py-3.5 rounded-2xl border border-border bg-foreground/[0.1] text-xs font-black uppercase tracking-widest text-foreground/40 flex items-center">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Kategori</label>
+                      <div className="w-full px-4 py-3.5 rounded-2xl border border-border bg-foreground/[0.1] text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center">
                         Semua Parameter
                       </div>
                     </div>
                   )}
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-foreground/40 px-1">Bobot (%)</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">Bobot (%)</label>
                     <div className="relative">
                       <input
                         type="number" min={1} max={100} value={newBobot}
                         onChange={e => setNewBobot(e.target.value)}
                         className="w-full pl-4 pr-10 py-3.5 rounded-2xl border border-border bg-foreground/[0.02] text-sm font-black focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                       />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-foreground/30">%</span>
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">%</span>
                     </div>
                   </div>
                 </div>
@@ -731,7 +731,7 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
                   </div>
                   <div>
                     <p className="text-xs font-black uppercase tracking-widest text-foreground/70">Dapat Dikecualikan (N/A)</p>
-                    <p className="text-[10px] text-foreground/40 font-bold uppercase tracking-tight mt-0.5">Bisa dilewati jika tidak berlaku dalam sesi</p>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight mt-0.5">Bisa dilewati jika tidak berlaku dalam sesi</p>
                   </div>
                 </button>
 
@@ -751,7 +751,7 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
                   <button
                     onClick={() => { setShowForm(false); setErrorMsg(null); }}
                     disabled={saving}
-                    className="px-6 py-4 bg-foreground/5 hover:bg-foreground/10 text-foreground/40 rounded-2xl text-xs font-black uppercase tracking-widest transition-all"
+                    className="px-6 py-4 bg-foreground/5 hover:bg-foreground/10 text-muted-foreground rounded-2xl text-xs font-black uppercase tracking-widest transition-all"
                   >
                     Batal
                   </button>
@@ -794,11 +794,11 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
               </div>
               <h3 className="text-xl font-black text-foreground text-center mb-3">Hapus Parameter?</h3>
               <div className="px-6 py-3 bg-foreground/5 rounded-2xl mx-auto w-full mb-5 border border-border/50">
-                 <p className="text-[11px] font-black text-foreground/60 uppercase tracking-[0.15em] text-center leading-relaxed">
+                 <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.15em] text-center leading-relaxed">
                   {confirmDelete.name}
                 </p>
               </div>
-              <p className="text-xs text-foreground/40 text-center mb-8 font-medium leading-relaxed px-2">
+              <p className="text-xs text-muted-foreground text-center mb-8 font-medium leading-relaxed px-2">
                 Parameter yang sudah memiliki data temuan di periode manapun <strong>tidak dapat dihapus</strong>. Pastikan tidak ada data terkait sebelum melanjutkan.
               </p>
               <div className="flex flex-col gap-2.5">

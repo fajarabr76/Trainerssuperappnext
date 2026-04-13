@@ -257,10 +257,10 @@ export default function ProfilerLandingClient({
             <div className="h-full flex items-center justify-center text-center p-6">
               <div className="max-w-xs">
                 <div className="w-20 h-20 rounded-3xl bg-foreground/5 flex items-center justify-center mx-auto mb-6">
-                  <FolderOpen className="w-10 h-10 text-foreground/20" />
+                  <FolderOpen className="w-10 h-10 text-muted-foreground" />
                 </div>
                 <h3 className="text-xl font-bold mb-2">Pilih Batch</h3>
-                <p className="text-sm text-foreground/40 font-light">Silakan pilih atau buat batch baru di panel sebelah kiri untuk mengelola data agen.</p>
+                <p className="text-sm text-muted-foreground font-light">Silakan pilih atau buat batch baru di panel sebelah kiri untuk mengelola data agen.</p>
               </div>
             </div>
           ) : (
@@ -270,13 +270,13 @@ export default function ProfilerLandingClient({
                   <div className="flex items-center gap-4 mb-2">
                     <h2 className="text-3xl font-bold tracking-tight">{selectedBatch}</h2>
                     {count > 0 && (
-                      <span className="px-3 py-1 bg-foreground/5 text-foreground/60 text-[10px] font-bold uppercase tracking-widest rounded-full border border-border flex items-center gap-2">
+                      <span className="px-3 py-1 bg-foreground/5 text-muted-foreground text-[10px] font-bold uppercase tracking-widest rounded-full border border-border flex items-center gap-2">
                         {loadingPeserta ? <Loader2 size={10} className="animate-spin" /> : null}
                         {count} Agen
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-foreground/40 font-light">
+                  <p className="text-sm text-muted-foreground font-light">
                     {count > 0 
                       ? 'Kelola profil, tim, dan ekspor data secara efisien.' 
                       : 'Batch ini kosong. Tambahkan data agen di bawah.'}
@@ -307,7 +307,7 @@ export default function ProfilerLandingClient({
                 <section className="mb-8">
                   <div className="flex items-center gap-3 mb-4 px-1">
                     <div className="w-1 h-3 bg-primary rounded-full" />
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40">Manajemen Data</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Manajemen Data</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <ActionCard
@@ -334,7 +334,7 @@ export default function ProfilerLandingClient({
               <section className={`transition-all duration-500 mb-8 ${!hasPeserta ? 'opacity-30 grayscale pointer-events-none' : ''}`}>
                 <div className="flex items-center gap-3 mb-4 px-1">
                   <div className="w-1 h-3 bg-primary rounded-full" />
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40"> Analisis & Ekspor </p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"> Analisis & Ekspor </p>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <ActionCard
@@ -376,13 +376,13 @@ export default function ProfilerLandingClient({
                 <section className="mt-2 mb-8">
                   <div className="flex items-center gap-3 mb-4 px-1">
                     <div className="w-1 h-3 bg-foreground/20 rounded-full" />
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40">Konfigurasi</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Konfigurasi</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <ActionCard
                       icon={<Settings2 className="w-5 h-5" />}
                       iconBg="bg-foreground/10"
-                      iconColor="text-foreground/60"
+                      iconColor="text-muted-foreground"
                       title="Manajemen Tim"
                       desc="Kustomisasi daftar tim."
                       onClick={() => router.push('/profiler/teams')}
@@ -414,13 +414,13 @@ export default function ProfilerLandingClient({
                           ) : (
                             <>
                               <span className="text-2xl font-bold text-primary">{nearestBirthday.days}</span>
-                              <span className="text-[10px] text-foreground/40 font-light">hari lagi</span>
+                              <span className="text-[10px] text-muted-foreground font-light">hari lagi</span>
                             </>
                           )}
                         </div>
                       </>
                     ) : (
-                      <p className="text-xs text-foreground/40 font-light">Data tidak tersedia</p>
+                      <p className="text-xs text-muted-foreground font-light">Data tidak tersedia</p>
                     )}
                   </button>
                 </div>

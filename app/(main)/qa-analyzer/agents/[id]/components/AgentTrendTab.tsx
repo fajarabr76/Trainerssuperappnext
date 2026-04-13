@@ -36,7 +36,7 @@ export default function AgentTrendTab({
       <div className="bg-card/40 backdrop-blur-sm rounded-[2.5rem] border border-border/50 p-10 animate-pulse h-[550px] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-          <p className="text-[10px] font-black uppercase tracking-widest text-foreground/20">Analyzing Performance History...</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Analyzing Performance History...</p>
         </div>
       </div>
     );
@@ -46,11 +46,11 @@ export default function AgentTrendTab({
     <div className="bg-card/40 backdrop-blur-sm rounded-[2.5rem] border border-border/50 p-10 shadow-2xl shadow-primary/5">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-10 gap-6">
         <div>
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-foreground/30 mb-2">
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mb-2">
             <TrendingUp className="w-3.5 h-3.5" /> Performance Analytics
           </div>
           <h3 className="text-3xl font-black tracking-tighter">Personal Scoring Trend</h3>
-          <p className="text-[10px] text-foreground/20 font-bold mt-2 uppercase tracking-widest">Aggregate historical data & all audited parameters</p>
+          <p className="text-[10px] text-muted-foreground font-bold mt-2 uppercase tracking-widest">Aggregate historical data & all audited parameters</p>
         </div>
         <div className="flex p-1.5 bg-foreground/5 dark:bg-foreground/[0.03] border border-border/50 rounded-2xl w-fit shadow-inner">
           {(['3m', '6m', 'all'] as const).map((tf) => (
@@ -60,7 +60,7 @@ export default function AgentTrendTab({
               className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
                 timeframe === tf 
                   ? 'bg-primary text-white shadow-xl shadow-primary/20' 
-                  : 'text-foreground/40 hover:text-foreground/60 hover:bg-foreground/5'
+                  : 'text-muted-foreground hover:text-muted-foreground hover:bg-foreground/5'
               }`}
             >
               {tf === '3m' ? '3 Months' : tf === '6m' ? '6 Months' : 'All Time'}
@@ -77,7 +77,7 @@ export default function AgentTrendTab({
               className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all duration-500 border-2 ${
                 activeTrendFilter === 'all' 
                   ? 'bg-primary border-primary text-white shadow-xl shadow-primary/20 scale-105' 
-                  : 'bg-card/40 border-border/50 text-foreground/40 hover:border-foreground/20 hover:text-foreground/60'
+                  : 'bg-card/40 border-border/50 text-muted-foreground hover:border-foreground/20 hover:text-muted-foreground'
               }`}
             >
               Overall Trend
@@ -93,7 +93,7 @@ export default function AgentTrendTab({
                   className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all duration-500 border-2 flex items-center gap-2 ${
                     isActive 
                       ? 'bg-primary border-primary text-white shadow-xl shadow-primary/20 scale-105' 
-                      : 'bg-card/40 border-border/50 text-foreground/40 hover:border-foreground/20 hover:text-foreground/60'
+                      : 'bg-card/40 border-border/50 text-muted-foreground hover:border-foreground/20 hover:text-muted-foreground'
                   }`}
                 >
                   <div 
@@ -106,7 +106,7 @@ export default function AgentTrendTab({
             })}
           </div>
 
-          <div className="h-[400px] w-full relative">
+          <div className="h-[400px] w-full relative rounded-[2rem] border border-border/40 bg-background/60 dark:bg-white/[0.04] p-3 shadow-inner">
             <ParamTrendChart 
               data={personalTrend} 
               filterLabel={activeTrendFilter} 
@@ -116,10 +116,10 @@ export default function AgentTrendTab({
           
           <div className="mt-10 pt-10 border-t border-border/50 grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="p-6 rounded-3xl bg-foreground/[0.02] border border-border/30">
-              <p className="text-[10px] font-black uppercase tracking-widest text-foreground/30 mb-4">Volume Activity</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4">Volume Activity</p>
               <div className="flex items-baseline gap-2">
                 <span className="text-3xl font-black tracking-tight">{personalTrend.labels.length}</span>
-                <span className="text-[10px] font-bold text-foreground/20 uppercase tracking-widest">Active Periods</span>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Active Periods</span>
               </div>
             </div>
             <div className="md:col-span-2 p-6 rounded-3xl bg-primary/5 border border-primary/10 flex items-center gap-6">

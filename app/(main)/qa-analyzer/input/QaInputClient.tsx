@@ -108,10 +108,10 @@ function IndicatorDropdown({ value, indicators, open, onToggle, onSelect, scorin
         className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-sm text-left transition-all ${
           open ? 'border-primary ring-2 ring-primary/20' : 'border-border'
         } bg-card text-foreground`}>
-        <span className={selected ? 'text-foreground' : 'text-foreground/40'}>
+        <span className={selected ? 'text-foreground' : 'text-muted-foreground'}>
           {selected ? `${selected.name} (${Math.round(selected.bobot * 100)}%)` : '— Pilih parameter —'}
         </span>
-        <ChevronRight className={`w-4 h-4 text-foreground/40 transition-transform flex-shrink-0 ${open ? 'rotate-90' : ''}`} />
+        <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform flex-shrink-0 ${open ? 'rotate-90' : ''}`} />
       </button>
 
       {open && (
@@ -128,7 +128,7 @@ function IndicatorDropdown({ value, indicators, open, onToggle, onSelect, scorin
                     value === ind.id ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-foreground/5'
                   }`}>
                   <span>{ind.name}</span>
-                  <span className={`text-[10px] font-bold ml-2 flex-shrink-0 ${value === ind.id ? 'text-primary-foreground/70' : 'text-foreground/40'}`}>{Math.round(ind.bobot * 100)}%</span>
+                  <span className={`text-[10px] font-bold ml-2 flex-shrink-0 ${value === ind.id ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{Math.round(ind.bobot * 100)}%</span>
                 </button>
               ))
             ) : (
@@ -142,7 +142,7 @@ function IndicatorDropdown({ value, indicators, open, onToggle, onSelect, scorin
                       value === ind.id ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-foreground/5'
                     }`}>
                     <span>{ind.name}</span>
-                    <span className={`text-[10px] font-bold ml-2 flex-shrink-0 ${value === ind.id ? 'text-primary-foreground/70' : 'text-foreground/40'}`}>{Math.round(ind.bobot * 100)}%</span>
+                    <span className={`text-[10px] font-bold ml-2 flex-shrink-0 ${value === ind.id ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{Math.round(ind.bobot * 100)}%</span>
                   </button>
                 ))}
                 <div className="px-3 py-1.5 bg-red-500/10 border-t border-b border-border sticky top-[33px]">
@@ -154,7 +154,7 @@ function IndicatorDropdown({ value, indicators, open, onToggle, onSelect, scorin
                       value === ind.id ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-foreground/5'
                     }`}>
                     <span>{ind.name}</span>
-                    <span className={`text-[10px] font-bold ml-2 flex-shrink-0 ${value === ind.id ? 'text-primary-foreground/70' : 'text-foreground/40'}`}>{Math.round(ind.bobot * 100)}%</span>
+                    <span className={`text-[10px] font-bold ml-2 flex-shrink-0 ${value === ind.id ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{Math.round(ind.bobot * 100)}%</span>
                   </button>
                 ))}
               </>
@@ -626,14 +626,14 @@ export default function QaInputClient({
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden bg-background">
         <header className="h-16 flex items-center justify-between px-4 lg:px-8 bg-card/50 backdrop-blur-xl border-b border-border sticky top-0 z-30">
           <div className="flex items-center gap-4">
-            <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2 rounded-lg hover:bg-foreground/5 text-foreground/60">
+            <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2 rounded-lg hover:bg-foreground/5 text-muted-foreground">
               <Menu className="w-5 h-5" />
             </button>
             <h1 className="text-lg font-bold text-foreground">Input Temuan SIDAK</h1>
           </div>
           <div className="flex items-center gap-3">
             {mounted && (
-              <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-2 rounded-full hover:bg-foreground/5 text-foreground/60 transition-colors">
+              <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-2 rounded-full hover:bg-foreground/5 text-muted-foreground transition-colors">
                 {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </button>
             )}
@@ -644,9 +644,9 @@ export default function QaInputClient({
           <div className="max-w-2xl mx-auto space-y-6">
             <div className="flex items-center gap-1.5 text-xs flex-wrap">
               <button onClick={() => resetToStep('folder')} className={`font-semibold ${step === 'folder' ? 'text-primary' : 'text-primary/60'}`}>Folder</button>
-              {selectedFolder && (<><ChevronRight className="w-3 h-3 text-foreground/20" /><button onClick={() => resetToStep('agent')} className={`font-semibold ${step === 'agent' ? 'text-primary' : 'text-primary/60'}`}>{selectedFolder}</button></>)}
-              {selectedAgent  && (<><ChevronRight className="w-3 h-3 text-foreground/20" /><button onClick={() => resetToStep('period')} className={`font-semibold ${step === 'period' ? 'text-primary' : 'text-primary/60'}`}>{selectedAgent.nama}</button></>)}
-              {selectedPeriod && (<><ChevronRight className="w-3 h-3 text-foreground/20" /><span className="font-semibold text-primary">{MONTHS[selectedPeriod.month - 1]} {selectedPeriod.year}</span></>)}
+              {selectedFolder && (<><ChevronRight className="w-3 h-3 text-muted-foreground" /><button onClick={() => resetToStep('agent')} className={`font-semibold ${step === 'agent' ? 'text-primary' : 'text-primary/60'}`}>{selectedFolder}</button></>)}
+              {selectedAgent  && (<><ChevronRight className="w-3 h-3 text-muted-foreground" /><button onClick={() => resetToStep('period')} className={`font-semibold ${step === 'period' ? 'text-primary' : 'text-primary/60'}`}>{selectedAgent.nama}</button></>)}
+              {selectedPeriod && (<><ChevronRight className="w-3 h-3 text-muted-foreground" /><span className="font-semibold text-primary">{MONTHS[selectedPeriod.month - 1]} {selectedPeriod.year}</span></>)}
             </div>
 
             {errorMsg && (
@@ -671,7 +671,7 @@ export default function QaInputClient({
                     <button key={f} onClick={() => handleSelectFolder(f)} className="flex items-center gap-4 px-5 py-4 bg-card border border-border hover:border-primary/40 rounded-2xl text-left transition-all group">
                       <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><FolderOpen className="w-5 h-5 text-primary"/></div>
                       <span className="flex-1 font-semibold">{f}</span>
-                      <ChevronRight className="w-5 h-5 text-foreground/20 group-hover:text-primary"/>
+                      <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary"/>
                     </button>
                   ))}
                 </div>
@@ -685,8 +685,8 @@ export default function QaInputClient({
                   {agents.map(agent => (
                     <button key={agent.id} onClick={() => handleSelectAgent(agent)} className="flex items-center gap-4 px-5 py-4 bg-card border border-border hover:border-primary/40 rounded-2xl text-left transition-all group">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0"><span className="font-black text-primary">{agent.nama.charAt(0)}</span></div>
-                      <div className="flex-1 min-w-0"><p className="font-semibold truncate">{agent.nama}</p><p className="text-xs text-foreground/40">{agent.tim}</p></div>
-                      <ChevronRight className="w-5 h-5 text-foreground/20 group-hover:text-primary"/>
+                      <div className="flex-1 min-w-0"><p className="font-semibold truncate">{agent.nama}</p><p className="text-xs text-muted-foreground">{agent.tim}</p></div>
+                      <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary"/>
                     </button>
                   ))}
                 </div>
@@ -700,8 +700,8 @@ export default function QaInputClient({
                   {periods.map(p => (
                     <button key={p.id} onClick={() => handleSelectPeriod(p)} className="flex items-center gap-4 px-5 py-4 bg-card border border-border hover:border-primary/40 rounded-2xl text-left transition-all group">
                       <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0"><span className="font-black text-primary">{String(p.month).padStart(2,'0')}</span></div>
-                      <div className="flex-1"><p className="font-semibold">{MONTHS[p.month-1]}</p><p className="text-xs text-foreground/40">{p.year}</p></div>
-                      <ChevronRight className="w-5 h-5 text-foreground/20 group-hover:text-primary"/>
+                      <div className="flex-1"><p className="font-semibold">{MONTHS[p.month-1]}</p><p className="text-xs text-muted-foreground">{p.year}</p></div>
+                      <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary"/>
                     </button>
                   ))}
                 </div>
@@ -712,11 +712,11 @@ export default function QaInputClient({
               <div className="space-y-6">
                 {/* ── Layanan & Tim Dropdowns ─────────────────── */}
                 <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
-                  <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider mb-4">Konfigurasi Audit</p>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">Konfigurasi Audit</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Layanan Dropdown */}
                     <div>
-                      <label className="text-xs font-semibold text-foreground/60 mb-1.5 block">Layanan Audit</label>
+                      <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Layanan Audit</label>
                       <select
                         value={selectedService}
                         onChange={(e) => handleServiceChange(e.target.value as ServiceType)}
@@ -730,7 +730,7 @@ export default function QaInputClient({
                     </div>
                     {/* Tim Dropdown */}
                     <div>
-                      <label className="text-xs font-semibold text-foreground/60 mb-1.5 block">Tim Agent</label>
+                      <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Tim Agent</label>
                       <select
                         value={selectedTeam}
                         onChange={(e) => setSelectedTeam(e.target.value)}
@@ -748,8 +748,8 @@ export default function QaInputClient({
                   <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                       <div>
-                        <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider">Estimasi Skor ({activeWeight.scoring_mode.replace('_', ' ')})</p>
-                        <p className="text-xs text-foreground/60 mt-0.5">{selectedAgent.nama} · {MONTHS[selectedPeriod.month-1]} {selectedPeriod.year}</p>
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Estimasi Skor ({activeWeight.scoring_mode.replace('_', ' ')})</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{selectedAgent.nama} · {MONTHS[selectedPeriod.month-1]} {selectedPeriod.year}</p>
                       </div>
                       <div className="text-right">
                         <p className={`text-4xl font-black ${scoreColor(liveScore.finalScore)}`}>{liveScore.finalScore.toFixed(1)}</p>
@@ -769,16 +769,16 @@ export default function QaInputClient({
                       </div>
                     ) : activeWeight.scoring_mode === 'flat' ? (
                       <div className="bg-primary/5 rounded-xl p-4 mb-4 border border-primary/10">
-                        <div className="flex justify-between items-center mb-1 text-[10px] font-black uppercase text-foreground/40">
+                        <div className="flex justify-between items-center mb-1 text-[10px] font-black uppercase text-muted-foreground">
                           <span>Sistem Penilaian Flat</span>
                           <span>{Math.round(activeWeight.non_critical_weight * 100)}% NC + {Math.round(activeWeight.critical_weight * 100)}% CR</span>
                         </div>
-                        <p className="text-xs font-bold text-foreground/60 leading-relaxed text-center">Skor dihitung langsung dari total bobot parameter yang terpenuhi.</p>
+                        <p className="text-xs font-bold text-muted-foreground leading-relaxed text-center">Skor dihitung langsung dari total bobot parameter yang terpenuhi.</p>
                       </div>
                     ) : (
                       <div className="bg-foreground/5 rounded-xl p-4 mb-4 border border-border/50">
-                        <p className="text-[10px] font-black uppercase text-foreground/40 text-center mb-1">Mode No Category (BKO)</p>
-                        <p className="text-xs font-bold text-foreground/60 text-center leading-relaxed">Semua parameter memiliki derajat yang sama tanpa pemisahan kategori.</p>
+                        <p className="text-[10px] font-black uppercase text-muted-foreground text-center mb-1">Mode No Category (BKO)</p>
+                        <p className="text-xs font-bold text-muted-foreground text-center leading-relaxed">Semua parameter memiliki derajat yang sama tanpa pemisahan kategori.</p>
                       </div>
                     )}
                     <div className="h-2.5 bg-foreground/5 rounded-full overflow-hidden"><div className={`h-full rounded-full transition-all ${scoreBg(liveScore.finalScore)}`} style={{width:`${liveScore.finalScore}%`}}/></div>
@@ -786,7 +786,7 @@ export default function QaInputClient({
                 )}
 
                 <div className="flex items-center justify-between">
-                  <div><h3 className="font-bold">Daftar Temuan</h3><p className="text-xs text-foreground/40">{temuan.length} temuan · {groupedTemuan.length} sesi</p></div>
+                  <div><h3 className="font-bold">Daftar Temuan</h3><p className="text-xs text-muted-foreground">{temuan.length} temuan · {groupedTemuan.length} sesi</p></div>
                   {!showForm && !showImport && (() => {
                     const hasBadFindings = temuan.some(t => t.nilai < 3);
                     return (
@@ -807,11 +807,11 @@ export default function QaInputClient({
                   <div className="bg-card rounded-2xl border border-primary/20 overflow-hidden shadow-xl">
                     <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-primary/5">
                       <div className="flex items-center gap-2"><FileSpreadsheet className="w-5 h-5 text-primary"/><p className="font-bold">Import dari Excel</p></div>
-                      <button onClick={() => { setShowImport(false); setImportRows([]); setImportFile(null); }} className="p-2 rounded-lg hover:bg-foreground/5 text-foreground/40"><X className="w-5 h-5"/></button>
+                      <button onClick={() => { setShowImport(false); setImportRows([]); setImportFile(null); }} className="p-2 rounded-lg hover:bg-foreground/5 text-muted-foreground"><X className="w-5 h-5"/></button>
                     </div>
                     <div className="flex border-b border-border">
                       {(['download', 'upload'] as const).map(tab => (
-                        <button key={tab} onClick={() => setImportTab(tab)} className={`flex-1 py-3 text-xs font-bold transition-colors ${importTab === tab ? 'text-primary border-b-2 border-primary' : 'text-foreground/40 hover:text-foreground'}`}>
+                        <button key={tab} onClick={() => setImportTab(tab)} className={`flex-1 py-3 text-xs font-bold transition-colors ${importTab === tab ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground'}`}>
                           {tab === 'download' ? 'Download Template' : 'Upload & Preview'}
                         </button>
                       ))}
@@ -819,14 +819,14 @@ export default function QaInputClient({
                     <div className="p-6 space-y-6">
                       {importTab === 'download' ? (
                         <div className="space-y-4">
-                          <div className="bg-blue-500/10 rounded-2xl p-4 border border-blue-500/20"><p className="text-xs font-bold text-blue-500 mb-2">Cara menggunakan template</p><ul className="space-y-1.5 text-xs text-foreground/60"><li className="flex items-start gap-2"><span className="font-black mt-0.5">·</span>Sheet <strong>Input Temuan</strong>: isi no. tiket, pilih parameter, isi nilai 0–3</li><li className="flex items-start gap-2"><span className="font-black mt-0.5">·</span>Parameter dengan nilai 3 (Sesuai) tidak perlu diisi</li></ul></div>
+                          <div className="bg-blue-500/10 rounded-2xl p-4 border border-blue-500/20"><p className="text-xs font-bold text-blue-500 mb-2">Cara menggunakan template</p><ul className="space-y-1.5 text-xs text-muted-foreground"><li className="flex items-start gap-2"><span className="font-black mt-0.5">·</span>Sheet <strong>Input Temuan</strong>: isi no. tiket, pilih parameter, isi nilai 0–3</li><li className="flex items-start gap-2"><span className="font-black mt-0.5">·</span>Parameter dengan nilai 3 (Sesuai) tidak perlu diisi</li></ul></div>
                           <button onClick={() => generateTemplate(indicators, selectedAgent?.nama ?? 'Agent', periodLabel, activeWeight)} className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg shadow-primary/20"><Download className="w-5 h-5"/>Download Template</button>
                         </div>
                       ) : (
                         <div className="space-y-4">
                           <label className={`flex flex-col items-center justify-center gap-4 py-12 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${importFile ? 'border-primary/40 bg-primary/5' : 'border-border hover:border-primary/30'}`}>
                             <input type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileChange}/>
-                            {parsing ? <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin"/> : importFile ? <><FileSpreadsheet className="w-10 h-10 text-primary"/><div className="text-center"><p className="font-semibold">{importFile.name}</p><p className="text-xs text-foreground/40 mt-1">Klik untuk ganti file</p></div></> : <><Upload className="w-10 h-10 text-foreground/20"/><div className="text-center"><p className="font-semibold text-foreground/60">Pilih file Excel</p><p className="text-xs text-foreground/40 mt-1">.xlsx atau .xls</p></div></>}
+                            {parsing ? <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin"/> : importFile ? <><FileSpreadsheet className="w-10 h-10 text-primary"/><div className="text-center"><p className="font-semibold">{importFile.name}</p><p className="text-xs text-muted-foreground mt-1">Klik untuk ganti file</p></div></> : <><Upload className="w-10 h-10 text-muted-foreground"/><div className="text-center"><p className="font-semibold text-muted-foreground">Pilih file Excel</p><p className="text-xs text-muted-foreground mt-1">.xlsx atau .xls</p></div></>}
                           </label>
                           {importRows.length > 0 && (
                             <div className="space-y-4">
@@ -837,7 +837,7 @@ export default function QaInputClient({
                               <div className="rounded-2xl border border-border overflow-hidden max-h-60 overflow-y-auto">
                                 {importRows.map(row => (
                                   <div key={row.rowNum} className={`px-4 py-3 border-b border-border last:border-0 ${row.errors.length > 0 ? 'bg-red-500/5' : ''}`}>
-                                    <div className="flex items-start gap-3"><span className="text-[10px] font-mono text-foreground/20 mt-0.5 w-6">R{row.rowNum}</span><div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap">{row.no_tiket && <span className="text-[10px] font-mono font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">{row.no_tiket}</span>}<span className="text-xs font-semibold truncate">{row.paramName || '—'}</span>{row.nilai !== null && <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded text-white ${NILAI_BADGE[row.nilai]}`}>{row.nilai}</span>}</div>{row.errors.length > 0 && <p className="text-[10px] text-red-500 mt-1">{row.errors.join('; ')}</p>}</div><span className={`text-[10px] font-bold ${row.errors.length > 0 ? 'text-red-500' : 'text-green-500'}`}>{row.errors.length > 0 ? '✗' : '✓'}</span></div>
+                                    <div className="flex items-start gap-3"><span className="text-[10px] font-mono text-muted-foreground mt-0.5 w-6">R{row.rowNum}</span><div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap">{row.no_tiket && <span className="text-[10px] font-mono font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">{row.no_tiket}</span>}<span className="text-xs font-semibold truncate">{row.paramName || '—'}</span>{row.nilai !== null && <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded text-white ${NILAI_BADGE[row.nilai]}`}>{row.nilai}</span>}</div>{row.errors.length > 0 && <p className="text-[10px] text-red-500 mt-1">{row.errors.join('; ')}</p>}</div><span className={`text-[10px] font-bold ${row.errors.length > 0 ? 'text-red-500' : 'text-green-500'}`}>{row.errors.length > 0 ? '✗' : '✓'}</span></div>
                                   </div>
                                 ))}
                               </div>
@@ -852,26 +852,26 @@ export default function QaInputClient({
 
                 {showForm && (
                   <div className="bg-card rounded-2xl border border-primary/20 overflow-hidden shadow-xl">
-                    <div className="px-6 py-4 border-b border-border bg-primary/5"><p className="font-bold">Temuan Baru</p><p className="text-xs text-foreground/40 mt-0.5">Satu tiket bisa memiliki beberapa temuan</p></div>
+                    <div className="px-6 py-4 border-b border-border bg-primary/5"><p className="font-bold">Temuan Baru</p><p className="text-xs text-muted-foreground mt-0.5">Satu tiket bisa memiliki beberapa temuan</p></div>
                     <div className="p-6 space-y-6">
-                      <div><label className="text-xs font-bold text-foreground/40 mb-2 block uppercase tracking-wider">No. Tiket</label><input value={noTiket} onChange={e => setNoTiket(e.target.value)} placeholder="Contoh: L202503001" className="w-full px-4 py-3 rounded-xl border border-border bg-foreground/5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"/></div>
+                      <div><label className="text-xs font-bold text-muted-foreground mb-2 block uppercase tracking-wider">No. Tiket</label><input value={noTiket} onChange={e => setNoTiket(e.target.value)} placeholder="Contoh: L202503001" className="w-full px-4 py-3 rounded-xl border border-border bg-foreground/5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"/></div>
                       <div className="space-y-4">
                         {entries.map((entry, idx) => (
                           <div key={entry.uid} className="rounded-2xl border border-border overflow-visible bg-foreground/[0.02]">
-                            <div className="flex items-center justify-between px-4 py-3 border-b border-border"><p className="text-xs font-bold text-foreground/40 uppercase">Parameter {idx + 1}</p>{entries.length > 1 && <button onClick={() => setEntries(prev => prev.filter(e => e.uid !== entry.uid))} className="text-foreground/20 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-500/10"><Trash2 className="w-4 h-4"/></button>}</div>
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-border"><p className="text-xs font-bold text-muted-foreground uppercase">Parameter {idx + 1}</p>{entries.length > 1 && <button onClick={() => setEntries(prev => prev.filter(e => e.uid !== entry.uid))} className="text-muted-foreground hover:text-red-500 p-1.5 rounded-lg hover:bg-red-500/10"><Trash2 className="w-4 h-4"/></button>}</div>
                             <div className="p-4 space-y-4">
-                              <div><label className="text-xs font-bold text-foreground/40 mb-2 block uppercase tracking-wider">Parameter</label><IndicatorDropdown value={entry.indicator_id} indicators={indicators} scoringMode={activeWeight.scoring_mode} open={entry.showDropdown} onToggle={() => { closeAllDropdowns(); updateEntry(entry.uid, { showDropdown: !entry.showDropdown }); }} onSelect={id => updateEntry(entry.uid, { indicator_id: id, showDropdown: false })}/></div>
-                              <div><label className="text-xs font-bold text-foreground/40 mb-2 block uppercase tracking-wider">Nilai</label><div className="grid grid-cols-4 gap-2">{NILAI_OPTIONS.map(opt => <button key={opt.v} type="button" onClick={() => updateEntry(entry.uid, { nilai: opt.v })} className={`py-3 rounded-xl border-2 transition-all text-center ${entry.nilai === opt.v ? opt.active : opt.inactive}`}><p className="text-lg font-black">{opt.v}</p><p className="text-[9px] font-bold uppercase opacity-60">{opt.sub.split(' ')[0]}</p></button>)}</div></div>
+                              <div><label className="text-xs font-bold text-muted-foreground mb-2 block uppercase tracking-wider">Parameter</label><IndicatorDropdown value={entry.indicator_id} indicators={indicators} scoringMode={activeWeight.scoring_mode} open={entry.showDropdown} onToggle={() => { closeAllDropdowns(); updateEntry(entry.uid, { showDropdown: !entry.showDropdown }); }} onSelect={id => updateEntry(entry.uid, { indicator_id: id, showDropdown: false })}/></div>
+                              <div><label className="text-xs font-bold text-muted-foreground mb-2 block uppercase tracking-wider">Nilai</label><div className="grid grid-cols-4 gap-2">{NILAI_OPTIONS.map(opt => <button key={opt.v} type="button" onClick={() => updateEntry(entry.uid, { nilai: opt.v })} className={`py-3 rounded-xl border-2 transition-all text-center ${entry.nilai === opt.v ? opt.active : opt.inactive}`}><p className="text-lg font-black">{opt.v}</p><p className="text-[9px] font-bold uppercase opacity-60">{opt.sub.split(' ')[0]}</p></button>)}</div></div>
                               <div className="grid grid-cols-2 gap-3">
-                                <div><label className="text-xs font-bold text-foreground/40 mb-2 block uppercase tracking-wider">Ketidaksesuaian</label><textarea value={entry.ketidaksesuaian} onChange={e => updateEntry(entry.uid, { ketidaksesuaian: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"/></div>
-                                <div><label className="text-xs font-bold text-foreground/40 mb-2 block uppercase tracking-wider">Sebaiknya</label><textarea value={entry.sebaiknya} onChange={e => updateEntry(entry.uid, { sebaiknya: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"/></div>
+                                <div><label className="text-xs font-bold text-muted-foreground mb-2 block uppercase tracking-wider">Ketidaksesuaian</label><textarea value={entry.ketidaksesuaian} onChange={e => updateEntry(entry.uid, { ketidaksesuaian: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"/></div>
+                                <div><label className="text-xs font-bold text-muted-foreground mb-2 block uppercase tracking-wider">Sebaiknya</label><textarea value={entry.sebaiknya} onChange={e => updateEntry(entry.uid, { sebaiknya: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"/></div>
                               </div>
                             </div>
                           </div>
                         ))}
                       </div>
                       <button onClick={() => setEntries(prev => [...prev, newEntry()])} className="w-full py-3 border-2 border-dashed border-primary/20 rounded-2xl text-sm font-bold text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-2"><Plus className="w-4 h-4"/>Tambah Parameter</button>
-                      <div className="flex gap-3 pt-2"><button onClick={handleSave} disabled={saving || entries.some(e => !e.indicator_id)} className="flex-1 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2">{saving ? <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"/> : <Check className="w-5 h-5"/>}{saving ? 'Menyimpan...' : 'Simpan Temuan'}</button><button onClick={resetForm} className="px-6 py-3.5 bg-foreground/5 text-foreground/60 rounded-xl font-bold">Batal</button></div>
+                      <div className="flex gap-3 pt-2"><button onClick={handleSave} disabled={saving || entries.some(e => !e.indicator_id)} className="flex-1 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2">{saving ? <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"/> : <Check className="w-5 h-5"/>}{saving ? 'Menyimpan...' : 'Simpan Temuan'}</button><button onClick={resetForm} className="px-6 py-3.5 bg-foreground/5 text-muted-foreground rounded-xl font-bold">Batal</button></div>
                     </div>
                   </div>
                 )}
@@ -881,8 +881,8 @@ export default function QaInputClient({
                     <div key={group.key} className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
                       <div className="flex items-center gap-3 px-5 py-3 bg-foreground/[0.02] border-b border-border">
                         <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0 font-black text-[10px]">{gIdx + 1}</div>
-                        {group.label ? <span className="text-xs font-mono font-bold text-primary">{group.label}</span> : <span className="text-xs text-foreground/40 italic">Tanpa no. tiket</span>}
-                        <span className="text-[10px] text-foreground/20 ml-auto font-bold uppercase tracking-wider">{group.items.length} temuan</span>
+                        {group.label ? <span className="text-xs font-mono font-bold text-primary">{group.label}</span> : <span className="text-xs text-muted-foreground italic">Tanpa no. tiket</span>}
+                        <span className="text-[10px] text-muted-foreground ml-auto font-bold uppercase tracking-wider">{group.items.length} temuan</span>
                       </div>
                       <div className="divide-y divide-border">
                         {group.items.map((t, iIdx) => {
@@ -899,8 +899,8 @@ export default function QaInputClient({
                                   </div>
                                   {!isEditing && (
                                     <div className="space-y-1">
-                                      {t.ketidaksesuaian && <p className="text-xs text-foreground/60"><span className="font-bold text-foreground/80">Ketidaksesuaian: </span>{t.ketidaksesuaian}</p>}
-                                      {t.sebaiknya && <p className="text-xs text-foreground/60"><span className="font-bold text-foreground/80">Sebaiknya: </span>{t.sebaiknya}</p>}
+                                      {t.ketidaksesuaian && <p className="text-xs text-muted-foreground"><span className="font-bold text-foreground/80">Ketidaksesuaian: </span>{t.ketidaksesuaian}</p>}
+                                      {t.sebaiknya && <p className="text-xs text-muted-foreground"><span className="font-bold text-foreground/80">Sebaiknya: </span>{t.sebaiknya}</p>}
                                     </div>
                                   )}
                                 </div>
@@ -912,9 +912,9 @@ export default function QaInputClient({
                                   <div className="flex flex-col gap-1">
                                     {role !== 'leader' && (
                                       deletingId === t.id ? (
-                                        <><button onClick={() => handleDelete(t.id)} className="text-[10px] font-bold text-red-500 px-2 py-1 border border-red-500/20 rounded-lg hover:bg-red-500/10">Ya</button><button onClick={() => setDeletingId(null)} className="text-[10px] font-bold text-foreground/40 px-2 py-1 border border-border rounded-lg hover:bg-foreground/5">Batal</button></>
+                                        <><button onClick={() => handleDelete(t.id)} className="text-[10px] font-bold text-red-500 px-2 py-1 border border-red-500/20 rounded-lg hover:bg-red-500/10">Ya</button><button onClick={() => setDeletingId(null)} className="text-[10px] font-bold text-muted-foreground px-2 py-1 border border-border rounded-lg hover:bg-foreground/5">Batal</button></>
                                       ) : (
-                                        <><button onClick={() => isEditing ? cancelEdit() : startEdit(t)} className={`p-2 rounded-lg transition-colors ${isEditing ? 'bg-primary/10 text-primary' : 'text-foreground/20 hover:text-primary hover:bg-primary/5'}`}><Pencil className="w-4 h-4"/></button><button onClick={() => handleDelete(t.id)} className="p-2 text-foreground/20 hover:text-red-500 hover:bg-red-500/5 rounded-lg transition-colors"><Trash2 className="w-4 h-4"/></button></>
+                                        <><button onClick={() => isEditing ? cancelEdit() : startEdit(t)} className={`p-2 rounded-lg transition-colors ${isEditing ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-primary hover:bg-primary/5'}`}><Pencil className="w-4 h-4"/></button><button onClick={() => handleDelete(t.id)} className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-500/5 rounded-lg transition-colors"><Trash2 className="w-4 h-4"/></button></>
                                       )
                                     )}
                                   </div>
@@ -923,12 +923,12 @@ export default function QaInputClient({
                               {isEditing && (
                                 <div className="mt-4 p-4 rounded-2xl bg-primary/5 border border-primary/10 space-y-4 animate-in fade-in slide-in-from-top-2">
                                   <p className="text-xs font-bold text-primary uppercase tracking-wider">Edit Temuan</p>
-                                  <div><label className="text-[10px] font-bold text-foreground/40 mb-2 block uppercase tracking-wider">Nilai</label><div className="grid grid-cols-4 gap-2">{NILAI_OPTIONS.map(opt => <button key={opt.v} type="button" onClick={() => setEditNilai(opt.v)} className={`py-2 rounded-xl border-2 transition-all text-center ${editNilai === opt.v ? opt.active : opt.inactive}`}><p className="text-base font-black">{opt.v}</p></button>)}</div></div>
+                                  <div><label className="text-[10px] font-bold text-muted-foreground mb-2 block uppercase tracking-wider">Nilai</label><div className="grid grid-cols-4 gap-2">{NILAI_OPTIONS.map(opt => <button key={opt.v} type="button" onClick={() => setEditNilai(opt.v)} className={`py-2 rounded-xl border-2 transition-all text-center ${editNilai === opt.v ? opt.active : opt.inactive}`}><p className="text-base font-black">{opt.v}</p></button>)}</div></div>
                                   <div className="grid grid-cols-2 gap-3">
-                                    <div><label className="text-[10px] font-bold text-foreground/40 mb-2 block uppercase tracking-wider">Ketidaksesuaian</label><textarea value={editKetidaksesuaian} onChange={e => setEditKetidaksesuaian(e.target.value)} rows={2} className="w-full px-3 py-2 rounded-xl border border-border bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary resize-none"/></div>
-                                    <div><label className="text-[10px] font-bold text-foreground/40 mb-2 block uppercase tracking-wider">Sebaiknya</label><textarea value={editSebaiknya} onChange={e => setEditSebaiknya(e.target.value)} rows={2} className="w-full px-3 py-2 rounded-xl border border-border bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary resize-none"/></div>
+                                    <div><label className="text-[10px] font-bold text-muted-foreground mb-2 block uppercase tracking-wider">Ketidaksesuaian</label><textarea value={editKetidaksesuaian} onChange={e => setEditKetidaksesuaian(e.target.value)} rows={2} className="w-full px-3 py-2 rounded-xl border border-border bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary resize-none"/></div>
+                                    <div><label className="text-[10px] font-bold text-muted-foreground mb-2 block uppercase tracking-wider">Sebaiknya</label><textarea value={editSebaiknya} onChange={e => setEditSebaiknya(e.target.value)} rows={2} className="w-full px-3 py-2 rounded-xl border border-border bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary resize-none"/></div>
                                   </div>
-                                  <div className="flex gap-2"><button onClick={() => handleSaveEdit(t.id)} disabled={savingEdit} className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold flex items-center justify-center gap-2">{savingEdit ? <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"/> : <Check className="w-4 h-4"/>}{savingEdit ? 'Menyimpan...' : 'Simpan'}</button><button onClick={cancelEdit} className="px-4 py-2.5 bg-foreground/5 text-foreground/60 rounded-xl font-bold text-xs">Batal</button></div>
+                                  <div className="flex gap-2"><button onClick={() => handleSaveEdit(t.id)} disabled={savingEdit} className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold flex items-center justify-center gap-2">{savingEdit ? <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"/> : <Check className="w-4 h-4"/>}{savingEdit ? 'Menyimpan...' : 'Simpan'}</button><button onClick={cancelEdit} className="px-4 py-2.5 bg-foreground/5 text-muted-foreground rounded-xl font-bold text-xs">Batal</button></div>
                                 </div>
                               )}
                             </div>

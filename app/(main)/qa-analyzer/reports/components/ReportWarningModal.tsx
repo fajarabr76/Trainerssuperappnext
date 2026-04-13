@@ -46,7 +46,7 @@ export function ReportWarningModal({ isOpen, onClose }: ReportWarningModalProps)
               </div>
               
               <h2 className="text-2xl font-bold tracking-tight mb-4">Akses Terbatas & Notifikasi Biaya</h2>
-              <div className="text-foreground/60 leading-relaxed mb-8 space-y-4">
+              <div className="text-muted-foreground leading-relaxed mb-8 space-y-4">
                 <p>
                   Fitur ini saat ini berada dalam tahap pengembangan intensif. Harap diperhatikan bahwa modul ini merupakan layanan khusus yang bersifat <strong className="text-foreground font-bold">berbayar</strong>.
                 </p>
@@ -64,7 +64,7 @@ export function ReportWarningModal({ isOpen, onClose }: ReportWarningModalProps)
                 </button>
                 <button
                   onClick={onClose}
-                  className="w-full h-14 rounded-2xl font-medium text-foreground/40 hover:text-foreground/60 hover:bg-foreground/5 transition-all text-sm"
+                  className="w-full h-14 rounded-2xl font-medium text-muted-foreground hover:text-muted-foreground hover:bg-foreground/5 transition-all text-sm"
                 >
                   Tetap Lanjutkan <ArrowRight className="w-3 h-3 ml-1 inline" />
                 </button>

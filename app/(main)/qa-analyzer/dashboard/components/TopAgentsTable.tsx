@@ -35,7 +35,7 @@ export default function TopAgentsTable({ agents, serviceType, selectedYear }: To
 
   if (!agents || agents.length === 0) {
     return (
-      <div className="h-64 flex flex-col items-center justify-center text-foreground/30 text-sm italic">
+      <div className="h-64 flex flex-col items-center justify-center text-muted-foreground text-sm italic">
         <div className="w-12 h-12 rounded-full bg-foreground/5 flex items-center justify-center mb-3">
           <User className="w-6 h-6 opacity-20" />
         </div>
@@ -49,11 +49,11 @@ export default function TopAgentsTable({ agents, serviceType, selectedYear }: To
       <table className="w-full text-left border-collapse">
         <thead>
           <tr className="border-b border-border/50">
-            <th scope="col" className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-foreground/40">Rank</th>
-            <th scope="col" className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-foreground/40">Agen</th>
-            <th scope="col" className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-foreground/40 text-center">Temuan</th>
-            <th scope="col" className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-foreground/40 text-center">Skor QA</th>
-            <th scope="col" className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-foreground/40 text-right">Aksi</th>
+            <th scope="col" className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Rank</th>
+            <th scope="col" className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Agen</th>
+            <th scope="col" className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center">Temuan</th>
+            <th scope="col" className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center">Skor QA</th>
+            <th scope="col" className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Aksi</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border/30">
@@ -67,7 +67,7 @@ export default function TopAgentsTable({ agents, serviceType, selectedYear }: To
               onClick={() => router.push(`/qa-analyzer/agents/${agent.agentId}`)}
             >
               <td className="px-6 py-4">
-                <span className="text-xs font-black text-foreground/20 group-hover:text-primary/40 transition-colors">
+                <span className="text-xs font-black text-muted-foreground group-hover:text-primary/40 transition-colors">
                   #{String(index + 1).padStart(2, '0')}
                 </span>
               </td>
@@ -81,7 +81,7 @@ export default function TopAgentsTable({ agents, serviceType, selectedYear }: To
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] text-foreground/40 font-medium">{agent.batch}</span>
+                  <span className="text-[10px] text-muted-foreground font-medium">{agent.batch}</span>
                 </div>
               </td>
               <td className="px-6 py-4 text-center">
@@ -111,7 +111,7 @@ export default function TopAgentsTable({ agents, serviceType, selectedYear }: To
                 </div>
               </td>
               <td className="px-6 py-4 text-right">
-                <button className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-foreground/5 text-foreground/40 group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                <button className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-foreground/5 text-muted-foreground group-hover:bg-primary group-hover:text-white transition-all duration-300">
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </td>
@@ -132,4 +132,3 @@ export default function TopAgentsTable({ agents, serviceType, selectedYear }: To
     </div>
   );
 }
-

@@ -548,7 +548,7 @@ export default function ProfilerExportClient({
 
         <div className="flex items-center gap-3">
           <button onClick={() => router.push('/profiler')}
-            className="flex items-center gap-1.5 text-sm text-foreground/60 hover:text-foreground transition-opacity font-medium">
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-opacity font-medium">
             <ArrowLeft className="w-4 h-4" /> Kembali
           </button>
           <h1 className="text-lg font-black tracking-tight text-foreground">Download Data KTP</h1>
@@ -562,24 +562,24 @@ export default function ProfilerExportClient({
               <Folder className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 text-left min-w-0">
-              <p className="text-[11px] text-foreground/40 font-bold uppercase tracking-widest">Folder yang akan diunduh</p>
+              <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-widest">Folder yang akan diunduh</p>
               <p className="text-[15px] font-black tracking-tight text-foreground truncate mt-0.5">
                 {selectedBatch || 'Pilih folder...'}
               </p>
             </div>
-            <ChevronDown className={`w-5 h-5 text-foreground/40 flex-shrink-0 transition-transform duration-200 ${showPicker ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-5 h-5 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${showPicker ? 'rotate-180' : ''}`} />
           </button>
           {showPicker && (
             <div className="border-t border-border/40 max-h-80 overflow-y-auto p-3 space-y-4">
               {initialYears.length === 0 ? (
-                <p className="text-sm text-foreground/40 font-medium text-center py-4">Tidak ada data tahun.</p>
+                <p className="text-sm text-muted-foreground font-medium text-center py-4">Tidak ada data tahun.</p>
               ) : initialYears.map(year => {
                 const yearFolders = initialFolders.filter(f => f.year_id === year.id && !f.parent_id);
                 if (yearFolders.length === 0) return null;
 
                 return (
                   <div key={year.id} className="space-y-2">
-                    <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest px-3">{year.label}</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-3">{year.label}</p>
                     <div className="space-y-1">
                       {yearFolders.map(folder => {
                         const subFolders = initialFolders.filter(f => f.parent_id === folder.id);
@@ -625,22 +625,22 @@ export default function ProfilerExportClient({
         {/* ── Summary ── */}
         <div className="bg-card rounded-3xl p-5 flex items-center justify-between shadow-sm border border-border/40">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-foreground/40 mb-1">Total peserta siap diunduh</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Total peserta siap diunduh</p>
             <div className="flex items-baseline gap-2">
               <span className="text-[32px] font-black tracking-tight text-foreground leading-none">{peserta.length}</span>
-              <span className="text-sm font-bold text-foreground/40">Orang</span>
+              <span className="text-sm font-bold text-muted-foreground">Orang</span>
             </div>
           </div>
           <div className="flex items-center bg-muted/50 rounded-2xl p-1.5 border border-border/40 space-x-1">
             <button
               onClick={() => setOrientation('landscape')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${orientation === 'landscape' ? 'bg-card text-foreground shadow-sm' : 'text-foreground/40 hover:text-foreground/80'}`}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${orientation === 'landscape' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground/80'}`}
             >
               Landscape
             </button>
             <button
               onClick={() => setOrientation('portrait')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${orientation === 'portrait' ? 'bg-card text-foreground shadow-sm' : 'text-foreground/40 hover:text-foreground/80'}`}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${orientation === 'portrait' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground/80'}`}
             >
               Portrait
             </button>
@@ -659,7 +659,7 @@ export default function ProfilerExportClient({
               </div>
               <div className="flex-1">
                 <p className="font-black tracking-tight text-foreground text-base">{opt.title}</p>
-                <p className="text-[13px] font-medium tracking-tight text-foreground/60 mt-1">{opt.desc}</p>
+                <p className="text-[13px] font-medium tracking-tight text-muted-foreground mt-1">{opt.desc}</p>
               </div>
               <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
                 <Download className="w-5 h-5 text-primary" />

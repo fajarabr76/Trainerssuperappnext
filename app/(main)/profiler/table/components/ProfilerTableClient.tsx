@@ -22,7 +22,7 @@ import {
 } from '../../actions';
 
 const inputClass = "w-full px-4 py-3 rounded-xl border border-border/40 bg-background text-sm text-foreground placeholder-foreground/20 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background";
-const labelClass = "block text-[10px] font-bold uppercase tracking-widest text-foreground/40 mb-2 px-1";
+const labelClass = "block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2 px-1";
 const sectionClass = "bg-card border border-border/40 rounded-[2rem] p-6 space-y-6 shadow-sm";
 
 // ── Move Folder Modal ─────────────────────────────────────────
@@ -64,15 +64,15 @@ const MoveFolderModal: React.FC<{
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-base font-bold text-foreground tracking-tight">Pindah ke Folder</h2>
-              <p className="text-xs text-foreground/40 mt-0.5">{selectedIds.length} peserta dipilih</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{selectedIds.length} peserta dipilih</p>
             </div>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center hover:bg-muted rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><X className="w-4 h-4 text-foreground/40" /></button>
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center hover:bg-muted rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><X className="w-4 h-4 text-muted-foreground" /></button>
           </div>
           
           {otherFolders.length === 0 ? (
             <div className="text-center py-6 bg-muted/30 rounded-2xl border border-border/40">
-              <p className="text-sm text-foreground/60">Tidak ada folder lain.</p>
-              <p className="text-xs text-foreground/40 mt-1">Buat folder baru di halaman Profiler.</p>
+              <p className="text-sm text-muted-foreground">Tidak ada folder lain.</p>
+              <p className="text-xs text-muted-foreground mt-1">Buat folder baru di halaman Profiler.</p>
             </div>
           ) : (
             <div className="space-y-4 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
@@ -82,7 +82,7 @@ const MoveFolderModal: React.FC<{
                 
                 return (
                   <div key={year.id} className="space-y-2">
-                    <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest px-1">{year.label}</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">{year.label}</p>
                     <div className="space-y-1">
                       {yearFolders.map(folder => {
                         const subFolders = otherFolders.filter(f => f.parent_id === folder.id);
@@ -124,7 +124,7 @@ const MoveFolderModal: React.FC<{
               className="w-full py-4 bg-primary hover:opacity-90 disabled:opacity-50 text-primary-foreground rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-md shadow-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background">
               {moving ? <><Loader2 className="w-4 h-4 animate-spin" />Memindahkan...</> : <><FolderInput className="w-4 h-4" />Pindahkan ke &quot;{targetFolder || '...'}&quot;</>}
             </button>
-            <button onClick={onClose} className="w-full py-3 bg-muted/50 hover:bg-muted text-foreground/60 rounded-2xl text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Batal</button>
+            <button onClick={onClose} className="w-full py-3 bg-muted/50 hover:bg-muted text-muted-foreground rounded-2xl text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Batal</button>
           </div>
         </div>
       </div>
@@ -203,17 +203,17 @@ const EditModal: React.FC<{
                 <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 px-4 py-1.5 bg-primary hover:opacity-90 disabled:opacity-50 text-primary-foreground rounded-xl text-xs font-bold shadow-md shadow-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Save className="w-3.5 h-3.5" />{saving ? 'Menyimpan...' : 'Simpan'}</button>
               </>
             )}
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center hover:bg-muted rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><X className="w-4 h-4 text-foreground/40" /></button>
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center hover:bg-muted rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><X className="w-4 h-4 text-muted-foreground" /></button>
           </div>
         </div>
         <div className="overflow-y-auto flex-1 px-6 py-6 space-y-6 custom-scrollbar">
           <div className={sectionClass}>
-            <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest pl-1 mb-3">Identitas Utama</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">Identitas Utama</p>
             <div className="flex items-center gap-4 mb-4">
               <div className="relative w-20 h-20 rounded-[1.25rem] bg-muted/30 border border-border/40 overflow-hidden flex items-center justify-center shrink-0">
-                {uploadingFoto ? <Loader2 className="w-6 h-6 text-primary animate-spin" /> : fotoPreview ? <div className="relative w-full h-full"><Image src={fotoPreview} alt="Preview" fill className="object-cover" unoptimized /></div> : <Upload className="w-6 h-6 text-foreground/20" />}
+                {uploadingFoto ? <Loader2 className="w-6 h-6 text-primary animate-spin" /> : fotoPreview ? <div className="relative w-full h-full"><Image src={fotoPreview} alt="Preview" fill className="object-cover" unoptimized /></div> : <Upload className="w-6 h-6 text-muted-foreground" />}
               </div>
-              <label className="cursor-pointer px-4 py-2 bg-background hover:bg-muted border border-border/40 rounded-xl text-sm text-foreground/60 hover:text-foreground font-bold transition-all shadow-sm focus-within:ring-2 focus-within:ring-ring relative group">
+              <label className="cursor-pointer px-4 py-2 bg-background hover:bg-muted border border-border/40 rounded-xl text-sm text-muted-foreground hover:text-foreground font-bold transition-all shadow-sm focus-within:ring-2 focus-within:ring-ring relative group">
                 <span className="group-hover:-translate-y-0.5 transition-transform block">{uploadingFoto ? 'Mengunggah...' : 'Ganti Foto'}</span>
                 <input type="file" accept="image/*" onChange={handleFoto} className="sr-only" disabled={uploadingFoto} />
               </label>
@@ -223,7 +223,7 @@ const EditModal: React.FC<{
             <div><label className={labelClass}>Jabatan *</label><select className={inputClass} value={form.jabatan || ''} onChange={e => set('jabatan', e.target.value as Jabatan)}>{Object.entries(labelJabatan).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
           </div>
           <div className={sectionClass}>
-            <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest pl-1 mb-3">Data Kerja</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">Data Kerja</p>
             <div className="grid grid-cols-2 gap-3">
               <div><label className={labelClass}>NIP OJK</label><input type="text" className={inputClass} value={form.nip_ojk || ''} onChange={e => set('nip_ojk', e.target.value)} /></div>
               <div><label className={labelClass}>Bergabung di 157</label><input type="date" className={inputClass} value={form.bergabung_date || ''} onChange={e => set('bergabung_date', e.target.value)} /></div>
@@ -235,7 +235,7 @@ const EditModal: React.FC<{
             </div>
           </div>
           <div className={sectionClass}>
-            <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest pl-1 mb-3">Data Pribadi</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">Data Pribadi</p>
             <div className="grid grid-cols-2 gap-3">
               <div><label className={labelClass}>Jenis Kelamin</label><select className={inputClass} value={form.jenis_kelamin || ''} onChange={e => set('jenis_kelamin', e.target.value)}><option value="">Pilih</option><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option></select></div>
               <div><label className={labelClass}>Agama</label><select className={inputClass} value={form.agama || ''} onChange={e => set('agama', e.target.value)}><option value="">Pilih</option>{['Islam','Kristen','Katolik','Hindu','Buddha','Konghucu'].map(a => <option key={a} value={a}>{a}</option>)}</select></div>
@@ -245,7 +245,7 @@ const EditModal: React.FC<{
             </div>
           </div>
           <div className={sectionClass}>
-            <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest pl-1 mb-3">🔒 Data Sensitif</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">🔒 Data Sensitif</p>
             <div className="grid grid-cols-2 gap-3 relative">
               <div className="col-span-2"><label className={labelClass}>No. KTP</label><input type="text" placeholder="16 digit NIK" maxLength={16} className={inputClass} value={form.no_ktp || ''} onChange={e => set('no_ktp', e.target.value)} /></div>
               <div><label className={labelClass}>No. NPWP</label><input type="text" className={inputClass} value={form.no_npwp || ''} onChange={e => set('no_npwp', e.target.value)} /></div>
@@ -256,7 +256,7 @@ const EditModal: React.FC<{
             </div>
           </div>
           <div className={sectionClass}>
-            <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest pl-1 mb-3">Latar Belakang</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">Latar Belakang</p>
             <div className="grid grid-cols-2 gap-3">
               <div><label className={labelClass}>Nama Lembaga Pendidikan</label><input type="text" className={inputClass} value={form.nama_lembaga || ''} onChange={e => set('nama_lembaga', e.target.value)} /></div>
               <div><label className={labelClass}>Jurusan</label><input type="text" className={inputClass} value={form.jurusan || ''} onChange={e => set('jurusan', e.target.value)} /></div>
@@ -265,11 +265,11 @@ const EditModal: React.FC<{
             </div>
           </div>
           <div className={sectionClass}>
-            <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest pl-1 mb-3">⭐ Catatan Tambahan</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">⭐ Catatan Tambahan</p>
             <textarea rows={3} placeholder="Prestasi, bakat, hobi..." className={inputClass} value={form.catatan_tambahan || ''} onChange={e => set('catatan_tambahan', e.target.value)} />
           </div>
           <div className={sectionClass}>
-            <p className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest pl-1 mb-3">Keterangan</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">Keterangan</p>
             <textarea rows={2} placeholder="Catatan umum lainnya..." className={inputClass} value={form.keterangan || ''} onChange={e => set('keterangan', e.target.value)} />
           </div>
           {!isReadOnly && (
@@ -430,14 +430,14 @@ export default function ProfilerTableClient({
             className={`px-6 py-2 rounded-xl text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
               activeTab === 'table'
                 ? 'bg-background text-primary shadow-sm'
-                : 'text-foreground/40 hover:text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             Daftar Peserta
           </button>
           <button
             onClick={() => router.push(`/profiler/slides?batch=${encodeURIComponent(batchName)}`)}
-            className="px-6 py-2 rounded-xl text-sm font-bold text-foreground/40 hover:text-foreground transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="px-6 py-2 rounded-xl text-sm font-bold text-muted-foreground hover:text-foreground transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Tampilan Slide
           </button>
@@ -469,7 +469,7 @@ export default function ProfilerTableClient({
                     {peserta.length}
                   </span>
                 </h1>
-                <p className="text-[10px] font-mono text-foreground/40 uppercase tracking-widest">Database KTP</p>
+                <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Database KTP</p>
               </button>
 
               <AnimatePresence>
@@ -486,7 +486,7 @@ export default function ProfilerTableClient({
                         if (yearFolders.length === 0) return null;
                         return (
                           <div key={year.id} className="space-y-1">
-                            <p className="text-[9px] font-black text-foreground/40 uppercase tracking-[0.2em] px-3 py-1">{year.label}</p>
+                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] px-3 py-1">{year.label}</p>
                             <div className="space-y-0.5">
                               {yearFolders.map(folder => (
                                 <button
@@ -498,7 +498,7 @@ export default function ProfilerTableClient({
                                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                                     folder.name === batchName
                                       ? 'bg-primary text-primary-foreground font-bold'
-                                      : 'hover:bg-muted text-foreground/60 hover:text-foreground'
+                                  : 'hover:bg-muted text-muted-foreground hover:text-foreground'
                                   }`}
                                 >
                                   <span className="truncate">{folder.name}</span>
@@ -590,7 +590,7 @@ export default function ProfilerTableClient({
               {allFilteredSelected ? 'Batal pilih semua' : 'Pilih semua'}
               {selectedIds.size > 0 && <span className="ml-1 text-primary font-bold">({selectedIds.size} dipilih)</span>}
             </button>
-            <p className="text-xs text-foreground/40 font-medium tracking-tight">Centang lalu klik Pindah</p>
+            <p className="text-xs text-muted-foreground font-medium tracking-tight">Centang lalu klik Pindah</p>
           </div>
         )}
 
@@ -602,7 +602,7 @@ export default function ProfilerTableClient({
                 className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   (tim === 'all' ? filterTim === 'all' : filterTim.toLowerCase() === tim.toLowerCase())
                     ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/10'
-                    : 'bg-card text-foreground/60 hover:text-foreground border-border/40'
+                    : 'bg-card text-muted-foreground hover:text-foreground border-border/40'
                 }`}>
                 {tim === 'all' ? 'Semua' : tim}
               </button>
@@ -613,7 +613,7 @@ export default function ProfilerTableClient({
         {/* ── List Peserta ── */}
         {displayList.length === 0 ? (
           <div className="bg-card rounded-[2rem] p-10 text-center border border-border/40 shadow-sm">
-            <p className="text-foreground/40 text-sm">Belum ada peserta.</p>
+            <p className="text-muted-foreground text-sm">Belum ada peserta.</p>
             {!isReadOnly && (
               <button onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(batchName)}`)}
                 className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-primary hover:opacity-90 text-primary-foreground rounded-xl text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -655,7 +655,7 @@ export default function ProfilerTableClient({
                     }`}
                   >
                     {sortMode ? (
-                      <GripVertical className="w-4 h-4 text-foreground/20 flex-shrink-0 pointer-events-none" />
+                      <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0 pointer-events-none" />
                     ) : selectMode ? (
                       <button onClick={() => toggleSelect(p.id!)}
                         className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isSelected ? 'bg-primary border-primary' : 'border-border/60'}`}>
@@ -675,17 +675,17 @@ export default function ProfilerTableClient({
                       role={!sortMode && !selectMode ? "button" : undefined}
                       tabIndex={!sortMode && !selectMode ? 0 : -1}
                     >
-                      <span className="text-[11px] text-foreground/40 w-5 text-right flex-shrink-0 font-mono tabular-nums">
+                      <span className="text-[11px] text-muted-foreground w-5 text-right flex-shrink-0 font-mono tabular-nums">
                         {i + 1}
                       </span>
                       <div className="w-10 h-10 rounded-[1.25rem] overflow-hidden bg-muted/30 border border-border/40 shrink-0 flex items-center justify-center">
                         {p.foto_url
                           ? <div className="relative w-full h-full"><Image src={p.foto_url} alt={p.nama} fill className="object-cover" referrerPolicy="no-referrer" /></div>
-                          : <span className="text-sm font-bold text-foreground/40">{p.nama?.charAt(0)?.toUpperCase() || '?'}</span>}
+                          : <span className="text-sm font-bold text-muted-foreground">{p.nama?.charAt(0)?.toUpperCase() || '?'}</span>}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold tracking-tight text-foreground truncate">{p.nama}</p>
-                        <p className="text-xs text-foreground/40 mt-0.5">{p.tim} · {labelJabatan[p.jabatan] || p.jabatan}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{p.tim} · {labelJabatan[p.jabatan] || p.jabatan}</p>
                       </div>
                       {!sortMode && !selectMode && (
                         <div className="flex items-center gap-2">
@@ -699,7 +699,7 @@ export default function ProfilerTableClient({
                           >
                             <Activity className="w-4 h-4" />
                           </button>
-                          <svg className="w-4 h-4 text-foreground/20 group-hover:text-primary shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <svg className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                           </svg>
                         </div>

@@ -201,11 +201,11 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
         <div>
           <Link
             href="/qa-analyzer/dashboard"
-            className="mb-2 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-foreground/40 hover:text-primary"
+            className="mb-2 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary"
           >
             <ChevronLeft className="h-3 w-3" /> Dashboard SIDAK
           </Link>
-          <div className="mb-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-foreground/40">
+          <div className="mb-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
             <FileText className="h-3 w-3" /> SIDAK
           </div>
           <h1 className="text-3xl font-black tracking-tighter text-foreground">Laporan</h1>
@@ -219,7 +219,7 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
               rate.allowed ? 'border-border/50 bg-foreground/[0.02]' : 'border-rose-500/30 bg-rose-500/10'
             }`}
           >
-            <div className="font-black uppercase tracking-widest text-foreground/40">Kuota harian</div>
+            <div className="font-black uppercase tracking-widest text-muted-foreground">Kuota harian</div>
             <div className="text-lg font-black tabular-nums text-foreground">
               {rate.count}/{rate.limit}
             </div>
@@ -235,7 +235,7 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
       <div className="flex flex-1 overflow-y-auto p-8 lg:p-10">
         <div className="mx-auto w-full max-w-3xl space-y-8">
           <section className="rounded-[2rem] border border-border/50 bg-card/40 p-8 backdrop-blur-sm">
-            <label className="mb-3 block text-[10px] font-black uppercase tracking-widest text-foreground/40">
+            <label className="mb-3 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
               Tipe laporan
             </label>
             <div className="flex gap-3">
@@ -269,7 +269,7 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
             {reportKind === 'layanan' ? (
               <div className="mt-8 space-y-6">
                 <div>
-                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-foreground/40">
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                     Tipe layanan
                   </label>
                   <select
@@ -285,7 +285,7 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
                   </select>
                 </div>
                 <div>
-                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-foreground/40">
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                     Tim / folder (opsional)
                   </label>
                   <select
@@ -305,7 +305,7 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
             ) : (
               <div className="mt-8 space-y-4">
                 <div>
-                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-foreground/40">
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                     Pilih tim
                   </label>
                   <select
@@ -324,7 +324,7 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
                     ))}
                   </select>
 
-                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-foreground/40">
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                     Pilih agen
                   </label>
                   <select
@@ -346,7 +346,7 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
 
             <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
-                <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-foreground/40">
+                <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                   Tahun
                 </label>
                 <select
@@ -362,7 +362,7 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
                 </select>
               </div>
               <div>
-                <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-foreground/40">
+                <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                   Bulan mulai
                 </label>
                 <select
@@ -378,7 +378,7 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
                 </select>
               </div>
               <div>
-                <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-foreground/40">
+                <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                   Bulan akhir
                 </label>
                 <select
@@ -396,7 +396,7 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
             </div>
 
             <div className="mt-8">
-              <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-foreground/40">
+              <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                 Model AI
               </label>
               <select

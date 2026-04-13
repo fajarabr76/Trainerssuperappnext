@@ -165,7 +165,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
             <div className="relative z-10 p-8 sm:p-10">
               <button 
                 onClick={handleClose}
-                className="absolute top-6 right-6 p-2 bg-foreground/5 hover:bg-foreground/10 text-foreground/40 hover:text-foreground rounded-full transition-all"
+                className="absolute top-6 right-6 p-2 bg-foreground/5 hover:bg-foreground/10 text-muted-foreground hover:text-foreground rounded-full transition-all"
                 aria-label="Tutup"
               >
                 <X className="w-5 h-5" />
@@ -192,17 +192,17 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                         <h2 className="text-3xl font-black tracking-tighter mb-2 text-center text-foreground">
                           Reset Password
                         </h2>
-                        <p className="text-foreground/40 text-center mb-8 font-light text-sm">
+                        <p className="text-muted-foreground text-center mb-8 font-light text-sm">
                           Masukkan email Anda dan kami akan mengirimkan link untuk mereset password.
                         </p>
                         <form onSubmit={handleForgotPassword} className="flex flex-col gap-4">
                           <div>
-                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40 mb-2 pl-1">Email</label>
+                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-2 pl-1">Email</label>
                             <input
                               type="email"
                               name="email"
                               required
-                              className="w-full bg-background border border-border/40 hover:border-border rounded-xl px-4 py-3.5 text-sm font-medium text-foreground placeholder:text-foreground/30 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
+                              className="w-full bg-background border border-border/40 hover:border-border rounded-xl px-4 py-3.5 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
                               placeholder="nama@email.com"
                               disabled={forgotLoading}
                             />
@@ -245,7 +245,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                           <button
                             type="button"
                             onClick={() => { setError(null); setSuccessMessage(null); setMode('login'); }}
-                            className="text-xs font-bold text-foreground/40 hover:text-primary transition-colors focus-visible:outline-none focus-visible:text-primary"
+                            className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors focus-visible:outline-none focus-visible:text-primary"
                           >
                             ← Kembali ke halaman masuk
                           </button>
@@ -256,7 +256,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                         <h2 className="text-3xl font-black tracking-tighter mb-2 text-center text-foreground">
                           {mode === 'login' ? 'Selamat Datang' : 'Buat Akun'}
                         </h2>
-                        <p className="text-foreground/40 text-center mb-8 font-light text-sm">
+                        <p className="text-muted-foreground text-center mb-8 font-light text-sm">
                           {mode === 'login' 
                             ? 'Masuk menggunakan kredensial Anda untuk melanjutkan akses ke fasilitas trainers.'
                             : 'Daftarkan profil Anda untuk memulai pengaturan kelas dan evaluasi simulasi.'}
@@ -264,23 +264,23 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
 
                         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                           <div>
-                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40 mb-2 pl-1">Email</label>
+                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-2 pl-1">Email</label>
                             <input
                               type="email"
                               name="email"
                               required
-                              className="w-full bg-background border border-border/40 hover:border-border rounded-xl px-4 py-3.5 text-sm font-medium text-foreground placeholder:text-foreground/30 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
+                              className="w-full bg-background border border-border/40 hover:border-border rounded-xl px-4 py-3.5 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
                               placeholder="nama@email.com"
                               disabled={loading}
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40 mb-2 pl-1">Password</label>
+                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-2 pl-1">Password</label>
                             <input
                               type="password"
                               name="password"
                               required
-                              className="w-full bg-background border border-border/40 hover:border-border rounded-xl px-4 py-3.5 text-sm font-black tracking-widest text-foreground placeholder:text-foreground/30 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
+                              className="w-full bg-background border border-border/40 hover:border-border rounded-xl px-4 py-3.5 text-sm font-black tracking-widest text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
                               placeholder="••••••••"
                               disabled={loading}
                             />
@@ -291,7 +291,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                               <button
                                 type="button"
                                 onClick={() => { setError(null); setSuccessMessage(null); setMode('forgot'); }}
-                                className="text-xs font-bold text-foreground/30 hover:text-primary transition-colors focus-visible:outline-none focus-visible:text-primary"
+                                className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors focus-visible:outline-none focus-visible:text-primary"
                                 disabled={loading}
                               >
                                 Lupa password?
@@ -304,7 +304,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                               initial={{ opacity: 0, height: 0 }}
                               animate={{ opacity: 1, height: 'auto' }}
                             >
-                              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40 mb-2 mt-1 pl-1">Peran (Role)</label>
+                              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-2 mt-1 pl-1">Peran (Role)</label>
                               <select
                                 name="role"
                                 required
@@ -363,7 +363,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                               setSuccessMessage(null);
                               setMode(mode === 'login' ? 'register' : 'login');
                             }}
-                            className="text-xs font-bold text-foreground/40 hover:text-primary transition-colors focus-visible:outline-none focus-visible:text-primary"
+                            className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors focus-visible:outline-none focus-visible:text-primary"
                             disabled={loading}
                           >
                             {mode === 'login' 

@@ -40,7 +40,7 @@ export default function KpiCard({
   let Icon = ArrowUpRight;
 
   if (delta === 0) {
-    statusColor = 'text-foreground/40 bg-foreground/5 border-border/50';
+    statusColor = 'text-muted-foreground bg-foreground/5 border-border/50';
     sparklineColor = '#6b7280'; // gray-500
     Icon = Minus;
   } else if (isWarning) {
@@ -69,7 +69,7 @@ export default function KpiCard({
 
       <div className="flex justify-between items-start mb-6 relative z-10">
         <div className="space-y-1">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/40 group-hover:text-primary/60 transition-colors">{label}</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground group-hover:text-primary/60 transition-colors">{label}</p>
           <div className="flex items-baseline gap-1.5">
             <h3 className="text-4xl font-black tracking-tighter text-foreground tabular-nums">{value}<span className="text-xl opacity-30 ml-0.5">{unit}</span></h3>
           </div>

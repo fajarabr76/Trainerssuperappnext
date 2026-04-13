@@ -223,7 +223,7 @@ export default function DashboardAnalyticsPanel({
                 </div>
 
                 <div className="flex items-center bg-background/50 border border-border/40 rounded-xl px-3 py-1.5 gap-2">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-foreground/40">Tahun:</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Tahun:</span>
                   <select
                     value={selectedYear}
                     onChange={(event) => handleYearChange(Number(event.target.value))}
@@ -444,7 +444,7 @@ export default function DashboardAnalyticsPanel({
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="text-[10px] font-mono text-foreground/40">{log.time}</div>
+                  <div className="text-[10px] font-mono text-muted-foreground">{log.time}</div>
                   {(role?.toLowerCase() === 'trainer' || role?.toLowerCase() === 'trainers') && (
                     <button
                       onClick={async () => {
@@ -458,7 +458,7 @@ export default function DashboardAnalyticsPanel({
                           }
                         }
                       }}
-                      className="p-2 text-foreground/20 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                      className="p-2 text-muted-foreground hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

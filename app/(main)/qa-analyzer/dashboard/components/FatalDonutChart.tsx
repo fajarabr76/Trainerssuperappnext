@@ -17,7 +17,7 @@ const DONUT_COLORS = ['#f43f5e', '#64748b']; // Rose for critical, Slate for non
 export default function FatalDonutChart({ data }: FatalDonutChartProps) {
   if (!data || data.total === 0) {
     return (
-      <div className="h-64 flex flex-col items-center justify-center text-foreground/30 text-sm italic">
+      <div className="h-64 flex flex-col items-center justify-center text-muted-foreground text-sm italic">
         <div className="w-12 h-12 rounded-full bg-foreground/5 flex items-center justify-center mb-3">
           <span className="text-xl">🍩</span>
         </div>
@@ -79,7 +79,7 @@ export default function FatalDonutChart({ data }: FatalDonutChartProps) {
         >
           {data.total}
         </motion.span>
-        <span className="text-[10px] font-black uppercase tracking-widest text-foreground/30 mb-1">Total Temuan</span>
+        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Total Temuan</span>
         <div className="flex gap-3">
           <span className="text-[9px] font-black text-rose-500 bg-rose-500/10 px-1.5 py-0.5 rounded-md">CRITICAL: {data.critical}</span>
           <span className="text-[9px] font-black text-slate-500 bg-slate-500/10 px-1.5 py-0.5 rounded-md">NON: {data.nonCritical}</span>

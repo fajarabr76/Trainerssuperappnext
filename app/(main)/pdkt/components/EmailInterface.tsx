@@ -110,7 +110,7 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
               alt="Zoomed Attachment" 
               className="max-w-full max-h-full rounded-2xl shadow-2xl object-contain ring-1 ring-white/10" 
             />
-            <button className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors">
+            <button className="absolute top-6 right-6 text-white/80 hover:text-white transition-colors">
               <X className="w-8 h-8" />
             </button>
           </motion.div>
@@ -124,7 +124,7 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
         <div className="flex items-center gap-6 flex-1 min-w-0 relative z-10">
           <button 
             onClick={onEndSession}
-            className="module-clean-button-secondary w-12 h-12 flex items-center justify-center rounded-2xl text-foreground/40 hover:text-foreground transition-all group"
+            className="module-clean-button-secondary w-12 h-12 flex items-center justify-center rounded-2xl text-muted-foreground hover:text-foreground transition-all group"
           >
             <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
           </button>
@@ -144,7 +144,7 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
                   {config.identity.name}
                 </span>
                 <span className="w-1 h-1 bg-foreground/20 rounded-full"></span>
-                <span className="text-[10px] text-foreground/40 font-black uppercase tracking-widest">
+                <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">
                   {config.identity.city}
                 </span>
               </div>
@@ -159,7 +159,7 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
           {timeTaken !== null && (
             <div className="module-clean-panel hidden md:flex items-center gap-3 px-4 py-2 rounded-2xl">
               <Clock className="w-4 h-4 text-primary" />
-              <span className="text-xs font-black tracking-tight text-foreground/60">{formatTime(timeTaken)}</span>
+              <span className="text-xs font-black tracking-tight text-muted-foreground">{formatTime(timeTaken)}</span>
             </div>
           )}
           <button 
@@ -211,7 +211,7 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
                           <div className="font-black text-foreground text-xl tracking-tighter truncate">
                             {email.isAgent ? 'Customer Service (Anda)' : config.identity.name}
                           </div>
-                          <div className="text-[10px] font-black uppercase tracking-widest text-foreground/60 truncate mt-1">
+                          <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground truncate mt-1">
                             {email.isAgent ? 'cc.ojk@ojk.go.id' : email.from}
                           </div>
                         </div>
@@ -278,7 +278,7 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
                 <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
                 <Mail className="absolute inset-4 w-8 h-8 text-primary animate-pulse" />
               </div>
-              <p className="text-foreground/30 font-black text-[11px] uppercase tracking-[0.4em] text-center">
+              <p className="text-muted-foreground font-black text-[11px] uppercase tracking-[0.4em] text-center">
                 {emails.length === 0 ? "Menerima Email Masuk..." : "Mengevaluasi Tanggapan..."}
               </p>
             </div>
@@ -290,7 +290,7 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
               <p className="text-sky-500 font-black text-[11px] uppercase tracking-[0.3em] text-center">
                 Evaluasi sedang diproses
               </p>
-              <p className="text-foreground/40 text-xs text-center mt-3 max-w-md">
+              <p className="text-muted-foreground text-xs text-center mt-3 max-w-md">
                 Riwayat email sudah tersimpan. Hasil evaluasi akan muncul otomatis saat selesai.
               </p>
             </div>
@@ -302,7 +302,7 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
                 <AlertCircle className="w-5 h-5 text-rose-500" />
                 <h3 className="text-lg font-black tracking-tight text-rose-500">Evaluasi belum berhasil</h3>
               </div>
-              <p className="text-sm text-foreground/60 leading-relaxed">
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 {evaluationError || 'Terjadi gangguan saat menjalankan evaluasi AI untuk sesi ini.'}
               </p>
             </div>
@@ -383,7 +383,7 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
 
                   <div className="module-clean-panel p-5 rounded-2xl">
                     <h4 className="font-bold text-muted-foreground text-[10px] mb-3 uppercase tracking-widest">Masukan & Saran</h4>
-                    <p className="text-sm text-foreground/60 italic leading-relaxed">&quot;{evaluation.feedback}&quot;</p>
+                    <p className="text-sm text-muted-foreground italic leading-relaxed">&quot;{evaluation.feedback}&quot;</p>
                   </div>
                 </div>
               </div>
@@ -412,7 +412,7 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
             <button 
               onClick={() => setIsDrafting(true)}
               disabled={isLoading}
-              className="module-clean-panel group flex items-center gap-5 text-foreground/30 border-2 border-dashed hover:border-module-pdkt/50 rounded-[2rem] px-8 py-6 w-full transition-all shadow-inner"
+              className="module-clean-panel group flex items-center gap-5 text-muted-foreground border-2 border-dashed hover:border-module-pdkt/50 rounded-[2rem] px-8 py-6 w-full transition-all shadow-inner"
             >
                 <div className="module-clean-button-secondary w-12 h-12 rounded-2xl flex items-center justify-center group-hover:text-module-pdkt transition-all">
                 <Reply className="w-6 h-6" />
@@ -425,15 +425,15 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
               <div className="flex items-center justify-between px-8 py-5 border-b border-border/30">
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                  <span className="text-[10px] font-black text-foreground/30 uppercase tracking-[0.3em]">
-                    Drafting Reply to: <span className="text-foreground/60">{config.identity.name}</span>
+                  <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">
+                    Drafting Reply to: <span className="text-muted-foreground">{config.identity.name}</span>
                   </span>
                 </div>
                 <button 
                   onClick={() => setIsDrafting(false)} 
                   className="w-8 h-8 flex items-center justify-center hover:bg-foreground/5 rounded-xl transition-all"
                 >
-                  <X className="w-5 h-5 text-foreground/40" />
+                  <X className="w-5 h-5 text-muted-foreground" />
                 </button>
               </div>
               <textarea

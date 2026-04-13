@@ -74,7 +74,7 @@ export default function YearSidebar({
       <div className="p-4 border-b border-border/40 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-          <h2 className="text-xs font-black uppercase tracking-[0.2em] text-foreground/60">Hierarki Data</h2>
+          <h2 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Hierarki Data</h2>
         </div>
         {!isReadOnly && (
           <button 
@@ -101,7 +101,7 @@ export default function YearSidebar({
               className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-sm group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
                 selectedYearId === year.id 
                   ? 'bg-primary/10 text-primary font-bold border border-primary/20' 
-                  : 'hover:bg-accent/50 text-foreground/60 border border-transparent'
+                  : 'hover:bg-accent/50 text-muted-foreground border border-transparent'
               }`}
             >
               <div className={`transition-transform duration-300 ${expandedYears[year.id] ? 'rotate-90' : ''}`}>

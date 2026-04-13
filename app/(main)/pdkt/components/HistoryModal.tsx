@@ -48,7 +48,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold tracking-tight text-foreground">Riwayat Simulasi</h2>
-                  <p className="text-xs text-foreground/40 font-mono uppercase tracking-widest">
+                  <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest">
                     {history.length} Sesi PDKT Tersimpan
                   </p>
                 </div>
@@ -66,7 +66,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                   onClick={onClose} 
                   className="p-2 hover:bg-foreground/5 rounded-full transition-colors border border-border"
                 >
-                  <X className="w-6 h-6 text-foreground/60" />
+                  <X className="w-6 h-6 text-muted-foreground" />
                 </button>
               </div>
             </div>
@@ -76,10 +76,10 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
               {history.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-24 text-center">
                   <div className="w-20 h-20 bg-foreground/5 rounded-full flex items-center justify-center mb-6 border border-border">
-                    <Clock className="w-10 h-10 text-foreground/20" />
+                    <Clock className="w-10 h-10 text-muted-foreground" />
                   </div>
                   <h3 className="text-xl font-bold mb-2 text-foreground">Belum Ada Riwayat</h3>
-                  <p className="text-foreground/40 text-sm max-w-xs mx-auto font-light">
+                  <p className="text-muted-foreground text-sm max-w-xs mx-auto font-light">
                     Selesaikan simulasi pertama Anda untuk melihat riwayatnya di sini.
                   </p>
                 </div>
@@ -124,7 +124,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                                   <>Skor: {score}</>
                                 )}
                               </div>
-                              <div className="flex items-center gap-1.5 text-[10px] text-foreground/30 font-mono uppercase tracking-wider">
+                              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
                                 <Calendar className="w-3 h-3" />
                                 {new Date(session.timestamp).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                                 <span className="mx-1">•</span>
@@ -139,7 +139,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                           <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
                             <button 
                               onClick={(e) => { e.stopPropagation(); onSelectSession(session); }}
-                              className="p-2.5 bg-foreground/5 hover:bg-foreground/10 text-foreground/60 hover:text-foreground rounded-xl border border-border transition-all"
+                              className="p-2.5 bg-foreground/5 hover:bg-foreground/10 text-muted-foreground hover:text-foreground rounded-xl border border-border transition-all"
                               title="Lihat Detail"
                             >
                               <Eye className="w-5 h-5" />
@@ -166,7 +166,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                             </div>
                           ))}
                           {session.config.scenarios.length > 2 && (
-                            <div className="text-[10px] text-foreground/30 px-2 py-1.5">
+                            <div className="text-[10px] text-muted-foreground px-2 py-1.5">
                               +{session.config.scenarios.length - 2} lainnya
                             </div>
                           )}
@@ -184,7 +184,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                         </div>
                         
                         <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all pointer-events-none">
-                          <ChevronRight className="w-6 h-6 text-foreground/20" />
+                          <ChevronRight className="w-6 h-6 text-muted-foreground" />
                         </div>
                       </motion.div>
                     );

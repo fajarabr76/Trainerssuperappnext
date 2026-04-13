@@ -55,7 +55,7 @@ export default function DashboardFilters({
           <div className="flex flex-col md:flex-row gap-2.5 flex-1 lg:flex-[2]">
             <div className="relative flex-1 min-w-[120px] group/select">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                <Headset className="h-4 w-4 text-foreground/40 group-focus-within/select:text-primary transition-colors" />
+                <Headset className="h-4 w-4 text-muted-foreground group-focus-within/select:text-primary transition-colors" />
               </div>
               <select
                 value={serviceType}
@@ -66,14 +66,14 @@ export default function DashboardFilters({
                   <option key={val} value={val}>{label}</option>
                 ))}
               </select>
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-foreground/20">
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-muted-foreground">
                 <ChevronRight className="w-4 h-4 rotate-90" />
               </div>
             </div>
 
             <div className="relative flex-[1.2] min-w-[140px] group/select">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                <Users className="h-4 w-4 text-foreground/40 group-focus-within/select:text-primary transition-colors" />
+                <Users className="h-4 w-4 text-muted-foreground group-focus-within/select:text-primary transition-colors" />
               </div>
               <select
                 value={selectedFolderId}
@@ -87,7 +87,7 @@ export default function DashboardFilters({
                 </option>
               ))}
               </select>
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-foreground/20">
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-muted-foreground">
                 <ChevronRight className="w-4 h-4 rotate-90" />
               </div>
             </div>

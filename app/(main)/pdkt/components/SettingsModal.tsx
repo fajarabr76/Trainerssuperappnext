@@ -427,7 +427,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
               <div className="relative z-10">
                 <h2 className="text-3xl font-black text-foreground tracking-tighter">Pengaturan Simulasi</h2>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] font-black text-foreground/30 uppercase tracking-[0.3em]">Module PDKT</span>
+                  <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">Module PDKT</span>
                 </div>
               </div>
               <div className="flex items-center gap-4 relative z-10">
@@ -440,7 +440,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                 </button>
                 <button 
                     onClick={onClose} 
-                    className="w-12 h-12 flex items-center justify-center bg-foreground/5 hover:bg-foreground/10 rounded-2xl text-foreground/40 hover:text-foreground transition-all border border-transparent hover:border-border/50"
+                    className="w-12 h-12 flex items-center justify-center bg-foreground/5 hover:bg-foreground/10 rounded-2xl text-muted-foreground hover:text-foreground transition-all border border-transparent hover:border-border/50"
                 >
                     <X className="w-6 h-6" />
                 </button>
@@ -457,7 +457,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                     className={`flex-1 flex items-center justify-center gap-3 py-3.5 text-[11px] font-black uppercase tracking-[0.2em] rounded-xl transition-all relative group ${
                       activeTab === tab.id 
                         ? 'text-primary' 
-                        : 'text-foreground/30 hover:text-foreground/60'
+                        : 'text-muted-foreground hover:text-muted-foreground'
                     }`}
                   >
                     {activeTab === tab.id && (
@@ -489,7 +489,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                            <h3 className="font-black text-foreground text-xl tracking-tight">
                               Daftar Skenario
                            </h3>
-                           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30 mt-1">
+                           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mt-1">
                              <span className="text-primary">{activeCount}</span> / {totalScenarios} Aktif
                            </p>
                        </div>
@@ -498,7 +498,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                      <div className="flex items-center gap-3">
                          <button 
                             onClick={() => setEnableImageGeneration(!enableImageGeneration)}
-                            className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all shadow-sm flex items-center gap-3 ${enableImageGeneration ? 'bg-primary border-primary/20 text-primary-foreground' : 'bg-foreground/5 border-border/50 text-foreground/40 hover:bg-foreground/10'}`}
+                            className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all shadow-sm flex items-center gap-3 ${enableImageGeneration ? 'bg-primary border-primary/20 text-primary-foreground' : 'bg-foreground/5 border-border/50 text-muted-foreground hover:bg-foreground/10'}`}
                          >
                             <ImageIcon className="w-4 h-4" />
                             {enableImageGeneration ? 'AI Aktif' : 'AI Mati'}
@@ -552,14 +552,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                           {/* Content */}
                           <div className="flex-1 min-w-0 relative z-10">
                               <div className="flex items-center gap-3 mb-2">
-                                  <span className="px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-foreground/5 text-foreground/40 border border-white/5">
+                                  <span className="px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-foreground/5 text-muted-foreground border border-white/5">
                                     {scenario.category}
                                   </span>
                                   <h4 className="text-lg font-black text-foreground tracking-tight truncate">
                                     {scenario.title}
                                   </h4>
                               </div>
-                              <p className="text-sm text-foreground/40 font-medium line-clamp-2 leading-relaxed">
+                              <p className="text-sm text-muted-foreground font-medium line-clamp-2 leading-relaxed">
                                   {scenario.description}
                               </p>
                                {((scenario.attachmentImages && scenario.attachmentImages.length > 0)) && (
@@ -576,14 +576,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                           <div className="flex items-center gap-2 ml-6 relative z-10">
                               <button 
                                   onClick={() => handleEditScenario(scenario)}
-                                  className="w-12 h-12 flex items-center justify-center bg-foreground/5 hover:bg-primary/10 text-foreground/20 hover:text-primary rounded-2xl transition-all border border-transparent hover:border-primary/20"
+                                  className="w-12 h-12 flex items-center justify-center bg-foreground/5 hover:bg-primary/10 text-muted-foreground hover:text-primary rounded-2xl transition-all border border-transparent hover:border-primary/20"
                                   title="Edit"
                               >
                                   <Edit2 className="w-5 h-5" />
                               </button>
                               <button 
                                   onClick={() => handleDeleteScenario(scenario.id)}
-                                  className="w-12 h-12 flex items-center justify-center bg-foreground/5 hover:bg-red-500/10 text-foreground/20 hover:text-red-500 rounded-2xl transition-all border border-transparent hover:border-red-500/20"
+                                  className="w-12 h-12 flex items-center justify-center bg-foreground/5 hover:bg-red-500/10 text-muted-foreground hover:text-red-500 rounded-2xl transition-all border border-transparent hover:border-red-500/20"
                                   title="Delete"
                               >
                                   <Trash2 className="w-5 h-5" />
@@ -595,7 +595,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                       {!isAddingScenario && !editingScenarioId && (
                         <button 
                           onClick={handleAddScenario}
-                          className="w-full py-10 rounded-[2.5rem] border-2 border-dashed border-white/10 bg-card/10 text-foreground/20 hover:text-primary hover:bg-primary/5 hover:border-primary/50 transition-all flex flex-col items-center justify-center gap-3 group mt-4 shadow-inner"
+                          className="w-full py-10 rounded-[2.5rem] border-2 border-dashed border-white/10 bg-card/10 text-muted-foreground hover:text-primary hover:bg-primary/5 hover:border-primary/50 transition-all flex flex-col items-center justify-center gap-3 group mt-4 shadow-inner"
                         >
                           <div className="w-14 h-14 rounded-2xl bg-foreground/5 flex items-center justify-center group-hover:bg-primary/10 group-hover:scale-110 transition-all">
                             <Plus className="w-7 h-7" />
@@ -613,14 +613,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                         </h3>
                         <button 
                           onClick={resetScenarioForm}
-                          className="w-10 h-10 flex items-center justify-center bg-foreground/5 hover:bg-red-500/10 text-foreground/40 hover:text-red-500 rounded-xl transition-all"
+                          className="w-10 h-10 flex items-center justify-center bg-foreground/5 hover:bg-red-500/10 text-muted-foreground hover:text-red-500 rounded-xl transition-all"
                         >
                           <X className="w-5 h-5" />
                         </button>
                       </div>
                       <div className="p-8 grid grid-cols-2 gap-6">
                         <div className="col-span-2 md:col-span-1">
-                          <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] mb-3 ml-2">Kategori Masalah</label>
+                          <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-3 ml-2">Kategori Masalah</label>
                           {!isNewCategoryInput ? (
                             <div className="relative group">
                               <select 
@@ -639,7 +639,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
                                 <option value="NEW">+ Tambah Kategori Lainnya</option>
                               </select>
-                              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-foreground/20">
+                              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
                                 <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                               </div>
                             </div>
@@ -663,7 +663,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                         </div>
                         
                         <div className="col-span-2">
-                          <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] mb-3 ml-2">Judul Skenario</label>
+                          <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-3 ml-2">Judul Skenario</label>
                           <input 
                             type="text"
                             className="w-full rounded-2xl border-white/5 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none font-medium placeholder:text-foreground/10"
@@ -673,7 +673,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                           />
                         </div>
                         <div className="col-span-2">
-                          <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] mb-3 ml-2">Deskripsi Detail Masalah</label>
+                          <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-3 ml-2">Deskripsi Detail Masalah</label>
                           <textarea 
                             className="w-full rounded-2xl border-white/5 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none resize-none font-medium placeholder:text-foreground/10"
                             rows={3}
@@ -684,7 +684,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                         </div>
                         
                         <div className="col-span-2">
-                          <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] mb-3 ml-2">Instruksi Perilaku AI (Opsional)</label>
+                          <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-3 ml-2">Instruksi Perilaku AI (Opsional)</label>
                           <textarea 
                             className="w-full rounded-2xl border-white/5 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none resize-none font-medium placeholder:text-foreground/10"
                             rows={2}
@@ -695,12 +695,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                         </div>
                         
                         <div className="col-span-2">
-                          <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] mb-3 ml-2">Lampiran Bukti / Media</label>
+                          <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-3 ml-2">Lampiran Bukti / Media</label>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-white/5 border-dashed rounded-[2rem] cursor-pointer bg-foreground/5 hover:bg-primary/5 hover:border-primary/30 transition-all group">
                                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                      <ImageIcon className="w-8 h-8 mb-2 text-foreground/20 group-hover:text-primary transition-colors" />
-                                      <p className="text-[10px] font-black uppercase tracking-widest text-foreground/30 group-hover:text-primary transition-colors">Upload Media</p>
+                                      <ImageIcon className="w-8 h-8 mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
+                                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors">Upload Media</p>
                                   </div>
                                   <input 
                                       type="file" 
@@ -738,7 +738,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                         <div className="col-span-2 flex justify-end gap-3 pt-6 border-t border-white/5 mt-4">
                           <button 
                             onClick={resetScenarioForm}
-                            className="px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-foreground/40 hover:bg-foreground/5 transition-all"
+                            className="px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:bg-foreground/5 transition-all"
                           >
                             Batal
                           </button>
@@ -764,7 +764,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                     </div>
                     <div>
                       <h4 className="font-black text-foreground uppercase tracking-widest text-[11px] mb-1">💡 Tips Simulasi</h4>
-                      <p className="text-sm text-foreground/60 font-medium leading-relaxed">
+                      <p className="text-sm text-muted-foreground font-medium leading-relaxed">
                         Pilih tipe konsumen yang akan disimulasikan. Variasi tingkat kesulitan akan mempengaruhi gaya bahasa dan respon AI. Pilih <span className="text-primary font-bold">Acak</span> untuk tantangan yang berbeda setiap saat.
                       </p>
                     </div>
@@ -794,7 +794,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                             </div>
                           )}
                         </div>
-                        <p className={`text-xs font-medium leading-relaxed ${globalConsumerTypeId === 'random' ? 'text-primary-foreground/60' : 'text-foreground/40'}`}>
+                        <p className={`text-xs font-medium leading-relaxed ${globalConsumerTypeId === 'random' ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
                           Sistem akan memilih tipe konsumen secara acak untuk setiap sesi simulasi untuk variasi maksimal.
                         </p>
                     </div>
@@ -831,7 +831,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                               className={`p-2 rounded-xl transition-all border border-transparent ${
                                 globalConsumerTypeId === c.id 
                                   ? 'bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20' 
-                                  : 'bg-foreground/5 text-foreground/20 hover:text-primary hover:border-primary/20'
+                                  : 'bg-foreground/5 text-muted-foreground hover:text-primary hover:border-primary/20'
                               }`}
                               title="Edit"
                             >
@@ -845,7 +845,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                               className={`p-2 rounded-xl transition-all border border-transparent ${
                                 globalConsumerTypeId === c.id 
                                   ? 'bg-primary-foreground/10 text-primary-foreground hover:bg-red-400' 
-                                  : 'bg-foreground/5 text-foreground/20 hover:text-red-500 hover:border-red-500/20'
+                                  : 'bg-foreground/5 text-muted-foreground hover:text-red-500 hover:border-red-500/20'
                               }`}
                               title="Delete"
                             >
@@ -857,12 +857,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                             <span className={`text-[9px] px-2.5 py-1 rounded-lg font-black uppercase tracking-widest border ${
                               globalConsumerTypeId === c.id
                                 ? 'bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground'
-                                : 'bg-foreground/5 border-white/5 text-foreground/40'
+                                : 'bg-foreground/5 border-white/5 text-muted-foreground'
                             }`}>
                                 {c.difficulty}
                             </span>
                         </div>
-                        <p className={`text-xs font-medium leading-relaxed line-clamp-2 ${globalConsumerTypeId === c.id ? 'text-primary-foreground/60' : 'text-foreground/40'}`}>
+                        <p className={`text-xs font-medium leading-relaxed line-clamp-2 ${globalConsumerTypeId === c.id ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
                           {c.description}
                         </p>
                       </div>
@@ -872,7 +872,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                   {!isAddingConsumer && !editingConsumerId ? (
                     <button 
                       onClick={handleAddConsumer}
-                      className="w-full py-10 rounded-[2.5rem] border-2 border-dashed border-white/10 bg-card/10 text-foreground/20 hover:text-primary hover:bg-primary/5 hover:border-primary/50 transition-all flex flex-col items-center justify-center gap-3 group mt-4 shadow-inner"
+                      className="w-full py-10 rounded-[2.5rem] border-2 border-dashed border-white/10 bg-card/10 text-muted-foreground hover:text-primary hover:bg-primary/5 hover:border-primary/50 transition-all flex flex-col items-center justify-center gap-3 group mt-4 shadow-inner"
                     >
                       <div className="w-14 h-14 rounded-2xl bg-foreground/5 flex items-center justify-center group-hover:bg-primary/10 group-hover:scale-110 transition-all">
                         <Plus className="w-7 h-7" />
@@ -888,14 +888,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                         </h3>
                         <button 
                           onClick={resetConsumerForm}
-                          className="w-10 h-10 flex items-center justify-center bg-foreground/5 hover:bg-red-500/10 text-foreground/40 hover:text-red-500 rounded-xl transition-all"
+                          className="w-10 h-10 flex items-center justify-center bg-foreground/5 hover:bg-red-500/10 text-muted-foreground hover:text-red-500 rounded-xl transition-all"
                         >
                           <X className="w-5 h-5" />
                         </button>
                       </div>
                       <div className="p-8 grid grid-cols-2 gap-6">
                         <div className="col-span-2">
-                          <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] mb-3 ml-2">Nama Karakter / Tipe</label>
+                          <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-3 ml-2">Nama Karakter / Tipe</label>
                           <input 
                             type="text"
                             className="w-full rounded-2xl border-white/5 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none font-medium placeholder:text-foreground/10"
@@ -905,7 +905,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                           />
                         </div>
                         <div className="col-span-2 md:col-span-1">
-                          <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] mb-3 ml-2">Tingkat Kesulitan</label>
+                          <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-3 ml-2">Tingkat Kesulitan</label>
                           <select 
                             className="w-full rounded-2xl border-white/5 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none font-medium appearance-none"
                             value={newConsumerDifficulty}
@@ -917,7 +917,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                           </select>
                         </div>
                         <div className="col-span-2 md:col-span-1">
-                          <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] mb-3 ml-2">Tone Bicara / Keyword</label>
+                          <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-3 ml-2">Tone Bicara / Keyword</label>
                           <input 
                             type="text"
                             className="w-full rounded-2xl border-white/5 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none font-medium placeholder:text-foreground/10"
@@ -927,7 +927,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                           />
                         </div>
                         <div className="col-span-2">
-                          <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] mb-3 ml-2">Deskripsi Karakteristik</label>
+                          <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-3 ml-2">Deskripsi Karakteristik</label>
                           <textarea 
                             className="w-full rounded-2xl border-white/5 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none resize-none font-medium placeholder:text-foreground/10"
                             rows={3}
@@ -939,7 +939,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                         <div className="col-span-2 flex justify-end gap-3 pt-6 border-t border-white/5">
                           <button 
                             onClick={resetConsumerForm}
-                            className="px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-foreground/40 hover:bg-foreground/5 transition-all"
+                            className="px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:bg-foreground/5 transition-all"
                           >
                             Batal
                           </button>
@@ -964,7 +964,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                     </div>
                     <div className="relative z-10 max-w-2xl">
                         <h3 className="text-2xl font-black text-foreground tracking-tight mb-2">Personalisasi Identitas</h3>
-                        <p className="text-sm text-foreground/40 font-medium leading-relaxed">
+                        <p className="text-sm text-muted-foreground font-medium leading-relaxed">
                           Atur detail identitas Anda yang akan muncul dalam simulasi email. Data ini akan digunakan AI untuk menyapa dan menandatangani balasan secara otomatis.
                         </p>
                     </div>
@@ -976,12 +976,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                           <User className="w-5 h-5 text-primary" />
                         </div>
-                        <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/60">Data Personal</h4>
+                        <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">Data Personal</h4>
                       </div>
                       
                       <div className="space-y-4">
                         <div className="group">
-                          <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] mb-2.5 ml-2">Nama Pengirim (Header)</label>
+                          <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2.5 ml-2">Nama Pengirim (Header)</label>
                           <input 
                             type="text"
                             className="w-full rounded-2xl border-white/5 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none font-medium placeholder:text-foreground/10 transition-all group-focus-within:bg-foreground/10"
@@ -991,7 +991,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] mb-2.5 ml-2">Nama Panggilan (Body)</label>
+                          <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2.5 ml-2">Nama Panggilan (Body)</label>
                           <input 
                             type="text"
                             className="w-full rounded-2xl border-white/5 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none font-medium placeholder:text-foreground/10 transition-all focus:bg-foreground/10"
@@ -1008,12 +1008,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                           <Settings className="w-5 h-5 text-primary" />
                         </div>
-                        <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground/60">Konfigurasi Tambahan</h4>
+                        <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">Konfigurasi Tambahan</h4>
                       </div>
 
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] mb-2.5 ml-2">Email Kantor</label>
+                          <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2.5 ml-2">Email Kantor</label>
                           <input 
                             type="email"
                             className="w-full rounded-2xl border-white/5 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none font-medium placeholder:text-foreground/10 transition-all focus:bg-foreground/10"
@@ -1023,7 +1023,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] mb-2.5 ml-2">Kota Tugas</label>
+                          <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2.5 ml-2">Kota Tugas</label>
                           <input 
                             type="text"
                             className="w-full rounded-2xl border-white/5 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none font-medium placeholder:text-foreground/10 transition-all focus:bg-foreground/10"
@@ -1043,7 +1043,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                           </div>
                           <div>
                             <h4 className="font-black text-foreground text-base tracking-tight">Hapus Semua Data</h4>
-                            <p className="text-[11px] font-medium text-foreground/30">Kembalikan semua skenario dan karakter ke bawaan sistem.</p>
+                            <p className="text-[11px] font-medium text-muted-foreground">Kembalikan semua skenario dan karakter ke bawaan sistem.</p>
                           </div>
                         </div>
                         <button 
@@ -1067,7 +1067,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                       </div>
                       <div>
                         <h3 className="font-black text-foreground text-xl tracking-tight">Pengaturan Sistem</h3>
-                        <p className="text-sm text-foreground/40 mt-1 font-medium leading-relaxed">
+                        <p className="text-sm text-muted-foreground mt-1 font-medium leading-relaxed">
                           Pilih model AI yang akan menggerakkan simulasi email ini.
                         </p>
                       </div>
@@ -1100,7 +1100,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                                 {model.provider}
                               </span>
                             </div>
-                            <p className="text-sm text-foreground/40 font-medium">
+                            <p className="text-sm text-muted-foreground font-medium">
                               {model.description}
                             </p>
                           </div>

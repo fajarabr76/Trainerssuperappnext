@@ -154,7 +154,7 @@ export default function TelefunPage() {
             className="max-w-md w-full bg-card/80 backdrop-blur-2xl rounded-[3rem] p-10 md:p-12 shadow-2xl border border-border relative z-10"
           >
             <div className="absolute top-8 left-8 z-20">
-              <Link href="/dashboard" className="w-12 h-12 flex items-center justify-center rounded-2xl bg-foreground/5 text-foreground/60 hover:bg-foreground/10 transition-all">
+              <Link href="/dashboard" className="w-12 h-12 flex items-center justify-center rounded-2xl bg-foreground/5 text-muted-foreground hover:bg-foreground/10 transition-all">
                 <ArrowLeft className="w-5 h-5" />
               </Link>
             </div>
@@ -213,8 +213,8 @@ export default function TelefunPage() {
             </div>
 
             <div className="mt-12 flex flex-col items-center gap-2">
-              <div className="text-[9px] text-foreground/20 font-bold uppercase tracking-[0.2em] flex flex-col gap-1 items-center text-center">
-                <span className="text-foreground/20 font-bold tracking-widest">POWERED BY GOOGLE GEMINI</span>
+              <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-[0.2em] flex flex-col gap-1 items-center text-center">
+                <span className="text-muted-foreground font-bold tracking-widest">POWERED BY GOOGLE GEMINI</span>
                 <span>TRAINERS SUPERAPP · KONTAK OJK 157 EDITION</span>
               </div>
             </div>

@@ -27,7 +27,7 @@ const ChartTooltip = ({ active, payload, label }: any) => {
       <div className="flex items-center gap-2 min-w-[140px]">
         <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 animate-pulse" style={{ backgroundColor: color }} />
         <span className="font-bold text-foreground">{name}</span>
-        <span className="text-foreground/60 font-medium ml-auto pl-2">{value}{suffix ? ` ${suffix}` : ''}</span>
+        <span className="text-muted-foreground font-medium ml-auto pl-2">{value}{suffix ? ` ${suffix}` : ''}</span>
       </div>
     </div>
   );
@@ -136,7 +136,7 @@ export default function ProfilerAnalyticsClient({
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push(`/profiler?batch=${encodeURIComponent(selectedBatch)}`)}
-            className="w-10 h-10 rounded-xl bg-accent/50 flex items-center justify-center text-foreground/40 hover:text-primary hover:bg-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-10 h-10 rounded-xl bg-accent/50 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft size={18} />
           </button>
@@ -237,7 +237,7 @@ export default function ProfilerAnalyticsClient({
         ) : !stats ? (
           <div className="flex flex-col items-center justify-center py-20 bg-card rounded-[2rem] border border-border shadow-sm">
              <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
-                <BarChart3 className="w-8 h-8 text-foreground/20" />
+                <BarChart3 className="w-8 h-8 text-muted-foreground" />
              </div>
             <p className="text-foreground/50 font-medium">Tidak ada data peserta untuk folder ini.</p>
             {!isReadOnly && (
@@ -262,7 +262,7 @@ export default function ProfilerAnalyticsClient({
                     <item.icon size={24} />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">{item.label}</p>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{item.label}</p>
                     <p className="text-3xl font-black">{item.value}</p>
                   </div>
                 </div>
@@ -274,8 +274,8 @@ export default function ProfilerAnalyticsClient({
               
               {/* Jabatan Chart */}
               <div className="bg-card border border-border rounded-3xl p-6 shadow-sm flex flex-col h-[400px]">
-                <h3 className="text-sm font-bold uppercase tracking-widest text-foreground/60 mb-2">Distribusi Jabatan</h3>
-                <p className="text-xs text-foreground/40 mb-4">Klik batang grafik untuk melihat detail peserta</p>
+                <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-2">Distribusi Jabatan</h3>
+                <p className="text-xs text-muted-foreground mb-4">Klik batang grafik untuk melihat detail peserta</p>
                 <div className="flex-1 min-h-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={stats.jabatan} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
@@ -300,8 +300,8 @@ export default function ProfilerAnalyticsClient({
 
               {/* Tim Chart */}
               <div className="bg-card border border-border rounded-3xl p-6 shadow-sm flex flex-col h-[400px]">
-                <h3 className="text-sm font-bold uppercase tracking-widest text-foreground/60 mb-2">Distribusi Tim</h3>
-                <p className="text-xs text-foreground/40 mb-4">Klik potongan pie untuk melihat detail peserta</p>
+                <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-2">Distribusi Tim</h3>
+                <p className="text-xs text-muted-foreground mb-4">Klik potongan pie untuk melihat detail peserta</p>
                 <div className="flex-1 min-h-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -329,8 +329,8 @@ export default function ProfilerAnalyticsClient({
 
               {/* Gender Chart */}
               <div className="bg-card border border-border rounded-3xl p-6 shadow-sm flex flex-col h-[400px]">
-                <h3 className="text-sm font-bold uppercase tracking-widest text-foreground/60 mb-2">Distribusi Gender</h3>
-                <p className="text-xs text-foreground/40 mb-4">Klik potongan pie untuk melihat detail peserta</p>
+                <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-2">Distribusi Gender</h3>
+                <p className="text-xs text-muted-foreground mb-4">Klik potongan pie untuk melihat detail peserta</p>
                 <div className="flex-1 min-h-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -357,8 +357,8 @@ export default function ProfilerAnalyticsClient({
 
               {/* Pendidikan Chart */}
               <div className="bg-card border border-border rounded-3xl p-6 shadow-sm flex flex-col h-[400px]">
-                <h3 className="text-sm font-bold uppercase tracking-widest text-foreground/60 mb-2">Tingkat Pendidikan</h3>
-                <p className="text-xs text-foreground/40 mb-4">Klik batang grafik untuk melihat detail peserta</p>
+                <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-2">Tingkat Pendidikan</h3>
+                <p className="text-xs text-muted-foreground mb-4">Klik batang grafik untuk melihat detail peserta</p>
                 <div className="flex-1 min-h-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={stats.pendidikan} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>

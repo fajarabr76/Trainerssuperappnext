@@ -50,7 +50,7 @@ export default function ParamTrendChart({
   const isFiltered = filterLabel !== 'all';
 
   return (
-    <div className="h-full w-full animate-in fade-in duration-700">
+    <div className="h-full w-full rounded-3xl border border-border/40 bg-background/60 dark:bg-white/[0.04] p-3 shadow-inner animate-in fade-in duration-700">
       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
           <defs>

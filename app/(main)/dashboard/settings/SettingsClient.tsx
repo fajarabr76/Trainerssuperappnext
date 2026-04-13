@@ -112,7 +112,7 @@ export default function SettingsClient({ user, profile: initialProfile }: Settin
           <div className="w-1/3 max-w-sm border-r border-border/40 p-12 overflow-y-auto">
             <header className="mb-12">
               <h1 className="text-3xl font-black tracking-tight mb-2">Pengaturan</h1>
-              <p className="text-foreground/40 text-sm font-medium leading-relaxed">Kelola preferensi dan data akun Anda di sini.</p>
+              <p className="text-muted-foreground text-sm font-medium leading-relaxed">Kelola preferensi dan data akun Anda di sini.</p>
             </header>
 
             <div className="space-y-2">
@@ -127,13 +127,13 @@ export default function SettingsClient({ user, profile: initialProfile }: Settin
                   }`}
                 >
                   <div className={`p-2.5 rounded-xl transition-all ${
-                    activeCategory === cat.id ? 'bg-primary text-primary-foreground shadow-lg' : 'bg-foreground/5 text-foreground/40 group-hover:text-foreground group-hover:bg-foreground/10'
+                    activeCategory === cat.id ? 'bg-primary text-primary-foreground shadow-lg' : 'bg-foreground/5 text-muted-foreground group-hover:text-foreground group-hover:bg-foreground/10'
                   }`}>
                     <cat.icon className="w-5 h-5" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className={`text-sm font-bold ${activeCategory === cat.id ? 'text-foreground' : 'text-foreground/60'}`}>{cat.label}</div>
-                    <div className="text-[10px] text-foreground/30 font-medium truncate uppercase tracking-widest mt-0.5">{cat.description}</div>
+                    <div className={`text-sm font-bold ${activeCategory === cat.id ? 'text-foreground' : 'text-muted-foreground'}`}>{cat.label}</div>
+                    <div className="text-[10px] text-muted-foreground font-medium truncate uppercase tracking-widest mt-0.5">{cat.description}</div>
                   </div>
                 </button>
               ))}
@@ -173,22 +173,22 @@ export default function SettingsClient({ user, profile: initialProfile }: Settin
                       <div className="space-y-6">
                         <div className="grid grid-cols-1 gap-6">
                           <div className="space-y-2">
-                            <label className="text-xs font-black uppercase tracking-widest text-foreground/40 ml-1">E-mail Akses (Read-only)</label>
+                            <label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">E-mail Akses (Read-only)</label>
                             <div className="relative group">
-                              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/20" />
+                              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                               <input 
                                 type="text" 
                                 value={user?.email} 
                                 readOnly
-                                className="w-full pl-12 pr-4 py-4 bg-foreground/5 border border-border rounded-2xl text-foreground/40 cursor-not-allowed font-medium text-sm transition-all"
+                                className="w-full pl-12 pr-4 py-4 bg-foreground/5 border border-border rounded-2xl text-muted-foreground cursor-not-allowed font-medium text-sm transition-all"
                               />
                               <BadgeCheck className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500/40" />
                             </div>
                           </div>
                           <div className="space-y-2">
-                            <label className="text-xs font-black uppercase tracking-widest text-foreground/40 ml-1">Nama Lengkap</label>
+                            <label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Nama Lengkap</label>
                             <div className="relative group">
-                              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40 group-focus-within:text-primary transition-colors" />
+                              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                               <input 
                                 type="text" 
                                 value={fullName} 
@@ -206,7 +206,7 @@ export default function SettingsClient({ user, profile: initialProfile }: Settin
                       <div className="flex items-center justify-between">
                          <div className="space-y-1">
                            <h3 className="text-sm font-bold">Role Akun</h3>
-                           <p className="text-[11px] text-foreground/30 font-medium tracking-tight uppercase tracking-[0.1em]">Hanya bisa diubah oleh Trainer melalui panel admin.</p>
+                           <p className="text-[11px] text-muted-foreground font-medium tracking-tight uppercase tracking-[0.1em]">Hanya bisa diubah oleh Trainer melalui panel admin.</p>
                          </div>
                          <div className="px-5 py-2.5 bg-primary/10 border border-primary/20 rounded-xl text-primary text-xs font-black uppercase tracking-widest">
                             {initialProfile?.role || 'Agent'}
@@ -231,9 +231,9 @@ export default function SettingsClient({ user, profile: initialProfile }: Settin
                       <h2 className="text-xl font-black tracking-tight mb-8">Informasi Keamanan</h2>
                       <div className="space-y-6">
                         <div className="space-y-2">
-                          <label className="text-xs font-black uppercase tracking-widest text-foreground/40 ml-1">Password Baru</label>
+                          <label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Password Baru</label>
                           <div className="relative group">
-                            <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40 group-focus-within:text-primary transition-colors" />
+                            <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                             <input 
                               type={showPasswords ? "text" : "password"}
                               value={newPassword}
@@ -244,7 +244,7 @@ export default function SettingsClient({ user, profile: initialProfile }: Settin
                             <button 
                               type="button"
                               onClick={() => setShowPasswords(!showPasswords)}
-                              className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground/20 hover:text-foreground transition-colors"
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                             >
                               {showPasswords ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                             </button>
@@ -252,9 +252,9 @@ export default function SettingsClient({ user, profile: initialProfile }: Settin
                         </div>
 
                         <div className="space-y-2">
-                          <label className="text-xs font-black uppercase tracking-widest text-foreground/40 ml-1">Konfirmasi Password</label>
+                          <label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Konfirmasi Password</label>
                           <div className="relative group">
-                            <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40 group-focus-within:text-primary transition-colors" />
+                            <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                             <input 
                               type={showPasswords ? "text" : "password"}
                               value={confirmPassword}
@@ -311,12 +311,12 @@ export default function SettingsClient({ user, profile: initialProfile }: Settin
                      <h2 className="text-3xl font-black tracking-tighter">Trainers SuperApp</h2>
                      <div className="flex flex-col items-center gap-2">
                         <span className="px-4 py-2 bg-muted rounded-full text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Versi 2.0.0 (Beta Edition)</span>
-                        <span className="text-[10px] font-medium text-foreground/20 uppercase tracking-widest leading-loose">
+                        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest leading-loose">
                           Build ID: {new Date().getTime().toString(16)} <br/>
                           Engine: Next.js + Supabase + Framer Motion
                         </span>
                      </div>
-                     <p className="max-w-md mx-auto text-xs font-medium text-foreground/40 leading-relaxed mt-12 bg-foreground/5 p-6 rounded-3xl border border-border">
+                     <p className="max-w-md mx-auto text-xs font-medium text-muted-foreground leading-relaxed mt-12 bg-foreground/5 p-6 rounded-3xl border border-border">
                         Platform simulasi pelatihan premium yang dirancang untuk meningkatkan performa Agent Kontak OJK 157 melalui teknologi modern.
                      </p>
                   </div>

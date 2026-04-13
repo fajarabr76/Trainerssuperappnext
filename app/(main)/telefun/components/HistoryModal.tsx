@@ -54,7 +54,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold tracking-tight text-foreground">Riwayat Panggilan</h2>
-                  <p className="text-xs text-foreground/40 font-mono uppercase tracking-widest">
+                  <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest">
                     {history.length} Rekaman Tersimpan
                   </p>
                 </div>
@@ -72,7 +72,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                   onClick={onClose} 
                   className="p-2 hover:bg-foreground/5 rounded-full transition-colors border border-border"
                 >
-                  <X className="w-6 h-6 text-foreground/60" />
+                  <X className="w-6 h-6 text-muted-foreground" />
                 </button>
               </div>
             </div>
@@ -82,10 +82,10 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
               {history.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-24 text-center">
                   <div className="w-20 h-20 bg-foreground/5 rounded-full flex items-center justify-center mb-6 border border-border">
-                    <Clock className="w-10 h-10 text-foreground/20" />
+                    <Clock className="w-10 h-10 text-muted-foreground" />
                   </div>
                   <h3 className="text-xl font-bold mb-2 text-foreground">Belum Ada Rekaman</h3>
-                  <p className="text-foreground/40 text-sm max-w-xs mx-auto font-light">
+                  <p className="text-muted-foreground text-sm max-w-xs mx-auto font-light">
                     Selesaikan simulasi panggilan pertama Anda untuk melihat rekaman di sini.
                   </p>
                 </div>
@@ -104,7 +104,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                           </div>
                           <div>
                             <h4 className="text-sm font-bold text-foreground leading-tight">{rec.scenarioTitle}</h4>
-                            <p className="text-[10px] text-foreground/30 font-bold uppercase tracking-widest mt-1">
+                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1">
                               {rec.consumerName} · {new Date(rec.date).toLocaleDateString('id-ID')}
                             </p>
                           </div>

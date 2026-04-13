@@ -52,7 +52,7 @@ export default function AgentDirectoryClient({
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="h-28 px-10 border-b border-border/50 bg-background/80 backdrop-blur-xl flex items-center justify-between shrink-0 relative z-20">
           <div>
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-foreground/40 mb-1">
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">
               <Users className="w-3 h-3" /> SIDAK
             </div>
             <h1 className="text-3xl font-black tracking-tighter text-foreground">Direktori Agent</h1>
@@ -60,7 +60,7 @@ export default function AgentDirectoryClient({
 
           <div className="flex items-center gap-6">
              <div className="relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/20 group-focus-within:text-primary transition-all duration-300" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-all duration-300" />
               <input 
                 type="text" 
                 placeholder="Cari nama agent..."
@@ -76,7 +76,7 @@ export default function AgentDirectoryClient({
           <div className="flex items-center gap-2 mb-10 overflow-x-auto pb-2 no-scrollbar">
             <button 
               onClick={() => setSelectedBatch('all')}
-              className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border shrink-0 ${selectedBatch === 'all' ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-background border-border/50 text-foreground/40 hover:border-primary/40'}`}
+              className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border shrink-0 ${selectedBatch === 'all' ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-background border-border/50 text-muted-foreground hover:border-primary/40'}`}
             >
               Semua Batch
             </button>
@@ -84,7 +84,7 @@ export default function AgentDirectoryClient({
               <button 
                 key={b}
                 onClick={() => setSelectedBatch(b)}
-                className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border shrink-0 ${selectedBatch === b ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-background border-border/50 text-foreground/40 hover:border-primary/40'}`}
+                className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border shrink-0 ${selectedBatch === b ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-background border-border/50 text-muted-foreground hover:border-primary/40'}`}
               >
                 {b}
               </button>
@@ -118,7 +118,7 @@ export default function AgentDirectoryClient({
                           className="w-full h-full object-cover rounded-xl"
                         />
                       ) : (
-                        <Users className="w-8 h-8 text-foreground/10 group-hover:text-primary/20 transition-colors" />
+                        <Users className="w-8 h-8 text-muted-foreground/30 group-hover:text-primary/20 transition-colors" />
                       )}
                   </div>
                   
@@ -139,7 +139,7 @@ export default function AgentDirectoryClient({
                           {safeAvgScore.toFixed(1)}%
                         </div>
                       ) : (
-                        <div className="px-3 py-1 bg-foreground/5 border border-border/20 rounded-full text-[9px] font-black text-foreground/30 mt-1 uppercase tracking-widest leading-none">Not Audited</div>
+                      <div className="px-3 py-1 bg-foreground/5 border border-border/20 rounded-full text-[9px] font-black text-muted-foreground mt-1 uppercase tracking-widest leading-none">Not Audited</div>
                       )}
                   </div>
                 </div>
@@ -147,7 +147,7 @@ export default function AgentDirectoryClient({
                 <div className="relative z-10 mb-8">
                   <h3 className="text-base font-black text-foreground group-hover:text-primary transition-colors leading-tight line-clamp-1">{agent.nama}</h3>
                   <div className="flex items-center gap-2 mt-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-foreground/30">{agent.batch_name}</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{agent.batch_name}</span>
                     <div className="w-1 h-1 rounded-full bg-foreground/10"/>
                     <span className="text-[10px] font-black uppercase tracking-widest text-primary/40 truncate">{agent.tim}</span>
                   </div>
@@ -167,17 +167,17 @@ export default function AgentDirectoryClient({
                           <span className="text-[10px] font-black">{safeTrendValue.toFixed(1)}%</span>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1 text-foreground/30">
+                        <div className="flex items-center gap-1 text-muted-foreground">
                           <Minus className="w-3 h-3" />
                           <span className="text-[10px] font-black uppercase tracking-widest">Steady</span>
                         </div>
                       )
                     ) : (
-                        <div className="text-[10px] font-black text-foreground/20 uppercase tracking-widest">No Trend</div>
+                        <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">No Trend</div>
                     )}
                   </div>
                   
-                  <div className="w-8 h-8 rounded-full bg-foreground/5 flex items-center justify-center text-foreground/20 group-hover:bg-primary group-hover:text-white transition-all duration-500">
+                  <div className="w-8 h-8 rounded-full bg-foreground/5 flex items-center justify-center text-muted-foreground group-hover:bg-primary group-hover:text-white transition-all duration-500">
                     <ChevronRight className="w-4 h-4" />
                   </div>
                 </div>
@@ -188,10 +188,10 @@ export default function AgentDirectoryClient({
           {filteredAgents.length === 0 && (
             <div className="text-center py-20 flex flex-col items-center justify-center">
               <div className="w-20 h-20 rounded-3xl bg-foreground/5 flex items-center justify-center mb-6">
-                <Users className="w-10 h-10 text-foreground/10" />
+                <Users className="w-10 h-10 text-muted-foreground/30" />
               </div>
-              <h4 className="text-xl font-bold text-foreground/40">Agent tidak ditemukan</h4>
-              <p className="text-sm text-foreground/30 mt-2">Coba gunakan kata kunci pencarian atau filter batch yang berbeda</p>
+              <h4 className="text-xl font-bold text-muted-foreground">Agent tidak ditemukan</h4>
+              <p className="text-sm text-muted-foreground mt-2">Coba gunakan kata kunci pencarian atau filter batch yang berbeda</p>
               <button 
                 onClick={() => { setSearch(''); setSelectedBatch('all'); }}
                 className="mt-6 px-6 py-3 bg-primary/10 text-primary rounded-xl text-xs font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all shadow-sm"

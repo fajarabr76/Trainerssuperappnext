@@ -13,7 +13,7 @@ export function YearSelector({ years, selectedYear, onYearChange }: YearSelector
   return (
     <div className="relative flex-1 group/select min-w-[120px]">
       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-        <Calendar className="h-4 w-4 text-foreground/40 group-focus-within/select:text-primary transition-colors" />
+        <Calendar className="h-4 w-4 text-muted-foreground group-focus-within/select:text-primary transition-colors" />
       </div>
       <select
         value={selectedYear}
@@ -26,7 +26,7 @@ export function YearSelector({ years, selectedYear, onYearChange }: YearSelector
           </option>
         ))}
       </select>
-      <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-foreground/20">
+      <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-muted-foreground">
         <ChevronRight className="w-4 h-4 rotate-90" />
       </div>
     </div>

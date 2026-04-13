@@ -55,7 +55,7 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
     `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
       active 
         ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20' 
-        : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'
+        : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'
     } ${effectiveIsCollapsed ? 'justify-center px-0' : ''}`;
 
   return (
@@ -86,7 +86,7 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
                   className="flex flex-col whitespace-nowrap"
                 >
                   <span className="font-bold tracking-widest uppercase text-sm">Trainers SuperApp</span>
-                  <span className="font-mono text-[10px] tracking-widest uppercase opacity-50">Kontak OJK 157</span>
+                  <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground">Kontak OJK 157</span>
                 </motion.div>
               )}
             </div>
@@ -94,7 +94,7 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
             {!effectiveIsCollapsed && (
               <button 
                 onClick={() => setIsSidebarCollapsed(true)}
-                className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg text-foreground/40 hover:text-foreground hover:bg-foreground/5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 title="Sembunyikan Menu"
               >
                 <PanelLeftClose className="w-4 h-4" />
@@ -103,7 +103,7 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
             {effectiveIsCollapsed && (
                <button 
                 onClick={() => setIsSidebarCollapsed(false)}
-                className="hidden lg:flex absolute right-0 top-[28px] translate-x-1/2 items-center justify-center w-6 h-6 rounded-full bg-card border border-border text-foreground/60 hover:text-primary hover:border-primary transition-all focus-visible:outline-none shadow-sm z-50"
+                className="hidden lg:flex absolute right-0 top-[28px] translate-x-1/2 items-center justify-center w-6 h-6 rounded-full bg-card border border-border text-muted-foreground hover:text-primary hover:border-primary transition-all focus-visible:outline-none shadow-sm z-50"
                 title="Tampilkan Menu"
                >
                  <PanelLeftOpen className="w-3 h-3" />
@@ -112,7 +112,7 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
           </div>
 
           <nav className="space-y-2 flex-1 overflow-y-auto pr-2 -mr-2 pb-4">
-            {!effectiveIsCollapsed && <div className="font-mono text-[10px] uppercase tracking-widest text-foreground/40 mb-4 ml-2 mt-2">Menu Utama</div>}
+            {!effectiveIsCollapsed && <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-4 ml-2 mt-2">Menu Utama</div>}
             
             <Link href="/dashboard" className={navItemClass(pathname === '/dashboard')}>
               <LayoutDashboard className="w-4 h-4 shrink-0" /> 
@@ -164,7 +164,7 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
                   pathname?.startsWith('/qa-analyzer') && !isQaExpanded 
                     ? 'bg-primary/5 text-primary' 
-                    : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'
+                    : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'
                 } ${effectiveIsCollapsed ? 'justify-center px-0' : ''}`}
               >
                 <BarChart3 className="w-4 h-4 shrink-0" /> 
@@ -184,9 +184,9 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
                     className="overflow-hidden"
                   >
                       <div className="pl-11 pr-2 py-2 space-y-1">
-                        <Link href="/qa-analyzer/dashboard" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname === '/qa-analyzer/dashboard' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'}`}>Dashboard SIDAK</Link>
-                        <Link href="/qa-analyzer/agents" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname === '/qa-analyzer/agents' || pathname?.startsWith('/qa-analyzer/agents/') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'}`}>Analisis Individu</Link>
-                        <Link href="/qa-analyzer/ranking" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname === '/qa-analyzer/ranking' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'}`}>Ranking Agen</Link>
+                        <Link href="/qa-analyzer/dashboard" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname === '/qa-analyzer/dashboard' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'}`}>Dashboard SIDAK</Link>
+                        <Link href="/qa-analyzer/agents" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname === '/qa-analyzer/agents' || pathname?.startsWith('/qa-analyzer/agents/') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'}`}>Analisis Individu</Link>
+                        <Link href="/qa-analyzer/ranking" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname === '/qa-analyzer/ranking' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'}`}>Ranking Agen</Link>
                         {(role?.toLowerCase() === 'trainer' ||
                           role?.toLowerCase() === 'trainers' ||
                           role?.toLowerCase() === 'admin' ||
@@ -196,19 +196,19 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
                             className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${
                               pathname === '/qa-analyzer/reports' || pathname?.startsWith('/qa-analyzer/reports/')
                                 ? 'bg-primary text-primary-foreground shadow-sm'
-                                : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'
+                                : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'
                             }`}
                           >
                             Laporan
                           </Link>
                         )}
                         {role?.toLowerCase() !== 'leader' && (
-                          <Link href="/qa-analyzer/input" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname?.startsWith('/qa-analyzer/input') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'}`}>Input Temuan</Link>
+                          <Link href="/qa-analyzer/input" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname?.startsWith('/qa-analyzer/input') ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'}`}>Input Temuan</Link>
                         )}
                         {(role?.toLowerCase() === 'trainer' || role?.toLowerCase() === 'trainers') && (
                           <>
-                            <Link href="/qa-analyzer/periods" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname === '/qa-analyzer/periods' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'}`}>Periode QA</Link>
-                            <Link href="/qa-analyzer/settings" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname === '/qa-analyzer/settings' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'}`}>Parameter QA</Link>
+                            <Link href="/qa-analyzer/periods" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname === '/qa-analyzer/periods' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'}`}>Periode QA</Link>
+                            <Link href="/qa-analyzer/settings" className={`block px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 ${pathname === '/qa-analyzer/settings' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'}`}>Parameter QA</Link>
                           </>
                         )}
                       </div>
@@ -219,7 +219,7 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
 
             {(role?.toLowerCase() === 'trainer' || role?.toLowerCase() === 'trainers' || role?.toLowerCase() === 'leader') && (
               <>
-                {!effectiveIsCollapsed && <div className="font-mono text-[10px] uppercase tracking-widest text-foreground/40 mb-4 mt-8 ml-2">Manajemen</div>}
+                {!effectiveIsCollapsed && <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-4 mt-8 ml-2">Manajemen</div>}
                 <Link href="/dashboard/monitoring" className={navItemClass(pathname === '/dashboard/monitoring')}>
                   <Activity className="w-4 h-4 shrink-0" /> 
                   {!effectiveIsCollapsed && <span>Monitoring</span>}
@@ -236,17 +236,17 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
           </nav>
 
           <div className="mt-auto pt-6 border-t border-border/40">
-            {!effectiveIsCollapsed && <div className="font-mono text-[10px] uppercase tracking-widest text-foreground/40 mb-4 ml-2">Sistem</div>}
+            {!effectiveIsCollapsed && <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-4 ml-2">Sistem</div>}
             <div className="space-y-2">
               {!effectiveIsCollapsed && (
-                <div className="px-4 py-3 text-sm font-medium text-foreground/60 mb-2 overflow-hidden flex flex-col items-start gap-1">
-                  <span className="text-[10px] flex items-center gap-1.5 opacity-50 px-2 py-0.5 rounded-full bg-foreground/10 uppercase tracking-widest font-bold">
+                <div className="px-4 py-3 text-sm font-medium text-muted-foreground mb-2 overflow-hidden flex flex-col items-start gap-1">
+                  <span className="text-[10px] flex items-center gap-1.5 text-muted-foreground px-2 py-0.5 rounded-full bg-muted/70 border border-border uppercase tracking-widest font-bold">
                     Role: {role || "User"}
                   </span>
                   <span className="text-xs text-foreground font-semibold truncate block max-w-full" title={user?.email}>{user?.email}</span>
                 </div>
               )}
-              <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-foreground/5 rounded-xl text-sm font-medium transition-colors text-foreground/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${effectiveIsCollapsed ? 'justify-center px-0' : ''}`}>
+              <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-foreground/5 rounded-xl text-sm font-medium transition-colors text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${effectiveIsCollapsed ? 'justify-center px-0' : ''}`}>
                 {mounted ? (
                   <>
                     {theme === 'dark' ? <Sun className="w-4 h-4 shrink-0" /> : <Moon className="w-4 h-4 shrink-0" />}
@@ -261,7 +261,7 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
               </button>
               <Link 
                 href="/dashboard/settings"
-                className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-foreground/5 rounded-xl text-sm font-medium transition-colors text-foreground/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${effectiveIsCollapsed ? 'justify-center px-0' : ''}`}
+                className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-foreground/5 rounded-xl text-sm font-medium transition-colors text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${effectiveIsCollapsed ? 'justify-center px-0' : ''}`}
               >
                 <Settings className="w-4 h-4 shrink-0" /> 
                 {!effectiveIsCollapsed && <span>Pengaturan</span>}
