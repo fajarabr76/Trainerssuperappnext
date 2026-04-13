@@ -1,78 +1,25 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { motion } from "motion/react";
-import { LayoutDashboard, MessageSquare, Mail, Phone, ChevronRight, Users, BarChart3, ArrowRight } from "lucide-react";
-import Link from "next/link";
-import React from 'react';
-import { ThemeToggle } from "@/app/components/ThemeToggle";
-import { useTelefunWarning } from "@/app/context/TelefunWarningContext";
+import { motion } from 'motion/react';
+import { ArrowRight, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { ThemeToggle } from '@/app/components/ThemeToggle';
+import { useTelefunWarning } from '@/app/context/TelefunWarningContext';
+import { APP_MODULES, isRoleAllowed, normalizeRoleLabel } from '@/app/lib/app-config';
 
 const DashboardAnalyticsPanel = dynamic(() => import('./DashboardAnalyticsPanel'), {
   ssr: false,
   loading: () => (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 h-[420px] rounded-3xl border border-border/40 bg-card/30 animate-pulse" />
-        <div className="h-[420px] rounded-3xl border border-border/40 bg-card/30 animate-pulse" />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="h-[420px] rounded-[2rem] border border-border/40 bg-card/40 animate-pulse lg:col-span-2" />
+        <div className="h-[420px] rounded-[2rem] border border-border/40 bg-card/40 animate-pulse" />
       </div>
-      <div className="h-[260px] rounded-3xl border border-border/40 bg-card/30 animate-pulse" />
+      <div className="h-[260px] rounded-[2rem] border border-border/40 bg-card/40 animate-pulse" />
     </div>
   ),
 });
-
-const modules = [
-  {
-    id: "ketik",
-    title: "KETIK",
-    description: "Kelas Etika & Trik Komunikasi — simulasi chat layanan konsumen Kontak OJK 157.",
-    icon: MessageSquare,
-    color: "text-blue-500",
-    bg: "bg-blue-500/10",
-    border: "border-blue-500/20",
-    href: "/ketik"
-  },
-  {
-    id: "pdkt",
-    title: "PDKT",
-    description: "Paham Dulu Kasih Tanggapan — simulasi email dan korespondensi tertulis.",
-    icon: Mail,
-    color: "text-purple-500",
-    bg: "bg-purple-500/10",
-    border: "border-purple-500/20",
-    href: "/pdkt"
-  },
-  {
-    id: "telefun",
-    title: "TELEFUN",
-    description: "Telephone Fun — simulasi panggilan suara dan telepon untuk melatih komunikasi lisan.",
-    icon: Phone,
-    color: "text-emerald-500",
-    bg: "bg-emerald-500/10",
-    border: "border-emerald-500/20",
-    href: "/telefun"
-  },
-  {
-    id: "profiler",
-    title: "KTP",
-    description: "Kotak Tool Profil — database profil agen terpusat untuk manajemen data peserta.",
-    icon: Users,
-    color: "text-violet-500",
-    bg: "bg-violet-500/10",
-    border: "border-violet-500/20",
-    href: "/profiler"
-  },
-  {
-    id: "qa-analyzer",
-    title: "SIDAK",
-    description: "Sistem Informasi Data Kualitas — monitoring QA dan analisis data performa secara real-time.",
-    icon: BarChart3,
-    color: "text-rose-500",
-    bg: "bg-rose-500/10",
-    border: "border-rose-500/20",
-    href: "/qa-analyzer/dashboard"
-  }
-];
 
 interface DashboardClientProps {
   user: any;
@@ -83,106 +30,161 @@ interface DashboardClientProps {
     totalData: number[];
     serviceData: Record<string, number[]>;
     activeServices: string[];
-    serviceSummary: Record<string, { totalDefects: number, auditedAgents: number }>;
-    totalSummary: { totalDefects: number, auditedAgents: number, activeServiceCount: number };
+    serviceSummary: Record<string, { totalDefects: number; auditedAgents: number }>;
+    totalSummary: { totalDefects: number; auditedAgents: number; activeServiceCount: number };
     topParameter?: { name: string; count: number } | null;
   }>;
-  initialRecentLogs: Array<{ id: string | number, user: string, action: string, time: string, type: string }>;
+  initialRecentLogs: Array<{ id: string | number; user: string; action: string; time: string; type: string }>;
   availableYears: number[];
   initialYear: number;
 }
 
-export default function DashboardClient({ 
-  user, role, profile, 
-  serviceTrendMap, initialRecentLogs,
-  availableYears, initialYear
+export default function DashboardClient({
+  user,
+  role,
+  profile,
+  serviceTrendMap,
+  initialRecentLogs,
+  availableYears,
+  initialYear,
 }: DashboardClientProps) {
   const { openMaintenance } = useTelefunWarning();
 
+  const visibleModules = APP_MODULES.filter(
+    (module) => ['ketik', 'pdkt', 'telefun', 'profiler', 'qa-analyzer'].includes(module.id) && isRoleAllowed(role, module.allowedRoles)
+  );
+  const roleLabel = normalizeRoleLabel(role);
+  const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Tim';
+
   return (
-    <>
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto relative flex flex-col">
-        {/* Top Header */}
-        <div className="sticky top-0 z-30 flex items-center justify-between px-8 py-5 bg-background/60 backdrop-blur-xl border-b border-border/40">
-          <div className="flex items-center gap-4">
+    <main className="relative flex flex-1 flex-col overflow-y-auto">
+      <div className="sticky top-0 z-30 border-b border-border/40 bg-background/70 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between px-6 py-4 lg:px-10">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Unified Dashboard</p>
+            <h1 className="mt-1 text-lg font-semibold tracking-tight">Command center</h1>
+          </div>
+          <div className="flex items-center gap-3">
             <ThemeToggle />
-            <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-sm">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-sm font-semibold text-primary">
               {user?.email?.charAt(0).toUpperCase()}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Background glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1200px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none opacity-40" />
-        
-        <div className="p-8 xl:p-12 w-full max-w-[1600px] mx-auto relative z-10">
-          <header className="mb-12">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <h1 className="text-4xl lg:text-5xl font-bold tracking-tight mb-4">Dashboard</h1>
-              <p className="text-lg text-foreground/70 font-light max-w-2xl leading-relaxed">
-                Selamat datang di pusat kendali pelatihan <span className="text-foreground font-medium">Kontak OJK 157</span>. 
-                Kelola simulasi, pantau performa, dan tingkatkan kualitas layanan melalui modul terintegrasi kami.
+      <div className="pointer-events-none absolute left-1/2 top-0 h-[36rem] w-full max-w-[1200px] -translate-x-1/2 rounded-full bg-primary/6 blur-[140px]" />
+
+      <div className="relative z-10 mx-auto flex w-full max-w-[1600px] flex-col gap-8 px-6 py-8 lg:px-10 lg:py-10">
+        <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-[2rem] border border-border/50 bg-card/75 p-7 shadow-xl shadow-black/5 backdrop-blur-xl lg:p-8">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
+              <Sparkles className="h-3.5 w-3.5" />
+              Role-aware workspace
+            </div>
+            <div className="mt-5 space-y-4">
+              <h2 className="max-w-3xl text-4xl font-semibold tracking-tight text-balance lg:text-5xl">
+                Selamat datang, {displayName}.
+              </h2>
+              <p className="max-w-3xl text-base leading-7 text-muted-foreground lg:text-lg">
+                Anda masuk sebagai {roleLabel}. Gunakan dashboard ini untuk bergerak cepat antar simulasi, monitoring kualitas,
+                dan operasi training tanpa berpindah antar layout yang terasa asing.
               </p>
-            </motion.div>
-          </header>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-12">
-            {modules.map((module, idx) => (
-              <motion.div
-                key={module.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1, duration: 0.5 }}
-              >
-                <Link 
-                  href={module.href} 
-                  onClick={(e) => {
+            <div className="mt-8 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-3xl border border-border/50 bg-background/70 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Modules in view</p>
+                <p className="mt-2 text-3xl font-semibold tracking-tight">{visibleModules.length}</p>
+              </div>
+              <div className="rounded-3xl border border-border/50 bg-background/70 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Primary focus</p>
+                <p className="mt-2 text-sm font-medium text-foreground">{roleLabel === 'Agent' ? 'Simulation & self-practice' : 'Monitoring & orchestration'}</p>
+              </div>
+              <div className="rounded-3xl border border-border/50 bg-background/70 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Access model</p>
+                <p className="mt-2 text-sm font-medium text-foreground">Unified shell, preserved legacy routes</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-border/50 bg-card/65 p-6 backdrop-blur-xl lg:p-7">
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Quick actions</p>
+            <div className="mt-5 space-y-3">
+              {visibleModules.slice(0, 4).map((module) => (
+                <Link
+                  key={module.id}
+                  href={module.href}
+                  onClick={(event) => {
                     if (module.id === 'telefun') {
-                      e.preventDefault();
+                      event.preventDefault();
                       openMaintenance();
                     }
                   }}
-                  className="group block h-full p-6 rounded-3xl border border-border/40 bg-card/30 backdrop-blur-md hover:border-primary/20 transition-all relative overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="group flex items-center justify-between rounded-3xl border border-border/50 bg-background/70 px-5 py-4 transition hover:-translate-y-0.5 hover:border-primary/20"
                 >
-                  <div className="relative z-10">
-                    <div className="flex items-center justify-between mb-6">
-                      <div className={`w-10 h-10 ${module.bg} ${module.color} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500`}>
-                        <module.icon className="w-5 h-5" />
-                      </div>
-                      <div className="w-8 h-8 rounded-full border border-border/40 flex items-center justify-center opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 bg-background">
-                        <ChevronRight className="w-4 h-4" />
-                      </div>
+                  <div className="flex items-center gap-4">
+                    <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${module.accentSoftClassName} ${module.accentClassName}`}>
+                      <module.icon className="h-5 w-5" />
                     </div>
-                    <h3 className="text-lg font-bold mb-1 tracking-tight group-hover:text-primary transition-colors">{module.title}</h3>
-                    <p className="text-sm text-foreground/70 leading-relaxed font-light mb-6">
-                      {module.description}
-                    </p>
-                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-primary opacity-0 group-hover:opacity-100 transition-all duration-300">
-                      Buka Modul <ArrowRight className="w-3 h-3" />
+                    <div>
+                      <p className="font-semibold tracking-tight">{module.title}</p>
+                      <p className="text-sm text-muted-foreground">{module.description}</p>
                     </div>
                   </div>
-                  <div className="absolute -right-6 -bottom-6 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity duration-500 rotate-12 pointer-events-none">
-                    <module.icon className="w-32 h-32" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground" />
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Unified workspaces</p>
+            <h3 className="mt-2 text-2xl font-semibold tracking-tight">Masuk ke modul tanpa keluar dari ritme kerja yang sama</h3>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+            {visibleModules.map((module, idx) => (
+              <motion.div
+                key={module.id}
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.08, duration: 0.35 }}
+              >
+                <Link
+                  href={module.href}
+                  onClick={(event) => {
+                    if (module.id === 'telefun') {
+                      event.preventDefault();
+                      openMaintenance();
+                    }
+                  }}
+                  className="group flex h-full flex-col rounded-[2rem] border border-border/50 bg-card/70 p-5 backdrop-blur-md transition hover:-translate-y-1 hover:border-primary/20 hover:shadow-lg hover:shadow-black/5"
+                >
+                  <div className="mb-5 flex items-start justify-between gap-4">
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${module.accentSoftClassName} ${module.accentClassName}`}>
+                      <module.icon className="h-5 w-5" />
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground" />
                   </div>
+                  <h4 className="text-lg font-semibold tracking-tight">{module.title}</h4>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{module.description}</p>
+                  <div className="mt-auto pt-5 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">Open workspace</div>
                 </Link>
               </motion.div>
             ))}
           </div>
+        </section>
 
-          <DashboardAnalyticsPanel
-            role={role}
-            serviceTrendMap={serviceTrendMap}
-            initialRecentLogs={initialRecentLogs}
-            availableYears={availableYears}
-            initialYear={initialYear}
-          />
-        </div>
-      </main>
-    </>
+        <DashboardAnalyticsPanel
+          role={role}
+          serviceTrendMap={serviceTrendMap}
+          initialRecentLogs={initialRecentLogs}
+          availableYears={availableYears}
+          initialYear={initialYear}
+        />
+      </div>
+    </main>
   );
 }

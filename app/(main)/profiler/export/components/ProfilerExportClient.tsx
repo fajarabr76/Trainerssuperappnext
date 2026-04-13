@@ -106,10 +106,9 @@ export default function ProfilerExportClient({
   const downloadPPTX = async () => {
     setGenerating('pptx');
     try {
-      // @ts-ignore
-      const pptxgen = (await import('pptxgenjs')).default || (await import('pptxgenjs'));
-      // @ts-ignore
-      const prs = new pptxgen();
+      const pptxModule = await import('pptxgenjs');
+      const PptxGen = (pptxModule.default ?? pptxModule) as unknown as new () => any;
+      const prs = new PptxGen();
       
       const isLandscape = orientation === 'landscape';
       if (isLandscape) {

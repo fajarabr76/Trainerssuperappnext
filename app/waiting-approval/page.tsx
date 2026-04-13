@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Cpu, Clock, LogOut } from 'lucide-react';
-import { createClient } from '@/app/lib/supabase/client';
+import { Clock, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/app/lib/supabase/client';
+import AuthPageFrame from '@/app/components/AuthPageFrame';
 
 export default function WaitingApprovalPage() {
   const router = useRouter();
@@ -17,65 +18,45 @@ export default function WaitingApprovalPage() {
 
   useEffect(() => {
     const checkStatus = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
-      
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('status')
-        .eq('id', user.id)
-        .single();
-        
+
+      const { data: profile } = await supabase.from('profiles').select('status').eq('id', user.id).single();
       if (profile?.status === 'approved') {
         router.push('/dashboard');
         router.refresh();
       }
     };
-    
-    checkStatus(); // cek langsung saat halaman dibuka
-    const interval = setInterval(checkStatus, 30000);
+
+    void checkStatus();
+    const interval = setInterval(() => void checkStatus(), 30000);
     return () => clearInterval(interval);
-  }, [supabase, router]);
+  }, [router, supabase]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="max-w-md w-full bg-card border border-border/50 rounded-[2.5rem] p-10 shadow-2xl">
-        {/* Header Logo - Same as reset-password/page.tsx */}
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
-            <Cpu className="text-primary-foreground w-6 h-6" />
-          </div>
-          <span className="font-black tracking-widest uppercase text-sm text-foreground">Trainers App</span>
+    <AuthPageFrame
+      eyebrow="Access review"
+      title="Akun Anda sedang direview trainer."
+      description="Begitu disetujui, Anda akan langsung diarahkan ke dashboard baru tanpa perlu setup tambahan."
+    >
+      <div className="rounded-[1.6rem] border border-border/50 bg-background/70 p-6 text-center">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <Clock className="h-8 w-8" />
         </div>
-
-        <div className="text-center">
-          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Clock className="w-10 h-10 text-primary" />
-          </div>
-          
-          <h1 className="text-3xl font-black tracking-tighter mb-4 text-foreground">Menunggu Persetujuan</h1>
-          
-          <p className="text-foreground/60 text-sm leading-relaxed mb-8">
-            Akun Anda telah berhasil dibuat dan sedang dalam proses review oleh trainer. 
-            Anda akan mendapatkan akses penuh setelah disetujui.
-          </p>
-
-          <div className="bg-primary/10 border border-primary/20 rounded-2xl p-6 mb-8 text-center text-balance">
-            <p className="text-xs font-bold text-primary/80 leading-relaxed">
-              Proses persetujuan biasanya memakan waktu 1x24 jam. 
-              Hubungi trainer Anda jika membutuhkan akses segera.
-            </p>
-          </div>
-
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 py-4 px-6 rounded-xl border border-border hover:bg-foreground/5 text-foreground/60 hover:text-foreground font-bold text-sm transition-all active:scale-[0.98]"
-          >
-            <LogOut className="w-4 h-4" />
-            Keluar dari Akun
-          </button>
+        <h2 className="text-2xl font-semibold tracking-tight">Menunggu persetujuan</h2>
+        <p className="mt-4 text-sm leading-6 text-muted-foreground">
+          Akun Anda berhasil dibuat dan sedang menunggu verifikasi. Halaman ini akan memeriksa status secara berkala.
+        </p>
+        <div className="mt-6 rounded-3xl border border-primary/15 bg-primary/8 p-5 text-sm leading-6 text-primary/90">
+          Estimasi normal sekitar 1x24 jam. Jika akses dibutuhkan segera, hubungi trainer atau admin Anda.
         </div>
+        <button onClick={handleLogout} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full border border-border/60 bg-card px-5 py-3 text-sm font-semibold transition hover:bg-accent">
+          <LogOut className="h-4 w-4" />
+          Keluar dari Akun
+        </button>
       </div>
-    </div>
+    </AuthPageFrame>
   );
 }

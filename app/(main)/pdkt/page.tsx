@@ -5,22 +5,20 @@ import { SettingsModal } from './components/SettingsModal';
 import { EmailInterface } from './components/EmailInterface';
 import { HistoryModal } from './components/HistoryModal';
 import { AppSettings, SessionConfig, Identity, ConsumerType, EmailMessage, EvaluationResult, SessionHistory, EvaluationStatus } from './types';
-import { DEFAULT_SCENARIOS, DEFAULT_CONSUMER_TYPES, DUMMY_CITIES, DUMMY_PROFILES } from './constants';
+import { DUMMY_CITIES, DUMMY_PROFILES } from './constants';
 import { initializeEmailSession } from './services/geminiService';
 import { loadPdktSettings, savePdktSettings, defaultPdktSettings } from './services/settingService';
 
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { ArrowLeft, History, Settings, Play, Mail } from 'lucide-react';
+import { History, Settings, Play, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { createClient } from '@/app/lib/supabase/client';
 import { moduleTheme } from '@/app/components/ui/moduleTheme';
+import ModuleWorkspaceIntro from '@/app/components/ModuleWorkspaceIntro';
 
 const supabase = createClient();
 
 const PdktPage: React.FC = () => {
   const theme = moduleTheme.pdkt;
-  const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [view, setView] = useState<'home' | 'email'>('home');
 
@@ -66,7 +64,7 @@ const PdktPage: React.FC = () => {
       setUser(user);
     };
     getUser();
-  }, [supabase.auth]);
+  }, []);
 
   // ── Load settings saat mount ──────────────────────────
   useEffect(() => {
@@ -262,7 +260,7 @@ const PdktPage: React.FC = () => {
           time_taken: duration,
         };
 
-        const { data: historyData, error: historyError } = await supabase
+        const { data: historyData } = await supabase
           .from('pdkt_history')
           .insert([newHistoryItem])
           .select()
@@ -332,7 +330,7 @@ const PdktPage: React.FC = () => {
   };
 
   return (
-    <div data-module="pdkt" className={`${theme.root} h-full overflow-auto flex items-center justify-center p-6 transition-colors duration-500 font-sans selection:bg-primary/20 relative`}>
+    <div data-module="pdkt" className={`${theme.root} h-full overflow-auto transition-colors duration-500 font-sans selection:bg-primary/20 relative`}>
 
       <AnimatePresence mode="wait">
         {view === 'home' ? (
@@ -340,81 +338,49 @@ const PdktPage: React.FC = () => {
             key="home"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="module-clean-shell max-w-xl w-full rounded-3xl p-6 md:p-8 relative z-10"
+            exit={{ opacity: 0, y: -12 }}
+            className="relative z-10 py-6"
           >
-            <div className="absolute top-8 left-8 z-20">
-              <Link href="/dashboard"
-                className="module-clean-button-secondary w-10 h-10 flex items-center justify-center rounded-xl
-                           text-muted-foreground hover:text-foreground hover:bg-foreground/10
-                           transition-all group">
-                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-              </Link>
-            </div>
-
-            <div className="text-center mb-8 mt-4">
-              <motion.div 
-                initial={{ rotate: -15, scale: 0.8, opacity: 0 }} 
-                animate={{ rotate: 0, scale: 1, opacity: 1 }} 
-                transition={{ delay: 0.2, type: 'spring', stiffness: 150 }} 
-                className="module-clean-hero-icon w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center relative group cursor-default"
-              >
-                <Mail className="h-10 w-10 text-primary-foreground relative z-10" />
-              </motion.div>
-              
-              <h1 className="text-4xl font-black text-foreground mb-2 tracking-tighter">PDKT</h1>
-              <div className="module-clean-chip inline-flex items-center gap-3 px-4 py-1.5 rounded-full mb-4">
-                <span className="w-1.5 h-1.5 bg-module-pdkt rounded-full animate-pulse" />
-                <h2 className="text-[10px] font-black uppercase tracking-[0.4em]">Paham Dulu Kasih Tanggapan</h2>
-              </div>
-              
-              <p className="text-foreground/70 text-[13px] leading-relaxed max-w-sm mx-auto font-medium">
-                Asah kemampuan penulisan komunikasi formal Anda melalui simulasi email yang cerdas dan responsif.
-              </p>
-            </div>
-
-            <div className="relative z-10 mt-8 flex flex-col gap-3">
-              <motion.button 
-                whileHover={{ scale: 1.02, y: -1 }} 
-                whileTap={{ scale: 0.98 }} 
-                onClick={startSession} 
-                disabled={isLoading} 
-                className="module-clean-button-primary w-full h-14 px-6 rounded-2xl font-black text-[11px] uppercase tracking-[0.22em] flex items-center justify-center gap-3 transition-all hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <Play className="w-4 h-4 fill-current" />
+            <ModuleWorkspaceIntro
+              eyebrow="Paham Dulu Kasih Tanggapan"
+              title="Buka simulasi email dengan pengalaman workspace yang seragam."
+              description="Atur skenario, review riwayat evaluasi, lalu lanjut membalas email dari satu pola halaman yang sama dengan modul lain. Fokusnya sekarang lebih terasa seperti command center, bukan aplikasi terpisah."
+              accentClassName={theme.accentText}
+              accentSoftClassName={theme.accentSoftBg}
+              icon={<Mail className="h-8 w-8" />}
+              actions={
+                <>
+                  <motion.button
+                    whileHover={{ scale: 1.01, y: -1 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={startSession}
+                    disabled={isLoading}
+                    className="module-clean-button-primary flex h-14 w-full items-center justify-center gap-3 rounded-2xl px-6 text-[11px] font-black uppercase tracking-[0.22em] transition-all hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isLoading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <Play className="h-4 w-4 fill-current" />}
                     <span>Mulai Simulasi</span>
-                  </>
-                )}
-              </motion.button>
-
-              <motion.button 
-                whileHover={{ scale: 1.02, y: -1 }} 
-                whileTap={{ scale: 0.98 }} 
-                onClick={() => setIsSettingsOpen(true)} 
-                className="module-clean-button-secondary w-full h-14 px-6 rounded-2xl font-black text-[11px] uppercase tracking-[0.22em] flex items-center justify-center gap-3 transition-all"
-              >
-                <Settings className="w-4 h-4 opacity-50" />
-                <span>Pengaturan</span>
-              </motion.button>
-
-              <motion.button 
-                whileHover={{ scale: 1.02, y: -1 }} 
-                whileTap={{ scale: 0.98 }} 
-                onClick={async () => { await fetchHistory(); setIsHistoryOpen(true); }} 
-                className="module-clean-button-secondary w-full h-14 px-6 rounded-2xl font-black text-[11px] uppercase tracking-[0.22em] flex items-center justify-center gap-3 transition-all"
-              >
-                <History className="w-4 h-4 opacity-50" />
-                <span>Riwayat</span>
-              </motion.button>
-            </div>
-
-            <div className="mt-16 pt-8 border-t border-border/50 flex flex-col items-center gap-1.5">
-              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Trainers SuperApp | Made by Fajar & Ratna</p>
-            </div>
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.01, y: -1 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="module-clean-button-secondary flex h-14 w-full items-center justify-center gap-3 rounded-2xl px-6 text-[11px] font-black uppercase tracking-[0.22em] transition-all"
+                  >
+                    <Settings className="h-4 w-4 opacity-60" />
+                    <span>Pengaturan</span>
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.01, y: -1 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={async () => { await fetchHistory(); setIsHistoryOpen(true); }}
+                    className="module-clean-button-secondary flex h-14 w-full items-center justify-center gap-3 rounded-2xl px-6 text-[11px] font-black uppercase tracking-[0.22em] transition-all"
+                  >
+                    <History className="h-4 w-4 opacity-60" />
+                    <span>Riwayat</span>
+                  </motion.button>
+                </>
+              }
+            />
           </motion.div>
         ) : (
           <motion.div 

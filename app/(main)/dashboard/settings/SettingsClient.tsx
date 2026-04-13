@@ -1,18 +1,15 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from "motion/react";
 import { 
-  User, Shield, Bell, Palette, Globe, Lock, 
-  ChevronRight, Settings, Mail, BadgeCheck, 
+  User, Shield, Palette, Lock,
+  Settings, Mail, BadgeCheck,
   Save, KeyRound, Eye, EyeOff, CheckCircle2,
-  AlertCircle, Loader2, LogOut, LayoutDashboard,
-  MessageSquare, Phone, Users, BarChart3, ChevronLeft
+  AlertCircle, Loader2
 } from "lucide-react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import { createClient } from '@/app/lib/supabase/client';
-import { ThemeToggle } from "@/app/components/ThemeToggle";
+import PageHeroHeader from "@/app/components/PageHeroHeader";
 
 interface SettingsClientProps {
   user: any;
@@ -22,8 +19,6 @@ interface SettingsClientProps {
 type Category = 'profile' | 'security' | 'appearance' | 'about';
 
 export default function SettingsClient({ user, profile: initialProfile }: SettingsClientProps) {
-  const pathname = usePathname();
-  const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   
   const [activeCategory, setActiveCategory] = useState<Category>('profile');
@@ -33,7 +28,6 @@ export default function SettingsClient({ user, profile: initialProfile }: Settin
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   // Security State
-  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPasswords, setShowPasswords] = useState(false);
@@ -93,26 +87,25 @@ export default function SettingsClient({ user, profile: initialProfile }: Settin
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
-  };
-
   return (
     <div className="h-full bg-background text-foreground transition-colors duration-500 overflow-hidden">
       {/* Settings Container */}
       <main className="h-full flex flex-col min-w-0 overflow-hidden relative">
-        <div className="absolute top-0 right-0 p-6 z-50">
-          <ThemeToggle />
+        <div className="px-6 pt-8 lg:px-10 lg:pt-10">
+          <PageHeroHeader
+            eyebrow="Personal settings"
+            title="Atur profil, keamanan, dan preferensi tampilan dari satu tempat."
+            description="Halaman pengaturan kini mengikuti shell platform yang sama, sehingga perpindahan dari dashboard ke preferensi akun terasa lebih natural."
+            icon={<Settings className="h-3.5 w-3.5" />}
+          />
         </div>
 
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden px-6 pb-8 lg:px-10 lg:pb-10">
           {/* Categories Sidebar (Split Layout) */}
-          <div className="w-1/3 max-w-sm border-r border-border/40 p-12 overflow-y-auto">
-            <header className="mb-12">
-              <h1 className="text-3xl font-black tracking-tight mb-2">Pengaturan</h1>
-              <p className="text-muted-foreground text-sm font-medium leading-relaxed">Kelola preferensi dan data akun Anda di sini.</p>
+          <div className="w-1/3 max-w-sm border-r border-border/40 p-8 overflow-y-auto">
+            <header className="mb-10">
+              <h2 className="text-2xl font-semibold tracking-tight mb-2">Kategori</h2>
+              <p className="text-muted-foreground text-sm font-medium leading-relaxed">Pilih area pengaturan yang ingin Anda kelola.</p>
             </header>
 
             <div className="space-y-2">
@@ -141,7 +134,7 @@ export default function SettingsClient({ user, profile: initialProfile }: Settin
           </div>
 
           {/* Active Category Content */}
-          <div className="flex-1 p-12 overflow-y-auto bg-card/20 backdrop-blur-3xl relative">
+          <div className="relative flex-1 overflow-y-auto rounded-r-[2rem] bg-card/20 p-8 backdrop-blur-3xl">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeCategory}

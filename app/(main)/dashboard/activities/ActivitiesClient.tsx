@@ -1,20 +1,14 @@
 'use client';
 
-import { motion, AnimatePresence } from "motion/react";
-import { LayoutDashboard, MessageSquare, Mail, Phone, Settings, LogOut, BarChart3, Users, Search, Filter, Download, ChevronLeft, Trash2, Activity, Clock, Target, X, AlertCircle } from "lucide-react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { createClient } from '@/app/lib/supabase/client';
-import { ThemeToggle } from "@/app/components/ThemeToggle";
+import { Search, Filter, Download, Trash2, Activity, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { ActivityLog } from "@/app/lib/services/activityService";
 import { normalizeModuleName, normalizeActionText } from "@/app/lib/utils";
 import { deleteActivityAction } from "./actions";
+import PageHeroHeader from "@/app/components/PageHeroHeader";
 
 export default function ActivitiesClient({
-  user,
   role,
-  profile,
   initialLogs,
 }: {
   user: any,
@@ -22,19 +16,10 @@ export default function ActivitiesClient({
   profile: any,
   initialLogs: ActivityLog[],
 }) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const supabase = createClient();
   const [logs, setLogs] = useState<ActivityLog[]>(initialLogs);
   const [loading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
-  };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Apakah Anda yakin ingin menghapus log aktivitas ini?')) return;
@@ -59,27 +44,13 @@ export default function ActivitiesClient({
 
   return (
     <main className="h-full overflow-y-auto relative bg-background/50 backdrop-blur-3xl">
-      <div className="sticky top-0 z-30 flex justify-end p-6 pointer-events-none">
-        <div className="pointer-events-auto">
-          <ThemeToggle />
-        </div>
-      </div>
-
-      <div className="p-8 xl:p-12 max-w-7xl mx-auto relative z-10 -mt-14">
-        <header className="mb-12">
-           <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors mb-6 group">
-            <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Kembali ke Dashboard
-          </Link>
-          <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
-                  <Activity className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                   <h1 className="text-4xl font-black tracking-tighter">Riwayat Aktivitas</h1>
-                   <p className="text-muted-foreground text-sm font-medium mt-1 uppercase tracking-widest opacity-80">Audit Log Seluruh Pengguna & Sistem</p>
-              </div>
-          </div>
-        </header>
+      <div className="mx-auto max-w-7xl px-6 py-8 lg:px-10 lg:py-10">
+        <PageHeroHeader
+          eyebrow="Audit log"
+          title="Riwayat aktivitas lintas pengguna dan sistem."
+          description="Gunakan halaman ini untuk menelusuri log operasional, mencari aktivitas tertentu, dan menjaga traceability di seluruh platform."
+          icon={<Activity className="h-3.5 w-3.5" />}
+        />
 
         {/* Filters */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">

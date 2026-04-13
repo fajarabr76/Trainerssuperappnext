@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
-import { Cpu, Loader2, KeyRound, CheckCircle } from 'lucide-react';
-import { createClient } from '@/app/lib/supabase/client';
+import { useEffect, useState, type FormEvent } from 'react';
+import { CheckCircle, KeyRound, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/app/lib/supabase/client';
+import AuthPageFrame from '@/app/components/AuthPageFrame';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -16,7 +17,9 @@ export default function ResetPasswordPage() {
   const [sessionReady, setSessionReady] = useState(false);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') setSessionReady(true);
     });
     return () => subscription.unsubscribe();
@@ -32,85 +35,67 @@ export default function ResetPasswordPage() {
       setError('Password minimal 6 karakter.');
       return;
     }
+
     setLoading(true);
     setError(null);
-    const { error } = await supabase.auth.updateUser({ password });
-    if (error) {
-      setError(error.message);
+    const { error: updateError } = await supabase.auth.updateUser({ password });
+
+    if (updateError) {
+      setError(updateError.message);
       setLoading(false);
-    } else {
-      setSuccess(true);
-      setTimeout(() => router.push('/dashboard'), 3000);
+      return;
     }
+
+    setSuccess(true);
+    setTimeout(() => router.push('/dashboard'), 2500);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="max-w-md w-full bg-card border border-border/50 rounded-[2.5rem] p-10 shadow-2xl">
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
-            <Cpu className="text-primary-foreground w-6 h-6" />
-          </div>
-          <span className="font-black tracking-widest uppercase text-sm text-foreground">Trainers App</span>
-        </div>
-
+    <AuthPageFrame
+      eyebrow="Password recovery"
+      title="Perbarui akses Anda tanpa keluar dari ritme kerja."
+      description="Gunakan halaman ini untuk membuat password baru lalu kembali ke dashboard terpadu Anda."
+    >
+      <div className="rounded-[1.6rem] border border-border/50 bg-background/70 p-6">
         {!sessionReady ? (
-          <div className="text-center py-12">
-            <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-6" />
-            <p className="text-muted-foreground font-medium">Memvalidasi link reset password Anda...</p>
+          <div className="py-12 text-center">
+            <Loader2 className="mx-auto mb-5 h-10 w-10 animate-spin text-primary" />
+            <h2 className="text-2xl font-semibold tracking-tight">Memvalidasi tautan reset</h2>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">Mohon tunggu sebentar, kami sedang memastikan sesi pemulihan Anda aktif.</p>
           </div>
         ) : success ? (
-          <div className="text-center">
-            <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="w-8 h-8 text-green-500" />
+          <div className="py-8 text-center">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10 text-green-600">
+              <CheckCircle className="h-8 w-8" />
             </div>
-            <h1 className="text-2xl font-black mb-3">Password Berhasil Diubah!</h1>
-            <p className="text-foreground/50 text-sm">Mengalihkan ke dashboard...</p>
+            <h2 className="text-2xl font-semibold tracking-tight">Password berhasil diubah</h2>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">Anda akan diarahkan kembali ke dashboard dalam beberapa detik.</p>
           </div>
         ) : (
           <>
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <KeyRound className="w-8 h-8 text-primary" />
+            <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/15 bg-primary/8 text-primary">
+              <KeyRound className="h-6 w-6" />
             </div>
-            <h1 className="text-2xl font-black tracking-tighter mb-2 text-center">Buat Password Baru</h1>
-            <p className="text-foreground/50 text-sm text-center mb-8">Masukkan password baru Anda di bawah ini.</p>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-2 pl-1">Password Baru</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full bg-background border border-border/40 rounded-xl px-4 py-3.5 text-sm font-black tracking-widest text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
-                  placeholder="••••••••"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-2 pl-1">Konfirmasi Password</label>
-                <input
-                  type="password"
-                  value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
-                  required
-                  className="w-full bg-background border border-border/40 rounded-xl px-4 py-3.5 text-sm font-black tracking-widest text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
-                  placeholder="••••••••"
-                />
-              </div>
-              {error && (
-                <p className="text-xs font-bold text-red-500 bg-red-500/10 p-4 rounded-2xl border border-red-500/20">{error}</p>
-              )}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full mt-2 px-8 py-4 bg-primary text-primary-foreground rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
-              >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Simpan Password Baru'}
+            <h2 className="text-2xl font-semibold tracking-tight">Buat password baru</h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">Gunakan password yang kuat agar akses ke platform tetap aman.</p>
+
+            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+              <label className="block">
+                <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Password baru</span>
+                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="auth-input" placeholder="••••••••" />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Konfirmasi password</span>
+                <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required className="auth-input" placeholder="••••••••" />
+              </label>
+              {error && <p className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-xs font-semibold text-red-600">{error}</p>}
+              <button type="submit" disabled={loading} className="auth-submit">
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Simpan Password Baru'}
               </button>
             </form>
           </>
         )}
       </div>
-    </div>
+    </AuthPageFrame>
   );
 }

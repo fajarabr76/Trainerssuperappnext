@@ -14,7 +14,7 @@ import { usePathname, useRouter } from 'next/navigation';
 function MainLayoutContent({ 
   user, 
   role, 
-  profile,
+  profile: _profile,
   children 
 }: { 
   user: any, 

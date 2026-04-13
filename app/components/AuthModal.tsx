@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, FormEvent, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, ArrowRight, Cpu, Loader2, X, AlertCircle } from 'lucide-react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { AlertCircle, ArrowRight, Cpu, Loader2, ShieldCheck, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/app/lib/supabase/client';
 
@@ -12,15 +12,26 @@ interface AuthModalProps {
   initialMode?: 'login' | 'register' | 'forgot';
 }
 
+const AUTH_COPY = {
+  login: {
+    title: 'Masuk ke command center',
+    description: 'Masuk untuk membuka dashboard terpadu dan seluruh workspace training yang Anda miliki.',
+    submit: 'Masuk ke Dashboard',
+  },
+  register: {
+    title: 'Ajukan akses platform',
+    description: 'Daftarkan akun kerja Anda untuk mengaktifkan akses ke simulasi, QA analytics, dan database training.',
+    submit: 'Kirim Permintaan Akses',
+  },
+  forgot: {
+    title: 'Reset password',
+    description: 'Masukkan email kerja Anda dan kami akan mengirimkan tautan untuk memperbarui password.',
+    submit: 'Kirim Link Reset',
+  },
+} as const;
+
 export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalProps) {
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>(initialMode);
-
-  // Sync mode with initialMode when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setMode(initialMode);
-    }
-  }, [isOpen, initialMode]);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -28,7 +39,16 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   const router = useRouter();
   const supabase = createClient();
 
-  // Reset state when modal closes
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+      setError(null);
+      setSuccessMessage(null);
+      setLoading(false);
+      setForgotLoading(false);
+    }
+  }, [initialMode, isOpen]);
+
   const handleClose = () => {
     setError(null);
     setSuccessMessage(null);
@@ -41,85 +61,77 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     e.preventDefault();
     setLoading(true);
     setError(null);
-    
+    setSuccessMessage(null);
+
     const formData = new FormData(e.currentTarget);
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
     if (mode === 'login') {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
 
-      if (error) {
-        setError(error.message);
-        setLoading(false);
-      } else {
-        // Wait for Supabase session propagation so middleware sees the new auth state.
-        await supabase.auth.getSession();
-        await new Promise((resolve) => setTimeout(resolve, 150));
-        router.replace('/dashboard');
-        router.refresh();
-      }
-    } else {
-      const role = formData.get('role') as string;
-      
-      // Cek apakah email sudah pernah mendaftar dengan status pending
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id, status')
-        .eq('email', email)
-        .maybeSingle();
-
-      if (existingProfile) {
-        if (existingProfile.status === 'pending') {
-          setError('Anda sudah mendaftar dan sedang menunggu persetujuan trainer. Mohon bersabar.');
-          setLoading(false);
-          return;
-        }
-        if (existingProfile.status === 'rejected') {
-          setError('Pendaftaran Anda sebelumnya ditolak. Hubungi trainer untuk informasi lebih lanjut.');
-          setLoading(false);
-          return;
-        }
-      }
-
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (signUpError) {
-        setError(signUpError.message);
+      if (loginError) {
+        setError(loginError.message);
         setLoading(false);
         return;
       }
 
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert([
-            {
-              id: data.user.id,
-              email: email,
-              role: role,
-              status: 'pending',
-            },
-          ], { onConflict: 'id' });
-
-        if (profileError) {
-          setError('Gagal membuat profil. Silakan coba lagi.');
-          setLoading(false);
-          return;
-        }
-      }
-
-      // JANGAN redirect ke dashboard, tampilkan pesan sukses
-      setError(null);
-      setSuccessMessage('Pendaftaran berhasil! Akun Anda sedang menunggu persetujuan dari trainer. Kami akan menghubungi Anda setelah disetujui.');
-      setLoading(false);
+      await supabase.auth.getSession();
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      router.replace('/dashboard');
+      router.refresh();
+      return;
     }
+
+    const role = formData.get('role') as string;
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id, status')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (existingProfile?.status === 'pending') {
+      setError('Akun ini sudah terdaftar dan masih menunggu persetujuan trainer.');
+      setLoading(false);
+      return;
+    }
+
+    if (existingProfile?.status === 'rejected') {
+      setError('Pendaftaran sebelumnya ditolak. Hubungi trainer untuk informasi lebih lanjut.');
+      setLoading(false);
+      return;
+    }
+
+    const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
+
+    if (signUpError) {
+      setError(signUpError.message);
+      setLoading(false);
+      return;
+    }
+
+    if (data.user) {
+      const { error: profileError } = await supabase.from('profiles').upsert(
+        [
+          {
+            id: data.user.id,
+            email,
+            role,
+            status: 'pending',
+          },
+        ],
+        { onConflict: 'id' }
+      );
+
+      if (profileError) {
+        setError('Gagal membuat profil. Silakan coba lagi.');
+        setLoading(false);
+        return;
+      }
+    }
+
+    setSuccessMessage('Pendaftaran berhasil. Akun Anda sekarang menunggu persetujuan trainer sebelum dashboard dapat digunakan.');
+    setLoading(false);
   }
 
   async function handleForgotPassword(e: FormEvent<HTMLFormElement>) {
@@ -127,18 +139,25 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     setForgotLoading(true);
     setError(null);
     setSuccessMessage(null);
+
     const formData = new FormData(e.currentTarget);
     const email = formData.get('email') as string;
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+
+    const { error: forgotError } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
-    if (error) {
-      setError(error.message);
+
+    if (forgotError) {
+      setError(forgotError.message);
     } else {
-      setSuccessMessage('Link reset password telah dikirim ke email Anda. Silakan cek inbox atau folder spam.');
+      setSuccessMessage('Link reset password telah dikirim ke email Anda. Cek inbox atau folder spam.');
     }
+
     setForgotLoading(false);
   }
+
+  const content = AUTH_COPY[mode];
+  const isBusy = loading || forgotLoading;
 
   return (
     <AnimatePresence>
@@ -151,234 +170,204 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
             onClick={handleClose}
             className="absolute inset-0 bg-background/80 backdrop-blur-md"
           />
-          
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-md bg-card/80 backdrop-blur-3xl border border-border/50 rounded-[2.5rem] shadow-2xl overflow-hidden"
-          >
-            {/* Background Glows */}
-            <div className="absolute top-0 left-1/4 w-32 h-32 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute bottom-0 right-1/4 w-32 h-32 bg-violet-500/20 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="relative z-10 p-8 sm:p-10">
-              <button 
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 20 }}
+            className="relative w-full max-w-md overflow-hidden rounded-[2rem] border border-border/50 bg-card/85 shadow-2xl shadow-black/10 backdrop-blur-2xl"
+          >
+            <div className="absolute inset-x-8 top-0 h-24 rounded-b-full bg-primary/12 blur-3xl" />
+            <div className="relative z-10 p-8 sm:p-9">
+              <button
                 onClick={handleClose}
-                className="absolute top-6 right-6 p-2 bg-foreground/5 hover:bg-foreground/10 text-muted-foreground hover:text-foreground rounded-full transition-all"
+                className="absolute right-5 top-5 rounded-full border border-border/60 bg-background/70 p-2 text-muted-foreground transition hover:text-foreground"
                 aria-label="Tutup"
               >
-                <X className="w-5 h-5" />
+                <X className="h-4 w-4" />
               </button>
 
-              <div className="flex items-center justify-center gap-3 mb-8">
-                <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20 relative group">
-                  <div className="absolute inset-0 bg-white/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <Cpu className="text-primary-foreground w-6 h-6 relative z-10" />
+              <div className="mb-8 flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+                  <Cpu className="h-5 w-5" />
                 </div>
-                <span className="font-black tracking-widest uppercase text-sm text-foreground">Trainers App</span>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold tracking-tight">Trainers SuperApp</span>
+                  <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Open access request</span>
+                </div>
               </div>
 
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={mode}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {mode === 'forgot' ? (
-                      <>
-                        <h2 className="text-3xl font-black tracking-tighter mb-2 text-center text-foreground">
-                          Reset Password
-                        </h2>
-                        <p className="text-muted-foreground text-center mb-8 font-light text-sm">
-                          Masukkan email Anda dan kami akan mengirimkan link untuk mereset password.
-                        </p>
-                        <form onSubmit={handleForgotPassword} className="flex flex-col gap-4">
-                          <div>
-                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-2 pl-1">Email</label>
-                            <input
-                              type="email"
-                              name="email"
-                              required
-                              className="w-full bg-background border border-border/40 hover:border-border rounded-xl px-4 py-3.5 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
-                              placeholder="nama@email.com"
-                              disabled={forgotLoading}
-                            />
-                          </div>
-                          <AnimatePresence>
-                            {error && (
-                              <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="flex items-start gap-3 text-red-500 bg-red-500/10 p-4 rounded-2xl border border-red-500/20 overflow-hidden mt-1"
-                              >
-                                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                                <p className="text-xs font-bold leading-relaxed">{error}</p>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                          <AnimatePresence>
-                            {successMessage && (
-                              <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="flex items-start gap-3 text-green-600 bg-green-500/10 p-4 rounded-2xl border border-green-500/20 overflow-hidden mt-1"
-                              >
-                                <p className="text-xs font-bold leading-relaxed">{successMessage}</p>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={mode}
+                  initial={{ opacity: 0, x: 16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -16 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <div className="mb-8 space-y-3">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      {mode === 'login' ? 'Secure sign in' : mode === 'register' ? 'Access request' : 'Recovery flow'}
+                    </div>
+                    <h2 className="text-3xl font-semibold tracking-tight">{content.title}</h2>
+                    <p className="text-sm leading-6 text-muted-foreground">{content.description}</p>
+                  </div>
+
+                  {mode === 'forgot' ? (
+                    <form onSubmit={handleForgotPassword} className="flex flex-col gap-4">
+                      <Field label="Email">
+                        <input
+                          type="email"
+                          name="email"
+                          required
+                          disabled={forgotLoading}
+                          placeholder="nama@email.com"
+                          className="auth-input"
+                        />
+                      </Field>
+                      <Feedback error={error} successMessage={successMessage} />
+                      <button type="submit" disabled={forgotLoading || !!successMessage} className="auth-submit">
+                        {forgotLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : content.submit}
+                        {!forgotLoading && <ArrowRight className="h-4 w-4" />}
+                      </button>
+                    </form>
+                  ) : (
+                    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                      <Field label="Email">
+                        <input
+                          type="email"
+                          name="email"
+                          required
+                          disabled={loading}
+                          placeholder="nama@email.com"
+                          className="auth-input"
+                        />
+                      </Field>
+
+                      <Field label="Password">
+                        <input
+                          type="password"
+                          name="password"
+                          required
+                          disabled={loading}
+                          placeholder="••••••••"
+                          className="auth-input tracking-[0.2em]"
+                        />
+                      </Field>
+
+                      {mode === 'login' && (
+                        <div className="-mt-1 flex justify-end">
                           <button
-                            type="submit"
-                            disabled={forgotLoading || !!successMessage}
-                            className="w-full mt-4 px-8 py-4 bg-primary text-primary-foreground rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
-                          >
-                            {forgotLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Kirim Link Reset'}
-                            {!forgotLoading && <ArrowRight className="w-4 h-4" />}
-                          </button>
-                        </form>
-                        <div className="mt-8 text-center">
-                          <button
-                            type="button"
-                            onClick={() => { setError(null); setSuccessMessage(null); setMode('login'); }}
-                            className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors focus-visible:outline-none focus-visible:text-primary"
-                          >
-                            ← Kembali ke halaman masuk
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <h2 className="text-3xl font-black tracking-tighter mb-2 text-center text-foreground">
-                          {mode === 'login' ? 'Selamat Datang' : 'Buat Akun'}
-                        </h2>
-                        <p className="text-muted-foreground text-center mb-8 font-light text-sm">
-                          {mode === 'login' 
-                            ? 'Masuk menggunakan kredensial Anda untuk melanjutkan akses ke fasilitas trainers.'
-                            : 'Daftarkan profil Anda untuk memulai pengaturan kelas dan evaluasi simulasi.'}
-                        </p>
-
-                        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                          <div>
-                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-2 pl-1">Email</label>
-                            <input
-                              type="email"
-                              name="email"
-                              required
-                              className="w-full bg-background border border-border/40 hover:border-border rounded-xl px-4 py-3.5 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
-                              placeholder="nama@email.com"
-                              disabled={loading}
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-2 pl-1">Password</label>
-                            <input
-                              type="password"
-                              name="password"
-                              required
-                              className="w-full bg-background border border-border/40 hover:border-border rounded-xl px-4 py-3.5 text-sm font-black tracking-widest text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
-                              placeholder="••••••••"
-                              disabled={loading}
-                            />
-                          </div>
-
-                          {mode === 'login' && (
-                            <div className="flex justify-end -mt-2">
-                              <button
-                                type="button"
-                                onClick={() => { setError(null); setSuccessMessage(null); setMode('forgot'); }}
-                                className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors focus-visible:outline-none focus-visible:text-primary"
-                                disabled={loading}
-                              >
-                                Lupa password?
-                              </button>
-                            </div>
-                          )}
-
-                          {mode === 'register' && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: 'auto' }}
-                            >
-                              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-2 mt-1 pl-1">Peran (Role)</label>
-                              <select
-                                name="role"
-                                required
-                                className="w-full bg-background border border-border/40 hover:border-border rounded-xl px-4 py-3.5 text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none shadow-sm cursor-pointer"
-                                disabled={loading}
-                              >
-                                <option value="Agent">Agent</option>
-                                <option value="Leader">Leader</option>
-                                <option value="Trainer">Trainer</option>
-                              </select>
-                            </motion.div>
-                          )}
-
-                          <AnimatePresence>
-                            {error && (
-                              <motion.div 
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="flex items-start gap-3 text-red-500 bg-red-500/10 p-4 rounded-2xl border border-red-500/20 overflow-hidden mt-1"
-                              >
-                                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                                <p className="text-xs font-bold leading-relaxed">{error}</p>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-
-                          <AnimatePresence>
-                            {successMessage && (
-                              <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="flex items-start gap-3 text-green-600 bg-green-500/10 p-4 rounded-2xl border border-green-500/20 overflow-hidden mt-1"
-                              >
-                                <p className="text-xs font-bold leading-relaxed">{successMessage}</p>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-
-                          <button
-                            type="submit"
-                            disabled={loading || !!successMessage}
-                            className="w-full mt-4 px-8 py-4 bg-primary text-primary-foreground rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                          >
-                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (mode === 'login' ? 'Masuk ke Dashboard' : 'Buat Akun Sekarang')}
-                            {!loading && <ArrowRight className="w-4 h-4" />}
-                          </button>
-                        </form>
-
-                        <div className="mt-8 text-center">
-                          <button 
                             type="button"
                             onClick={() => {
                               setError(null);
                               setSuccessMessage(null);
-                              setMode(mode === 'login' ? 'register' : 'login');
+                              setMode('forgot');
                             }}
-                            className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors focus-visible:outline-none focus-visible:text-primary"
+                            className="text-xs font-semibold text-muted-foreground transition hover:text-primary"
                             disabled={loading}
                           >
-                            {mode === 'login' 
-                              ? 'Belum memiliki akses? Daftar di sini' 
-                              : 'Sudah memiliki akun? Masuk di sini'}
+                            Lupa password?
                           </button>
                         </div>
-                      </>
+                      )}
+
+                      {mode === 'register' && (
+                        <Field label="Peran">
+                          <select name="role" required disabled={loading} className="auth-input">
+                            <option value="Agent">Agent</option>
+                            <option value="Leader">Leader</option>
+                            <option value="Trainer">Trainer</option>
+                          </select>
+                        </Field>
+                      )}
+
+                      <Feedback error={error} successMessage={successMessage} />
+
+                      <button type="submit" disabled={loading || !!successMessage} className="auth-submit">
+                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : content.submit}
+                        {!loading && <ArrowRight className="h-4 w-4" />}
+                      </button>
+                    </form>
+                  )}
+
+                  <div className="mt-7 text-center">
+                    {mode === 'forgot' ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setError(null);
+                          setSuccessMessage(null);
+                          setMode('login');
+                        }}
+                        className="text-xs font-semibold text-muted-foreground transition hover:text-primary"
+                        disabled={isBusy}
+                      >
+                        Kembali ke login
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setError(null);
+                          setSuccessMessage(null);
+                          setMode(mode === 'login' ? 'register' : 'login');
+                        }}
+                        className="text-xs font-semibold text-muted-foreground transition hover:text-primary"
+                        disabled={isBusy}
+                      >
+                        {mode === 'login' ? 'Belum punya akses? Daftar di sini' : 'Sudah punya akun? Masuk di sini'}
+                      </button>
                     )}
-                  </motion.div>
-                </AnimatePresence>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
             </div>
           </motion.div>
         </div>
       )}
     </AnimatePresence>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function Feedback({ error, successMessage }: { error: string | null; successMessage: string | null }) {
+  return (
+    <>
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="flex items-start gap-3 overflow-hidden rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-red-600"
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <p className="text-xs font-semibold leading-5">{error}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {successMessage && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden rounded-2xl border border-green-500/20 bg-green-500/10 p-4 text-green-700"
+          >
+            <p className="text-xs font-semibold leading-5">{successMessage}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

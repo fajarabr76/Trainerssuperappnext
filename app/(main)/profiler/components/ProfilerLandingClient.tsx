@@ -3,8 +3,8 @@
 import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Users, Plus, Upload, Table2, SlidersHorizontal, Download,
-  FolderOpen, Pencil, Trash2, ChevronLeft, ChevronRight, Cake,
+  Plus, Upload, Table2, SlidersHorizontal, Download,
+  FolderOpen, Trash2, ChevronLeft, Cake,
   Settings2, UserPlus, Moon, Sun, PieChart
 } from 'lucide-react';
 import { ProfilerYear, ProfilerFolder } from '../services/profilerService';
@@ -217,7 +217,7 @@ export default function ProfilerLandingClient({
 
   return (
     <div className="min-h-screen bg-background flex flex-col transition-colors duration-500">
-      <div className="flex items-center justify-between px-8 py-4 bg-card/30 backdrop-blur-2xl border-b border-border/40 sticky top-0 z-50">
+      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-border/40 bg-card/30 px-8 py-4 backdrop-blur-2xl">
         <div className="flex-1">
           <button
             onClick={() => router.push('/dashboard')}
@@ -231,9 +231,8 @@ export default function ProfilerLandingClient({
         </div>
         
         <div className="flex flex-col items-center text-center leading-none">
-          <span className="text-[10px] font-black uppercase tracking-[0.25em] text-foreground/80">
-            Trainers SuperApp
-          </span>
+          <span className="text-[10px] font-black uppercase tracking-[0.25em] text-foreground/80">KTP Workspace</span>
+          <span className="mt-1 text-sm font-semibold tracking-tight">Agent database</span>
         </div>
         
         <div className="flex-1 flex justify-end">
@@ -267,6 +266,9 @@ export default function ProfilerLandingClient({
             <div className="p-6 flex flex-col max-w-7xl mx-auto w-full relative z-10">
               <div className="mb-6 flex items-start justify-between">
                 <div>
+                  <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
+                    Unified database shell
+                  </div>
                   <div className="flex items-center gap-4 mb-2">
                     <h2 className="text-3xl font-bold tracking-tight">{selectedBatch}</h2>
                     {count > 0 && (

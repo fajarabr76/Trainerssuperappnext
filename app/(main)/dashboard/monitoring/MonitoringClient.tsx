@@ -1,12 +1,10 @@
 'use client';
 
 import { motion, AnimatePresence } from "motion/react";
-import { LayoutDashboard, MessageSquare, Mail, Phone, Settings, LogOut, BarChart3, Users, Search, Filter, Download, ChevronLeft, X, Clock, Eye, FileText } from "lucide-react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { Search, Filter, Download, X, Clock, Eye, FileText } from "lucide-react";
 import { createClient } from '@/app/lib/supabase/client';
-import { ThemeToggle } from "@/app/components/ThemeToggle";
 import { useEffect, useState, useMemo } from "react";
+import PageHeroHeader from "@/app/components/PageHeroHeader";
 
 // Types for unified history
 interface UnifiedHistory {
@@ -143,9 +141,7 @@ const TranscriptModal = ({ isOpen, onClose, result }: { isOpen: boolean, onClose
   );
 };
 
-export default function MonitoringClient({ user, role, profile }: { user: any, role: string, profile: any }) {
-  const pathname = usePathname();
-  const router = useRouter();
+export default function MonitoringClient({ user: _user, role: _role, profile: _profile }: { user: any, role: string, profile: any }) {
   const supabase = useMemo(() => createClient(), []);
   const [results, setResults] = useState<UnifiedHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -171,7 +167,7 @@ export default function MonitoringClient({ user, role, profile }: { user: any, r
         (pdktRes.data || []).forEach(r => allUserIds.add(r.user_id));
         (telefunRes.data || []).forEach(r => allUserIds.add(r.user_id));
 
-        let profilesMap: Record<string, { email: string; role: string }> = {};
+        const profilesMap: Record<string, { email: string; role: string }> = {};
         if (allUserIds.size > 0) {
           const { data: profilesData } = await supabase
             .from('profiles')
@@ -261,12 +257,6 @@ export default function MonitoringClient({ user, role, profile }: { user: any, r
     return () => { isMounted = false; };
   }, [supabase]);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
-  };
-
   const filteredResults = results.filter(r => {
     const email = r.user_email || "";
     const title = r.scenario_title || "";
@@ -287,24 +277,13 @@ export default function MonitoringClient({ user, role, profile }: { user: any, r
     <div className="h-full bg-background text-foreground transition-colors duration-500 overflow-hidden">
       {/* Main Content */}
       <main className="h-full overflow-y-auto relative bg-background/50 backdrop-blur-3xl">
-        <div className="sticky top-0 z-30 flex justify-end p-6 pointer-events-none">
-          <div className="pointer-events-auto">
-            <ThemeToggle />
-          </div>
-        </div>
-
-        <div className="p-12 max-w-7xl mx-auto relative z-10 -mt-20">
-          <header className="mb-12">
-            <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
-                    <Eye className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                     <h1 className="text-4xl font-black tracking-tighter">Riwayat Simulasi</h1>
-                     <p className="text-muted-foreground text-sm font-medium mt-1 uppercase tracking-widest opacity-80">Monitoring Performa Agen &amp; Transcript Sesi</p>
-                </div>
-            </div>
-          </header>
+        <div className="mx-auto max-w-7xl px-6 py-8 lg:px-10 lg:py-10">
+          <PageHeroHeader
+            eyebrow="Simulation monitoring"
+            title="Pantau histori simulasi dari satu pusat observasi."
+            description="Lihat performa agen, telusuri transcript sesi, dan baca pola pemakaian lintas modul tanpa kehilangan konteks platform."
+            icon={<Eye className="h-3.5 w-3.5" />}
+          />
 
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">

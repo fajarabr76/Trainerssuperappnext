@@ -2,22 +2,11 @@
 
 import React, { startTransition, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import Link from 'next/link';
 
-import { 
-  QAPeriod, 
-  DashboardSummary, 
-  TrendPoint as SparklineData,
-  ServiceComparisonData, 
-  ParetoData, 
-  CriticalVsNonCriticalData,
-  DashboardData,
-  SERVICE_LABELS
-} from '../lib/qa-types';
-
-const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+import { DashboardData } from '../lib/qa-types';
 
 import DashboardFilters from './components/DashboardFilters';
 import KpiCard from './components/KpiCard';
@@ -43,8 +32,8 @@ interface QaDashboardClientProps {
 
 export default function QaDashboardClient({ 
   user, 
-  role, 
-  profile,
+  role: _role, 
+  profile: _profile,
   initialData,
   filters: initialFilters
 }: QaDashboardClientProps) {
@@ -88,7 +77,8 @@ export default function QaDashboardClient({
   const toggleParam = (label: string) => {
     setHiddenParams(prev => {
       const next = new Set(prev);
-      next.has(label) ? next.delete(label) : next.add(label);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
       return next;
     });
   };
@@ -133,13 +123,11 @@ export default function QaDashboardClient({
   return (
     <>
       <main className="flex-1 overflow-y-auto relative flex flex-col pb-20">
-        <div className="sticky top-0 z-30 flex items-center justify-between p-6 bg-background/80 backdrop-blur-md border-b border-border/50">
+        <div className="sticky top-0 z-30 flex items-center justify-between border-b border-border/50 bg-background/80 p-6 backdrop-blur-md">
           <div className="flex items-center gap-4">
-            <div className="h-8 w-px bg-border mx-2 hidden md:block" />
             <div className="hidden md:flex flex-col leading-none">
-              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-foreground/70">
-                Trainers SuperApp
-              </span>
+              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-foreground/70">SIDAK Workspace</span>
+              <span className="mt-1 text-sm font-semibold tracking-tight">Quality analytics</span>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -163,10 +151,14 @@ export default function QaDashboardClient({
                 <span>/</span>
                 <span className="text-foreground font-medium">SIDAK</span>
               </div>
-              <h1 className="text-4xl lg:text-5xl font-bold tracking-tighter mb-4 bg-gradient-to-r from-foreground to-foreground/50 bg-clip-text text-transparent">
-                Trainers SuperApp
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
+                <Sparkles className="h-3.5 w-3.5" />
+                Unified analytics shell
+              </div>
+              <h1 className="mb-4 text-4xl font-semibold tracking-tight lg:text-5xl">
+                SIDAK dashboard kini terasa bagian dari platform yang sama.
               </h1>
-              <p className="text-lg text-muted-foreground font-light max-w-2xl leading-relaxed">
+              <p className="max-w-2xl text-lg font-light leading-relaxed text-muted-foreground">
                 Pantau performa kualitas, analisis akar masalah, dan temukan area perbaikan untuk tim Anda.
               </p>
             </motion.div>

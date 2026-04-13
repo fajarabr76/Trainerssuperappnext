@@ -2,24 +2,21 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Settings, History, Play, ArrowLeft, MessageSquare } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { Settings, History, Play, MessageSquare } from 'lucide-react';
 import { AppSettings, ChatSession, SessionConfig, Scenario, ConsumerType, Identity } from '@/app/types';
 import { defaultSettings } from './data';
-import { DEFAULT_SCENARIOS, DEFAULT_CONSUMER_TYPES, parseSettings } from './constants';
 import { SettingsModal } from './components/SettingsModal';
 import { HistoryModal } from './components/HistoryModal';
 import { ChatInterface } from './components/ChatInterface';
 import { createClient } from '@/app/lib/supabase/client';
 import { loadSettings, saveSettings } from './services/settingService';
 import { moduleTheme } from '@/app/components/ui/moduleTheme';
+import ModuleWorkspaceIntro from '@/app/components/ModuleWorkspaceIntro';
 
 const supabase = createClient();
 
 export default function AppKetik() {
   const theme = moduleTheme.ketik;
-  const router = useRouter();
   const [view, setView] = useState<'home' | 'chat'>('home');
   const [user, setUser] = useState<any>(null);
 
@@ -165,7 +162,7 @@ export default function AppKetik() {
           messages,
         };
 
-        const { data: historyData, error: historyError } = await supabase.from('ketik_history').insert([sessionData]).select().single();
+        const { data: historyData } = await supabase.from('ketik_history').insert([sessionData]).select().single();
 
         if (historyData) {
           setHistory([{
@@ -205,85 +202,56 @@ export default function AppKetik() {
   };
 
   return (
-    <div data-module="ketik" className={`${theme.root} min-h-screen flex items-center justify-center p-4 transition-colors duration-500 font-sans selection:bg-primary/20`}>
+    <div data-module="ketik" className={`${theme.root} min-h-screen transition-colors duration-500 font-sans selection:bg-primary/20`}>
       <AnimatePresence mode="wait">
         {view === 'home' ? (
           <motion.div
             key="home"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
-            className="module-clean-shell max-w-xl w-full rounded-3xl p-6 md:p-8 relative z-10 overflow-hidden"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            className="relative z-10 py-6"
           >
-            <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-module-ketik/10 to-transparent pointer-events-none" />
-
-            <div className="absolute top-8 left-8 z-20">
-              <Link href="/dashboard"
-                className="module-clean-button-secondary w-10 h-10 flex items-center justify-center rounded-xl
-                           text-muted-foreground hover:text-foreground hover:bg-foreground/10
-                           transition-all group">
-                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-              </Link>
-            </div>
-
-            <div className="text-center mb-8 mt-4 relative z-10">
-              <motion.div 
-                initial={{ rotate: -10, scale: 0.8 }} 
-                animate={{ rotate: 0, scale: 1 }} 
-                transition={{ delay: 0.2, type: 'spring', stiffness: 200 }} 
-                className="module-clean-hero-icon w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center relative"
-              >
-                <MessageSquare className="w-10 h-10 text-white" />
-              </motion.div>
-              <h1 className="text-4xl font-black text-foreground mb-2 tracking-tighter text-center">Ketik</h1>
-              <h2 className="text-label-mono text-module-ketik mb-4">Kelas Etika & Trik Komunikasi</h2>
-              <p className="text-foreground/70 text-xs leading-relaxed max-w-sm mx-auto font-medium">
-                Asah kemampuan penanganan chat Anda. Tingkatkan kualitas layanan melalui komunikasi tulis yang empatik, profesional, dan solutif.
-              </p>
-            </div>
-
-            <div className="relative z-10 mt-8 flex flex-col gap-3">
-              <motion.button 
-                whileHover={{ scale: 1.02, y: -1 }} 
-                whileTap={{ scale: 0.98 }} 
-                onClick={startSimulation} 
-                disabled={isLoading} 
-                className="module-clean-button-primary w-full h-14 px-6 rounded-2xl font-black text-[11px] uppercase tracking-[0.22em] flex items-center justify-center gap-3 transition-all hover:opacity-95"
-              >
-                {isLoading ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <Play className="w-4 h-4 fill-current" />
+            <ModuleWorkspaceIntro
+              eyebrow="Kelas Etika & Trik Komunikasi"
+              title="Latih komunikasi chat dalam satu workspace yang fokus."
+              description="Mulai simulasi, buka pengaturan, atau review riwayat percakapan tanpa keluar dari ritme dashboard utama. Modul ini sekarang mengikuti shell terpadu yang sama dengan workspace lain."
+              accentClassName={theme.accentText}
+              accentSoftClassName={theme.accentSoftBg}
+              icon={<MessageSquare className="h-8 w-8" />}
+              actions={
+                <>
+                  <motion.button
+                    whileHover={{ scale: 1.01, y: -1 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={startSimulation}
+                    disabled={isLoading}
+                    className="module-clean-button-primary flex h-14 w-full items-center justify-center gap-3 rounded-2xl px-6 text-[11px] font-black uppercase tracking-[0.22em] transition-all hover:opacity-95"
+                  >
+                    {isLoading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <Play className="h-4 w-4 fill-current" />}
                     <span>Mulai Simulasi</span>
-                  </>
-                )}
-              </motion.button>
-
-              <motion.button 
-                whileHover={{ scale: 1.02, y: -1 }} 
-                whileTap={{ scale: 0.98 }} 
-                onClick={() => setIsSettingsOpen(true)} 
-                className="module-clean-button-secondary w-full h-14 px-6 rounded-2xl font-black text-[11px] uppercase tracking-[0.22em] flex items-center justify-center gap-3 transition-all"
-              >
-                <Settings className="w-4 h-4 opacity-50" />
-                <span>Pengaturan</span>
-              </motion.button>
-
-              <motion.button 
-                whileHover={{ scale: 1.02, y: -1 }} 
-                whileTap={{ scale: 0.98 }} 
-                onClick={() => setIsHistoryOpen(true)} 
-                className="module-clean-button-secondary w-full h-14 px-6 rounded-2xl font-black text-[11px] uppercase tracking-[0.22em] flex items-center justify-center gap-3 transition-all"
-              >
-                <History className="w-4 h-4 opacity-50" />
-                <span>Riwayat</span>
-              </motion.button>
-            </div>
-
-            <div className="mt-12 flex flex-col items-center gap-1.5">
-              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Trainers SuperApp | Made by Fajar & Ratna</p>
-            </div>
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.01, y: -1 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="module-clean-button-secondary flex h-14 w-full items-center justify-center gap-3 rounded-2xl px-6 text-[11px] font-black uppercase tracking-[0.22em] transition-all"
+                  >
+                    <Settings className="h-4 w-4 opacity-60" />
+                    <span>Pengaturan</span>
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.01, y: -1 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => setIsHistoryOpen(true)}
+                    className="module-clean-button-secondary flex h-14 w-full items-center justify-center gap-3 rounded-2xl px-6 text-[11px] font-black uppercase tracking-[0.22em] transition-all"
+                  >
+                    <History className="h-4 w-4 opacity-60" />
+                    <span>Riwayat</span>
+                  </motion.button>
+                </>
+              }
+            />
           </motion.div>
         ) : (
           <motion.div 

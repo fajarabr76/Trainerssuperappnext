@@ -1,18 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
 import { SettingsModal } from './components/SettingsModal';
 import { HistoryModal } from './components/HistoryModal';
 import { PhoneInterface } from './components/PhoneInterface';
 import { AppSettings } from './types';
-import { DEFAULT_SCENARIOS } from './constants';
-import { ArrowLeft, Phone, Settings, Download, PhoneCall, History, Play, AlertTriangle } from 'lucide-react';
+import { Settings, PhoneCall, History, Play } from 'lucide-react';
 import { loadTelefunSettings, saveTelefunSettings, defaultTelefunSettings } from './services/settingService';
 import { createClient } from '@/app/lib/supabase/client';
 import { MaintenanceModal } from './components/MaintenanceModal';
+import ModuleWorkspaceIntro from '@/app/components/ModuleWorkspaceIntro';
 
 interface CallRecord {
   id: string;
@@ -24,13 +22,12 @@ interface CallRecord {
 }
 
 export default function TelefunPage() {
-  const router = useRouter();
   const [view, setView] = useState<'home' | 'chat'>('home');
   const [recordings, setRecordings] = useState<CallRecord[]>([]);
   const [settings, setSettings] = useState<AppSettings>(defaultTelefunSettings);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(true);
+  const [isMaintenanceOpen] = useState(true);
   const [selectedScenario, setSelectedScenario] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -143,81 +140,56 @@ export default function TelefunPage() {
   }
 
   return (
-    <div className="h-full overflow-auto bg-background flex items-center justify-center p-4 transition-colors duration-500 font-sans selection:bg-primary/30">
+    <div className="h-full overflow-auto bg-background transition-colors duration-500 font-sans selection:bg-primary/30">
       <AnimatePresence mode="wait">
         {view === 'home' ? (
           <motion.div
             key="home"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
-            className="max-w-md w-full bg-card/80 backdrop-blur-2xl rounded-[3rem] p-10 md:p-12 shadow-2xl border border-border relative z-10"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            className="relative z-10 py-6"
           >
-            <div className="absolute top-8 left-8 z-20">
-              <Link href="/dashboard" className="w-12 h-12 flex items-center justify-center rounded-2xl bg-foreground/5 text-muted-foreground hover:bg-foreground/10 transition-all">
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
-            </div>
-
-            <div className="text-center mb-12 mt-8">
-              <motion.div 
-                initial={{ rotate: -10, scale: 0.8 }} 
-                animate={{ rotate: 0, scale: 1 }} 
-                transition={{ delay: 0.2, type: 'spring', stiffness: 200 }} 
-                className="w-28 h-28 bg-primary rounded-[2.5rem] mx-auto mb-10 flex items-center justify-center shadow-2xl shadow-primary/20"
-              >
-                <PhoneCall className="h-14 w-14 text-primary-foreground" />
-              </motion.div>
-              <h1 className="text-4xl font-bold text-foreground mb-3 tracking-tighter">Telefun</h1>
-              <h2 className="text-[10px] font-bold text-primary uppercase tracking-[0.3em] mb-6">Voice Simulation Trainer</h2>
-              <p className="text-foreground/50 text-sm leading-relaxed max-w-sm mx-auto font-light">
-                Asah kemampuan komunikasi lisan Anda. Siap hadapi berbagai skenario panggilan konsumen dengan respon yang tepat, profesional, dan empatik.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <motion.button 
-                whileHover={{ scale: 1.02 }} 
-                whileTap={{ scale: 0.98 }} 
-                onClick={() => startCall()} 
-                disabled={isLoading} 
-                className="w-full bg-primary text-primary-foreground h-16 rounded-2xl font-bold text-lg shadow-xl shadow-primary/20 flex items-center justify-center gap-3 transition-all hover:opacity-90 disabled:opacity-70"
-              >
-                {isLoading ? (
-                  <div className="w-6 h-6 border-2 border-primary-foreground/20 border-t-primary-foreground rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <Play className="w-5 h-5 fill-current" /><span>Mulai Panggilan</span>
-                  </>
-                )}
-              </motion.button>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <motion.button 
-                  whileHover={{ scale: 1.02 }} 
-                  whileTap={{ scale: 0.98 }} 
-                  onClick={() => setIsSettingsOpen(true)} 
-                  className="bg-primary/10 hover:bg-primary/20 text-primary h-16 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all border border-primary/20"
-                >
-                  <Settings className="w-5 h-5 opacity-70" /><span>Opsi</span>
-                </motion.button>
-                <motion.button 
-                  whileHover={{ scale: 1.02 }} 
-                  whileTap={{ scale: 0.98 }} 
-                  onClick={() => setIsHistoryOpen(true)} 
-                  className="bg-primary/10 hover:bg-primary/20 text-primary h-16 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all border border-primary/20"
-                >
-                  <History className="w-5 h-5 opacity-70" /><span>Riwayat</span>
-                </motion.button>
-              </div>
-            </div>
-
-            <div className="mt-12 flex flex-col items-center gap-2">
-              <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-[0.2em] flex flex-col gap-1 items-center text-center">
-                <span className="text-muted-foreground font-bold tracking-widest">POWERED BY GOOGLE GEMINI</span>
-                <span>TRAINERS SUPERAPP · KONTAK OJK 157 EDITION</span>
-              </div>
-            </div>
+            <ModuleWorkspaceIntro
+              eyebrow="Voice Simulation Trainer"
+              title="Siapkan simulasi telepon dari workspace yang lebih terpadu."
+              description="Meskipun modul ini masih berada dalam mode maintenance pada akses umum, struktur home-nya kini mengikuti pola unified platform yang sama untuk persiapan rollout berikutnya."
+              accentClassName="text-module-telefun"
+              accentSoftClassName="bg-module-telefun/10"
+              icon={<PhoneCall className="h-8 w-8" />}
+              actions={
+                <>
+                  <motion.button
+                    whileHover={{ scale: 1.01, y: -1 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => startCall()}
+                    disabled={isLoading}
+                    className="inline-flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-primary px-6 text-[11px] font-black uppercase tracking-[0.22em] text-primary-foreground shadow-xl shadow-primary/20 transition hover:opacity-90 disabled:opacity-70"
+                  >
+                    {isLoading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground/20 border-t-primary-foreground" /> : <Play className="h-4 w-4 fill-current" />}
+                    <span>Mulai Panggilan</span>
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.01, y: -1 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="inline-flex h-14 w-full items-center justify-center gap-3 rounded-2xl border border-primary/20 bg-primary/10 px-6 text-[11px] font-black uppercase tracking-[0.22em] text-primary transition"
+                  >
+                    <Settings className="h-4 w-4 opacity-70" />
+                    <span>Opsi</span>
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.01, y: -1 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => setIsHistoryOpen(true)}
+                    className="inline-flex h-14 w-full items-center justify-center gap-3 rounded-2xl border border-primary/20 bg-primary/10 px-6 text-[11px] font-black uppercase tracking-[0.22em] text-primary transition"
+                  >
+                    <History className="h-4 w-4 opacity-70" />
+                    <span>Riwayat</span>
+                  </motion.button>
+                </>
+              }
+            />
           </motion.div>
         ) : (
           <motion.div 

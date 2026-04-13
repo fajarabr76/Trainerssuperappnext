@@ -298,7 +298,7 @@ export default function QaAgentDetailClient({
                   </div>
                   <h3 className="text-xl font-black mb-2">No Evaluation Data</h3>
                   <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
-                    This agent hasn't been audited yet. Click the button below to start an evaluation.
+                    This agent hasn&apos;t been audited yet. Click the button below to start an evaluation.
                   </p>
                   <button 
                     onClick={handleTambahTemuan} 

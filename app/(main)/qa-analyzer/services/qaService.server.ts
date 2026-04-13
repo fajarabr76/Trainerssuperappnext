@@ -509,7 +509,7 @@ export const qaServiceServer = {
     // PENTING: Menggunakan pagination manual (range) karena Supabase max_rows dibatasi 1000
     let allTemuanData: any[] = [];
     let from = 0;
-    let step = 1000;
+    const step = 1000;
     let finished = false;
 
     while (!finished) {
@@ -912,7 +912,7 @@ export const qaServiceServer = {
     if (context?.periods) {
       sortedPeriods = [...context.periods].slice(0, limit).reverse();
     } else {
-      let periodQuery = supabase.from('qa_periods').select('*').order('year', { ascending: false }).order('month', { ascending: false }).limit(limit);
+      const periodQuery = supabase.from('qa_periods').select('*').order('year', { ascending: false }).order('month', { ascending: false }).limit(limit);
       const { data: periods, error: pError } = await periodQuery;
       if (pError || !periods || periods.length === 0) return [];
       sortedPeriods = [...periods].reverse();

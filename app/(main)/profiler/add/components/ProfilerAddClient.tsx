@@ -380,7 +380,7 @@ export default function ProfilerAddClient({ batchName, initialTimList }: Profile
                 value={form.previous_company || ''} onChange={e => set('previous_company', e.target.value)} />
             </div>
             <div className="col-span-2">
-              <label className={labelClass}>Pengalaman Kontak OJK 157</label>
+              <label className={labelClass}>Pengalaman Contact Center</label>
               <select className={inputClass} value={form.pengalaman_cc || ''}
                 onChange={e => set('pengalaman_cc', e.target.value)}>
                 <option value="">Pilih</option>

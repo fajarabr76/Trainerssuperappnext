@@ -1,22 +1,13 @@
 'use client';
 
 import { motion, AnimatePresence } from "motion/react";
-import { 
-  LayoutDashboard, MessageSquare, Mail, Phone, Settings, 
-  LogOut, BarChart3, Users, Search, Shield, UserCog, 
-  ChevronLeft, CheckCircle2, XCircle, Trash2, Filter,
-  MoreVertical, UserPlus, UserMinus, ShieldCheck, ShieldAlert, KeyRound
-} from "lucide-react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { Users, Search, CheckCircle2, XCircle, Trash2, UserPlus, ShieldCheck, KeyRound } from "lucide-react";
 import { createClient } from '@/app/lib/supabase/client';
-import { ThemeToggle } from "@/app/components/ThemeToggle";
 import { useEffect, useState, useMemo } from "react";
 import { updateUserStatusAction, updateUserRoleAction, deleteUserAction } from "./actions";
+import PageHeroHeader from "@/app/components/PageHeroHeader";
 
-export default function UsersClient({ user, role, profile }: { user: any, role: string, profile: any }) {
-  const pathname = usePathname();
-  const router = useRouter();
+export default function UsersClient({ user: _user, role: _role, profile: _profile }: { user: any, role: string, profile: any }) {
   const supabase = useMemo(() => createClient(), []);
   
   const [users, setUsers] = useState<any[]>([]);
@@ -48,12 +39,6 @@ export default function UsersClient({ user, role, profile }: { user: any, role: 
     fetchAllUsers();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
-  };
 
   const updateUserStatus = async (userId: string, status: 'approved' | 'pending') => {
     setUpdating(userId);
@@ -134,21 +119,17 @@ export default function UsersClient({ user, role, profile }: { user: any, role: 
     <div className="h-full bg-background text-foreground transition-colors duration-500 overflow-hidden">
       {/* Main Content */}
       <main className="h-full overflow-y-auto relative">
-
-        <div className="sticky top-0 z-30 flex justify-end p-6 pointer-events-none">
-          <div className="pointer-events-auto">
-            <ThemeToggle />
-          </div>
-        </div>
-
-        <div className="p-12 max-w-6xl mx-auto relative z-10 -mt-20">
+        <div className="mx-auto max-w-6xl px-6 py-8 lg:px-10 lg:py-10">
+          <PageHeroHeader
+            eyebrow="Access control"
+            title="Kelola akses pengguna dengan ritme yang sama seperti workspace lain."
+            description="Review pendaftaran, atur role, kirim reset password, dan jaga tata kelola pengguna dari satu panel yang lebih konsisten."
+            icon={<Users className="h-3.5 w-3.5" />}
+          />
           <header className="mb-12">
-            <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors mb-6 group">
-              <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Kembali ke Dashboard
-            </Link>
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <div>
-                <h1 className="text-4xl font-bold tracking-tight mb-2 text-balance">Kelola Pengguna</h1>
+                <h2 className="text-3xl font-semibold tracking-tight text-balance">Kelola Pengguna</h2>
                 <p className="text-muted-foreground">Manajemen hak akses, persetujuan pendaftaran, dan audit peran pengguna.</p>
               </div>
               <div className="flex items-center gap-2 bg-card border border-border p-1.5 rounded-2xl shadow-sm">
