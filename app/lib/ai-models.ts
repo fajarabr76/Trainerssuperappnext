@@ -7,9 +7,21 @@ export const AI_MODELS = [
     provider: 'gemini' as const 
   },
   { 
-    id: 'gemini-3.1-pro-preview', 
-    name: 'Gemini 3.1 Pro', 
-    description: 'Lebih cerdas untuk skenario yang sangat kompleks.', 
+    id: 'gemini-2.5-flash-lite', 
+    name: 'Gemini 2.5 Flash Lite', 
+    description: 'Model ringan Gemini 2.5 untuk respons cepat dan hemat biaya.', 
+    provider: 'gemini' as const 
+  },
+  { 
+    id: 'gemma-3-27b-it', 
+    name: 'Gemma 3 27B', 
+    description: 'Model Gemma 3 27B untuk kebutuhan instruksi yang lebih kompleks.', 
+    provider: 'gemini' as const 
+  },
+  { 
+    id: 'gemma-4-31b-it', 
+    name: 'Gemma 4 31B', 
+    description: 'Model Gemma 4 31B untuk reasoning lebih dalam pada skenario lanjutan.', 
     provider: 'gemini' as const 
   },
 
