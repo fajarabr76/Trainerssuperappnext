@@ -131,12 +131,12 @@ export default function DashboardClient({
           <div className="rounded-[2rem] border border-border/50 bg-card/65 p-6 backdrop-blur-xl lg:p-7">
             <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Quick actions</p>
             <div className="mt-5 space-y-3">
-              {[...managementActions, ...visibleModules.slice(0, 3).map((module) => ({
+              {[...managementActions, ...visibleModules.map((module) => ({
                 href: module.href,
                 title: module.title,
                 description: module.description,
                 isTelefun: module.id === 'telefun',
-              }))].map((item) => (
+              }))].slice(0, 4).map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}

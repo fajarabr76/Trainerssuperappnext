@@ -126,7 +126,7 @@ export default function QaDashboardClient({
         <div className="sticky top-0 z-30 flex items-center justify-between border-b border-border/50 bg-background/80 p-6 backdrop-blur-md">
           <div className="flex items-center gap-4">
             <div className="hidden md:flex flex-col leading-none">
-              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-foreground/70">SIDAK Workspace</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-foreground/70 font-display">SIDAK Workspace</span>
               <span className="mt-1 text-sm font-semibold tracking-tight">Quality analytics</span>
             </div>
           </div>
@@ -155,8 +155,8 @@ export default function QaDashboardClient({
                 <Sparkles className="h-3.5 w-3.5" />
                 Unified analytics shell
               </div>
-              <h1 className="mb-4 text-4xl font-semibold tracking-tight lg:text-5xl">
-                SIDAK dashboard kini terasa bagian dari platform yang sama.
+              <h1 className="mb-4 text-4xl font-semibold tracking-tight lg:text-5xl font-display">
+                Dashboard Analitik SIDAK
               </h1>
               <p className="max-w-2xl text-lg font-light leading-relaxed text-muted-foreground">
                 Pantau performa kualitas, analisis akar masalah, dan temukan area perbaikan untuk tim Anda.
@@ -199,7 +199,7 @@ export default function QaDashboardClient({
                 className="space-y-8"
               >
                 <section>
-                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 font-display">
                     <span className="w-1 h-5 bg-primary rounded-full"></span>
                     Executive Summary
                   </h2>
@@ -244,7 +244,7 @@ export default function QaDashboardClient({
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <section className="bg-card rounded-2xl border border-border/40 p-5">
-                    <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                    <h2 className="text-lg font-semibold mb-6 flex items-center gap-2 font-display">
                       <span className="w-1 h-5 bg-chart-blue rounded-full"></span>
                       Total Temuan per Layanan
                     </h2>
@@ -252,7 +252,7 @@ export default function QaDashboardClient({
                   </section>
 
                   <section className="bg-card rounded-2xl border border-border/40 p-5">
-                    <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                    <h2 className="text-lg font-semibold mb-6 flex items-center gap-2 font-display">
                       <span className="w-1 h-5 bg-chart-orange rounded-full"></span>
                       Top 5 Agen (Temuan Tertinggi)
                     </h2>
@@ -266,7 +266,7 @@ export default function QaDashboardClient({
                 
                 <section className="bg-card rounded-2xl border border-border/40 p-5">
                   <div className="flex items-center justify-between mb-8">
-                    <h2 className="text-lg font-semibold flex items-center gap-2">
+                    <h2 className="text-lg font-semibold flex items-center gap-2 font-display">
                       <span className="w-1 h-5 bg-primary rounded-full"></span>
                       Historical Trends & Parameter Analysis
                     </h2>
@@ -328,7 +328,7 @@ export default function QaDashboardClient({
                 </section>
 
                 <section className="bg-card rounded-2xl border border-border/40 p-5">
-                  <h2 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                  <h2 className="text-lg font-semibold mb-6 flex items-center gap-2 font-display">
                     <span className="w-1 h-5 bg-chart-red rounded-full"></span>
                     Root Cause Analysis
                   </h2>
