@@ -49,8 +49,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   // Global Settings
   const [enableImageGeneration, setEnableImageGeneration] = useState(localSettings.enableImageGeneration ?? true);
   const [globalConsumerTypeId, setGlobalConsumerTypeId] = useState(localSettings.globalConsumerTypeId || 'random');
-  const [selectedModel, setSelectedModel] = useState(localSettings.selectedModel || 'gemini-3-flash-preview');
-  const defaultModelId = AI_MODELS[0]?.id || 'gemini-3-flash-preview';
+  const [selectedModel, setSelectedModel] = useState(localSettings.selectedModel || 'gemini-3.1-flash-lite');
+  const defaultModelId = AI_MODELS[0]?.id || 'gemini-3.1-flash-lite';
 
   // Sync state when modal opens to ensure fresh data
   useEffect(() => {

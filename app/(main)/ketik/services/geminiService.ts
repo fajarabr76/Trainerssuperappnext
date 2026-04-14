@@ -8,10 +8,12 @@ function sanitizeConsumerText(rawText: string): string {
 
   let text = rawText.trim();
 
-  // Strip common transcript prefixes the model sometimes echoes back.
+  // Strip common transcript prefixes and hallucinations
   text = text
     .replace(/^(Agen|Agent|CS|Customer Service)\s*:\s*[\s\S]*?\n{1,2}/i, '')
-    .replace(/^(Konsumen|Pelanggan|Customer|Nasabah|Klien|User|Pengguna|Bapak\/Ibu)\s*:\s*/i, '');
+    .replace(/^(Konsumen|Pelanggan|Customer|Nasabah|Klien|User|Pengguna|Bapak\/Ibu)\s*:\s*/i, '')
+    .replace(/\(pesan chat sebelumnya\)/gi, '')
+    .replace(/\[pesan( chat)? sebelumnya\]/gi, '');
 
   // If the model still returns multiple transcript lines, keep only consumer-side lines.
   if (/(^|\n)\s*(Agen|Agent|CS|Customer Service)\s*:/i.test(text)) {
@@ -153,7 +155,7 @@ ATURAN BALASAN:
 
   const historyText = chatHistory
     .filter(m => m.sender !== 'system')
-    .map(m => `${m.sender === 'agent' ? '[Pesan Agen]' : '[Pesan Anda Sebelumnya]'} ${m.text}`)
+    .map(m => `${m.sender === 'agent' ? '[AGEN]' : '[KONSUMEN]'} ${m.text}`)
     .join('\n');
 
   const prompt = `Skenario Saat Ini: ${scenario.title}
@@ -172,7 +174,7 @@ ${extraPrompt || 'Balas sebagai konsumen:'}`;
 
   try {
     const response = await callAI({
-      model: config.model || 'gemini-3-flash-preview',
+      model: config.model || 'gemini-3.1-flash-lite',
       prompt,
       systemInstruction,
       temperature: 0.82,
@@ -219,7 +221,7 @@ Jangan gunakan format seperti "Konsumen:" atau menulis ulang ucapan petugas.
 
   try {
     const response = await callAI({
-      model: config.model || 'gemini-3-flash-preview',
+      model: config.model || 'gemini-3.1-flash-lite',
       prompt: "Berikan pesan pembuka chat Anda.",
       systemInstruction,
       temperature: 0.9,
@@ -263,7 +265,7 @@ OUTPUT: Berikan respon dalam format JSON:
 
   try {
     const response = await generateGeminiContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-3.1-flash-lite",
       contents: [{ role: 'user', parts: [{ text: JSON.stringify(history) }] }],
       systemInstruction,
       responseMimeType: "application/json",

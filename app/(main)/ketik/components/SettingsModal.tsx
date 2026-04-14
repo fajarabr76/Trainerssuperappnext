@@ -16,7 +16,7 @@ interface SettingsModalProps {
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave }) => {
   const [activeTab, setActiveTab] = useState<'scenarios' | 'consumers' | 'identity' | 'system'>('scenarios');
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
-  const defaultModelId = AI_MODELS[0]?.id || 'gemini-3-flash-preview';
+  const defaultModelId = AI_MODELS[0]?.id || 'gemini-3.1-flash-lite';
 
   // UI States for Forms
   const [isScenarioFormOpen, setIsScenarioFormOpen] = useState(false);

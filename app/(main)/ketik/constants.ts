@@ -39,7 +39,7 @@ export const parseSettings = (parsed: any): any => ({
     phoneNumber: parsed.identitySettings?.phoneNumber || '',
     city: parsed.identitySettings?.city || '',
   },
-  selectedModel: parsed.selectedModel || 'gemini-3-flash-preview',
+  selectedModel: parsed.selectedModel || 'gemini-3.1-flash-lite',
   simulationDuration: parsed.simulationDuration || 5,
 });
 

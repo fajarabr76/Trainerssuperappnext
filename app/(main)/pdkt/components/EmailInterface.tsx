@@ -148,9 +148,7 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
                   {config.identity.city}
                 </span>
               </div>
-              <span className="module-clean-chip text-[10px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-lg">
-                {config.consumerType.name}
-              </span>
+
             </div>
           </div>
         </div>

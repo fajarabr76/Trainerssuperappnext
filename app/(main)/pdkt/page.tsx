@@ -188,7 +188,7 @@ const PdktPage: React.FC = () => {
       consumerType: selectedConsumerType,
       identity,
       enableImageGeneration: settings.enableImageGeneration ?? true,
-      model: settings.selectedModel || 'gemini-3-flash-preview',
+      model: settings.selectedModel || 'gemini-3.1-flash-lite',
     };
 
     setCurrentConfig(config);

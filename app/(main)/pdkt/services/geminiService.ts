@@ -95,7 +95,7 @@ const getSystemInstruction = (config: SessionConfig, hasCustomImages: boolean) =
        - Buatlah isi email yang SANGAT PANJANG (minimal 300-400 kata), BERTELE-TELE, dan PENUH DETAIL.
        - Ceritakan kronologi dengan sangat rinci. Masukkan curhatan pribadi yang tidak relevan (distraksi) tentang pekerjaan, keluarga, atau perasaan Anda untuk menyembunyikan inti masalah.
        - Tujuannya adalah melatih agen untuk "mencari jarum di tumpukan jerami".
-       - Gunakan paragraf narasi yang panjang. Jangan gunakan bullet points.
+       - Gunakan 3 sampai 5 paragraf narasi yang dipisahkan dengan baris kosong (\n\n) agar struktur email rapi dan mudah dibaca. Jangan gunakan bullet points.
        - Tetap gunakan Bahasa Indonesia yang natural seperti ditulis konsumen Indonesia asli, bukan hasil terjemahan literal.
        - Hindari bahasa yang terlalu kaku, terlalu formal, atau terasa seperti template mesin.
        - Jangan sengaja membuat typo atau ejaan rusak. Jika ingin santai, tetap harus wajar dan mudah dipahami.
@@ -144,7 +144,7 @@ export const initializeEmailSession = async (
     .filter((img): img is string => !!img);
 
   const hasCustomImages = customAttachments.length > 0;
-  const model = config.model || "gemini-3-flash-preview";
+  const model = config.model || "gemini-3.1-flash-lite";
 
   // Existing logic for prompt remains the same...
   const prompt = `
@@ -273,7 +273,7 @@ export const evaluateAgentResponse = async (agentReplyBody: string, consumerCont
 
   try {
     const response = await generateGeminiContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-3.1-flash-lite",
       contents: [{ role: 'user', parts: [{ text: evaluationPrompt }] }],
       responseMimeType: "application/json"
     });
