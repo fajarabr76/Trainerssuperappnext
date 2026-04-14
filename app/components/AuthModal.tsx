@@ -14,19 +14,19 @@ interface AuthModalProps {
 
 const AUTH_COPY = {
   login: {
-    title: 'Masuk ke command center',
-    description: 'Masuk untuk membuka dashboard terpadu dan seluruh workspace training yang Anda miliki.',
-    submit: 'Masuk ke Dashboard',
+    title: 'Masuk ke workspace kerja',
+    description: 'Gunakan email kerja untuk membuka dashboard dan modul yang sudah tersedia sesuai peran Anda.',
+    submit: 'Masuk',
   },
   register: {
-    title: 'Ajukan akses platform',
-    description: 'Daftarkan akun kerja Anda untuk mengaktifkan akses ke simulasi, QA analytics, dan database training.',
-    submit: 'Kirim Permintaan Akses',
+    title: 'Ajukan akses',
+    description: 'Isi data singkat untuk mengirim permintaan akses. Setelah disetujui, akun bisa langsung dipakai masuk.',
+    submit: 'Kirim permintaan',
   },
   forgot: {
     title: 'Reset password',
-    description: 'Masukkan email kerja Anda dan kami akan mengirimkan tautan untuk memperbarui password.',
-    submit: 'Kirim Link Reset',
+    description: 'Masukkan email kerja Anda. Tautan untuk membuat password baru akan dikirim ke inbox.',
+    submit: 'Kirim link reset',
   },
 } as const;
 
@@ -175,154 +175,205 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 20 }}
-            className="relative w-full max-w-md overflow-hidden rounded-[2rem] border border-border/50 bg-card/85 shadow-2xl shadow-black/10 backdrop-blur-2xl"
+            className="relative w-full max-w-5xl overflow-hidden rounded-[2rem] border border-border/50 bg-card/85 shadow-2xl shadow-black/10 backdrop-blur-2xl"
           >
             <div className="absolute inset-x-8 top-0 h-24 rounded-b-full bg-primary/12 blur-3xl" />
-            <div className="relative z-10 p-8 sm:p-9">
-              <button
-                onClick={handleClose}
-                className="absolute right-5 top-5 rounded-full border border-border/60 bg-background/70 p-2 text-muted-foreground transition hover:text-foreground"
-                aria-label="Tutup"
-              >
-                <X className="h-4 w-4" />
-              </button>
+            <div className="relative z-10 grid md:grid-cols-[1.05fr_0.95fr]">
+              <div className="relative hidden overflow-hidden border-r border-border/50 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--card)_72%,transparent),color-mix(in_srgb,var(--background)_88%,transparent))] p-9 md:block">
+                <div className="absolute left-10 top-12 h-44 w-44 rounded-full bg-primary/10 blur-3xl" />
+                <div className="absolute bottom-10 right-8 h-36 w-36 rounded-full bg-module-sidak/10 blur-3xl" />
+                <div className="relative z-10 flex h-full flex-col">
+                  <div className="mb-10 flex items-center gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+                      <Cpu className="h-5 w-5" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold tracking-tight">Trainers SuperApp</span>
+                      <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Kontak OJK 157</span>
+                    </div>
+                  </div>
 
-              <div className="mb-8 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
-                  <Cpu className="h-5 w-5" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold tracking-tight">Trainers SuperApp</span>
-                  <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Open access request</span>
+                  <div className="space-y-4">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      Akses terpusat
+                    </div>
+                    <h2 className="max-w-sm text-3xl font-semibold tracking-tight text-balance">
+                      Satu akses untuk dashboard, monitoring, dan modul kerja tim trainers.
+                    </h2>
+                    <p className="max-w-md text-sm leading-6 text-muted-foreground">
+                      Halaman ini dibuat supaya proses masuk terasa singkat dan jelas. Tidak ada langkah yang berlebihan, tidak ada copy
+                      yang terdengar seperti template.
+                    </p>
+                  </div>
+
+                  <div className="mt-auto space-y-3 pt-10">
+                    <div className="rounded-[1.5rem] border border-border/50 bg-background/70 p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Yang bisa Anda lanjutkan setelah masuk</p>
+                      <p className="mt-2 text-sm leading-6 text-foreground/90">
+                        Memantau aktivitas, membuka modul simulasi, melihat data profiler, dan mengecek kualitas interaksi dari satu tempat.
+                      </p>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-[1.5rem] border border-border/50 bg-card/70 p-4">
+                        <p className="text-xs font-semibold">Alur lebih singkat</p>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">Masuk, pilih kebutuhan, lanjut kerja.</p>
+                      </div>
+                      <div className="rounded-[1.5rem] border border-border/50 bg-card/70 p-4">
+                        <p className="text-xs font-semibold">Bahasa lebih natural</p>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">Copy dibuat terasa seperti produk internal yang matang.</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={mode}
-                  initial={{ opacity: 0, x: 16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -16 }}
-                  transition={{ duration: 0.25 }}
+              <div className="p-8 sm:p-9">
+                <button
+                  onClick={handleClose}
+                  className="absolute right-5 top-5 rounded-full border border-border/60 bg-background/70 p-2 text-muted-foreground transition hover:text-foreground"
+                  aria-label="Tutup"
                 >
-                  <div className="mb-8 space-y-3">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
-                      <ShieldCheck className="h-3.5 w-3.5" />
-                      {mode === 'login' ? 'Secure sign in' : mode === 'register' ? 'Access request' : 'Recovery flow'}
+                  <X className="h-4 w-4" />
+                </button>
+
+                <div className="mb-8 flex items-center gap-3 md:hidden">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+                    <Cpu className="h-5 w-5" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold tracking-tight">Trainers SuperApp</span>
+                    <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Kontak OJK 157</span>
+                  </div>
+                </div>
+
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={mode}
+                    initial={{ opacity: 0, x: 16 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -16 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    <div className="mb-8 space-y-3">
+                      <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        {mode === 'login' ? 'Masuk aman' : mode === 'register' ? 'Permintaan akses' : 'Pemulihan akun'}
+                      </div>
+                      <h2 className="text-3xl font-semibold tracking-tight">{content.title}</h2>
+                      <p className="text-sm leading-6 text-muted-foreground">{content.description}</p>
                     </div>
-                    <h2 className="text-3xl font-semibold tracking-tight">{content.title}</h2>
-                    <p className="text-sm leading-6 text-muted-foreground">{content.description}</p>
-                  </div>
 
-                  {mode === 'forgot' ? (
-                    <form onSubmit={handleForgotPassword} className="flex flex-col gap-4">
-                      <Field label="Email">
-                        <input
-                          type="email"
-                          name="email"
-                          required
-                          disabled={forgotLoading}
-                          placeholder="nama@email.com"
-                          className="auth-input"
-                        />
-                      </Field>
-                      <Feedback error={error} successMessage={successMessage} />
-                      <button type="submit" disabled={forgotLoading || !!successMessage} className="auth-submit">
-                        {forgotLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : content.submit}
-                        {!forgotLoading && <ArrowRight className="h-4 w-4" />}
-                      </button>
-                    </form>
-                  ) : (
-                    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                      <Field label="Email">
-                        <input
-                          type="email"
-                          name="email"
-                          required
-                          disabled={loading}
-                          placeholder="nama@email.com"
-                          className="auth-input"
-                        />
-                      </Field>
-
-                      <Field label="Password">
-                        <input
-                          type="password"
-                          name="password"
-                          required
-                          disabled={loading}
-                          placeholder="••••••••"
-                          className="auth-input tracking-[0.2em]"
-                        />
-                      </Field>
-
-                      {mode === 'login' && (
-                        <div className="-mt-1 flex justify-end">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setError(null);
-                              setSuccessMessage(null);
-                              setMode('forgot');
-                            }}
-                            className="text-xs font-semibold text-muted-foreground transition hover:text-primary"
-                            disabled={loading}
-                          >
-                            Lupa password?
-                          </button>
-                        </div>
-                      )}
-
-                      {mode === 'register' && (
-                        <Field label="Peran">
-                          <select name="role" required disabled={loading} className="auth-input">
-                            <option value="Agent">Agent</option>
-                            <option value="Leader">Leader</option>
-                            <option value="Trainer">Trainer</option>
-                          </select>
-                        </Field>
-                      )}
-
-                      <Feedback error={error} successMessage={successMessage} />
-
-                      <button type="submit" disabled={loading || !!successMessage} className="auth-submit">
-                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : content.submit}
-                        {!loading && <ArrowRight className="h-4 w-4" />}
-                      </button>
-                    </form>
-                  )}
-
-                  <div className="mt-7 text-center">
                     {mode === 'forgot' ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setError(null);
-                          setSuccessMessage(null);
-                          setMode('login');
-                        }}
-                        className="text-xs font-semibold text-muted-foreground transition hover:text-primary"
-                        disabled={isBusy}
-                      >
-                        Kembali ke login
-                      </button>
+                      <form onSubmit={handleForgotPassword} className="flex flex-col gap-4">
+                        <Field label="Email">
+                          <input
+                            type="email"
+                            name="email"
+                            required
+                            disabled={forgotLoading}
+                            placeholder="nama@perusahaan.com"
+                            className="auth-input"
+                          />
+                        </Field>
+                        <Feedback error={error} successMessage={successMessage} />
+                        <button type="submit" disabled={forgotLoading || !!successMessage} className="auth-submit">
+                          {forgotLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : content.submit}
+                          {!forgotLoading && <ArrowRight className="h-4 w-4" />}
+                        </button>
+                      </form>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setError(null);
-                          setSuccessMessage(null);
-                          setMode(mode === 'login' ? 'register' : 'login');
-                        }}
-                        className="text-xs font-semibold text-muted-foreground transition hover:text-primary"
-                        disabled={isBusy}
-                      >
-                        {mode === 'login' ? 'Belum punya akses? Daftar di sini' : 'Sudah punya akun? Masuk di sini'}
-                      </button>
+                      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                        <Field label="Email">
+                          <input
+                            type="email"
+                            name="email"
+                            required
+                            disabled={loading}
+                            placeholder="nama@perusahaan.com"
+                            className="auth-input"
+                          />
+                        </Field>
+
+                        <Field label="Password">
+                          <input
+                            type="password"
+                            name="password"
+                            required
+                            disabled={loading}
+                            placeholder="••••••••"
+                            className="auth-input tracking-[0.2em]"
+                          />
+                        </Field>
+
+                        {mode === 'login' && (
+                          <div className="-mt-1 flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setError(null);
+                                setSuccessMessage(null);
+                                setMode('forgot');
+                              }}
+                              className="text-xs font-semibold text-muted-foreground transition hover:text-primary"
+                              disabled={loading}
+                            >
+                              Lupa password?
+                            </button>
+                          </div>
+                        )}
+
+                        {mode === 'register' && (
+                          <Field label="Peran">
+                            <select name="role" required disabled={loading} className="auth-input">
+                              <option value="Agent">Agent</option>
+                              <option value="Leader">Leader</option>
+                              <option value="Trainer">Trainer</option>
+                            </select>
+                          </Field>
+                        )}
+
+                        <Feedback error={error} successMessage={successMessage} />
+
+                        <button type="submit" disabled={loading || !!successMessage} className="auth-submit">
+                          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : content.submit}
+                          {!loading && <ArrowRight className="h-4 w-4" />}
+                        </button>
+                      </form>
                     )}
-                  </div>
-                </motion.div>
-              </AnimatePresence>
+
+                    <div className="mt-7 text-center">
+                      {mode === 'forgot' ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setError(null);
+                            setSuccessMessage(null);
+                            setMode('login');
+                          }}
+                          className="text-xs font-semibold text-muted-foreground transition hover:text-primary"
+                          disabled={isBusy}
+                        >
+                          Kembali ke login
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setError(null);
+                            setSuccessMessage(null);
+                            setMode(mode === 'login' ? 'register' : 'login');
+                          }}
+                          className="text-xs font-semibold text-muted-foreground transition hover:text-primary"
+                          disabled={isBusy}
+                        >
+                          {mode === 'login' ? 'Belum punya akses? Ajukan dari sini' : 'Sudah punya akun? Masuk di sini'}
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
             </div>
           </motion.div>
         </div>

@@ -1,117 +1,113 @@
-<div align="center">
-  <img width="1200" height="475" alt="Trainers SuperApp Banner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-  
-  # 🚀 Trainers SuperApp
-  **The ultimate ecosystem for Contact Center training, evaluation, and quality assurance.**
-  
-  [![Tech Stack](https://img.shields.io/badge/Stack-Next.js%2015%20%7C%20Supabase-blueviolet)](https://nextjs.org/)
-  [![License](https://img.shields.io/badge/Status-MVP%201.1.0-green)](https://github.com/fajarabr76/Trainerssuperappnext)
-</div>
+# Trainers SuperApp
 
----
+Trainers SuperApp adalah aplikasi internal untuk operasional contact center training, simulasi, database peserta, monitoring, dan QA.
 
-## 📖 Overview
+## Overview
 
-**Trainers SuperApp** is a robust, multi-module internal platform designed for Contact Center Trainers, Leaders, and QA Officers. It streamlines the entire performance management lifecycle—from agent orientation and skills training to advanced Quality Assurance (QA) analytics.
+Platform ini menggabungkan beberapa workspace utama dalam satu pengalaman yang konsisten:
 
-At its core, the app follows **"The Path to Zero"** philosophy, treating every audit defect as a solvable problem and guiding organizations toward zero-defect quality.
+- `Dashboard` untuk ringkasan performa dan aktivitas
+- `KETIK` untuk simulasi chat
+- `PDKT` untuk simulasi email
+- `TELEFUN` untuk simulasi telepon
+- `Profiler / KTP` untuk database peserta dan agent
+- `SIDAK / QA Analyzer` untuk analisis temuan kualitas
+- `Monitoring` untuk ringkasan operasional
 
----
+Landing page dan auth flow dirancang sebagai pintu masuk tunggal ke seluruh modul tersebut.
 
-## 🧩 Core Modules
+## Tech Stack
 
-### 1. 🛡️ SIDAK (QA Analyzer) — "The Path to Zero"
-The centerpiece of the platform. A high-performance analytics dashboard and audit tracking system.
-- **Executive Summary**: 4 key KPI cards showing Total Defects, Average Errors per Audit, Fatal Error Rate, and SOP Compliance.
-- **Pareto Root Cause Analysis**: Identify the 20% of parameters causing 80% of your quality issues.
-- **Team & Agent Performance**: Visualize trends and ranking across different organizational levels.
-- **Audit Input**: Integrated interface for QA analysts to enter findings against hierarchical parameters.
+- Next.js 15 App Router
+- React 19
+- TypeScript
+- Tailwind CSS 4
+- Supabase Auth, PostgreSQL, RLS, Storage
+- Motion
+- Recharts
+- Lucide React
 
-### 2. 📇 Profiler (Agent Database)
-A comprehensive repository for managing participant and agent data.
-- **Hierarchical Folders**: Year > Folder (Batch) > Agent structure for deep organizational hygiene.
-- **Photo Automation**: Automatic image compression and upload to secure Supabase Storage.
-- **Bulk Operations**: Intelligent Excel imports with custom dropdown validation and multi-export formats (PNG/PDF).
-- **Analytics**: Historical performance tracking per agent.
+## Current Product Flow
 
-### 3. 🎮 Simulation Suites
-Real-time evaluation modules to test and train agent skills in controlled environments:
-- **⌨️ KETIK (Chat)**: Real-time chat simulation with AI-driven evaluation.
-- **📧 PDKT (Email)**: Email simulation for testing professional correspondence.
-- **📞 TELEFUN (Phone)**: Telephony simulation for voice-based audit practice.
+1. User membuka landing page.
+2. User login, daftar akses, atau reset password dari modal auth.
+3. User yang belum disetujui diarahkan ke halaman approval.
+4. User yang aktif masuk ke dashboard dan navigasi modul sesuai role.
 
----
+## Roles
 
-## 🛠️ Technical Stack
+- `Agent`
+- `Leader`
+- `Trainer`
 
-- **Framework**: [Next.js 15+](https://nextjs.org/) (App Router, Server Actions)
-- **Database & Auth**: [Supabase](https://supabase.com/) (PostgreSQL with RLS, Auth, Storage)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/) with Glassmorphism and specialized Dark Mode support
-- **Visualization**: [Recharts](https://recharts.org/) for interactive data analytics
-- **Animation**: [Motion (Framer Motion)](https://motion.dev/)
-- **Data Handling**: `SheetJS` (xlsx) and `ExcelJS` for robust spreadsheet processing
+Beberapa area internal juga memiliki akses operasional tambahan sesuai kebutuhan aplikasi.
 
----
+## Main Routes
 
-## 🚀 Getting Started
+- `/` landing page
+- `/?auth=login` open login modal
+- `/dashboard` unified dashboard
+- `/dashboard/users` user management
+- `/dashboard/monitoring` monitoring summary
+- `/ketik` chat simulation
+- `/pdkt` email simulation
+- `/telefun` phone simulation
+- `/profiler` profiler landing
+- `/profiler/table` data table
+- `/profiler/import` import flow
+- `/profiler/export` export flow
+- `/profiler/add` add participant
+- `/profiler/teams` team management
+- `/profiler/slides` slide view
+- `/qa-analyzer/dashboard` SIDAK dashboard
+- `/qa-analyzer/agents` agent analysis
+- `/qa-analyzer/ranking` ranking view
+- `/qa-analyzer/input` input temuan
+- `/qa-analyzer/periods` period management
+- `/qa-analyzer/settings` parameter management
+- `/qa-analyzer/reports` reporting
 
-### Prerequisites
+## Product Notes
 
-- **Node.js**: Version 18 or newer
-- **Supabase Project**: A deployed Supabase instance (Local or Pro)
+- QA Analyzer memakai filosofi `The Path to Zero`, yaitu mendorong tren temuan ke arah yang semakin kecil.
+- Profiler mempertahankan struktur data yang hierarkis agar operasional training tetap rapi.
+- Landing page dan auth modal dijaga supaya copy-nya terasa natural, bukan generik atau terlalu "AI".
 
-### Local Setup
+## Getting Started
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/fajarabr76/Trainerssuperappnext.git
-   cd trainers-superapp-next
-   ```
+```bash
+npm install
+npm run dev
+```
 
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
+## Environment
 
-3. **Configure Environment Variables**:
-   Create a `.env.local` file in the root directory:
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   GEMINI_API_KEY=your_gemini_api_key
-   ```
+Biasanya aplikasi membutuhkan variabel seperti:
 
-4. **Initialize Database Schema**:
-   Run the following SQL scripts in your Supabase SQL Editor in order:
-   1. `supabase_rbac_setup.sql` (Auth, Profiles, and RLS)
-   2. `supabase-profiler-schema.sql` (Profiler-specific tables)
-   3. `add_pencatatan_indicators.sql` (Primary metrics and indicators)
+```env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+```
 
-5. **Run the development server**:
-   ```bash
-   npm run dev
-   ```
+Jika fitur tertentu memakai integrasi tambahan, cek file konfigurasi dan service yang relevan di `app/lib`.
 
----
+## Development Notes
 
-## 🔐 Security & RBAC
+- Gunakan `app/(main)` sebagai area aplikasi utama.
+- Ikuti pola service dan hook yang sudah ada di repo.
+- Jangan ubah auth flow atau RLS tanpa kebutuhan yang jelas.
+- Pertahankan tema visual existing ketika menambah halaman atau komponen baru.
 
-The application implements a robust **Role-Based Access Control (RBAC)** system using Supabase Row-Level Security (RLS):
-- **Trainer/Leader**: Full access to all modules, analytics, and data management.
-- **Agent**: Limited access to own performance details and training modules.
+## Verification
 
----
+Sebelum menyelesaikan perubahan besar, jalankan:
 
-## 📈 Roadmap
+```bash
+npm run type-check
+npm run lint
+```
 
-- [x] MVP Dashboard for SIDAK
-- [x] Advanced Folder Hierarchy in Profiler
-- [ ] Exportable PDF/PPT Performance Reports
-- [ ] Real-time Coaching Notifications
-- [ ] Cross-module Performance Correlations
+## License
 
----
+Private internal project.
 
-<div align="center">
-  Built with ❤️ by the Trainers SuperApp Team
-</div>

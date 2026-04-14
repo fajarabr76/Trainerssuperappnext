@@ -9,7 +9,10 @@ import {
   CheckCircle2,
   ChevronRight,
   Cpu,
+  LockKeyhole,
   Loader2,
+  Orbit,
+  PanelsTopLeft,
   Shield,
   Sparkles,
 } from 'lucide-react';
@@ -34,9 +37,27 @@ function AuthTrigger({ onOpen }: { onOpen: (mode: 'login' | 'register' | 'forgot
 }
 
 const featureRows = [
-  'Unified command center untuk semua modul utama',
-  'Role-aware dashboard untuk agent, leader, trainer, dan admin',
-  'Visual language yang konsisten dari landing page sampai workspace internal',
+  'Masuk sekali, lanjut kerja tanpa pindah-pindah konteks.',
+  'Alur untuk agent, leader, trainer, dan admin sudah dibedakan dengan jelas.',
+  'Tampilan tetap konsisten dari halaman awal sampai workspace internal.',
+];
+
+const proofPoints = [
+  {
+    title: 'Akses lebih rapi',
+    description: 'Satu pintu masuk untuk modul training, monitoring, dan kebutuhan operasional harian.',
+    icon: LockKeyhole,
+  },
+  {
+    title: 'Prioritas lebih jelas',
+    description: 'Dashboard membantu tim melihat apa yang perlu dikerjakan lebih dulu, bukan sekadar menumpuk menu.',
+    icon: PanelsTopLeft,
+  },
+  {
+    title: 'Perpindahan lebih ringan',
+    description: 'Saat berpindah modul, ritme visual dan struktur kerjanya tetap terasa familiar.',
+    icon: Orbit,
+  },
 ];
 
 export default function LandingPage() {
@@ -111,21 +132,39 @@ export default function LandingPage() {
           </div>
         </header>
 
-        <section className="grid flex-1 items-start gap-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10">
+        <section className="grid flex-1 items-start gap-14 lg:grid-cols-[1.08fr_0.92fr] lg:gap-10">
           <div className="space-y-10 pt-4 lg:pt-12">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
               <Shield className="h-3.5 w-3.5" />
-              Unified Training Operating System
+              Workspace untuk operasional trainers
             </div>
 
             <div className="space-y-6">
               <h1 className="max-w-4xl text-5xl font-semibold tracking-tight text-balance md:text-7xl">
-                Satu dashboard untuk menggerakkan seluruh ekosistem trainers.
+                Halaman masuk yang tenang, dashboard yang siap dipakai kerja.
               </h1>
               <p className="max-w-2xl text-base leading-7 text-muted-foreground md:text-xl">
-                Kelola simulasi, database agen, monitoring kualitas, dan aktivitas harian dari satu pengalaman yang konsisten.
-                Trainers SuperApp kini dirancang sebagai command center terpadu, bukan kumpulan modul yang terasa terpisah.
+                Trainers SuperApp merangkum modul penting dalam satu alur yang terasa utuh. Begitu masuk, tim bisa lanjut ke
+                simulasi, profiler, QA analyzer, dan dashboard tanpa perlu menyesuaikan diri ulang di setiap halaman.
               </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              {proofPoints.map((point, index) => (
+                <motion.div
+                  key={point.title}
+                  initial={{ opacity: 0, y: 18 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.45, delay: 0.08 * index }}
+                  className="rounded-[1.75rem] border border-border/60 bg-card/70 p-5 shadow-lg shadow-black/5 backdrop-blur-xl"
+                >
+                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/15 bg-primary/10 text-primary">
+                    <point.icon className="h-[18px] w-[18px]" />
+                  </div>
+                  <h2 className="text-base font-semibold tracking-tight">{point.title}</h2>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{point.description}</p>
+                </motion.div>
+              ))}
             </div>
 
             <div className="flex flex-wrap gap-3">
@@ -171,15 +210,31 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="space-y-6">
-            <div className="rounded-[2rem] border border-border/50 bg-card/70 p-6 shadow-2xl shadow-black/5 backdrop-blur-2xl">
+          <div className="space-y-6 lg:pt-6">
+            <div className="overflow-hidden rounded-[2rem] border border-border/50 bg-card/70 p-6 shadow-2xl shadow-black/5 backdrop-blur-2xl">
               <div className="mb-6 flex items-center justify-between">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Workspace Map</p>
-                  <h2 className="mt-2 text-2xl font-semibold tracking-tight">Semua modul, satu visual language</h2>
+                  <h2 className="mt-2 text-2xl font-semibold tracking-tight">Modul yang tersusun seperti satu produk</h2>
                 </div>
                 <div className="rounded-full border border-primary/15 bg-primary/8 p-2 text-primary">
                   <Sparkles className="h-4 w-4" />
+                </div>
+              </div>
+
+              <div className="mb-6 rounded-[1.5rem] border border-border/50 bg-background/75 p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Ringkas</p>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                      Setiap modul tetap punya fungsi yang berbeda, tapi tampilan dan arahnya dibuat selaras supaya tim tidak terasa
+                      sedang berpindah ke produk lain.
+                    </p>
+                  </div>
+                  <div className="hidden rounded-2xl border border-primary/10 bg-primary/8 px-4 py-3 text-right sm:block">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Aktif digunakan</p>
+                    <p className="mt-1 text-2xl font-semibold tracking-tight">{productModules.length} modul</p>
+                  </div>
                 </div>
               </div>
 
@@ -206,10 +261,10 @@ export default function LandingPage() {
             </div>
 
             <div className="rounded-[2rem] border border-border/50 bg-card/60 p-6 backdrop-blur-md">
-              <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Product Promise</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Kenapa dibuat seperti ini</p>
               <div className="mt-3 space-y-3 text-sm leading-7 text-muted-foreground">
-                <p>Masuk dari satu landing page, lanjut ke satu dashboard, lalu berpindah antar workspace tanpa kehilangan orientasi.</p>
-                <p>Setiap halaman kini mengikuti ritme visual yang sama: tenang, profesional, dan siap dipakai untuk kerja harian.</p>
+                <p>Landing page ini dirancang untuk langsung menjelaskan fungsi platform, bukan sekadar menjadi halaman pembuka.</p>
+                <p>Setelah login, pengguna dibawa ke suasana kerja yang sama: bersih, fokus, dan cukup jelas untuk dipakai setiap hari.</p>
               </div>
             </div>
           </div>
