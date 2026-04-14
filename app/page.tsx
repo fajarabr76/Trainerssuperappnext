@@ -37,28 +37,42 @@ function AuthTrigger({ onOpen }: { onOpen: (mode: 'login' | 'register' | 'forgot
 }
 
 const featureRows = [
-  'Masuk sekali, lanjut kerja tanpa pindah-pindah konteks.',
-  'Alur untuk agent, leader, trainer, dan admin sudah dibedakan dengan jelas.',
-  'Tampilan tetap konsisten dari halaman awal sampai workspace internal.',
+  'Akses terpusat untuk seluruh modul utama.',
+  'Alur kerja dibedakan jelas untuk setiap peran.',
+  'Navigasi konsisten dari landing page ke workspace internal.',
 ];
 
 const proofPoints = [
   {
-    title: 'Akses lebih rapi',
-    description: 'Satu pintu masuk untuk modul training, monitoring, dan kebutuhan operasional harian.',
+    title: 'Akses Terpusat & Aman',
+    description: 'Otentikasi tunggal menuju seluruh instrumen pelatihan dan pemantauan kualitas tanpa hambatan.',
     icon: LockKeyhole,
   },
   {
-    title: 'Prioritas lebih jelas',
-    description: 'Dashboard membantu tim melihat apa yang perlu dikerjakan lebih dulu, bukan sekadar menumpuk menu.',
+    title: 'Fokus Operasional',
+    description: 'Antarmuka yang dioptimalkan untuk menyoroti metrik kritikal dan tugas mendesak secara real-time.',
     icon: PanelsTopLeft,
   },
   {
-    title: 'Perpindahan lebih ringan',
-    description: 'Saat berpindah modul, ritme visual dan struktur kerjanya tetap terasa familiar.',
+    title: 'Arsitektur Konsisten',
+    description: 'Transisi logis antar modul dengan standar navigasi yang identik untuk meminimalkan beban kognitif.',
     icon: Orbit,
   },
 ];
+
+const pageVariants = {
+  hidden: { opacity: 0, y: 10 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, staggerChildren: 0.08 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45 } },
+};
 
 export default function LandingPage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -93,90 +107,83 @@ export default function LandingPage() {
   }, [router]);
 
   return (
-    <main className="min-h-screen overflow-hidden bg-background text-foreground">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute left-[-10%] top-[-8%] h-[34rem] w-[34rem] rounded-full bg-primary/12 blur-[140px]" />
-        <div className="absolute right-[-8%] top-[20%] h-[30rem] w-[30rem] rounded-full bg-module-sidak/10 blur-[140px]" />
-        <div className="absolute bottom-[-12%] left-[22%] h-[24rem] w-[24rem] rounded-full bg-module-ketik/10 blur-[120px]" />
-        <div
-          className="absolute inset-0 opacity-[0.035]"
-          style={{
-            backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)',
-            backgroundSize: '36px 36px',
-          }}
+    <main className="relative min-h-screen bg-background text-foreground transition-colors duration-500">
+      {/* Background Effects */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-full max-w-[800px] h-[500px] bg-primary/10 blur-[120px] opacity-60 dark:bg-primary/5" />
+        <div 
+          className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" 
+          style={{ backgroundImage: 'radial-gradient(circle at 1.5px 1.5px, currentColor 1.5px, transparent 0)', backgroundSize: '48px 48px' }} 
         />
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-7xl flex-col px-6 py-6 lg:px-8">
-        <header className="mb-12 flex items-center justify-between">
-          <div className="inline-flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
-              <Cpu className="h-5 w-5" />
+      <div className="relative z-10 flex flex-col min-h-screen">
+        {/* Navbar */}
+        <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
+          <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/20 bg-primary/5 text-primary shadow-sm shadow-primary/5">
+                <Cpu className="h-5 w-5" />
+              </div>
+              <div className="flex flex-col leading-none">
+                <span className="font-display text-lg font-black tracking-tighter text-foreground">Trainers SuperApp</span>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold tracking-tight">Trainers SuperApp</span>
-              <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Kontak OJK 157</span>
+            
+            <div className="flex items-center gap-4">
+              {!isCheckingAuth && !isLoggedIn && (
+                <button
+                  onClick={() => handleOpenAuth('login')}
+                  className="px-4 py-2 rounded-full text-sm font-semibold text-muted-foreground transition hover:text-foreground hover:bg-muted/50"
+                >
+                  Masuk
+                </button>
+              )}
+              {isLoggedIn && (
+                <Link
+                  href="/dashboard"
+                  className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
+                >
+                  Dashboard
+                </Link>
+              )}
+              <ThemeToggle />
             </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {!isCheckingAuth && !isLoggedIn && (
-              <button
-                onClick={() => handleOpenAuth('login')}
-                className="hidden rounded-full border border-border/60 bg-card/70 px-4 py-2 text-sm font-medium text-foreground/80 transition hover:border-primary/20 hover:text-foreground md:inline-flex"
-              >
-                Masuk
-              </button>
-            )}
-            <ThemeToggle />
           </div>
         </header>
 
-        <section className="grid flex-1 items-start gap-14 lg:grid-cols-[1.08fr_0.92fr] lg:gap-10">
-          <div className="space-y-10 pt-4 lg:pt-12">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
+        {/* Hero Section */}
+        <section className="relative px-6 pt-24 pb-16 lg:px-8 lg:pt-32">
+          <motion.div 
+            variants={pageVariants} 
+            initial="hidden" 
+            animate="show"
+            className="mx-auto max-w-7xl text-center"
+          >
+            <motion.div variants={itemVariants} className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-primary mb-8 px-5">
               <Shield className="h-3.5 w-3.5" />
-              Workspace untuk operasional trainers
-            </div>
-
-            <div className="space-y-6">
-              <h1 className="max-w-4xl text-5xl font-semibold tracking-tight text-balance md:text-7xl">
-                Halaman masuk yang tenang, dashboard yang siap dipakai kerja.
-              </h1>
-              <p className="max-w-2xl text-base leading-7 text-muted-foreground md:text-xl">
-                Trainers SuperApp merangkum modul penting dalam satu alur yang terasa utuh. Begitu masuk, tim bisa lanjut ke
-                simulasi, profiler, QA analyzer, dan dashboard tanpa perlu menyesuaikan diri ulang di setiap halaman.
-              </p>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              {proofPoints.map((point, index) => (
-                <motion.div
-                  key={point.title}
-                  initial={{ opacity: 0, y: 18 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.45, delay: 0.08 * index }}
-                  className="rounded-[1.75rem] border border-border/60 bg-card/70 p-5 shadow-lg shadow-black/5 backdrop-blur-xl"
-                >
-                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/15 bg-primary/10 text-primary">
-                    <point.icon className="h-[18px] w-[18px]" />
-                  </div>
-                  <h2 className="text-base font-semibold tracking-tight">{point.title}</h2>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{point.description}</p>
-                </motion.div>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap gap-3">
+              Platform Trainer · Kontak OJK 157
+            </motion.div>
+            
+            <motion.h1 variants={itemVariants} className="font-display text-5xl font-extrabold tracking-tight text-foreground sm:text-7xl mb-8 max-w-4xl mx-auto leading-[1.05]">
+              Satu platform untuk seluruh kebutuhan tim trainer.
+            </motion.h1>
+            
+            <motion.p variants={itemVariants} className="mx-auto max-w-2xl text-lg leading-8 text-muted-foreground mb-10">
+              Trainers SuperApp menyatukan simulasi chat, email, telepon, profiling, dan QA analytics dalam satu tempat. 
+              Dibuat khusus untuk operasional harian tim Kontak OJK 157 yang presisi dan efisien.
+            </motion.p>
+            
+            <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center gap-4">
               {isCheckingAuth ? (
-                <div className="inline-flex min-w-44 items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground opacity-70">
+                <div className="inline-flex h-12 min-w-44 items-center justify-center gap-2 rounded-full bg-primary px-8 text-sm font-semibold text-primary-foreground opacity-70">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Menyiapkan akses
                 </div>
               ) : isLoggedIn ? (
                 <Link
                   href="/dashboard"
-                  className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/25"
+                  className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-8 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5"
                 >
                   Buka Dashboard
                   <ArrowRight className="h-4 w-4" />
@@ -185,90 +192,170 @@ export default function LandingPage() {
                 <>
                   <button
                     onClick={() => handleOpenAuth('login')}
-                    className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/25"
+                    className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-10 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   >
                     Masuk ke Platform
                     <ArrowRight className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleOpenAuth('register')}
-                    className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/70 px-6 py-3 text-sm font-semibold text-foreground transition hover:border-primary/20 hover:bg-card"
+                    className="inline-flex h-12 items-center gap-2 rounded-full border border-border bg-card/50 px-8 text-sm font-semibold transition hover:bg-muted/50"
                   >
-                    Daftar Akses
+                    Ajukan Hak Akses
                   </button>
                 </>
               )}
-            </div>
+            </motion.div>
+          </motion.div>
+        </section>
 
-            <div className="grid gap-3 sm:grid-cols-3">
-              {featureRows.map((feature) => (
-                <div key={feature} className="rounded-3xl border border-border/50 bg-card/60 p-4 text-sm leading-6 text-muted-foreground backdrop-blur-md">
-                  <CheckCircle2 className="mb-3 h-4 w-4 text-primary" />
-                  {feature}
+        {/* Trust Bar / Stats */}
+        <div className="w-full border-y border-border/40 bg-muted/20 py-8">
+          <div className="mx-auto max-w-7xl px-6 lg:px-8">
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
+              {[
+                { label: 'Modul Terintegrasi', value: '5 Modul Utama' },
+                { label: 'Eksklusif Untuk', value: 'Kontak OJK 157' },
+                { label: 'Kesiapan Operasional', value: 'Terstandarisasi' }
+              ].map((stat) => (
+                <div key={stat.label} className="flex flex-col items-center justify-center space-y-1 text-center">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{stat.label}</span>
+                  <span className="text-xl font-semibold tracking-tight">{stat.value}</span>
                 </div>
               ))}
             </div>
           </div>
+        </div>
 
-          <div className="space-y-6 lg:pt-6">
-            <div className="overflow-hidden rounded-[2rem] border border-border/50 bg-card/70 p-6 shadow-2xl shadow-black/5 backdrop-blur-2xl">
-              <div className="mb-6 flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Workspace Map</p>
-                  <h2 className="mt-2 text-2xl font-semibold tracking-tight">Modul yang tersusun seperti satu produk</h2>
-                </div>
-                <div className="rounded-full border border-primary/15 bg-primary/8 p-2 text-primary">
-                  <Sparkles className="h-4 w-4" />
-                </div>
-              </div>
-
-              <div className="mb-6 rounded-[1.5rem] border border-border/50 bg-background/75 p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Ringkas</p>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                      Setiap modul tetap punya fungsi yang berbeda, tapi tampilan dan arahnya dibuat selaras supaya tim tidak terasa
-                      sedang berpindah ke produk lain.
-                    </p>
-                  </div>
-                  <div className="hidden rounded-2xl border border-primary/10 bg-primary/8 px-4 py-3 text-right sm:block">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Aktif digunakan</p>
-                    <p className="mt-1 text-2xl font-semibold tracking-tight">{productModules.length} modul</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                {productModules.map((module, index) => (
-                  <motion.div
-                    key={module.id}
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.45, delay: 0.08 * index }}
-                    className="group rounded-[1.75rem] border border-border/50 bg-background/70 p-5 transition hover:-translate-y-1 hover:border-primary/15 hover:shadow-lg hover:shadow-black/5"
-                  >
-                    <div className="mb-5 flex items-start justify-between gap-4">
-                      <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${module.accentSoftClassName} ${module.accentClassName}`}>
-                        <module.icon className="h-5 w-5" />
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground" />
-                    </div>
-                    <h3 className="text-lg font-semibold tracking-tight">{module.title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{module.description}</p>
-                  </motion.div>
-                ))}
-              </div>
+        {/* Module Showcase */}
+        <section className="py-24 px-6 lg:px-8 bg-background">
+          <div className="mx-auto max-w-7xl">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4">Semua kebutuhan trainer, satu ruang kerja.</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Setiap modul tetap punya fungsi yang berbeda, tapi tampilan dan arahnya dibuat selaras supaya tim tidak terasa sedang berpindah ke produk lain.
+              </p>
             </div>
+            
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 h-full">
+              {productModules.map((module, idx) => (
+                <motion.div
+                  key={module.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.1, duration: 0.5 }}
+                  className="group relative flex flex-col h-full rounded-2xl border border-border/50 bg-card p-6 transition-all hover:-translate-y-1 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5"
+                >
+                  <div className={`mb-6 flex h-12 w-12 items-center justify-center rounded-xl ${module.accentSoftClassName} ${module.accentClassName} transition-colors group-hover:bg-primary group-hover:text-primary-foreground`}>
+                    <module.icon className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-lg font-bold tracking-tight mb-2 uppercase">{module.shortTitle}</h3>
+                  <p className="text-xs leading-relaxed text-muted-foreground mt-auto">
+                    {module.id === 'ketik' && 'Latih kemampuan chat layanan dengan simulasi interaktif.'}
+                    {module.id === 'pdkt' && 'Susun email standar dengan template dan AI assistant.'}
+                    {module.id === 'telefun' && 'Latihan percakapan telepon dengan skenario realistis.'}
+                    {module.id === 'profiler' && 'Kelola profil agen dan peserta training.'}
+                    {module.id === 'qa-analyzer' && 'Pantau kualitas layanan dengan analytics dan ranking.'}
+                  </p>
+                  <ChevronRight className="absolute bottom-6 right-6 h-4 w-4 opacity-0 transition-all -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0" />
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
 
-            <div className="rounded-[2rem] border border-border/50 bg-card/60 p-6 backdrop-blur-md">
-              <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Kenapa dibuat seperti ini</p>
-              <div className="mt-3 space-y-3 text-sm leading-7 text-muted-foreground">
-                <p>Landing page ini dirancang untuk langsung menjelaskan fungsi platform, bukan sekadar menjadi halaman pembuka.</p>
-                <p>Setelah login, pengguna dibawa ke suasana kerja yang sama: bersih, fokus, dan cukup jelas untuk dipakai setiap hari.</p>
+        {/* Benefits Section */}
+        <section className="py-24 px-6 lg:px-8 border-t border-border/40">
+          <div className="mx-auto max-w-7xl">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+              <div className="lg:col-span-1">
+                <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-6">Kenapa satu platform?</h2>
+                <p className="text-muted-foreground text-lg mb-8">
+                  Kami memahami kompleksitas tugas tim trainer. Trainers SuperApp dirancang untuk menghilangkan hambatan teknis agar Anda bisa fokus pada pengembangan SDM.
+                </p>
+                <div className="flex items-center gap-2 text-primary font-semibold">
+                  <span>Mulai transformasi hari ini</span>
+                  <ArrowRight className="h-5 w-5" />
+                </div>
+              </div>
+              
+              <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                {[
+                  {
+                    title: 'Satu kali login, semua modul terbuka',
+                    desc: 'Akses seluruh instrumen simulasi dan evaluasi tanpa perlu login berulang kali di setiap tools yang berbeda.',
+                    icon: LockKeyhole
+                  },
+                  {
+                    title: 'Dashboard fokus pekerjaan',
+                    desc: 'Antarmuka minimalis yang menonjolkan metrik kritikal, bukan sekadar tumpukan menu yang membingungkan.',
+                    icon: PanelsTopLeft
+                  },
+                  {
+                    title: 'Navigasi yang familiar',
+                    desc: 'Pindah antar modul terasa natural karena mengikuti standar desain yang konsisten di seluruh aplikasi.',
+                    icon: Orbit
+                  },
+                  {
+                    title: 'Efisiensi Operasional',
+                    desc: 'Mengurangi waktu administrasi manual sehingga trainer punya lebih banyak waktu untuk coaching agen.',
+                    icon: Sparkles
+                  }
+                ].map((item) => (
+                  <div key={item.title} className="p-8 rounded-3xl bg-muted/30 border border-border/40 hover:bg-muted/50 transition-colors">
+                    <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <item.icon className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-lg font-bold mb-3">{item.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </section>
+
+        {/* Footer CTA */}
+        <section className="relative overflow-hidden py-24 px-6 lg:px-8">
+          <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
+          <div className="relative mx-auto max-w-7xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-6">Siap meningkatkan standar kualitas layanan?</h2>
+            <p className="text-muted-foreground text-lg mb-10 max-w-2xl mx-auto">
+              Masuk sekarang dan kembangkan potensi terbaik tim Kontak OJK 157 melalui platform operasional terpadu.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button
+                onClick={() => handleOpenAuth('login')}
+                className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-10 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-[1.05]"
+              >
+                Mulai Gunakan Platform
+                <ArrowRight className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => handleOpenAuth('register')}
+                className="text-sm font-semibold hover:underline"
+              >
+                Daftar Akses Baru
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="mt-auto border-t border-border/40 py-10 px-6 lg:px-8 bg-muted/10">
+          <div className="mx-auto max-w-7xl flex flex-col md:flex-row items-center justify-between gap-6 text-muted-foreground">
+            <div className="flex items-center gap-3">
+               <Cpu className="h-5 w-5" />
+               <p className="text-xs tracking-tight">© 2026 Trainers SuperApp — Fajar Abd</p>
+            </div>
+            <div className="flex items-center gap-8 text-xs font-semibold uppercase tracking-widest">
+               <span>Pusat Kendali</span>
+               <span>Integritas</span>
+               <span>Layanan</span>
+            </div>
+          </div>
+        </footer>
       </div>
 
       <Suspense fallback={null}>

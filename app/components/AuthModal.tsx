@@ -15,7 +15,7 @@ interface AuthModalProps {
 const AUTH_COPY = {
   login: {
     title: 'Masuk ke workspace kerja',
-    description: 'Gunakan email kerja untuk membuka dashboard dan modul yang sudah tersedia sesuai peran Anda.',
+    description: 'Akses dashboard terpadu dan seluruh modul simulasi tim trainer dengan satu langkah masuk.',
     submit: 'Masuk',
   },
   register: {
@@ -199,29 +199,28 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                       Akses terpusat
                     </div>
                     <h2 className="max-w-sm text-3xl font-semibold tracking-tight text-balance">
-                      Satu akses untuk dashboard, monitoring, dan modul kerja tim trainers.
+                      Satu akses untuk seluruh ekosistem kerja tim trainers.
                     </h2>
                     <p className="max-w-md text-sm leading-6 text-muted-foreground">
-                      Halaman ini dibuat supaya proses masuk terasa singkat dan jelas. Tidak ada langkah yang berlebihan, tidak ada copy
-                      yang terdengar seperti template.
+                      Kelola modul simulasi, pantau profil peserta, dan akses analytics kualitas interaksi dalam satu dashboard terpadu yang efisien.
                     </p>
                   </div>
 
                   <div className="mt-auto space-y-3 pt-10">
                     <div className="rounded-[1.5rem] border border-border/50 bg-background/70 p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Yang bisa Anda lanjutkan setelah masuk</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Kapasitas Platform</p>
                       <p className="mt-2 text-sm leading-6 text-foreground/90">
                         Memantau aktivitas, membuka modul simulasi, melihat data profiler, dan mengecek kualitas interaksi dari satu tempat.
                       </p>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="rounded-[1.5rem] border border-border/50 bg-card/70 p-4">
-                        <p className="text-xs font-semibold">Alur lebih singkat</p>
-                        <p className="mt-1 text-xs leading-5 text-muted-foreground">Masuk, pilih kebutuhan, lanjut kerja.</p>
+                        <p className="text-xs font-semibold">Simulasi Realistis</p>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">Latih agen dengan skenario menyerupai lapangan.</p>
                       </div>
                       <div className="rounded-[1.5rem] border border-border/50 bg-card/70 p-4">
-                        <p className="text-xs font-semibold">Bahasa lebih natural</p>
-                        <p className="mt-1 text-xs leading-5 text-muted-foreground">Copy dibuat terasa seperti produk internal yang matang.</p>
+                        <p className="text-xs font-semibold">Satu Kredensial</p>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">Satu akun untuk seluruh fitur platform.</p>
                       </div>
                     </div>
                   </div>
@@ -272,6 +271,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                             name="email"
                             required
                             disabled={forgotLoading}
+                            autoComplete="email"
                             placeholder="nama@perusahaan.com"
                             className="auth-input"
                           />
@@ -290,6 +290,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                             name="email"
                             required
                             disabled={loading}
+                            autoComplete="email"
                             placeholder="nama@perusahaan.com"
                             className="auth-input"
                           />
@@ -301,13 +302,14 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                             name="password"
                             required
                             disabled={loading}
+                            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                             placeholder="••••••••"
                             className="auth-input tracking-[0.2em]"
                           />
                         </Field>
 
                         {mode === 'login' && (
-                          <div className="-mt-1 flex justify-end">
+                          <div className="-mt-2 flex justify-end">
                             <button
                               type="button"
                               onClick={() => {
@@ -315,7 +317,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                                 setSuccessMessage(null);
                                 setMode('forgot');
                               }}
-                              className="text-xs font-semibold text-muted-foreground transition hover:text-primary"
+                              className="px-1 text-xs font-semibold text-muted-foreground transition hover:text-primary"
                               disabled={loading}
                             >
                               Lupa password?

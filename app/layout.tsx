@@ -1,5 +1,5 @@
 import './globals.css';
-import { Inter, JetBrains_Mono } from 'next/font/google';
+import { Inter, JetBrains_Mono, Outfit } from 'next/font/google';
 import { ThemeProvider } from './components/ThemeProvider';
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
@@ -7,6 +7,11 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
+});
+
+const outfit = Outfit({
+  subsets: ['latin'],
+  variable: '--font-display',
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -25,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="id" className={`${inter.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
+    <html lang="id" className={`${inter.variable} ${outfit.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <body className="antialiased selection:bg-primary/20" suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
