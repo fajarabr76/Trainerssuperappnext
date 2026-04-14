@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Clock, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/app/lib/supabase/client';
@@ -8,6 +9,10 @@ import AuthPageFrame from '@/app/components/AuthPageFrame';
 export default function PendingPage() {
   const supabase = createClient();
   const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/waiting-approval');
+  }, [router]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

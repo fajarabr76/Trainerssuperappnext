@@ -2,14 +2,15 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, PieChart as PieChartIcon, BarChart3, Users, Briefcase, GraduationCap, ChevronDown, X, Folder } from 'lucide-react';
+import { PieChart as PieChartIcon, BarChart3, Users, Briefcase, GraduationCap, ChevronDown, X, Folder } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 import { Peserta, labelJabatan } from '../../lib/profiler-types';
-import { ProfilerFolder, ProfilerYear, formatTanggal } from '../../services/profilerService';
+import { ProfilerFolder, ProfilerYear } from '../../services/profilerService';
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
+import PageHeroHeader from '@/app/components/PageHeroHeader';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#ff7300'];
 
@@ -130,24 +131,18 @@ export default function ProfilerAnalyticsClient({
   };
 
   return (
-    <div className="h-full bg-background flex flex-col relative overflow-y-auto custom-scrollbar">
-      {/* Top Bar */}
-      <div className="flex items-center justify-between px-8 py-4 bg-card/30 backdrop-blur-2xl border-b border-border sticky top-0 z-50">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.push(`/profiler?batch=${encodeURIComponent(selectedBatch)}`)}
-            className="w-10 h-10 rounded-xl bg-accent/50 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <ArrowLeft size={18} />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">Statistik KTP</h1>
-            <p className="text-xs text-foreground/50 font-medium">{selectedBatch} • {peserta.length} Total Peserta</p>
-          </div>
-        </div>
-        
-        {/* Folder Picker */}
-        <div className="relative w-72">
+    <div className="h-full overflow-hidden bg-background">
+      <main className="relative h-full overflow-y-auto custom-scrollbar">
+        <div className="mx-auto max-w-7xl px-6 py-8 lg:px-10 lg:py-10">
+          <PageHeroHeader
+            backHref={`/profiler?batch=${encodeURIComponent(selectedBatch)}`}
+            backLabel="Kembali ke workspace KTP"
+            eyebrow="Profiler analytics"
+            title="Baca komposisi batch tanpa keluar dari ritme workspace yang sama."
+            description="Statistik peserta, distribusi tim, jabatan, dan pendidikan sekarang dibingkai dengan hierarchy visual yang lebih konsisten."
+            icon={<BarChart3 className="h-3.5 w-3.5" />}
+            actions={(
+              <div className="relative w-full min-w-[260px] max-w-sm">
           <button onClick={() => setShowPicker(v => !v)}
             className="w-full flex items-center gap-3 px-4 py-2 bg-card border border-border rounded-xl hover:bg-accent/50 transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Folder className="w-4 h-4 text-primary" />
@@ -224,10 +219,26 @@ export default function ProfilerAnalyticsClient({
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
-      </div>
+              </div>
+            )}
+          />
 
-      <div className="flex-1 p-8 max-w-7xl mx-auto w-full space-y-8">
+          <div className="mb-6 grid gap-4 lg:grid-cols-3">
+            <div className="rounded-[1.75rem] border border-border/60 bg-card/75 px-5 py-4 shadow-sm">
+              <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Batch aktif</p>
+              <p className="mt-2 text-sm font-semibold">{selectedBatch}</p>
+            </div>
+            <div className="rounded-[1.75rem] border border-border/60 bg-card/75 px-5 py-4 shadow-sm">
+              <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Total peserta</p>
+              <p className="mt-2 text-sm font-semibold">{peserta.length} orang</p>
+            </div>
+            <div className="rounded-[1.75rem] border border-border/60 bg-card/75 px-5 py-4 shadow-sm">
+              <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Mode akses</p>
+              <p className="mt-2 text-sm font-semibold">{isReadOnly ? 'Read only leader' : 'Interactive analytics'}</p>
+            </div>
+          </div>
+
+      <div className="w-full space-y-8">
         
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
@@ -385,6 +396,8 @@ export default function ProfilerAnalyticsClient({
           </>
         )}
       </div>
+        </div>
+      </main>
 
       {/* Modal Popup */}
       <AnimatePresence>

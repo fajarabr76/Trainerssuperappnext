@@ -2,13 +2,13 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Upload, FileSpreadsheet, CheckCircle, AlertCircle, Download, MinusCircle, Loader2 } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Download, MinusCircle, Loader2, FileUp } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { Peserta, labelJabatan, DEFAULT_TIMS } from '../../lib/profiler-types';
-import { ProfilerYear, ProfilerFolder } from '../../services/profilerService';
+import { Peserta, DEFAULT_TIMS } from '../../lib/profiler-types';
 import { ExcelTemplateService } from '../../components/ExcelTemplateService';
 import { bulkCreatePeserta, createPeserta, getPesertaByBatch } from '../../actions';
 import { createClient } from '@/app/lib/supabase/client';
+import PageHeroHeader from '@/app/components/PageHeroHeader';
 
 type RowResult = { nama: string; status: 'success' | 'error' | 'skipped'; message?: string };
 
@@ -135,7 +135,7 @@ export default function ProfilerImportClient({
           chunk.forEach(item => {
             res.push({ nama: item.nama || 'Tanpa Nama', status: 'success' });
           });
-        } catch (chunkError) {
+        } catch (_chunkError) {
           for (const item of chunk) {
             try {
               await createPeserta(item);
@@ -176,86 +176,91 @@ export default function ProfilerImportClient({
   const skippedCount = results.filter(r => r.status === 'skipped').length;
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-2xl mx-auto space-y-5">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.push(`/profiler/table?batch=${encodeURIComponent(batchName)}`)}
-            className="flex items-center gap-1.5 text-sm text-[#5A5A40] dark:text-[#A8A870] hover:opacity-80 transition-opacity"
-          >
-            <ArrowLeft className="w-4 h-4" /> Kembali
-          </button>
-          <h1 className="text-base font-semibold text-gray-900 dark:text-white">
-            Import Data KTP — <span className="text-gray-500 dark:text-gray-400 font-normal">{batchName}</span>
-          </h1>
-        </div>
+    <div className="h-full overflow-hidden bg-background text-foreground">
+      <main className="relative h-full overflow-y-auto">
+        <div className="mx-auto max-w-4xl px-6 py-8 lg:px-10 lg:py-10">
+          <PageHeroHeader
+            backHref={`/profiler/table?batch=${encodeURIComponent(batchName)}`}
+            backLabel="Kembali ke tabel batch"
+            eyebrow="Profiler import"
+            title="Impor peserta ke batch aktif dengan alur yang lebih jelas."
+            description="Download template, unggah file, lalu review hasil impor dalam workspace yang sekarang terasa konsisten dengan modul lain."
+            icon={<FileUp className="h-3.5 w-3.5" />}
+          />
 
-        <div className="bg-white dark:bg-card rounded-2xl p-5 border border-[#5A5A40]/10 shadow-sm">
+          <div className="mb-5 rounded-[1.75rem] border border-border/60 bg-card/75 px-5 py-4 shadow-sm">
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Batch tujuan</p>
+            <p className="mt-2 text-sm font-semibold">{batchName}</p>
+          </div>
+
+          <div className="space-y-5">
+
+        <div className="rounded-[2rem] border border-border/50 bg-card/80 p-5 shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
+              <p className="mb-1 text-sm font-semibold text-foreground">
                 Langkah 1 — Download Template
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                Template Excel dengan <strong className="text-gray-700 dark:text-gray-200">dropdown otomatis</strong> untuk kolom pilihan dan format tanggal yang benar.
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Template Excel dengan <strong className="text-foreground">dropdown otomatis</strong> untuk kolom pilihan dan format tanggal yang benar.
               </p>
             </div>
             <button
               onClick={downloadTemplate}
-              className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 bg-[#5A5A40] hover:opacity-90 text-white rounded-xl text-sm font-semibold transition-all whitespace-nowrap shadow-sm"
+              className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-110"
             >
               <Download className="w-4 h-4" />
               Download .xlsx
             </button>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-2">
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {[
               { label: 'Identitas Utama', items: 'Nama, Tim, Jabatan' },
               { label: 'Data Kerja', items: 'NIP, Bergabung, Email, Telepon' },
               { label: 'Data Pribadi', items: 'JK, Agama, Lahir, Pendidikan' },
               { label: 'Data Sensitif', items: 'KTP, NPWP, Rekening, Bank' },
             ].map(g => (
-              <div key={g.label} className="bg-[#FDFCF8] dark:bg-card rounded-xl px-3 py-2 border border-[#5A5A40]/5">
-                <p className="text-[10px] font-bold text-[#5A5A40] dark:text-[#5A5A40] uppercase tracking-wider mb-0.5">{g.label}</p>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug">{g.items}</p>
+              <div key={g.label} className="rounded-xl border border-border/60 bg-background/75 px-3 py-2">
+                <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">{g.label}</p>
+                <p className="text-[11px] leading-snug text-muted-foreground">{g.items}</p>
               </div>
             ))}
           </div>
         </div>
 
         {!done && (
-          <div className="bg-white dark:bg-card rounded-2xl p-5 border border-[#5A5A40]/10 shadow-sm">
-            <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-4">
+          <div className="rounded-[2rem] border border-border/50 bg-card/80 p-5 shadow-sm">
+            <p className="mb-4 text-sm font-semibold text-foreground">
               Langkah 2 — Upload File
             </p>
             <div
               onDragOver={e => { e.preventDefault(); setDragging(true); }}
               onDragLeave={() => setDragging(false)}
               onDrop={onDrop}
-              className={`border-2 border-dashed rounded-2xl p-10 text-center transition-colors ${
+              className={`rounded-[1.75rem] border-2 border-dashed p-10 text-center transition-colors ${
                 dragging
-                  ? 'border-[#5A5A40] bg-[#5A5A40]/5'
-                  : 'border-gray-200 dark:border-white/10 bg-[#FDFCF8] dark:bg-card'
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border bg-background/75'
               }`}
             >
               {processing ? (
                 <div className="space-y-3">
-                  <Loader2 className="w-10 h-10 text-[#5A5A40] animate-spin mx-auto" />
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Memproses data...</p>
+                  <Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">Memproses data...</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <FileSpreadsheet className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto" />
+                  <FileSpreadsheet className="mx-auto h-12 w-12 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <p className="text-sm font-medium text-foreground">
                       Drag & drop file Excel di sini
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       Format: .xlsx, .xls, atau .csv
                     </p>
                   </div>
-                  <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#5A5A40] hover:opacity-90 text-white rounded-xl text-sm font-semibold cursor-pointer transition-all shadow-sm">
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-110">
                     <Upload className="w-4 h-4" />
                     Pilih File
                     <input
@@ -292,7 +297,7 @@ export default function ProfilerImportClient({
               )}
             </div>
 
-            <div className="bg-white dark:bg-card rounded-2xl overflow-hidden divide-y divide-gray-100 dark:divide-gray-800 max-h-64 overflow-y-auto border border-[#5A5A40]/10 shadow-sm">
+            <div className="max-h-64 overflow-y-auto divide-y divide-border overflow-hidden rounded-2xl border border-border/60 bg-card/85 shadow-sm">
               {results.map((r, i) => (
                 <div key={i} className="flex items-center gap-3 px-4 py-3">
                   {r.status === 'success'
@@ -301,7 +306,7 @@ export default function ProfilerImportClient({
                     ? <MinusCircle className="w-4 h-4 text-yellow-500 flex-shrink-0" />
                     : <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />}
                   <span className={`text-sm flex-1 truncate ${
-                    r.status === 'skipped' ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-300'
+                    r.status === 'skipped' ? 'text-muted-foreground' : 'text-foreground'
                   }`}>{r.nama}</span>
                   {r.message && (
                     <span className={`text-xs flex-shrink-0 max-w-[180px] truncate ${
@@ -315,20 +320,22 @@ export default function ProfilerImportClient({
             <div className="flex gap-3">
               <button
                 onClick={() => { setDone(false); setResults([]); }}
-                className="flex-1 py-3 bg-gray-100 dark:bg-card hover:bg-gray-200 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 rounded-2xl text-sm font-semibold"
+                className="flex-1 rounded-2xl bg-muted/70 py-3 text-sm font-semibold text-foreground transition hover:bg-muted"
               >
                 Import Lagi
               </button>
               <button
                 onClick={() => router.push(`/profiler/table?batch=${encodeURIComponent(batchName)}`)}
-                className="flex-1 py-3 bg-[#5A5A40] hover:opacity-90 text-white rounded-2xl text-sm font-semibold shadow-sm"
+                className="flex-1 rounded-2xl bg-primary py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-110"
               >
                 Lihat Tabel
               </button>
             </div>
           </div>
         )}
+          </div>
+        </div>
+      </main>
       </div>
-    </div>
   );
 }

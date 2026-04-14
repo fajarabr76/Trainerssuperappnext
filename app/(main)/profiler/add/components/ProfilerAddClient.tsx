@@ -3,11 +3,12 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Upload, Plus, X } from 'lucide-react';
+import { Save, Upload, Plus, X, UserPlus } from 'lucide-react';
 import { Peserta, Jabatan, labelJabatan } from '../../lib/profiler-types';
-import { uploadFoto, ProfilerYear, ProfilerFolder } from '../../services/profilerService';
+import { uploadFoto } from '../../services/profilerService';
 import { addTim, deleteTim, createPeserta } from '../../actions';
 import { createClient } from '@/app/lib/supabase/client';
+import PageHeroHeader from '@/app/components/PageHeroHeader';
 
 const DEFAULT_TIMS = ['Telepon', 'Media Sosial', 'Walk-in', 'Lainnya'];
 
@@ -117,25 +118,37 @@ export default function ProfilerAddClient({ batchName, initialTimList }: Profile
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-3xl mx-auto space-y-8">
+  const heroAction = (
+    <button
+      onClick={handleSubmit}
+      disabled={loading}
+      className="flex items-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-110 disabled:opacity-50"
+    >
+      <Save className="h-4 w-4" />
+      {loading ? 'Menyimpan...' : 'Simpan'}
+    </button>
+  );
 
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <button onClick={() => router.back()} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors font-medium group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg px-2 py-1 -ml-2">
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Kembali
-          </button>
-          <div className="text-center">
-            <h1 className="text-xl font-bold tracking-tight text-foreground">Tambah Data KTP</h1>
-            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mt-1">{batchName}</p>
+  return (
+    <div className="h-full overflow-hidden bg-background text-foreground">
+      <main className="relative h-full overflow-y-auto">
+        <div className="mx-auto max-w-5xl px-6 py-8 lg:px-10 lg:py-10">
+          <PageHeroHeader
+            backHref={`/profiler/table?batch=${encodeURIComponent(batchName)}`}
+            backLabel="Kembali ke tabel batch"
+            eyebrow="Profiler workspace"
+            title="Tambah data peserta ke batch aktif."
+            description="Form ini sekarang mengikuti visual system baru KTP, jadi input identitas, tim, dan data kerja terasa satu keluarga dengan workspace lain."
+            icon={<UserPlus className="h-3.5 w-3.5" />}
+            actions={heroAction}
+          />
+
+          <div className="mb-6 rounded-[1.75rem] border border-border/60 bg-card/75 px-5 py-4 shadow-sm">
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Batch aktif</p>
+            <p className="mt-2 text-sm font-semibold">{batchName}</p>
           </div>
-          <button onClick={handleSubmit} disabled={loading}
-            className="flex items-center gap-2 px-6 py-2.5 bg-primary hover:opacity-90 disabled:opacity-50 text-primary-foreground rounded-xl text-sm font-bold shadow-md shadow-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background hover:shadow-lg">
-            <Save className="w-4 h-4" />
-            {loading ? 'Menyimpan...' : 'Simpan'}
-          </button>
-        </div>
+
+          <div className="space-y-8">
 
         {/* Identitas Utama */}
         <div className={sectionClass}>
@@ -412,7 +425,9 @@ export default function ProfilerAddClient({ batchName, initialTimList }: Profile
           {loading ? 'Menyimpan...' : '✓ Simpan Data'}
         </button>
 
-      </div>
+        </div>
+        </div>
+      </main>
     </div>
   );
 }

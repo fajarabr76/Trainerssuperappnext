@@ -19,7 +19,7 @@ export function useAuth(requireRole?: string[]) {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        router.push('/login');
+        router.push('/?auth=login');
         return;
       }
 
@@ -30,13 +30,13 @@ export function useAuth(requireRole?: string[]) {
         .single();
 
       if (profile?.status === 'pending') {
-        router.push('/pending');
+        router.push('/waiting-approval');
         return;
       }
 
       if (profile?.is_deleted) {
         await supabase.auth.signOut();
-        router.push('/login');
+        router.push('/?auth=login');
         return;
       }
 

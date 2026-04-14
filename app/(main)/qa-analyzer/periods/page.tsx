@@ -9,7 +9,7 @@ export default async function QaPeriodsPage() {
   const { user, role } = await getCurrentUserWithRole();
 
   if (!user) {
-    redirect('/login');
+    redirect('/?auth=login');
   }
 
   if (!hasRole(role, ['trainer', 'admin', 'superadmin'])) {

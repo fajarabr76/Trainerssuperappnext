@@ -9,10 +9,10 @@ export const dynamic = 'force-dynamic';
 
 export default async function QaAgentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: agentId } = await params;
-  const { user, profile, role } = await getCurrentUserContext();
+  const { user, profile: _profile, role } = await getCurrentUserContext();
 
   if (!user) {
-    redirect('/login');
+    redirect('/?auth=login');
   }
 
   // Allowed roles - Agent is now allowed but will be filtered below

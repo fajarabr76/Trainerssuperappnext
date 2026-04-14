@@ -55,6 +55,26 @@ export default function DashboardClient({
   );
   const roleLabel = normalizeRoleLabel(role);
   const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Tim';
+  const managementActions = [
+    {
+      href: '/dashboard/users',
+      title: 'User Management',
+      description: 'Approve user, reset password, dan atur role akses.',
+      allowed: ['trainer', 'admin', 'superadmin'].includes(role?.toLowerCase()),
+    },
+    {
+      href: '/dashboard/monitoring',
+      title: 'Monitoring',
+      description: 'Buka histori lintas modul dan audit aktivitas operasional.',
+      allowed: ['trainer', 'leader', 'admin', 'superadmin'].includes(role?.toLowerCase()),
+    },
+    {
+      href: '/dashboard/activities',
+      title: 'Activity Logs',
+      description: 'Lihat log aktivitas terbaru untuk review dan follow-up.',
+      allowed: ['trainer', 'admin', 'superadmin'].includes(role?.toLowerCase()),
+    },
+  ].filter((item) => item.allowed);
 
   return (
     <main className="relative flex flex-1 flex-col overflow-y-auto">
@@ -111,12 +131,17 @@ export default function DashboardClient({
           <div className="rounded-[2rem] border border-border/50 bg-card/65 p-6 backdrop-blur-xl lg:p-7">
             <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Quick actions</p>
             <div className="mt-5 space-y-3">
-              {visibleModules.slice(0, 4).map((module) => (
+              {[...managementActions, ...visibleModules.slice(0, 3).map((module) => ({
+                href: module.href,
+                title: module.title,
+                description: module.description,
+                isTelefun: module.id === 'telefun',
+              }))].map((item) => (
                 <Link
-                  key={module.id}
-                  href={module.href}
+                  key={item.href}
+                  href={item.href}
                   onClick={(event) => {
-                    if (module.id === 'telefun') {
+                    if ('isTelefun' in item && item.isTelefun) {
                       event.preventDefault();
                       openMaintenance();
                     }
@@ -124,12 +149,12 @@ export default function DashboardClient({
                   className="group flex items-center justify-between rounded-3xl border border-border/50 bg-background/70 px-5 py-4 transition hover:-translate-y-0.5 hover:border-primary/20"
                 >
                   <div className="flex items-center gap-4">
-                    <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${module.accentSoftClassName} ${module.accentClassName}`}>
-                      <module.icon className="h-5 w-5" />
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                      <ArrowRight className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="font-semibold tracking-tight">{module.title}</p>
-                      <p className="text-sm text-muted-foreground">{module.description}</p>
+                      <p className="font-semibold tracking-tight">{item.title}</p>
+                      <p className="text-sm text-muted-foreground">{item.description}</p>
                     </div>
                   </div>
                   <ArrowRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground" />

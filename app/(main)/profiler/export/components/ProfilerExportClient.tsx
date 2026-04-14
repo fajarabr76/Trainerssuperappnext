@@ -1,16 +1,17 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft, FileSpreadsheet, FileText, Presentation, FileDown,
+  FileSpreadsheet, FileText, Presentation, FileDown,
   Download, ChevronDown, Folder, Check, Loader2
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
-  Peserta, ProfilerYear, ProfilerFolder, Jabatan, labelTim, labelJabatan,
+  Peserta, ProfilerYear, ProfilerFolder, labelTim, labelJabatan,
   hitungMasaDinas, hitungUsia, formatTanggal
 } from '../../lib/profiler-types';
+import PageHeroHeader from '@/app/components/PageHeroHeader';
 
 const timTheme = (tim: string) => {
   const t = tim?.toLowerCase();
@@ -38,7 +39,6 @@ export default function ProfilerExportClient({
   const [selectedBatch, setSelectedBatch] = useState(batchName);
   const [showPicker,    setShowPicker]    = useState(false);
   const [peserta,       setPeserta]       = useState<Peserta[]>(initialPeserta);
-  const [loading,       setLoading]       = useState(false);
   const [generating,    setGenerating]    = useState<string | null>(null);
   const [orientation, setOrientation] = useState<'landscape' | 'portrait'>('landscape');
 
@@ -136,7 +136,7 @@ export default function ProfilerExportClient({
           if (p.foto_url) {
             try {
               slide.addImage({ path: p.foto_url, x: 0.75, y: 0.35, w: 1.5, h: 1.5, rounding: true });
-            } catch (e) {
+            } catch (_e) {
               slide.addShape(prs.ShapeType.rect, { x: 0.75, y: 0.35, w: 1.5, h: 1.5, fill: { color: theme.light.replace('#', '') } });
               slide.addText(p.nama?.charAt(0) || '?', { x: 0.75, y: 0.35, w: 1.5, h: 1.5, align: 'center', valign: 'middle', fontSize: 40, bold: true, color: accentColor });
             }
@@ -238,7 +238,7 @@ export default function ProfilerExportClient({
           if (p.foto_url) {
             try {
               slide.addImage({ path: p.foto_url, x: 0.5, y: 0.5, w: 1.5, h: 1.5, rounding: true });
-            } catch (e) {
+            } catch (_e) {
               slide.addShape(prs.ShapeType.rect, { x: 0.5, y: 0.5, w: 1.5, h: 1.5, fill: { color: theme.light.replace('#', '') } });
               slide.addText(p.nama?.charAt(0) || '?', { x: 0.5, y: 0.5, w: 1.5, h: 1.5, align: 'center', valign: 'middle', fontSize: 36, bold: true, color: accentColor });
             }
@@ -539,22 +539,25 @@ export default function ProfilerExportClient({
     { id: 'pdf',   icon: <FileDown        className="w-8 h-8 text-red-500" />,    title: 'PDF (.pdf)',         desc: '1 halaman per peserta, layout persis SlideView', action: downloadPDF,   hover: 'hover:border-red-300 dark:hover:border-red-700'       },
   ];
 
-  const disabled = generating !== null || loading || peserta.length === 0;
+  const disabled = generating !== null || peserta.length === 0;
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-2xl mx-auto space-y-4">
+    <div className="h-full overflow-hidden bg-background text-foreground">
+      <main className="relative h-full overflow-y-auto">
+        <div className="mx-auto max-w-4xl px-6 py-8 lg:px-10 lg:py-10">
+          <PageHeroHeader
+            backHref="/profiler"
+            backLabel="Kembali ke workspace KTP"
+            eyebrow="Profiler export"
+            title="Unduh batch aktif ke format yang siap dipakai lintas kebutuhan."
+            description="Pilih folder, cek jumlah peserta, tentukan orientasi presentasi, lalu ekspor ke format yang paling sesuai."
+            icon={<FileDown className="h-3.5 w-3.5" />}
+          />
 
-        <div className="flex items-center gap-3">
-          <button onClick={() => router.push('/profiler')}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-opacity font-medium">
-            <ArrowLeft className="w-4 h-4" /> Kembali
-          </button>
-          <h1 className="text-lg font-black tracking-tight text-foreground">Download Data KTP</h1>
-        </div>
+          <div className="space-y-4">
 
         {/* ── Folder Picker ── */}
-        <div className="bg-card rounded-3xl overflow-hidden shadow-sm border border-border/40 focus-within:ring-2 focus-within:ring-ring focus-within:border-accent">
+        <div className="overflow-hidden rounded-3xl border border-border/40 bg-card shadow-sm focus-within:border-accent focus-within:ring-2 focus-within:ring-ring">
           <button onClick={() => setShowPicker(v => !v)}
             className="w-full flex items-center gap-3 px-5 py-4 hover:bg-muted/50 transition-colors focus-visible:outline-none">
             <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -622,7 +625,7 @@ export default function ProfilerExportClient({
         </div>
 
         {/* ── Summary ── */}
-        <div className="bg-card rounded-3xl p-5 flex items-center justify-between shadow-sm border border-border/40">
+        <div className="flex items-center justify-between rounded-3xl border border-border/40 bg-card p-5 shadow-sm">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Total peserta siap diunduh</p>
             <div className="flex items-baseline gap-2">
@@ -666,8 +669,9 @@ export default function ProfilerExportClient({
             </button>
           ))}
         </div>
-
+          </div>
+        </div>
+      </main>
       </div>
-    </div>
   );
 }

@@ -399,7 +399,7 @@ export default function QaInputClient({
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/login');
+    router.push('/?auth=login');
     router.refresh();
   };
 

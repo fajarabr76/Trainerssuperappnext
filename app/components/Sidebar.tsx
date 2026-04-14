@@ -39,10 +39,28 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
   const [mounted, setMounted] = useState(false);
 
   const effectiveIsCollapsed = isSidebarCollapsed && !isSidebarHovered;
+  const normalizedRole = role?.toLowerCase();
   const visibleModules = APP_MODULES.filter((module) =>
     ['dashboard', 'ketik', 'pdkt', 'telefun', 'profiler'].includes(module.id) && isRoleAllowed(role, module.allowedRoles)
   );
   const qaModule = APP_MODULES.find((module) => module.id === 'qa-analyzer');
+  const managementLinks = [
+    {
+      href: '/dashboard/monitoring',
+      label: 'Monitoring',
+      allowed: ['trainer', 'trainers', 'leader', 'admin', 'superadmin'].includes(normalizedRole || ''),
+    },
+    {
+      href: '/dashboard/users',
+      label: 'User Management',
+      allowed: ['trainer', 'trainers', 'admin', 'superadmin'].includes(normalizedRole || ''),
+    },
+    {
+      href: '/dashboard/activities',
+      label: 'Activity Logs',
+      allowed: ['trainer', 'trainers', 'admin', 'superadmin'].includes(normalizedRole || ''),
+    },
+  ].filter((item) => item.allowed);
 
   useEffect(() => {
     setMounted(true);
@@ -174,13 +192,15 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
               </div>
             )}
 
-            {(role?.toLowerCase() === 'trainer' || role?.toLowerCase() === 'trainers' || role?.toLowerCase() === 'leader') && (
+            {managementLinks.length > 0 && (
               <>
                 {!effectiveIsCollapsed && <p className="mb-4 ml-2 mt-8 text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Management</p>}
-                <Link href="/dashboard/monitoring" className={navItemClass(pathname === '/dashboard/monitoring')}>
-                  <Activity className="h-4 w-4 shrink-0" />
-                  {!effectiveIsCollapsed && <span>Monitoring</span>}
-                </Link>
+                {managementLinks.map((item) => (
+                  <Link key={item.href} href={item.href} className={navItemClass(pathname === item.href)}>
+                    <Activity className="h-4 w-4 shrink-0" />
+                    {!effectiveIsCollapsed && <span>{item.label}</span>}
+                  </Link>
+                ))}
               </>
             )}
           </nav>
