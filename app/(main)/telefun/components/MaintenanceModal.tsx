@@ -54,7 +54,7 @@ export const MaintenanceModal = ({ isOpen }: MaintenanceModalProps) => {
             
             <div className="flex flex-col gap-3">
               <a
-                href="https://ai.studio/apps/1a7e19a0-6d0e-4ce9-8092-d100b32abc59"
+                href="https://ai.studio/apps/c6cad53b-5a32-4700-ad25-41156b85e8db"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-4 bg-primary text-primary-foreground rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg flex items-center justify-center gap-3"
