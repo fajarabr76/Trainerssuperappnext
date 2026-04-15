@@ -1,6 +1,6 @@
 import React from 'react';
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
-import { motion } from 'motion/react';
+import QaStatePanel from '../../components/QaStatePanel';
 
 interface ParetoItem {
   name: string;
@@ -17,11 +17,14 @@ interface ParetoChartProps {
 export default function ParetoChart({ data }: ParetoChartProps) {
   if (!data || data.length === 0) {
     return (
-      <div className="h-64 flex flex-col items-center justify-center text-muted-foreground text-sm italic">
-        <div className="w-12 h-12 rounded-full bg-foreground/5 flex items-center justify-center mb-3">
-          <span className="text-xl">📉</span>
-        </div>
-        Tidak ada data kategori temuan.
+      <div className="h-64 flex items-center justify-center">
+        <QaStatePanel
+          type="empty"
+          compact
+          title="Belum ada data kategori temuan."
+          description="Grafik Pareto akan tampil jika data temuan tersedia."
+          className="max-w-sm"
+        />
       </div>
     );
   }

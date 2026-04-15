@@ -7,9 +7,9 @@ import {
   Minus
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import Link from 'next/link';
 import { scoreColor } from "../../lib/qa-types";
 import type { AgentDirectoryEntry } from "../../lib/qa-types";
+import QaStatePanel from '../../components/QaStatePanel';
 
 interface AgentDirectoryClientProps {
   user: any;
@@ -186,19 +186,20 @@ export default function AgentDirectoryClient({
           </div>
 
           {filteredAgents.length === 0 && (
-            <div className="text-center py-20 flex flex-col items-center justify-center">
-              <div className="w-20 h-20 rounded-3xl bg-foreground/5 flex items-center justify-center mb-6">
-                <Users className="w-10 h-10 text-muted-foreground/30" />
-              </div>
-              <h4 className="text-xl font-bold text-muted-foreground">Agent tidak ditemukan</h4>
-              <p className="text-sm text-muted-foreground mt-2">Coba gunakan kata kunci pencarian atau filter batch yang berbeda</p>
-              <button 
-                onClick={() => { setSearch(''); setSelectedBatch('all'); }}
-                className="mt-6 px-6 py-3 bg-primary/10 text-primary rounded-xl text-xs font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all shadow-sm"
-              >
-                Reset Filter
-              </button>
-            </div>
+            <QaStatePanel
+              type="empty"
+              title="Data agen tidak ditemukan"
+              description="Coba ubah kata kunci pencarian atau ganti filter batch."
+              className="mx-auto my-16 max-w-xl"
+              action={
+                <button 
+                  onClick={() => { setSearch(''); setSelectedBatch('all'); }}
+                  className="mt-1 px-4 py-2 bg-primary/10 text-primary rounded-xl text-xs font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all shadow-sm"
+                >
+                  Reset Filter
+                </button>
+              }
+            />
           )}
 
           {filteredAgents.length > visibleAgents.length && (

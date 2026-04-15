@@ -3,13 +3,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import Link from 'next/link';
-import { motion } from 'motion/react';
-import { FileText, Loader2, Download, ChevronLeft, AlertCircle } from 'lucide-react';
+import { FileText, Loader2, Download, ChevronLeft } from 'lucide-react';
 import type { ServiceType } from '../lib/qa-types';
 import { SERVICE_LABELS } from '../lib/qa-types';
 import type { ParetoData, CriticalVsNonCriticalData } from '../lib/qa-types';
 import type { ReportAiModelOption } from './lib/report-models';
 import { modelProviderLabel } from './lib/report-models';
+import QaStatePanel from '../components/QaStatePanel';
 import ReportChartCapture, { type ReportChartCaptureHandle } from './components/ReportChartCapture';
 import {
   checkReportRateLimitAction,
@@ -434,25 +434,21 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
             </div>
 
             {error && (
-              <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-6 flex items-start gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-700"
-              >
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{error}</span>
-              </motion.div>
+              <QaStatePanel
+                type="error"
+                title="Laporan belum dapat dibuat"
+                description={error}
+                className="mt-6"
+              />
             )}
 
             {captureWarning && (
-              <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-700"
-              >
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{captureWarning}</span>
-              </motion.div>
+              <QaStatePanel
+                type="warning"
+                title="Sebagian visual tidak ikut terlampir"
+                description={captureWarning}
+                className="mt-6"
+              />
             )}
 
             <div className="mt-8 flex flex-wrap items-center gap-4">

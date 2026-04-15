@@ -3,8 +3,9 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, ChevronRight, User } from 'lucide-react';
+import { AlertCircle, ChevronRight } from 'lucide-react';
 import { motion } from 'motion/react';
+import QaStatePanel from '../../components/QaStatePanel';
 
 interface TopAgentData {
   agentId: string;
@@ -35,11 +36,14 @@ export default function TopAgentsTable({ agents, serviceType, selectedYear }: To
 
   if (!agents || agents.length === 0) {
     return (
-      <div className="h-64 flex flex-col items-center justify-center text-muted-foreground text-sm italic">
-        <div className="w-12 h-12 rounded-full bg-foreground/5 flex items-center justify-center mb-3">
-          <User className="w-6 h-6 opacity-20" />
-        </div>
-        Tidak ada data agen dengan temuan.
+      <div className="h-64 flex items-center justify-center">
+        <QaStatePanel
+          type="empty"
+          compact
+          title="Belum ada data agen dengan temuan."
+          description="Tabel akan otomatis terisi saat data penilaian tersedia."
+          className="max-w-sm"
+        />
       </div>
     );
   }

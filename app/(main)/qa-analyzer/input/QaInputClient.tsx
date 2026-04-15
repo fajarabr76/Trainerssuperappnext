@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { motion } from 'motion/react';
 import {
-  ClipboardList, AlertCircle, X, Check, ChevronRight,
+  ClipboardList, X, Check, ChevronRight,
   FolderOpen, User, CalendarDays, Plus, Trash2, FileText,
   Pencil, Upload, Download, FileSpreadsheet, AlertTriangle,
   LayoutDashboard, Users, Activity, Menu, Sun, Moon,
@@ -32,6 +32,7 @@ import {
   getAgentsByFolderAction,
   createPerfectScoreSessionAction
 } from '../actions';
+import QaStatePanel from '../components/QaStatePanel';
 
 const supabase = createClient();
 
@@ -654,18 +655,37 @@ export default function QaInputClient({
             </div>
 
             {errorMsg && (
-              <div className="flex items-center gap-3 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-2xl">
-                <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0"/><p className="text-sm text-red-500 flex-1">{errorMsg}</p>
-                <button onClick={() => setErrorMsg(null)}><X className="w-4 h-4 text-red-500/40"/></button>
-              </div>
+              <QaStatePanel
+                type="error"
+                title="Terjadi kendala saat memproses data"
+                description={errorMsg}
+                action={
+                  <button
+                    type="button"
+                    onClick={() => setErrorMsg(null)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-current/30 px-2 py-1 text-[11px] font-bold uppercase tracking-wider opacity-80 hover:opacity-100"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    Tutup
+                  </button>
+                }
+              />
             )}
             {successMsg && (
-              <div className="flex items-center gap-3 px-4 py-3 bg-green-500/10 border border-green-500/20 rounded-2xl">
-                <Check className="w-4 h-4 text-green-500 flex-shrink-0"/><p className="text-sm text-green-500">{successMsg}</p>
-              </div>
+              <QaStatePanel
+                type="success"
+                title="Perubahan berhasil disimpan"
+                description={successMsg}
+              />
             )}
 
-            {loading && <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin"/></div>}
+            {loading && (
+              <QaStatePanel
+                type="loading"
+                title="Memuat data SIDAK"
+                description="Mohon tunggu sebentar, data sedang disiapkan."
+              />
+            )}
 
             {!loading && step === 'folder' && (
               <div className="space-y-4">

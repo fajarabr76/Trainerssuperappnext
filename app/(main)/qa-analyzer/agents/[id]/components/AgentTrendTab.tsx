@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
-import { TrendingUp, Activity, BarChart2, Zap } from 'lucide-react';
+import { TrendingUp, Zap } from 'lucide-react';
 import ParamTrendChart from '../../../dashboard/components/ParamTrendChart';
 import type { TrendData, TrendDataset } from '../../../lib/qa-types';
+import QaStatePanel from '../../../components/QaStatePanel';
 
 const TREND_COLORS = [
   '#A855F7', // Purple
@@ -33,11 +34,13 @@ export default function AgentTrendTab({
 }: AgentTrendTabProps) {
   if (loadingTrend) {
     return (
-      <div className="bg-card/40 backdrop-blur-sm rounded-[2.5rem] border border-border/50 p-10 animate-pulse h-[550px] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Analyzing Performance History...</p>
-        </div>
+      <div className="bg-card/40 backdrop-blur-sm rounded-[2.5rem] border border-border/50 p-10 h-[550px] flex items-center justify-center">
+        <QaStatePanel
+          type="loading"
+          title="Memuat tren performa agent"
+          description="Data histori audit sedang disiapkan."
+          className="w-full max-w-lg"
+        />
       </div>
     );
   }
@@ -69,7 +72,7 @@ export default function AgentTrendTab({
         </div>
       </div>
 
-      {personalTrend && (
+      {personalTrend && personalTrend.labels.length > 0 ? (
         <>
           <div className="flex flex-wrap gap-2 mb-10">
             <button
@@ -135,6 +138,12 @@ export default function AgentTrendTab({
             </div>
           </div>
         </>
+      ) : (
+        <QaStatePanel
+          type="empty"
+          title="Belum ada histori tren"
+          description="Tren akan muncul setelah data audit tersedia pada periode yang dipilih."
+        />
       )}
     </div>
   );

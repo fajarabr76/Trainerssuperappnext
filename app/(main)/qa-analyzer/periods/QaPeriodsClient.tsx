@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, CalendarDays, AlertCircle, X, Check } from 'lucide-react';
+import { Plus, Trash2, CalendarDays, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QAPeriod } from '../lib/qa-types';
 import { createPeriodAction, deletePeriodAction } from '../actions';
+import QaStatePanel from '../components/QaStatePanel';
 
 const MONTHS = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -96,13 +97,17 @@ export default function QaPeriodsClient({ user, role, initialPeriods }: QaPeriod
         {/* Content */}
         <div className="flex-1 max-w-2xl mx-auto w-full px-6 py-8 overflow-y-auto">
           {errorMsg && (
-            <div className="mb-4 flex items-center gap-3 px-4 py-3 bg-destructive/10 border border-destructive/20 rounded-2xl">
-              <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0" />
-              <p className="text-sm text-destructive flex-1 font-medium">{errorMsg}</p>
-              <button onClick={() => setErrorMsg(null)}>
-                <X className="w-4 h-4 text-destructive/60 hover:text-destructive" />
-              </button>
-            </div>
+            <QaStatePanel
+              type="error"
+              compact
+              title={errorMsg}
+              action={
+                <button onClick={() => setErrorMsg(null)} className="text-[11px] font-bold uppercase tracking-wider opacity-80 hover:opacity-100">
+                  Tutup
+                </button>
+              }
+              className="mb-4"
+            />
           )}
 
           {showForm ? (
@@ -190,13 +195,12 @@ export default function QaPeriodsClient({ user, role, initialPeriods }: QaPeriod
 
           <div className="mt-10">
             {periods.length === 0 ? (
-              <div className="text-center py-20 bg-card/30 rounded-3xl border border-dashed border-border">
-                <div className="w-16 h-16 rounded-3xl bg-foreground/5 flex items-center justify-center mx-auto mb-4">
-                  <CalendarDays className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <p className="text-sm text-muted-foreground font-bold">Belum ada periode</p>
-                <p className="text-xs text-muted-foreground mt-1">Tambahkan periode pelaporan pertama untuk mulai penilaian</p>
-              </div>
+              <QaStatePanel
+                type="empty"
+                title="Belum ada periode pelaporan."
+                description="Tambahkan periode pertama agar proses input dan analisis SIDAK bisa dimulai."
+                className="text-center"
+              />
             ) : (
               <div className="space-y-8">
                 {(Object.entries(grouped) as [string, QAPeriod[]][])

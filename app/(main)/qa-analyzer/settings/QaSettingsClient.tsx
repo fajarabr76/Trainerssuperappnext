@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Settings, Plus, Trash2, AlertCircle, X, Info,
+  Settings, Plus, Trash2, Info,
   Pencil, Check, ArrowLeftRight, AlertTriangle, Menu
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -13,6 +13,7 @@ import {
 } from '../actions';
 import type { QAIndicator, ServiceType, Category, ScoringMode, ServiceWeight } from '../lib/qa-types';
 import { SERVICE_LABELS } from '../lib/qa-types';
+import QaStatePanel from '../components/QaStatePanel';
 
 const TEAMS: ServiceType[] = ['call', 'chat', 'email', 'cso', 'pencatatan', 'bko', 'slik'];
 const CAT_LABEL: Record<Category, string> = {
@@ -456,11 +457,13 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
 
         <div className="mt-2">
           {list.length === 0 ? (
-            <div className="py-12 text-center">
-              <div className="w-12 h-12 bg-foreground/5 rounded-2xl flex items-center justify-center mx-auto mb-3 opacity-20">
-                <Settings className="w-6 h-6" />
-              </div>
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Belum ada parameter</p>
+            <div className="p-4">
+              <QaStatePanel
+                type="empty"
+                compact
+                title="Belum ada parameter untuk layanan ini."
+                description="Tambahkan parameter agar proses penilaian dapat dijalankan."
+              />
             </div>
           ) : (
             list.map((ind, i) => <IndicatorRow key={ind.id} ind={ind} idx={i}/>)
@@ -523,17 +526,17 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
 
           <AnimatePresence>
             {errorMsg && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="flex items-center gap-3 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-2xl overflow-hidden"
-              >
-                <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0"/>
-                <p className="text-xs text-red-500 flex-1 font-bold leading-relaxed">{errorMsg}</p>
-                <button onClick={() => setErrorMsg(null)} aria-label="Tutup error">
-                  <X className="w-4 h-4 text-red-400 hover:text-red-500 transition-colors"/>
-                </button>
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
+                <QaStatePanel
+                  type="error"
+                  compact
+                  title={errorMsg}
+                  action={
+                    <button onClick={() => setErrorMsg(null)} aria-label="Tutup error" className="text-[11px] font-bold uppercase tracking-wider opacity-80 hover:opacity-100">
+                      Tutup
+                    </button>
+                  }
+                />
               </motion.div>
             )}
             {successMsg && (

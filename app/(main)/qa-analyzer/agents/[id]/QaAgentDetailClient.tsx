@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import {
   Activity, ArrowLeft, Sun, Moon, ExternalLink,
   Download, Plus, ShieldCheck, TrendingUp, TrendingDown, Minus, Zap,
-  BarChart2
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
@@ -24,6 +23,7 @@ import { YearSelector } from '../../dashboard/components/YearSelector';
 import AgentTrendTab from './components/AgentTrendTab';
 import AgentTemuanTab from './components/AgentTemuanTab';
 import { EditTemuanModal } from './components/EditTemuanModal';
+import QaStatePanel from '../../components/QaStatePanel';
 
 function TabSkeleton() {
   return (
@@ -293,19 +293,20 @@ export default function QaAgentDetailClient({
             <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
               {temuan.length === 0 ? (
                 <div className="bg-card rounded-3xl border border-border p-12 text-center">
-                  <div className="w-20 h-20 rounded-3xl bg-foreground/5 flex items-center justify-center mx-auto mb-6">
-                    <BarChart2 className="w-10 h-10 text-muted-foreground" />
-                  </div>
-                  <h3 className="text-xl font-black mb-2">No Evaluation Data</h3>
-                  <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
-                    This agent hasn&apos;t been audited yet. Click the button below to start an evaluation.
-                  </p>
-                  <button 
-                    onClick={handleTambahTemuan} 
-                    className="px-8 py-3 bg-primary text-primary-foreground rounded-2xl font-black shadow-xl shadow-primary/20 transition-all hover:scale-105"
-                  >
-                    Start Evaluation
-                  </button>
+                  <QaStatePanel
+                    type="empty"
+                    title="Belum ada data evaluasi"
+                    description="Agent ini belum memiliki histori audit pada periode yang tersedia."
+                    className="mx-auto max-w-lg"
+                    action={
+                      <button 
+                        onClick={handleTambahTemuan} 
+                        className="mt-1 px-6 py-2.5 bg-primary text-primary-foreground rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all hover:opacity-95"
+                      >
+                        Mulai Evaluasi
+                      </button>
+                    }
+                  />
                 </div>
               ) : (
                 <div className="space-y-12">

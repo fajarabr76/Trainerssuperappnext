@@ -1,6 +1,7 @@
 import React from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 import { ServiceComparisonData, SERVICE_LABELS } from '../../lib/qa-types';
+import QaStatePanel from '../../components/QaStatePanel';
 
 interface ServiceBarChartProps {
   data: ServiceComparisonData[];
@@ -19,11 +20,14 @@ const getSeverityColor = (severity: string) => {
 export default function ServiceBarChart({ data }: ServiceBarChartProps) {
   if (!data || data.length === 0) {
     return (
-      <div className="h-64 flex flex-col items-center justify-center text-muted-foreground text-sm italic">
-        <div className="w-12 h-12 rounded-full bg-foreground/5 flex items-center justify-center mb-3">
-          <span className="text-xl">📊</span>
-        </div>
-        Tidak ada data temuan untuk layanan.
+      <div className="h-64 flex items-center justify-center">
+        <QaStatePanel
+          type="empty"
+          compact
+          title="Belum ada data temuan per layanan."
+          description="Data akan tampil setelah periode dan filter menghasilkan temuan."
+          className="max-w-sm"
+        />
       </div>
     );
   }

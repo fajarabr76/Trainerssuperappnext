@@ -8,7 +8,6 @@ import {
   Calendar, 
   ChevronRight, 
   Trophy, 
-  AlertCircle,
   LayoutGrid
 } from 'lucide-react';
 import { 
@@ -20,6 +19,7 @@ import {
 } from '../lib/qa-types';
 import { getRankingAgenAction } from '../actions';
 import { YearSelector } from '../dashboard/components/YearSelector';
+import QaStatePanel from '../components/QaStatePanel';
 
 interface Props {
   initialData: TopAgentData[];
@@ -303,11 +303,12 @@ export default function RankingAgenClient({
                     animate={{ opacity: 1 }}
                   >
                     <td colSpan={6} className="px-6 py-24 text-center">
-                      <div className="flex flex-col items-center gap-4 opacity-40">
-                        <AlertCircle className="w-12 h-12" />
-                        <p className="text-xl font-bold">Tidak ada data untuk filter yang dipilih</p>
-                        <p className="text-sm max-w-xs">Silakan pilih parameter filter lain untuk menampilkan data ranking agen.</p>
-                      </div>
+                      <QaStatePanel
+                        type="empty"
+                        title="Belum ada data ranking untuk filter ini."
+                        description="Ubah layanan, periode, tahun, atau folder untuk menampilkan data ranking agen."
+                        className="mx-auto max-w-md text-left"
+                      />
                     </td>
                   </motion.tr>
                 )}
