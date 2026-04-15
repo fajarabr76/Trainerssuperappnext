@@ -9,6 +9,7 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
+  UserCog,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -213,6 +214,15 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
                 <p className="mt-1 text-xs text-muted-foreground">Role: {normalizeRoleLabel(role)}</p>
               </div>
             )}
+
+
+            <Link
+              href="/account"
+              className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground ${effectiveIsCollapsed ? 'justify-center px-0' : ''}`}
+            >
+              <UserCog className="h-4 w-4" />
+              {!effectiveIsCollapsed && <span>Akun</span>}
+            </Link>
 
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}

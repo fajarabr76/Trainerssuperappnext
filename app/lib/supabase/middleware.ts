@@ -45,7 +45,7 @@ export async function updateSession(request: NextRequest) {
 
   // Role-based routing logic
   const path = request.nextUrl.pathname;
-  const protectedRoutes = ['/dashboard', '/ketik', '/pdkt', '/telefun', '/profiler', '/qa-analyzer'];
+  const protectedRoutes = ['/dashboard', '/ketik', '/pdkt', '/telefun', '/profiler', '/qa-analyzer', '/account'];
   const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route));
   const isAuthPage = path === '/login' || path === '/register';
 
