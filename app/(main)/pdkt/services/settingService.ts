@@ -1,6 +1,7 @@
 import { createClient } from '@/app/lib/supabase/client';
 import { AppSettings } from '../types';
 import { DEFAULT_SCENARIOS, DEFAULT_CONSUMER_TYPES } from '../constants';
+import { normalizeModelId } from '@/app/lib/ai-models';
 
 const supabase = createClient();
 const LOCAL_STORAGE_KEY = 'pdkt_settings_v2';
@@ -10,7 +11,7 @@ export const defaultPdktSettings: AppSettings = {
   consumerTypes: DEFAULT_CONSUMER_TYPES,
   enableImageGeneration: true,
   globalConsumerTypeId: 'random',
-  selectedModel: 'z-ai/glm-4.5-air:free',
+  selectedModel: normalizeModelId('gemini-3.1-flash-lite-preview'),
 };
 
 export async function loadPdktSettings(): Promise<AppSettings> {
@@ -48,6 +49,7 @@ export async function loadPdktSettings(): Promise<AppSettings> {
   // Ensure scenarios and consumerTypes are present
   if (!settings.scenarios || settings.scenarios.length === 0) settings.scenarios = DEFAULT_SCENARIOS;
   if (!settings.consumerTypes || settings.consumerTypes.length === 0) settings.consumerTypes = DEFAULT_CONSUMER_TYPES;
+  settings.selectedModel = normalizeModelId(settings.selectedModel);
 
   return settings;
 }

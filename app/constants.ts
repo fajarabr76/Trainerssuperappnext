@@ -91,7 +91,7 @@ export const DEFAULT_CONSUMER_TYPES: ConsumerType[] = [
 ];
 
 export const AI_MODELS = [
-  { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite', description: 'Cepat dan efisien untuk percakapan natural.' },
+  { id: 'gemini-3.1-flash-lite-preview', name: 'Gemini 3.1 Flash Lite', description: 'Cepat dan efisien untuk percakapan natural.' },
   { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', description: 'Lebih cerdas untuk skenario yang sangat kompleks.' }
 ];
 

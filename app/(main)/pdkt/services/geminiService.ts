@@ -1,7 +1,7 @@
 import { SessionConfig, EmailMessage, EvaluationResult } from "../types";
 import { generateGeminiContent } from '@/app/actions/gemini';
 import { generateOpenRouterContent } from '@/app/actions/openrouter';
-import { getProviderFromModelId } from '@/app/lib/ai-models';
+import { getProviderFromModelId, normalizeModelId } from '@/app/lib/ai-models';
 
 /**
  * Helper to call the appropriate AI provider based on model ID.
@@ -13,10 +13,11 @@ async function callAI(options: {
   temperature?: number;
   responseMimeType?: string;
 }) {
-  const provider = getProviderFromModelId(options.model);
+  const normalizedModel = normalizeModelId(options.model);
+  const provider = getProviderFromModelId(normalizedModel);
   
   const callPayload = {
-    model: options.model,
+    model: normalizedModel,
     systemInstruction: options.systemInstruction,
     contents: [{ role: 'user', parts: [{ text: options.prompt }] }],
     temperature: options.temperature,
@@ -36,6 +37,32 @@ interface Content {
 }
 
 let chatHistory: Content[] = [];
+
+function parseJsonFromModelText(raw: string): any {
+  const trimmed = raw.trim();
+
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    // ignore
+  }
+
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced?.[1]) {
+    try {
+      return JSON.parse(fenced[1].trim());
+    } catch {
+      // ignore
+    }
+  }
+
+  const bracketMatch = trimmed.match(/\{[\s\S]*\}/);
+  if (bracketMatch?.[0]) {
+    return JSON.parse(bracketMatch[0]);
+  }
+
+  throw new Error('Tidak ada data JSON valid dari model.');
+}
 
 // ── System Instruction ───────────────────────────────────────
 const getSystemInstruction = (config: SessionConfig, hasCustomImages: boolean) => {
@@ -144,7 +171,7 @@ export const initializeEmailSession = async (
     .filter((img): img is string => !!img);
 
   const hasCustomImages = customAttachments.length > 0;
-  const model = config.model || "gemini-3.1-flash-lite";
+  const model = normalizeModelId(config.model || "gemini-3.1-flash-lite-preview");
 
   // Existing logic for prompt remains the same...
   const prompt = `
@@ -179,24 +206,12 @@ export const initializeEmailSession = async (
     }
 
     const responseText = response.text || "{}";
-    
-    // Flexible JSON extraction (to handle cases where model includes preamble text)
     let jsonResponse;
     try {
-      jsonResponse = JSON.parse(responseText);
+      jsonResponse = parseJsonFromModelText(responseText);
     } catch (e) {
-      console.log("[PDKT] Direct JSON parse failed, trying regex extraction...");
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          jsonResponse = JSON.parse(jsonMatch[0]);
-        } catch (e2) {
-          console.warn("[PDKT] Regex JSON parse also failed:", e2);
-          return { success: false, error: "Format balasan AI tidak valid. Coba mulai sesi lagi." };
-        }
-      } else {
-        return { success: false, error: "Tidak ada data JSON valid dari AI. Coba mulai sesi lagi." };
-      }
+      console.warn("[PDKT] Gagal parse JSON init session:", e);
+      return { success: false, error: "Format balasan AI tidak valid. Coba mulai sesi lagi." };
     }
 
     chatHistory.push({ role: 'user', parts: [{ text: prompt }] });
@@ -273,7 +288,7 @@ export const evaluateAgentResponse = async (agentReplyBody: string, consumerCont
 
   try {
     const response = await generateGeminiContent({
-      model: "gemini-3.1-flash-lite",
+      model: "gemini-3.1-flash-lite-preview",
       contents: [{ role: 'user', parts: [{ text: evaluationPrompt }] }],
       responseMimeType: "application/json"
     });
@@ -281,7 +296,7 @@ export const evaluateAgentResponse = async (agentReplyBody: string, consumerCont
     if (!response.success) throw new Error(response.error);
 
     const evalText = response.text || "{}";
-    const result = JSON.parse(evalText);
+    const result = parseJsonFromModelText(evalText);
 
     return {
       score: result.score || 0,

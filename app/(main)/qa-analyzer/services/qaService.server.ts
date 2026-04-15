@@ -780,7 +780,34 @@ export const qaServiceServer = {
       .eq('batch_name', batch)
       .order('nama');
     if (error) throw error;
-    return (data ?? [])
+    const byBatch = (data ?? [])
+      .filter((a: any) => !isAgentExcluded(a.tim, a.batch_name, a.jabatan))
+      .map((a: any) => ({
+        id: a.id,
+        nama: a.nama,
+        tim: a.tim,
+        batch: a.batch_name,
+        jabatan: a.jabatan
+      }));
+
+    if (byBatch.length > 0) {
+      return byBatch;
+    }
+
+    const normalized = batch.trim().toLowerCase();
+    const isSpecialTeam = normalized === 'bko' || normalized === 'slik';
+    if (!isSpecialTeam) {
+      return byBatch;
+    }
+
+    const { data: teamData, error: teamError } = await supabase
+      .from('profiler_peserta')
+      .select('id, nama, tim, batch_name, jabatan')
+      .ilike('tim', `%${batch}%`)
+      .order('nama');
+
+    if (teamError) throw teamError;
+    return (teamData ?? [])
       .filter((a: any) => !isAgentExcluded(a.tim, a.batch_name, a.jabatan))
       .map((a: any) => ({
         id: a.id,

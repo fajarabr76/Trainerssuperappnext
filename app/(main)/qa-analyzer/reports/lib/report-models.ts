@@ -14,7 +14,7 @@ export function getReportMaxPerDay(): number {
 /** Models available for Report Maker, with optional env disable flags. */
 export function getReportAiModelOptions(): ReportAiModelOption[] {
   return AI_MODELS.filter((m) => {
-    if (m.id === 'gemini-3.1-flash-lite' && envBool(process.env.REPORT_DISABLE_GEMINI_FLASH)) {
+    if (m.id === 'gemini-3.1-flash-lite-preview' && envBool(process.env.REPORT_DISABLE_GEMINI_FLASH)) {
       return false;
     }
     return true;

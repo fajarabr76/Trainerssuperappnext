@@ -551,7 +551,7 @@ export const generateConsumerResponse = async (
 
   try {
     const response = await generateGeminiContent({
-      model: config.model || "gemini-3.1-flash-lite",
+      model: config.model || "gemini-3.1-flash-lite-preview",
       contents: contents,
       systemInstruction,
       temperature: 0.7,
@@ -587,7 +587,7 @@ export const generateFirstCallMessage = async (
 
   try {
     const response = await generateGeminiContent({
-      model: config.model || "gemini-3.1-flash-lite",
+      model: config.model || "gemini-3.1-flash-lite-preview",
       contents: [{ role: 'user', parts: [{ text: "Berikan pesan pembuka telepon." }] }],
       systemInstruction,
       temperature: 0.7,
@@ -626,7 +626,7 @@ export const generateScore = async (
 
   try {
     const response = await generateGeminiContent({
-      model: "gemini-3.1-flash-lite",
+      model: "gemini-3.1-flash-lite-preview",
       contents: [{ role: 'user', parts: [{ text: "Berikan penilaian untuk simulasi telepon." }] }],
       systemInstruction,
       responseMimeType: "application/json",

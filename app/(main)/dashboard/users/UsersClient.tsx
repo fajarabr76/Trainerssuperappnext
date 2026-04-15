@@ -322,7 +322,7 @@ export default function UsersClient({ user, role, profile: _profile }: UsersClie
                           <ActionCard
                             icon={<Settings2 className="h-4 w-4" />}
                             title="Atur role & lifecycle"
-                            description="Role, approval, dan aksi hapus sekarang tampil konsisten di setiap kartu user."
+                            description="Kelola role, status approval, dan aksi penghapusan dari panel kontrol yang konsisten."
                             tone="neutral"
                           />
                         </div>

@@ -48,10 +48,20 @@ export const AI_MODELS = [
 
 export type AIProvider = 'gemini' | 'openrouter';
 
+const LEGACY_MODEL_ALIASES: Record<string, string> = {
+  'gemini-3.1-flash-lite': 'gemini-3.1-flash-lite-preview',
+};
+
+export function normalizeModelId(modelId?: string | null): string {
+  if (!modelId) return AI_MODELS[0]?.id || 'gemini-3.1-flash-lite-preview';
+  return LEGACY_MODEL_ALIASES[modelId] || modelId;
+}
+
 /**
  * Detects the AI provider based on the model ID.
  * OpenRouter models typically contain a forward slash (/).
  */
 export function getProviderFromModelId(modelId: string): AIProvider {
-  return modelId.includes('/') ? 'openrouter' : 'gemini';
+  const normalized = normalizeModelId(modelId);
+  return normalized.includes('/') ? 'openrouter' : 'gemini';
 }

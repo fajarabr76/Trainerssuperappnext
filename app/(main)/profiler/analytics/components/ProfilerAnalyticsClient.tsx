@@ -139,7 +139,7 @@ export default function ProfilerAnalyticsClient({
             backLabel="Kembali ke workspace KTP"
             eyebrow="Profiler analytics"
             title="Baca komposisi batch tanpa keluar dari ritme workspace yang sama."
-            description="Statistik peserta, distribusi tim, jabatan, dan pendidikan sekarang dibingkai dengan hierarchy visual yang lebih konsisten."
+            description="Statistik peserta, distribusi tim, jabatan, dan pendidikan disajikan dengan hierarki visual yang lebih rapi dan mudah dipindai."
             icon={<BarChart3 className="h-3.5 w-3.5" />}
             actions={(
               <div className="relative w-full min-w-[260px] max-w-sm">

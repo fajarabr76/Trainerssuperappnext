@@ -215,7 +215,7 @@ export default function AppKetik() {
             <ModuleWorkspaceIntro
               eyebrow="Kelas Etika & Trik Komunikasi"
               title="Latih komunikasi chat dalam satu workspace yang fokus."
-              description="Mulai simulasi, buka pengaturan, atau review riwayat percakapan tanpa keluar dari ritme dashboard utama. Modul ini sekarang mengikuti shell terpadu yang sama dengan workspace lain."
+              description="Mulai simulasi, buka pengaturan, dan tinjau riwayat percakapan dari satu alur kerja yang konsisten dengan modul lain."
               accentClassName={theme.accentText}
               accentSoftClassName={theme.accentSoftBg}
               icon={<MessageSquare className="h-8 w-8" />}

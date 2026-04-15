@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { createClient } from '@/app/lib/supabase/client';
 import { moduleTheme } from '@/app/components/ui/moduleTheme';
 import ModuleWorkspaceIntro from '@/app/components/ModuleWorkspaceIntro';
+import { normalizeModelId } from '@/app/lib/ai-models';
 
 const supabase = createClient();
 
@@ -188,7 +189,7 @@ const PdktPage: React.FC = () => {
       consumerType: selectedConsumerType,
       identity,
       enableImageGeneration: settings.enableImageGeneration ?? true,
-      model: settings.selectedModel || 'gemini-3.1-flash-lite',
+      model: normalizeModelId(settings.selectedModel),
     };
 
     setCurrentConfig(config);
@@ -344,7 +345,7 @@ const PdktPage: React.FC = () => {
             <ModuleWorkspaceIntro
               eyebrow="Paham Dulu Kasih Tanggapan"
               title="Buka simulasi email dengan pengalaman workspace yang seragam."
-              description="Atur skenario, review riwayat evaluasi, lalu lanjut membalas email dari satu pola halaman yang sama dengan modul lain. Fokusnya sekarang lebih terasa seperti command center, bukan aplikasi terpisah."
+              description="Atur skenario, telaah riwayat evaluasi, lalu lanjutkan respons email dalam satu workspace terpadu yang konsisten dengan modul lain."
               accentClassName={theme.accentText}
               accentSoftClassName={theme.accentSoftBg}
               icon={<Mail className="h-8 w-8" />}

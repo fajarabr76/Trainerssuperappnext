@@ -74,7 +74,7 @@ export function EditTemuanModal({
                     >
                       <span className="text-2xl font-black">{val}</span>
                       <span className="text-[9px] font-black uppercase tracking-widest opacity-80">
-                        {val === 3 ? 'EXCELLENT' : val === 2 ? 'GOOD' : val === 1 ? 'DEFICIT' : 'CRITICAL'}
+                        {val === 3 ? 'SESUAI' : val === 2 ? 'PERLU PERBAIKAN' : val === 1 ? 'TIDAK SESUAI' : 'KRITIS'}
                       </span>
                     </button>
                   ))}

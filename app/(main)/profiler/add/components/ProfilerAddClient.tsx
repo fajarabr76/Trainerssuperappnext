@@ -138,7 +138,7 @@ export default function ProfilerAddClient({ batchName, initialTimList }: Profile
             backLabel="Kembali ke tabel batch"
             eyebrow="Profiler workspace"
             title="Tambah data peserta ke batch aktif."
-            description="Form ini sekarang mengikuti visual system baru KTP, jadi input identitas, tim, dan data kerja terasa satu keluarga dengan workspace lain."
+            description="Lengkapi identitas, tim, dan data kerja peserta melalui formulir yang konsisten dengan standar visual workspace KTP."
             icon={<UserPlus className="h-3.5 w-3.5" />}
             actions={heroAction}
           />

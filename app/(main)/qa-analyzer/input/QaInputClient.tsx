@@ -433,6 +433,10 @@ export default function QaInputClient({
       defaultService = 'chat';
     } else if (normalizedTim.includes('email')) {
       defaultService = 'email';
+    } else if (normalizedTim.includes('bko')) {
+      defaultService = 'bko';
+    } else if (normalizedTim.includes('slik')) {
+      defaultService = 'slik';
     }
     setSelectedService(defaultService);
     setSelectedTeam(agent.tim || '');

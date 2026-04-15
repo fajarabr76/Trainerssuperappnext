@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Plus, X, Save, Trash2, Upload,
   Loader2, FolderInput, Check, GripVertical, ArrowUpDown,
-  Download, ChevronDown, Activity,
+  Download, ChevronDown, Activity, Search, FilterX,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Peserta, Jabatan, labelJabatan } from '../../lib/profiler-types';
@@ -17,8 +17,6 @@ import {
   movePesertaToBatch,
   reorderPesertaBatch,
   deletePeserta, 
-  getTimList,
-  getOriginalPeserta
 } from '../../actions';
 
 const inputClass = "w-full px-4 py-3 rounded-xl border border-border/40 bg-background text-sm text-foreground placeholder-foreground/20 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background";
@@ -146,17 +144,6 @@ const EditModal: React.FC<{
   const [fotoPreview, setFotoPreview] = useState<string>(peserta.foto_url || '');
   const [uploadingFoto, setUploadingFoto] = useState(false);
 
-  const [loadingRealData, setLoadingRealData] = useState(false);
-
-  useEffect(() => {
-    async function fetchOriginal() {
-      if (!peserta.id) return;
-      // Since masking is now disabled at the server level, we don't need to re-fetch
-      // unless specifically needed for other reasons.
-    }
-    fetchOriginal();
-  }, [peserta.id]);
-
   const set = (key: keyof Peserta, value: any) => setForm(prev => ({ ...prev, [key]: value }));
 
   const handleFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -245,7 +232,7 @@ const EditModal: React.FC<{
             </div>
           </div>
           <div className={sectionClass}>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">🔒 Data Sensitif</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">Data Sensitif</p>
             <div className="grid grid-cols-2 gap-3 relative">
               <div className="col-span-2"><label className={labelClass}>No. KTP</label><input type="text" placeholder="16 digit NIK" maxLength={16} className={inputClass} value={form.no_ktp || ''} onChange={e => set('no_ktp', e.target.value)} /></div>
               <div><label className={labelClass}>No. NPWP</label><input type="text" className={inputClass} value={form.no_npwp || ''} onChange={e => set('no_npwp', e.target.value)} /></div>
@@ -260,12 +247,12 @@ const EditModal: React.FC<{
             <div className="grid grid-cols-2 gap-3">
               <div><label className={labelClass}>Nama Lembaga Pendidikan</label><input type="text" className={inputClass} value={form.nama_lembaga || ''} onChange={e => set('nama_lembaga', e.target.value)} /></div>
               <div><label className={labelClass}>Jurusan</label><input type="text" className={inputClass} value={form.jurusan || ''} onChange={e => set('jurusan', e.target.value)} /></div>
-              <div className="col-span-2"><label className={labelClass}>Previous Company</label><input type="text" className={inputClass} value={form.previous_company || ''} onChange={e => set('previous_company', e.target.value)} /></div>
+              <div className="col-span-2"><label className={labelClass}>Perusahaan Sebelumnya</label><input type="text" className={inputClass} value={form.previous_company || ''} onChange={e => set('previous_company', e.target.value)} /></div>
               <div className="col-span-2"><label className={labelClass}>Pengalaman Kontak OJK 157</label><select className={inputClass} value={form.pengalaman_cc || ''} onChange={e => set('pengalaman_cc', e.target.value)}><option value="">Pilih</option><option value="Pernah">Pernah</option><option value="Tidak Pernah">Tidak Pernah</option></select></div>
             </div>
           </div>
           <div className={sectionClass}>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">⭐ Catatan Tambahan</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">Catatan Tambahan</p>
             <textarea rows={3} placeholder="Prestasi, bakat, hobi..." className={inputClass} value={form.catatan_tambahan || ''} onChange={e => set('catatan_tambahan', e.target.value)} />
           </div>
           <div className={sectionClass}>
@@ -307,11 +294,14 @@ export default function ProfilerTableClient({
   
   useEffect(() => {
     setPeserta(initialPeserta);
+    setIsNavigatingFolder(false);
   }, [initialPeserta]);
 
   const [filterTim, setFilterTim] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedPeserta, setSelectedPeserta] = useState<Peserta | null>(null);
   const [showFolderDropdown, setShowFolderDropdown] = useState(false);
+  const [isNavigatingFolder, setIsNavigatingFolder] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // ── Sort mode ────────────────────────────────────────────────
@@ -325,6 +315,24 @@ export default function ProfilerTableClient({
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showMoveModal, setShowMoveModal] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent | TouchEvent) => {
+      if (!dropdownRef.current) return;
+      if (!dropdownRef.current.contains(event.target as Node)) {
+        setShowFolderDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+    };
+  }, []);
 
   const activeTab = 'table';
 
@@ -334,6 +342,7 @@ export default function ProfilerTableClient({
     setPeserta(prev => prev.filter(p => !ids.includes(p.id!))); 
     setSelectedIds(new Set()); 
     setSelectMode(false); 
+    setFeedback({ type: 'success', message: `${ids.length} peserta berhasil dipindahkan.` });
   };
 
   // ── Drag-and-drop handlers ───────────────────────────────────
@@ -384,7 +393,10 @@ export default function ProfilerTableClient({
       );
       setOrderChanged(false);
       setSortMode(false);
-    } catch (err: any) { alert('Gagal menyimpan urutan: ' + err.message); }
+      setFeedback({ type: 'success', message: 'Urutan peserta berhasil disimpan.' });
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: `Gagal menyimpan urutan: ${err.message}` });
+    }
     finally { setSavingOrder(false); }
   };
 
@@ -403,9 +415,25 @@ export default function ProfilerTableClient({
     return n; 
   });
   
-  const filtered = filterTim === 'all'
-    ? peserta
-    : peserta.filter(p => (p.tim ?? '').toLowerCase() === filterTim.toLowerCase());
+  const query = searchQuery.trim().toLowerCase();
+  const filtered = peserta.filter((p) => {
+    const matchTim = filterTim === 'all'
+      ? true
+      : (p.tim ?? '').toLowerCase() === filterTim.toLowerCase();
+    const matchQuery = query.length === 0
+      ? true
+      : [
+          p.nama,
+          p.tim,
+          p.nip_ojk,
+          p.email_ojk,
+          p.jabatan ? labelJabatan[p.jabatan] : '',
+        ]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(query));
+
+    return matchTim && matchQuery;
+  });
 
   const toggleSelectAll = () => {
     if (selectedIds.size === filtered.length) setSelectedIds(new Set());
@@ -419,9 +447,15 @@ export default function ProfilerTableClient({
 
   const allFilteredSelected = filtered.length > 0 && selectedIds.size === filtered.length;
   const displayList = sortMode ? peserta : filtered;
+  const hasActiveFilters = filterTim !== 'all' || query.length > 0;
+
+  const resetFilters = () => {
+    setFilterTim('all');
+    setSearchQuery('');
+  };
 
   return (
-    <div className="h-full overflow-auto bg-background/50 backdrop-blur-sm relative flex flex-col">
+    <div className={`h-full overflow-auto bg-background/50 backdrop-blur-sm relative flex flex-col ${selectMode && selectedIds.size > 0 ? 'pb-28' : ''}`}>
       <div className="max-w-6xl mx-auto space-y-4">
 
         {/* ── Tabs Navigation ── */}
@@ -492,6 +526,7 @@ export default function ProfilerTableClient({
                                 <button
                                   key={folder.id}
                                   onClick={() => {
+                                    setIsNavigatingFolder(true);
                                     router.push(`/profiler/table?batch=${encodeURIComponent(folder.name)}`);
                                     setShowFolderDropdown(false);
                                   }}
@@ -517,6 +552,17 @@ export default function ProfilerTableClient({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <div className="px-3 py-2 rounded-xl border border-border/40 bg-card text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
+              {displayList.length}/{peserta.length} Peserta
+            </div>
+            {!sortMode && (
+              <button
+                onClick={() => setDensity((prev) => (prev === 'comfortable' ? 'compact' : 'comfortable'))}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-bold transition-all border bg-card hover:bg-muted text-foreground border-border/40 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {density === 'comfortable' ? 'Mode Ringkas' : 'Mode Nyaman'}
+              </button>
+            )}
             {!isReadOnly && !selectMode && (
               <button
                 onClick={() => { setSortMode(v => !v); setSelectMode(false); setDragOverIndex(null); }}
@@ -564,12 +610,60 @@ export default function ProfilerTableClient({
           </div>
         </div>
 
+        <div className="flex flex-col sm:flex-row gap-2">
+          <label className="relative flex-1">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cari nama, tim, NIP, email, atau jabatan..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border/40 bg-card text-sm text-foreground placeholder:text-muted-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </label>
+          {hasActiveFilters && !sortMode && (
+            <button
+              onClick={resetFilters}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-border/40 bg-card text-foreground text-[11px] uppercase tracking-wider font-bold hover:bg-muted transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <FilterX className="w-3.5 h-3.5" />
+              Reset Filter
+            </button>
+          )}
+        </div>
+
+        {feedback && (
+          <div
+            className={`rounded-2xl border px-4 py-3 text-sm ${
+              feedback.type === 'success'
+                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                : 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400'
+            }`}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <p>{feedback.message}</p>
+              <button
+                onClick={() => setFeedback(null)}
+                className="text-xs font-bold uppercase tracking-wider opacity-80 hover:opacity-100"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        )}
+
+        {isNavigatingFolder && (
+          <div className="flex items-center gap-2 px-4 py-3 rounded-2xl border border-primary/20 bg-primary/5 text-primary text-sm font-medium">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Memuat folder yang dipilih...
+          </div>
+        )}
+
         {/* ── Sort mode banner ── */}
         {sortMode && (
-          <div className="flex items-center justify-between bg-primary/5 rounded-2xl px-4 py-3 border border-primary/20">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-primary/5 rounded-2xl px-4 py-3 border border-primary/20">
             <div className="flex items-center gap-2">
               <GripVertical className="w-4 h-4 text-primary/40" />
-              <p className="text-sm font-medium text-primary">Seret baris untuk mengubah urutan</p>
+              <p className="text-sm font-medium text-primary">Seret baris untuk mengubah urutan. Klik simpan saat selesai.</p>
             </div>
             {orderChanged && (
               <button onClick={saveOrder} disabled={savingOrder}
@@ -582,7 +676,7 @@ export default function ProfilerTableClient({
 
         {/* ── Select all bar ── */}
         {selectMode && (
-          <div className="flex items-center justify-between bg-card rounded-2xl px-4 py-3 border border-border/40 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-card rounded-2xl px-4 py-3 border border-border/40 shadow-sm">
             <button onClick={toggleSelectAll} className="flex items-center gap-2 text-sm font-bold tracking-tight text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg">
               <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${allFilteredSelected ? 'bg-primary border-primary' : 'border-border/60'}`}>
                 {allFilteredSelected && <Check className="w-3 h-3 text-primary-foreground" />}
@@ -590,7 +684,7 @@ export default function ProfilerTableClient({
               {allFilteredSelected ? 'Batal pilih semua' : 'Pilih semua'}
               {selectedIds.size > 0 && <span className="ml-1 text-primary font-bold">({selectedIds.size} dipilih)</span>}
             </button>
-            <p className="text-xs text-muted-foreground font-medium tracking-tight">Centang lalu klik Pindah</p>
+            <p className="text-xs text-muted-foreground font-medium tracking-tight">Pilih peserta lalu klik Pindah Folder</p>
           </div>
         )}
 
@@ -613,12 +707,27 @@ export default function ProfilerTableClient({
         {/* ── List Peserta ── */}
         {displayList.length === 0 ? (
           <div className="bg-card rounded-[2rem] p-10 text-center border border-border/40 shadow-sm">
-            <p className="text-muted-foreground text-sm">Belum ada peserta.</p>
-            {!isReadOnly && (
-              <button onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(batchName)}`)}
-                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-primary hover:opacity-90 text-primary-foreground rounded-xl text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                <Plus className="w-4 h-4" /> Tambah Peserta
-              </button>
+            {hasActiveFilters ? (
+              <>
+                <p className="text-foreground font-semibold text-sm">Tidak ada peserta yang cocok dengan filter aktif.</p>
+                <p className="text-muted-foreground text-xs mt-1">Coba ubah kata kunci pencarian atau tim, lalu ulangi.</p>
+                <button
+                  onClick={resetFilters}
+                  className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-card hover:bg-muted border border-border/40 text-foreground rounded-xl text-sm font-bold shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <FilterX className="w-4 h-4" /> Reset Filter
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-muted-foreground text-sm">Belum ada peserta pada folder ini.</p>
+                {!isReadOnly && (
+                  <button onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(batchName)}`)}
+                    className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-primary hover:opacity-90 text-primary-foreground rounded-xl text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <Plus className="w-4 h-4" /> Tambah Peserta
+                  </button>
+                )}
+              </>
             )}
           </div>
         ) : (
@@ -644,7 +753,7 @@ export default function ProfilerTableClient({
                     onDragOver={sortMode ? e => handleDragOver(e, i) : undefined}
                     onDragLeave={sortMode ? handleDragLeave : undefined}
                     onDragEnd={sortMode ? handleDragEnd : undefined}
-                    className={`flex items-center gap-3 px-4 py-3.5 transition-all ${
+                    className={`flex items-center gap-3 px-3 sm:px-4 transition-all ${
                       sortMode
                         ? isDragging
                           ? 'opacity-40 bg-primary/5 cursor-grabbing'
@@ -671,21 +780,28 @@ export default function ProfilerTableClient({
                       }}
                       className={`flex items-center gap-3 flex-1 min-w-0 text-left group transition-opacity rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                         sortMode ? 'pointer-events-none' : 'hover:opacity-80 cursor-pointer'
-                      }`}
+                      } ${density === 'compact' ? 'py-2.5' : 'py-3.5'}`}
                       role={!sortMode && !selectMode ? "button" : undefined}
                       tabIndex={!sortMode && !selectMode ? 0 : -1}
+                      onKeyDown={(e) => {
+                        if (sortMode || selectMode) return;
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSelectedPeserta(p);
+                        }
+                      }}
                     >
                       <span className="text-[11px] text-muted-foreground w-5 text-right flex-shrink-0 font-mono tabular-nums">
                         {i + 1}
                       </span>
-                      <div className="w-10 h-10 rounded-[1.25rem] overflow-hidden bg-muted/30 border border-border/40 shrink-0 flex items-center justify-center">
+                      <div className={`${density === 'compact' ? 'w-9 h-9' : 'w-10 h-10'} rounded-[1.25rem] overflow-hidden bg-muted/30 border border-border/40 shrink-0 flex items-center justify-center`}>
                         {p.foto_url
                           ? <div className="relative w-full h-full"><Image src={p.foto_url} alt={p.nama} fill className="object-cover" referrerPolicy="no-referrer" /></div>
                           : <span className="text-sm font-bold text-muted-foreground">{p.nama?.charAt(0)?.toUpperCase() || '?'}</span>}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold tracking-tight text-foreground truncate">{p.nama}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{p.tim} · {labelJabatan[p.jabatan] || p.jabatan}</p>
+                        <p className={`${density === 'compact' ? 'text-[13px]' : 'text-sm'} font-bold tracking-tight text-foreground truncate`}>{p.nama}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{p.tim} · {labelJabatan[p.jabatan] || p.jabatan}</p>
                       </div>
                       {!sortMode && !selectMode && (
                         <div className="flex items-center gap-2">
@@ -728,8 +844,14 @@ export default function ProfilerTableClient({
 
       {selectMode && selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-0 right-0 flex justify-center px-4 z-40">
-          <div className="bg-foreground rounded-[2rem] shadow-2xl px-5 py-3.5 flex items-center gap-4">
+          <div className="bg-foreground rounded-[2rem] shadow-2xl px-5 py-3.5 flex items-center gap-3 flex-wrap justify-center">
             <p className="text-background text-sm font-bold tracking-tight">{selectedIds.size} peserta dipilih</p>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="flex items-center gap-2 px-4 py-2.5 bg-transparent border border-background/25 text-background rounded-xl text-sm font-bold hover:bg-background/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <X className="w-4 h-4" /> Bersihkan Pilihan
+            </button>
             <button onClick={() => setShowMoveModal(true)}
               className="flex items-center gap-2 px-5 py-2.5 bg-background hover:bg-muted text-foreground rounded-xl text-sm font-bold shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-foreground">
               <FolderInput className="w-4 h-4" />Pindah Folder

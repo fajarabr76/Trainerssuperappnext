@@ -18,10 +18,10 @@ interface AgentTemuanTabProps {
 
 function NilaiBadge({ nilai }: { nilai: number }) {
   const variants: Record<0 | 1 | 2 | 3, { bg: string; text: string; shadow: string; label: string }> = {
-    3: { bg: 'bg-emerald-500', text: 'text-emerald-500', shadow: 'shadow-emerald-500/40', label: 'EXCELLENT' },
-    2: { bg: 'bg-blue-500',    text: 'text-blue-500',    shadow: 'shadow-blue-500/40',    label: 'GOOD' },
-    1: { bg: 'bg-amber-500',   text: 'text-amber-500',   shadow: 'shadow-amber-500/40',   label: 'DEFICIT' },
-    0: { bg: 'bg-rose-500',    text: 'text-rose-500',    shadow: 'shadow-rose-500/40',    label: 'CRITICAL' }
+    3: { bg: 'bg-emerald-500', text: 'text-emerald-500', shadow: 'shadow-emerald-500/40', label: 'SESUAI' },
+    2: { bg: 'bg-blue-500',    text: 'text-blue-500',    shadow: 'shadow-blue-500/40',    label: 'PERBAIKAN' },
+    1: { bg: 'bg-amber-500',   text: 'text-amber-500',   shadow: 'shadow-amber-500/40',   label: 'TIDAK SESUAI' },
+    0: { bg: 'bg-rose-500',    text: 'text-rose-500',    shadow: 'shadow-rose-500/40',    label: 'KRITIS' }
   };
   const v = variants[nilai as 0 | 1 | 2 | 3] ?? variants[0];
   
@@ -60,13 +60,13 @@ export default function AgentTemuanTab({
       <div className="px-10 py-10 border-b border-border/50 flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-foreground/[0.01]">
         <div>
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mb-2">
-            <BarChart2 className="w-3.5 h-3.5" /> Itemized Observations
+            <BarChart2 className="w-3.5 h-3.5" /> Detail Temuan
           </div>
-          <h3 className="text-3xl font-black tracking-tighter">Audit Discovery Detail</h3>
+          <h3 className="text-3xl font-black tracking-tighter">Detail Temuan Audit</h3>
         </div>
         {selectedPeriod && (
           <div className="px-6 py-2.5 bg-background/50 border border-border/50 rounded-2xl text-[10px] font-black uppercase tracking-widest text-muted-foreground shadow-inner">
-            Active Filter: <span className="text-foreground font-black ml-1 uppercase">{selectedPeriod.label}</span>
+            Filter Aktif: <span className="text-foreground font-black ml-1 uppercase">{selectedPeriod.label}</span>
           </div>
         )}
       </div>
@@ -77,8 +77,8 @@ export default function AgentTemuanTab({
             <div className="w-20 h-20 rounded-[2.5rem] bg-foreground/5 flex items-center justify-center mx-auto mb-6">
               <ShieldCheck className="w-10 h-10 text-foreground/10" />
             </div>
-            <h4 className="text-xl font-black text-muted-foreground uppercase tracking-tighter">No issues found in this period</h4>
-            <p className="text-[10px] text-muted-foreground mt-3 font-black uppercase tracking-widest leading-loose">Excellent record of service quality maintained</p>
+            <h4 className="text-xl font-black text-muted-foreground uppercase tracking-tighter">Belum ada temuan pada periode ini</h4>
+            <p className="text-[10px] text-muted-foreground mt-3 font-black uppercase tracking-widest leading-loose">Kinerja kualitas layanan tetap terjaga</p>
           </div>
         ) : (
           groupedTemuan.map((group) => (
@@ -89,13 +89,13 @@ export default function AgentTemuanTab({
                     {group.urutan}
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground leading-none mb-1.5">Reference / Ticket ID</span>
-                    <span className="text-sm font-black font-mono tracking-tight text-foreground/70">{group.no_tiket || 'INTERNAL PERFORMANCE AUDIT'}</span>
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground leading-none mb-1.5">Referensi / No. Tiket</span>
+                    <span className="text-sm font-black font-mono tracking-tight text-foreground/70">{group.no_tiket || 'AUDIT INTERNAL (TANPA TIKET)'}</span>
                   </div>
                 </div>
                 <div className="px-5 py-2 rounded-2xl bg-background/80 border border-border/50 text-[10px] font-black uppercase tracking-widest text-muted-foreground shadow-sm flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-primary/40" />
-                  {group.items.length} Evaluated Parameter{group.items.length > 1 ? 's' : ''}
+                  {group.items.length} Parameter Dinilai
                 </div>
               </div>
 
@@ -114,10 +114,10 @@ export default function AgentTemuanTab({
                           <div>
                             <div className="flex items-center gap-3 mb-2">
                               <div className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${isCritical ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20' : 'bg-blue-500/10 text-blue-500 border border-blue-500/20'}`}>
-                                {isCritical ? 'Critical Compliance' : 'General Quality'}
+                                {isCritical ? 'Critical' : 'Non-Critical'}
                               </div>
                               <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-                                Indicator Name
+                                Nama Parameter
                               </span>
                             </div>
                             <h4 className="text-xl font-black tracking-tighter text-foreground leading-none">{t.qa_indicators?.name}</h4>
@@ -128,7 +128,7 @@ export default function AgentTemuanTab({
                               <button 
                                 onClick={() => onStartEdit(t)} 
                                 className="w-10 h-10 bg-blue-500/5 hover:bg-blue-500 hover:text-white border border-blue-500/20 rounded-xl text-blue-500 flex items-center justify-center transition-all duration-300 shadow-sm"
-                                title="Edit Observation"
+                                title="Edit Temuan"
                               >
                                 <Edit2 className="w-4 h-4" />
                               </button>
@@ -136,7 +136,7 @@ export default function AgentTemuanTab({
                                 onClick={() => onDelete(t.id)} 
                                 disabled={deletingId === t.id}
                                 className="w-10 h-10 bg-rose-500/5 hover:bg-rose-500 hover:text-white border border-rose-500/20 rounded-xl text-rose-500 flex items-center justify-center transition-all duration-300 shadow-sm disabled:opacity-50"
-                                title="Delete Record"
+                                title="Hapus Temuan"
                               >
                                 {deletingId === t.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                               </button>
@@ -148,19 +148,19 @@ export default function AgentTemuanTab({
                           <div className={`space-y-3 p-6 rounded-3xl bg-foreground/[0.02] border border-border/30 transition-all duration-500 ${isDeficit ? 'hover:border-amber-500/30' : 'hover:border-foreground/20'}`}>
                             <div className="flex items-center gap-2 mb-1">
                               <AlertCircle className="w-3 h-3 text-muted-foreground" />
-                              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">Observation / Gap Analysis</p>
+                              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">Ketidaksesuaian</p>
                             </div>
                             <p className="text-sm text-foreground/70 leading-relaxed font-medium">
-                              {t.ketidaksesuaian || 'No specific discrepancy noted for this parameter.'}
+                              {t.ketidaksesuaian || 'Belum ada catatan ketidaksesuaian untuk parameter ini.'}
                             </p>
                           </div>
                           <div className={`space-y-3 p-6 rounded-3xl transition-all duration-500 ${hasRekomendasi ? 'bg-primary/5 border border-primary/20 hover:border-primary/40' : 'bg-foreground/[0.01] border border-border/20 blur-[0.5px] grayscale opacity-50'}`}>
                             <div className="flex items-center gap-2 mb-1">
                               <ShieldCheck className="w-3 h-3 text-primary/40" />
-                              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Strategic Recommendation</p>
+                              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Rekomendasi Perbaikan</p>
                             </div>
                             <p className="text-sm text-foreground/80 leading-relaxed font-bold italic">
-                              {t.sebaiknya || 'Maintain current standards and consistency.'}
+                              {t.sebaiknya || 'Pertahankan standar layanan saat ini secara konsisten.'}
                             </p>
                           </div>
                         </div>
@@ -176,11 +176,11 @@ export default function AgentTemuanTab({
 
       <div className="px-10 py-10 bg-card/60 backdrop-blur-xl border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="flex flex-col">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mb-1">Observation History</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mb-1">Riwayat Temuan</p>
           <div className="flex items-center gap-3">
             <span className="text-2xl font-black tabular-nums">{groupedTemuan.reduce((acc, g) => acc + g.items.length, 0)}</span>
             <div className="h-4 w-[1px] bg-border/50" />
-            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{hasMore ? 'Incremental loading enabled' : 'All records loaded'}</span>
+            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{hasMore ? 'Muat data bertahap aktif' : 'Semua data sudah dimuat'}</span>
           </div>
         </div>
         
@@ -193,7 +193,7 @@ export default function AgentTemuanTab({
             {loadingTemuan ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <>Load More Findings <ChevronRight className="w-4 h-4" /></>
+              <>Muat Temuan Berikutnya <ChevronRight className="w-4 h-4" /></>
             )}
           </button>
         </div>

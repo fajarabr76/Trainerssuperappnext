@@ -184,7 +184,7 @@ export default function ProfilerImportClient({
             backLabel="Kembali ke tabel batch"
             eyebrow="Profiler import"
             title="Impor peserta ke batch aktif dengan alur yang lebih jelas."
-            description="Download template, unggah file, lalu review hasil impor dalam workspace yang sekarang terasa konsisten dengan modul lain."
+            description="Unduh template, unggah file, lalu validasi hasil impor dalam alur kerja yang konsisten dengan modul lain."
             icon={<FileUp className="h-3.5 w-3.5" />}
           />
 

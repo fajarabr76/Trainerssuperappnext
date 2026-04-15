@@ -136,7 +136,7 @@ export default function QaAgentDetailClient({
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground leading-none mb-1">
               <Activity className="w-3 h-3" /> SIDAK
             </div>
-            <h1 className="text-lg font-black tracking-tight">Agent Performance Detail</h1>
+            <h1 className="text-lg font-black tracking-tight">Detail Kinerja Agen</h1>
           </div>
           <div className="flex items-center gap-4">
             {mounted && (
@@ -211,7 +211,7 @@ export default function QaAgentDetailClient({
                     className="h-11 px-5 flex items-center gap-2 bg-primary/10 text-primary border border-primary/20 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all duration-300 disabled:opacity-50 shadow-sm"
                   >
                     {exporting ? <Activity className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                    {exporting ? 'Exporting...' : 'Export'}
+                    {exporting ? 'Mengekspor...' : 'Ekspor'}
                   </button>
 
                   {role === 'admin' && (

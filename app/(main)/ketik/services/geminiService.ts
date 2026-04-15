@@ -174,7 +174,7 @@ ${extraPrompt || 'Balas sebagai konsumen:'}`;
 
   try {
     const response = await callAI({
-      model: config.model || 'gemini-3.1-flash-lite',
+      model: config.model || 'gemini-3.1-flash-lite-preview',
       prompt,
       systemInstruction,
       temperature: 0.82,
@@ -221,7 +221,7 @@ Jangan gunakan format seperti "Konsumen:" atau menulis ulang ucapan petugas.
 
   try {
     const response = await callAI({
-      model: config.model || 'gemini-3.1-flash-lite',
+      model: config.model || 'gemini-3.1-flash-lite-preview',
       prompt: "Berikan pesan pembuka chat Anda.",
       systemInstruction,
       temperature: 0.9,
@@ -265,7 +265,7 @@ OUTPUT: Berikan respon dalam format JSON:
 
   try {
     const response = await generateGeminiContent({
-      model: "gemini-3.1-flash-lite",
+      model: "gemini-3.1-flash-lite-preview",
       contents: [{ role: 'user', parts: [{ text: JSON.stringify(history) }] }],
       systemInstruction,
       responseMimeType: "application/json",

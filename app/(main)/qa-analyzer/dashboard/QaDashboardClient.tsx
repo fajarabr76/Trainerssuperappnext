@@ -127,7 +127,7 @@ export default function QaDashboardClient({
           <div className="flex items-center gap-4">
             <div className="hidden md:flex flex-col leading-none">
               <span className="text-[10px] font-black uppercase tracking-[0.25em] text-foreground/70 font-display">SIDAK Workspace</span>
-              <span className="mt-1 text-sm font-semibold tracking-tight">Quality analytics</span>
+              <span className="mt-1 text-sm font-semibold tracking-tight">Analitik kualitas</span>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -153,7 +153,7 @@ export default function QaDashboardClient({
               </div>
               <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
                 <Sparkles className="h-3.5 w-3.5" />
-                Unified analytics shell
+                Workspace analitik terpadu
               </div>
               <h1 className="mb-4 text-4xl font-semibold tracking-tight lg:text-5xl font-display">
                 Dashboard Analitik SIDAK
@@ -201,7 +201,7 @@ export default function QaDashboardClient({
                 <section>
                   <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 font-display">
                     <span className="w-1 h-5 bg-primary rounded-full"></span>
-                    Executive Summary
+                    Ringkasan Utama
                   </h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <KpiCard 
@@ -268,7 +268,7 @@ export default function QaDashboardClient({
                   <div className="flex items-center justify-between mb-8">
                     <h2 className="text-lg font-semibold flex items-center gap-2 font-display">
                       <span className="w-1 h-5 bg-primary rounded-full"></span>
-                      Historical Trends & Parameter Analysis
+                      Tren Historis & Analisis Parameter
                     </h2>
                     <div className="flex items-center gap-2 px-3 py-1 bg-primary/5 rounded-full border border-primary/10">
                       <span className="text-[10px] font-black uppercase tracking-widest text-primary">
@@ -330,7 +330,7 @@ export default function QaDashboardClient({
                 <section className="bg-card rounded-2xl border border-border/40 p-5">
                   <h2 className="text-lg font-semibold mb-6 flex items-center gap-2 font-display">
                     <span className="w-1 h-5 bg-chart-red rounded-full"></span>
-                    Root Cause Analysis
+                    Analisis Akar Masalah
                   </h2>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2">

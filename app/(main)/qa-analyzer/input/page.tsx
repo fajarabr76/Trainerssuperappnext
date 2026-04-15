@@ -44,7 +44,10 @@ export default async function QaInputPage({ searchParams }: PageProps) {
     getAllServiceWeightsAction(),
   ]);
 
-  const initialFolders = allFolders.filter(f => !EXCLUDED_FOLDERS.includes(f.toLowerCase().trim()));
+  const priorityQaTeams = ['BKO', 'SLIK'];
+  const initialFolders = Array.from(
+    new Set([...allFolders, ...priorityQaTeams])
+  ).filter(f => !EXCLUDED_FOLDERS.includes(f.toLowerCase().trim()));
   const initialPeriods = allPeriods;
 
   // Selective pre-fetching based on params
@@ -74,6 +77,8 @@ export default async function QaInputPage({ searchParams }: PageProps) {
         if (normalizedTim.includes('mix')) defaultService = 'cso';
         else if (normalizedTim.includes('chat')) defaultService = 'chat';
         else if (normalizedTim.includes('email')) defaultService = 'email';
+        else if (normalizedTim.includes('bko')) defaultService = 'bko';
+        else if (normalizedTim.includes('slik')) defaultService = 'slik';
         
         initialIndicators = await qaServiceServer.getIndicators(defaultService);
         initialStep = 'period';
