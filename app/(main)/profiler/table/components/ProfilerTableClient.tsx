@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Plus, X, Save, Trash2, Upload,
   Loader2, FolderInput, Check, GripVertical, ArrowUpDown,
-  Download, ChevronDown, Activity, Search, FilterX,
+  Download, ChevronDown, Activity, Search, FilterX, Users, AlertCircle,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Peserta, Jabatan, labelJabatan } from '../../lib/profiler-types';
@@ -211,7 +211,7 @@ const EditModal: React.FC<{
           </div>
           <div className={sectionClass}>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">Data Kerja</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><label className={labelClass}>NIP OJK</label><input type="text" className={inputClass} value={form.nip_ojk || ''} onChange={e => set('nip_ojk', e.target.value)} /></div>
               <div><label className={labelClass}>Bergabung di 157</label><input type="date" className={inputClass} value={form.bergabung_date || ''} onChange={e => set('bergabung_date', e.target.value)} /></div>
               <div className="col-span-2"><label className={labelClass}>Alamat Email OJK</label><input type="email" className={inputClass} value={form.email_ojk || ''} onChange={e => set('email_ojk', e.target.value)} /></div>
@@ -223,7 +223,7 @@ const EditModal: React.FC<{
           </div>
           <div className={sectionClass}>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">Data Pribadi</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><label className={labelClass}>Jenis Kelamin</label><select className={inputClass} value={form.jenis_kelamin || ''} onChange={e => set('jenis_kelamin', e.target.value)}><option value="">Pilih</option><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option></select></div>
               <div><label className={labelClass}>Agama</label><select className={inputClass} value={form.agama || ''} onChange={e => set('agama', e.target.value)}><option value="">Pilih</option>{['Islam','Kristen','Katolik','Hindu','Buddha','Konghucu'].map(a => <option key={a} value={a}>{a}</option>)}</select></div>
               <div><label className={labelClass}>Tanggal Lahir</label><input type="date" className={inputClass} value={form.tgl_lahir || ''} onChange={e => set('tgl_lahir', e.target.value)} /></div>
@@ -233,7 +233,7 @@ const EditModal: React.FC<{
           </div>
           <div className={sectionClass}>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">Data Sensitif</p>
-            <div className="grid grid-cols-2 gap-3 relative">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 relative">
               <div className="col-span-2"><label className={labelClass}>No. KTP</label><input type="text" placeholder="16 digit NIK" maxLength={16} className={inputClass} value={form.no_ktp || ''} onChange={e => set('no_ktp', e.target.value)} /></div>
               <div><label className={labelClass}>No. NPWP</label><input type="text" className={inputClass} value={form.no_npwp || ''} onChange={e => set('no_npwp', e.target.value)} /></div>
               <div><label className={labelClass}>Nomor Rekening</label><input type="text" className={inputClass} value={form.nomor_rekening || ''} onChange={e => set('nomor_rekening', e.target.value)} /></div>
@@ -244,7 +244,7 @@ const EditModal: React.FC<{
           </div>
           <div className={sectionClass}>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">Latar Belakang</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><label className={labelClass}>Nama Lembaga Pendidikan</label><input type="text" className={inputClass} value={form.nama_lembaga || ''} onChange={e => set('nama_lembaga', e.target.value)} /></div>
               <div><label className={labelClass}>Jurusan</label><input type="text" className={inputClass} value={form.jurusan || ''} onChange={e => set('jurusan', e.target.value)} /></div>
               <div className="col-span-2"><label className={labelClass}>Perusahaan Sebelumnya</label><input type="text" className={inputClass} value={form.previous_company || ''} onChange={e => set('previous_company', e.target.value)} /></div>
@@ -278,6 +278,8 @@ interface ProfilerTableClientProps {
   batchName: string;
   role?: string;
 }
+
+const selectableId = (p: Peserta): string | null => (typeof p.id === 'string' && p.id.length > 0 ? p.id : null);
 
 export default function ProfilerTableClient({
   initialPeserta,
@@ -333,6 +335,17 @@ export default function ProfilerTableClient({
       document.removeEventListener('touchstart', handleOutsideClick);
     };
   }, []);
+
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === 0) return prev;
+      const validIds = new Set(
+        peserta.map(selectableId).filter((id): id is string => Boolean(id))
+      );
+      const next = new Set(Array.from(prev).filter((id) => validIds.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [peserta]);
 
   const activeTab = 'table';
 
@@ -435,9 +448,26 @@ export default function ProfilerTableClient({
     return matchTim && matchQuery;
   });
 
+  const filteredSelectableIds = filtered
+    .map(selectableId)
+    .filter((id): id is string => Boolean(id));
+
   const toggleSelectAll = () => {
-    if (selectedIds.size === filtered.length) setSelectedIds(new Set());
-    else setSelectedIds(new Set(filtered.map(p => p.id!)));
+    const selectedInFiltered = filteredSelectableIds.filter((id) => selectedIds.has(id)).length;
+    if (selectedInFiltered === filteredSelectableIds.length) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        filteredSelectableIds.forEach((id) => next.delete(id));
+        return next;
+      });
+      return;
+    }
+
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      filteredSelectableIds.forEach((id) => next.add(id));
+      return next;
+    });
   };
 
   const allTims = useMemo(() => {
@@ -445,7 +475,8 @@ export default function ProfilerTableClient({
     return ['all', ...present.sort()];
   }, [peserta]);
 
-  const allFilteredSelected = filtered.length > 0 && selectedIds.size === filtered.length;
+  const selectedInFilteredCount = filteredSelectableIds.filter((id) => selectedIds.has(id)).length;
+  const allFilteredSelected = filteredSelectableIds.length > 0 && selectedInFilteredCount === filteredSelectableIds.length;
   const displayList = sortMode ? peserta : filtered;
   const hasActiveFilters = filterTim !== 'all' || query.length > 0;
 
@@ -640,7 +671,10 @@ export default function ProfilerTableClient({
             }`}
           >
             <div className="flex items-center justify-between gap-3">
-              <p>{feedback.message}</p>
+              <p className="flex items-center gap-2">
+                {feedback.type === 'success' ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                <span>{feedback.message}</span>
+              </p>
               <button
                 onClick={() => setFeedback(null)}
                 className="text-xs font-bold uppercase tracking-wider opacity-80 hover:opacity-100"
@@ -654,7 +688,7 @@ export default function ProfilerTableClient({
         {isNavigatingFolder && (
           <div className="flex items-center gap-2 px-4 py-3 rounded-2xl border border-primary/20 bg-primary/5 text-primary text-sm font-medium">
             <Loader2 className="w-4 h-4 animate-spin" />
-            Memuat folder yang dipilih...
+            Memuat folder yang dipilih. Mohon tunggu sebentar...
           </div>
         )}
 
@@ -684,7 +718,11 @@ export default function ProfilerTableClient({
               {allFilteredSelected ? 'Batal pilih semua' : 'Pilih semua'}
               {selectedIds.size > 0 && <span className="ml-1 text-primary font-bold">({selectedIds.size} dipilih)</span>}
             </button>
-            <p className="text-xs text-muted-foreground font-medium tracking-tight">Pilih peserta lalu klik Pindah Folder</p>
+            <p className="text-xs text-muted-foreground font-medium tracking-tight">
+              {selectedInFilteredCount > 0
+                ? `${selectedInFilteredCount} peserta terpilih pada hasil filter saat ini.`
+                : 'Pilih peserta lalu klik Pindah Folder.'}
+            </p>
           </div>
         )}
 
@@ -709,8 +747,11 @@ export default function ProfilerTableClient({
           <div className="bg-card rounded-[2rem] p-10 text-center border border-border/40 shadow-sm">
             {hasActiveFilters ? (
               <>
-                <p className="text-foreground font-semibold text-sm">Tidak ada peserta yang cocok dengan filter aktif.</p>
-                <p className="text-muted-foreground text-xs mt-1">Coba ubah kata kunci pencarian atau tim, lalu ulangi.</p>
+                <div className="mx-auto mb-4 w-12 h-12 rounded-2xl border border-border/50 bg-muted/40 flex items-center justify-center">
+                  <Search className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <p className="text-foreground font-semibold text-sm">Belum ada data yang cocok dengan filter saat ini.</p>
+                <p className="text-muted-foreground text-xs mt-1">Silakan ubah kata kunci atau tim, lalu coba lagi.</p>
                 <button
                   onClick={resetFilters}
                   className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-card hover:bg-muted border border-border/40 text-foreground rounded-xl text-sm font-bold shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -720,7 +761,11 @@ export default function ProfilerTableClient({
               </>
             ) : (
               <>
-                <p className="text-muted-foreground text-sm">Belum ada peserta pada folder ini.</p>
+                <div className="mx-auto mb-4 w-12 h-12 rounded-2xl border border-border/50 bg-muted/40 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <p className="text-foreground font-semibold text-sm">Belum ada peserta di folder ini.</p>
+                <p className="text-muted-foreground text-xs mt-1">Tambahkan data peserta untuk mulai menyusun profil batch.</p>
                 {!isReadOnly && (
                   <button onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(batchName)}`)}
                     className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-primary hover:opacity-90 text-primary-foreground rounded-xl text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -733,7 +778,8 @@ export default function ProfilerTableClient({
         ) : (
           <div className="bg-card rounded-[2rem] overflow-hidden divide-y divide-border/40 border border-border/40 shadow-sm">
             {displayList.map((p, i) => {
-              const isSelected = selectedIds.has(p.id!);
+              const rowId = selectableId(p);
+              const isSelected = rowId ? selectedIds.has(rowId) : false;
               const isDragTarget = sortMode && dragOverIndex === i && dragIndex.current !== null && dragIndex.current !== i;
               const isDragging = sortMode && dragIndex.current === i;
               const showLineAbove = isDragTarget && dragIndex.current !== null && dragIndex.current > i;
@@ -766,7 +812,9 @@ export default function ProfilerTableClient({
                     {sortMode ? (
                       <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0 pointer-events-none" />
                     ) : selectMode ? (
-                      <button onClick={() => toggleSelect(p.id!)}
+                      <button
+                        onClick={() => rowId && toggleSelect(rowId)}
+                        disabled={!rowId}
                         className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isSelected ? 'bg-primary border-primary' : 'border-border/60'}`}>
                         {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
                       </button>
@@ -775,7 +823,7 @@ export default function ProfilerTableClient({
                     <div
                       onClick={() => {
                         if (sortMode) return;
-                        if (selectMode) { toggleSelect(p.id!); return; }
+                        if (selectMode && rowId) { toggleSelect(rowId); return; }
                         setSelectedPeserta(p);
                       }}
                       className={`flex items-center gap-3 flex-1 min-w-0 text-left group transition-opacity rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${

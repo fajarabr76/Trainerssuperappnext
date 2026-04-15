@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ChevronLeft, ChevronRight, ImageDown, Loader2, ChevronDown, Check, Monitor, Smartphone } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, ImageDown, Loader2, ChevronDown, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Peserta, Jabatan, labelJabatan, labelTim,
@@ -55,7 +55,7 @@ export default function ProfilerSlidesClient({
   const [saving, setSaving] = useState(false);
   const [savingPdf, setSavingPdf] = useState(false);
   const [showFolderDropdown, setShowFolderDropdown] = useState(false);
-  const [orientation, setOrientation] = useState<'landscape' | 'portrait'>('landscape');
+  const [slideMode, setSlideMode] = useState<'original' | 'polished'>('original');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const slideRef = useRef<HTMLDivElement>(null);
 
@@ -76,8 +76,13 @@ export default function ProfilerSlidesClient({
     setTimeout(() => { setIndex(i); setFade(true); }, 110);
   }, []);
 
-  const prev = useCallback(() => index > 0 && goTo(index - 1), [index, goTo]);
-  const next = useCallback(() => index < initialPeserta.length - 1 && goTo(index + 1), [index, initialPeserta.length, goTo]);
+  const prev = useCallback(() => {
+    if (index > 0) goTo(index - 1);
+  }, [goTo, index]);
+
+  const next = useCallback(() => {
+    if (index < initialPeserta.length - 1) goTo(index + 1);
+  }, [goTo, index, initialPeserta.length]);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -88,23 +93,24 @@ export default function ProfilerSlidesClient({
     return () => window.removeEventListener('keydown', h);
   }, [next, prev]);
 
-  const captureSlideCanvas = async () => {
-    if (!slideRef.current) return null;
+  const captureElementCanvas = async (target: HTMLElement | null) => {
+    if (!target) return null;
     const html2canvas = (await import('html2canvas')).default;
     const { prepareHtml2CanvasClone } = await import('@/app/lib/html2canvas-tailwind-fix');
-    const el = slideRef.current;
 
-    return await html2canvas(el, {
+    return await html2canvas(target, {
       scale: 3,
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#FFFFFF',
       foreignObjectRendering: true,
       onclone: (_clonedDoc, clonedElement) => {
-        prepareHtml2CanvasClone(_clonedDoc, clonedElement, el);
+        prepareHtml2CanvasClone(_clonedDoc, clonedElement, target);
       },
     });
   };
+
+  const captureSlideCanvas = async () => captureElementCanvas(slideRef.current);
 
   const saveAsImage = async () => {
     if (saving || savingPdf || !initialPeserta[index]) return;
@@ -127,17 +133,11 @@ export default function ProfilerSlidesClient({
     if (saving || savingPdf || !initialPeserta[index]) return;
     setSavingPdf(true);
     try {
-      const canvas = await captureSlideCanvas();
-      if (!canvas) return;
       const { jsPDF } = await import('jspdf');
-      
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
-      
-      const pdfOrientation = orientation === 'landscape' ? 'l' : 'p';
-      const pdfFormat = orientation === 'landscape' ? [1920, 1080] : 'a4';
-      
+      const isA4Portrait = slideMode === 'polished';
+      const pdfFormat = isA4Portrait ? [1240, 1754] : [1920, 1080];
       const pdf = new jsPDF({
-        orientation: pdfOrientation,
+        orientation: isA4Portrait ? 'p' : 'l',
         unit: 'px',
         format: pdfFormat,
         hotfixes: ['px_scaling'],
@@ -146,7 +146,11 @@ export default function ProfilerSlidesClient({
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
 
+      const canvas = await captureSlideCanvas();
+      if (!canvas) return;
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
       pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+
       pdf.save(`${batchName}_${initialPeserta[index].nama?.replace(/\s+/g, '_') || index + 1}.pdf`);
     } catch (err: any) {
       alert('Gagal simpan PDF: ' + err.message);
@@ -157,6 +161,103 @@ export default function ProfilerSlidesClient({
 
   const p = initialPeserta[index];
   const theme = p ? timTheme(p.tim) : timTheme('');
+  const isA4Portrait = slideMode === 'polished';
+
+  const renderPolishedContent = (participant: Peserta) => {
+    const headlineGradient = {
+      background: `linear-gradient(160deg, ${theme.accent}14 0%, ${theme.accent}08 36%, transparent 100%)`,
+    };
+
+    return (
+      <div className="relative flex flex-1 overflow-hidden" style={headlineGradient}>
+        <div className="absolute -left-20 -top-20 h-56 w-56 rounded-full blur-3xl" style={{ background: `${theme.accent}24` }} />
+        <div className="absolute -right-20 bottom-[-7rem] h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+
+        <div className="relative z-10 flex flex-1 flex-col gap-5 p-7 overflow-y-auto box-border">
+          <section className="rounded-[1.5rem] border border-white/45 bg-card/80 p-5 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-card/55">
+            <div className="grid grid-cols-1 sm:grid-cols-[132px_1fr] gap-4 items-center">
+              {participant.foto_url ? (
+                <div className="w-[132px] h-[172px] rounded-[1.2rem] overflow-hidden shadow-xl relative ring-[5px] ring-card" style={{ boxShadow: `0 10px 24px ${theme.accent}32` }}>
+                  <Image src={participant.foto_url} alt={participant.nama || ''} fill className="object-cover" referrerPolicy="no-referrer" />
+                </div>
+              ) : (
+                <div className="w-[132px] h-[172px] rounded-[1.2rem] flex items-center justify-center font-black text-5xl shadow-lg ring-[5px] ring-card" style={{ background: theme.light, color: theme.accent, border: `1px solid ${theme.accent}40` }}>
+                  {participant.nama?.charAt(0)}
+                </div>
+              )}
+
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: theme.accent }}>
+                  Opsi 2 · Portrait A4
+                </p>
+                <h3 className="mt-2 text-3xl leading-tight font-black tracking-tight text-foreground">{participant.nama}</h3>
+                <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                  {labelJabatan[participant.jabatan] || participant.jabatan} · {theme.label}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+                  <span className="rounded-full border border-border/50 bg-background/75 px-2.5 py-1">Masa dinas: {participant.bergabung_date ? hitungMasaDinas(participant.bergabung_date) : '-'}</span>
+                  <span className="rounded-full border border-border/50 bg-background/75 px-2.5 py-1">Usia: {participant.tgl_lahir ? `${hitungUsia(participant.tgl_lahir)} tahun` : '-'}</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-[1.5rem] border border-white/45 bg-card/80 p-5 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-card/55">
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: theme.accent }}>Identitas dan Kontak</p>
+            <div className="mt-4 grid gap-4 grid-cols-1 sm:grid-cols-2">
+              <Cell label="Email OJK" value={participant.email_ojk} />
+              <Cell label="No. Telepon" value={participant.no_telepon} />
+              <Cell label="Tanggal Bergabung" value={participant.bergabung_date ? formatTanggal(participant.bergabung_date) : null} />
+              <Cell label="NIP OJK" value={participant.nip_ojk} />
+              <Cell label="Kontak Darurat" value={participant.no_telepon_darurat} />
+              <Cell label="Hubungan Darurat" value={participant.hubungan_kontak_darurat} />
+            </div>
+          </section>
+
+          <section className="rounded-[1.5rem] border border-module-profiler/15 bg-module-profiler/10 p-5 shadow-lg">
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-module-profiler">Data Pribadi dan Latar Belakang</p>
+            <div className="mt-4 grid gap-4 grid-cols-1 sm:grid-cols-2">
+              <Cell label="Jenis Kelamin" value={participant.jenis_kelamin} />
+              <Cell label="Status Perkawinan" value={participant.status_perkawinan} />
+              <Cell label="Agama" value={participant.agama} />
+              <Cell label="Tanggal Lahir" value={participant.tgl_lahir ? formatTanggal(participant.tgl_lahir) : null} />
+              <Cell label="Pendidikan" value={participant.pendidikan} />
+              <Cell label="Lembaga" value={participant.nama_lembaga} />
+              <Cell label="Jurusan" value={participant.jurusan} />
+              <Cell label="Previous Company" value={participant.previous_company} />
+              <Cell label="Pengalaman CC" value={participant.pengalaman_cc} />
+              <Cell label="Status Hunian" value={participant.status_tempat_tinggal} />
+            </div>
+          </section>
+
+          <section className="rounded-[1.5rem] border border-destructive/20 bg-destructive/10 p-5 shadow-sm">
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-destructive">Data Sensitif</p>
+            <div className="mt-4 grid gap-4 grid-cols-1 sm:grid-cols-2">
+              <Cell label="No. KTP" value={participant.no_ktp} />
+              <Cell label="No. NPWP" value={participant.no_npwp} />
+              <Cell label="No. Rekening" value={participant.nomor_rekening ? `${participant.nomor_rekening}${participant.nama_bank ? ` · ${participant.nama_bank}` : ''}` : null} />
+              <Cell label="Alamat Tinggal" value={participant.alamat_tinggal} multiline={true} />
+            </div>
+          </section>
+
+          <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-1">
+            <div className="rounded-[1.4rem] border border-amber-500/25 bg-amber-500/10 p-4 shadow-sm">
+              <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-amber-700 dark:text-amber-400">Catatan Tambahan</p>
+              <p className="mt-2 text-sm leading-6 text-foreground/85">
+                {participant.catatan_tambahan || 'Tidak ada catatan tambahan.'}
+              </p>
+            </div>
+            <div className="rounded-[1.4rem] border border-border/55 bg-card/75 p-4 shadow-sm">
+              <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Keterangan Internal</p>
+              <p className="mt-2 text-sm leading-6 text-foreground/80">
+                {participant.keterangan || 'Tidak ada keterangan internal.'}
+              </p>
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -251,22 +352,30 @@ export default function ProfilerSlidesClient({
           </AnimatePresence>
         </div>
         <div className="flex items-center gap-3">
-          {/* Orientation Toggle */}
+          {/* Slide Mode Toggle */}
           <div className="flex items-center bg-muted/30 rounded-xl p-1 border border-border/40">
             <button
-              onClick={() => setOrientation('landscape')}
-              className={`p-1.5 rounded-lg flex items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${orientation === 'landscape' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-              title="Landscape (16:9)"
+              onClick={() => {
+                setSlideMode('original');
+              }}
+              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${slideMode === 'original' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              title="Versi Original"
             >
-              <Monitor size={14} />
+              Original
             </button>
             <button
-              onClick={() => setOrientation('portrait')}
-              className={`p-1.5 rounded-lg flex items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${orientation === 'portrait' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-              title="Portrait (A4)"
+              onClick={() => {
+                setSlideMode('polished');
+              }}
+              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${slideMode === 'polished' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              title="Opsi 2 (Polished)"
             >
-              <Smartphone size={14} />
+              Opsi 2
             </button>
+          </div>
+
+          <div className="px-3 py-1.5 rounded-xl border border-primary/20 bg-primary/5 text-[10px] uppercase tracking-widest font-bold text-primary">
+            Mode: {slideMode === 'original' ? 'Versi Original' : 'Opsi 2 (Polished)'}
           </div>
 
           <button
@@ -296,26 +405,22 @@ export default function ProfilerSlidesClient({
       </div>
 
       {/* Slide Stage */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4 min-h-0 overflow-hidden">
+      <div className={`flex-1 flex flex-col items-center p-4 min-h-0 ${isA4Portrait ? 'justify-start overflow-auto' : 'justify-center overflow-hidden'}`}>
         {!p ? (
           <p className="text-sm text-muted-foreground font-medium tracking-tight">Belum ada peserta.</p>
         ) : (
-          <div className="relative flex items-center justify-center w-full h-full">
+          <div className={`relative flex justify-center w-full ${isA4Portrait ? 'items-start min-h-full' : 'items-center h-full'}`}>
             <div
-              className={`relative transition-all duration-300 ${
-                orientation === 'landscape' 
-                  ? 'aspect-video w-full max-w-[1000px] max-h-full' 
-                  : 'aspect-[1/1.414] h-full max-h-[840px] max-w-full'
-              }`}
+              className={`relative transition-all duration-300 ${isA4Portrait ? 'w-full max-w-[820px] aspect-[210/297]' : 'aspect-video w-full max-w-[1000px] max-h-full'}`}
               style={{ opacity: fade ? 1 : 0, transform: fade ? 'translateY(0)' : 'translateY(4px)' }}
             >
               <div
                 ref={slideRef}
-                className="w-full h-full bg-card rounded-[2rem] overflow-hidden shadow-2xl dark:shadow-black/60 border border-border/40 flex flex-col"
+                className={`w-full h-full bg-card rounded-[2rem] shadow-2xl dark:shadow-black/60 border border-border/40 flex flex-col ${isA4Portrait ? 'overflow-y-auto' : 'overflow-hidden'}`}
               >
                   <div className="h-[6px] w-full flex-shrink-0" style={{ background: theme.accent }} />
 
-                  {orientation === 'landscape' ? (
+                  {slideMode === 'original' ? (
                     <div className="flex flex-1 min-h-0 overflow-hidden">
                       {/* LEFT SIDEBAR 30% */}
                       <div className="w-[30%] flex-shrink-0 bg-muted/20 border-r border-border/40 flex flex-col items-center px-6 py-8 gap-6 overflow-y-auto box-border pb-12">
@@ -430,120 +535,11 @@ export default function ProfilerSlidesClient({
                         </div>
                       </div>
                     </div>
-                  ) : (
-                    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto px-6 md:px-8 py-6 gap-5 box-border pb-12">
-                      <div className="flex items-center gap-6 flex-shrink-0">
-                        {p.foto_url ? (
-                          <div className="w-24 h-24 rounded-[1.75rem] overflow-hidden flex-shrink-0 shadow-lg relative ring-[5px] ring-card" style={{ boxShadow: `0 6px 15px ${theme.accent}30` }}>
-                            <Image src={p.foto_url} alt={p.nama || ''} fill className="object-cover" referrerPolicy="no-referrer" />
-                          </div>
-                        ) : (
-                          <div className="w-24 h-24 rounded-[1.75rem] flex-shrink-0 flex items-center justify-center font-bold text-3xl shadow-md ring-[5px] ring-card" style={{ background: theme.light, color: theme.accent, border: `1px solid ${theme.accent}40` }}>
-                            {p.nama?.charAt(0)}
-                          </div>
-                        )}
-                        <div className="flex flex-col">
-                          <h2 className="text-2xl font-black tracking-tight text-foreground leading-tight truncate">{p.nama}</h2>
-                          <p className="text-[10px] font-bold mt-1 uppercase tracking-widest opacity-80" style={{ color: theme.accent }}>{labelJabatan[p.jabatan] || p.jabatan}</p>
-                          <div className="inline-flex items-center gap-2 mt-2 font-bold rounded-full px-2.5 py-1 bg-card border border-border/40 shadow-sm w-fit" style={{ fontSize: '9px', color: theme.accent }}>
-                            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: theme.accent }} />
-                            {theme.label}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 flex-shrink-0">
-                        <div className="bg-muted/30 border border-border/40 rounded-[20px] p-3 text-center shadow-sm">
-                          <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Masa Dinas</p>
-                          <p className="text-lg font-black text-foreground tracking-tight leading-none">{p.bergabung_date ? hitungMasaDinas(p.bergabung_date) : '-'}</p>
-                        </div>
-                        <div className="bg-muted/30 border border-border/40 rounded-[20px] p-3 text-center shadow-sm">
-                          <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Usia</p>
-                          <p className="text-lg font-black text-foreground tracking-tight leading-none">{p.tgl_lahir ? `${hitungUsia(p.tgl_lahir)} Thn` : '-'}</p>
-                        </div>
-                        <div className="bg-muted/30 border border-border/40 rounded-[20px] p-3 text-center shadow-sm">
-                          <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Tgl Lahir</p>
-                          <p className="text-[10px] font-black text-foreground tracking-tight leading-none mt-1">{p.tgl_lahir ? formatTanggal(p.tgl_lahir) : '-'}</p>
-                        </div>
-                        <div className="bg-muted/30 border border-border/40 rounded-[20px] p-3 text-center shadow-sm">
-                          <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Agama</p>
-                          <p className="text-xs font-black text-foreground tracking-tight leading-none mt-1">{p.agama || '-'}</p>
-                        </div>
-                        <div className="bg-muted/30 border border-border/40 rounded-[20px] p-3 text-center shadow-sm">
-                          <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Status</p>
-                          <p className="text-xs font-black text-foreground tracking-tight leading-none mt-1 truncate">{p.status_perkawinan || '-'}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col gap-4 flex-1">
-                        <div className="flex flex-col gap-3 flex-shrink-0">
-                          <div className="flex items-center gap-3">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Data Pekerjaan</span>
-                            <div className="flex-1 h-px bg-border/40" />
-                          </div>
-                          <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-                            <Cell label="Email OJK" value={p.email_ojk} />
-                            <Cell label="No. Telepon" value={p.no_telepon} />
-                            <Cell label="Bergabung" value={p.bergabung_date ? formatTanggal(p.bergabung_date) : null} />
-                            <Cell label="NIP OJK" value={p.nip_ojk} />
-                            <Cell label="Nama Kontak Darurat" value={p.nama_kontak_darurat} />
-                            <Cell label="Telepon Darurat" value={p.no_telepon_darurat ? `${p.no_telepon_darurat} (${p.hubungan_kontak_darurat || '-'})` : null} />
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col gap-3 flex-shrink-0">
-                          <div className="flex items-center gap-3">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Latar Belakang</span>
-                            <div className="flex-1 h-px bg-border/40" />
-                          </div>
-                          <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-                            <Cell label="Pendidikan" value={p.pendidikan} />
-                            <Cell label="Lembaga" value={p.nama_lembaga} />
-                            <Cell label="Jurusan" value={p.jurusan} />
-                            <Cell label="Prev. Company" value={p.previous_company} />
-                            <Cell label="Pengalaman CC" value={p.pengalaman_cc} />
-                            <Cell label="Kelamin" value={p.jenis_kelamin} />
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col gap-3 flex-shrink-0">
-                          <div className="flex items-center gap-3">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-destructive">🔒 Data Sensitif</span>
-                            <div className="flex-1 h-px bg-destructive/20" />
-                          </div>
-                          <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-                            <Cell label="No. KTP" value={p.no_ktp} />
-                            <Cell label="No. NPWP" value={p.no_npwp} />
-                            <Cell label="No. Rekening" value={p.nomor_rekening ? `${p.nomor_rekening}${p.nama_bank ? ` · ${p.nama_bank}` : ''}` : null} />
-                            <Cell label="Status Hunian" value={p.status_tempat_tinggal} />
-                            <div className="col-span-2">
-                              <Cell label="Alamat Tinggal" value={p.alamat_tinggal} multiline={true} />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col gap-3 mt-auto flex-shrink-0">
-                        {p.catatan_tambahan && (
-                          <div className="w-full bg-amber-500/10 border border-amber-500/20 rounded-3xl p-5 shadow-sm">
-                            <p className="text-[9px] font-black text-amber-600 dark:text-amber-500 uppercase tracking-[0.2em] mb-1.5">⭐ Catatan</p>
-                            <p className="text-[11px] text-amber-900 dark:text-amber-200/80 leading-relaxed font-medium">{p.catatan_tambahan}</p>
-                          </div>
-                        )}
-                        {p.keterangan && (
-                          <div className="w-full bg-muted/30 border border-border/40 rounded-3xl p-5 shadow-sm">
-                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1.5">Keterangan</p>
-                            <p className="text-[11px] text-foreground/70 leading-relaxed font-medium tracking-tight">{p.keterangan}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                  ) : renderPolishedContent(p)}
 
                   <div className="h-6 flex-shrink-0" />
                 </div>
               </div>
-
           </div>
         )}
       </div>
