@@ -10,6 +10,7 @@ import {
   hitungMasaDinas, hitungUsia, formatTanggal 
 } from '../../lib/profiler-types';
 import { ProfilerYear, ProfilerFolder } from '../../services/profilerService';
+import { getPhotoFrame, getPhotoImageStyle } from '../../lib/photo-frame';
 
 const timTheme = (tim: string) => {
   const t = tim?.toLowerCase();
@@ -178,7 +179,7 @@ export default function ProfilerSlidesClient({
             <div className="grid grid-cols-1 sm:grid-cols-[132px_1fr] gap-4 items-center">
               {participant.foto_url ? (
                 <div className="w-[132px] h-[172px] rounded-[1.2rem] overflow-hidden shadow-xl relative ring-[5px] ring-card" style={{ boxShadow: `0 10px 24px ${theme.accent}32` }}>
-                  <Image src={participant.foto_url} alt={participant.nama || ''} fill className="object-cover" referrerPolicy="no-referrer" />
+                  <Image src={participant.foto_url} alt={participant.nama || ''} fill className="object-cover" style={getPhotoImageStyle(getPhotoFrame(participant.id))} referrerPolicy="no-referrer" />
                 </div>
               ) : (
                 <div className="w-[132px] h-[172px] rounded-[1.2rem] flex items-center justify-center font-black text-5xl shadow-lg ring-[5px] ring-card" style={{ background: theme.light, color: theme.accent, border: `1px solid ${theme.accent}40` }}>
@@ -426,7 +427,7 @@ export default function ProfilerSlidesClient({
                       <div className="w-[30%] flex-shrink-0 bg-muted/20 border-r border-border/40 flex flex-col items-center px-6 py-8 gap-6 overflow-y-auto box-border pb-12">
                         {p.foto_url ? (
                           <div className="w-32 h-32 rounded-[2rem] overflow-hidden flex-shrink-0 shadow-lg relative ring-[6px] ring-card" style={{ boxShadow: `0 8px 24px ${theme.accent}30` }}>
-                            <Image src={p.foto_url} alt={p.nama || ''} fill className="object-cover" referrerPolicy="no-referrer" />
+                            <Image src={p.foto_url} alt={p.nama || ''} fill className="object-cover" style={getPhotoImageStyle(getPhotoFrame(p.id))} referrerPolicy="no-referrer" />
                           </div>
                         ) : (
                           <div className="w-32 h-32 rounded-[2rem] flex-shrink-0 flex items-center justify-center font-bold text-4xl shadow-md ring-[6px] ring-card" style={{ background: theme.light, color: theme.accent, border: `1px solid ${theme.accent}40` }}>

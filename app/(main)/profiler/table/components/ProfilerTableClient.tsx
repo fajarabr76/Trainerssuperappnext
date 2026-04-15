@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
@@ -12,6 +12,14 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Peserta, Jabatan, labelJabatan } from '../../lib/profiler-types';
 import { ProfilerYear, ProfilerFolder } from '../../services/profilerService';
 import { uploadFoto } from '../../services/profilerService';
+import {
+  DEFAULT_PHOTO_FRAME,
+  getPhotoFrame,
+  getPhotoImageStyle,
+  normalizePhotoFrame,
+  setPhotoFrame,
+  type PhotoFrame,
+} from '../../lib/photo-frame';
 import { 
   updatePeserta, 
   movePesertaToBatch,
@@ -137,14 +145,28 @@ const EditModal: React.FC<{
   onClose: () => void;
   onSaved: (updated: Peserta) => void;
   onDeleted: (id: string) => void;
+  onFrameUpdated: (id: string) => void;
   isReadOnly?: boolean;
-}> = ({ peserta, timList, onClose, onSaved, onDeleted, isReadOnly }) => {
+}> = ({ peserta, timList, onClose, onSaved, onDeleted, onFrameUpdated, isReadOnly }) => {
   const [form, setForm] = useState<Peserta>({ ...peserta });
   const [saving, setSaving] = useState(false);
   const [fotoPreview, setFotoPreview] = useState<string>(peserta.foto_url || '');
   const [uploadingFoto, setUploadingFoto] = useState(false);
+  const [photoFrame, setPhotoFrameState] = useState<PhotoFrame>(DEFAULT_PHOTO_FRAME);
+
+  useEffect(() => {
+    setPhotoFrameState(getPhotoFrame(peserta.id));
+  }, [peserta.id]);
 
   const set = (key: keyof Peserta, value: any) => setForm(prev => ({ ...prev, [key]: value }));
+  const updateFrame = (next: Partial<PhotoFrame>) => {
+    const normalized = normalizePhotoFrame({ ...photoFrame, ...next });
+    setPhotoFrameState(normalized);
+    if (form.id) {
+      setPhotoFrame(form.id, normalized);
+      onFrameUpdated(form.id);
+    }
+  };
 
   const handleFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -198,12 +220,54 @@ const EditModal: React.FC<{
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">Identitas Utama</p>
             <div className="flex items-center gap-4 mb-4">
               <div className="relative w-20 h-20 rounded-[1.25rem] bg-muted/30 border border-border/40 overflow-hidden flex items-center justify-center shrink-0">
-                {uploadingFoto ? <Loader2 className="w-6 h-6 text-primary animate-spin" /> : fotoPreview ? <div className="relative w-full h-full"><Image src={fotoPreview} alt="Preview" fill className="object-cover" unoptimized /></div> : <Upload className="w-6 h-6 text-muted-foreground" />}
+                {uploadingFoto ? <Loader2 className="w-6 h-6 text-primary animate-spin" /> : fotoPreview ? <div className="relative w-full h-full"><Image src={fotoPreview} alt="Preview" fill className="object-cover" style={getPhotoImageStyle(photoFrame)} unoptimized /></div> : <Upload className="w-6 h-6 text-muted-foreground" />}
               </div>
               <label className="cursor-pointer px-4 py-2 bg-background hover:bg-muted border border-border/40 rounded-xl text-sm text-muted-foreground hover:text-foreground font-bold transition-all shadow-sm focus-within:ring-2 focus-within:ring-ring relative group">
                 <span className="group-hover:-translate-y-0.5 transition-transform block">{uploadingFoto ? 'Mengunggah...' : 'Ganti Foto'}</span>
                 <input type="file" accept="image/*" onChange={handleFoto} className="sr-only" disabled={uploadingFoto} />
               </label>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="col-span-1">
+                <label className={labelClass}>Posisi Horizontal</label>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  className="w-full"
+                  value={Math.round(photoFrame.x)}
+                  onChange={(e) => updateFrame({ x: Number(e.target.value) })}
+                />
+              </div>
+              <div className="col-span-1">
+                <label className={labelClass}>Posisi Vertikal</label>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  className="w-full"
+                  value={Math.round(photoFrame.y)}
+                  onChange={(e) => updateFrame({ y: Number(e.target.value) })}
+                />
+              </div>
+              <div className="col-span-1">
+                <label className={labelClass}>Zoom Foto</label>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => updateFrame({ zoom: photoFrame.zoom - 0.1 })} className="w-8 h-8 rounded-lg border border-border/40 bg-background text-sm font-bold">-</button>
+                  <input
+                    type="range"
+                    min={1}
+                    max={2.5}
+                    step={0.05}
+                    className="flex-1"
+                    value={photoFrame.zoom}
+                    onChange={(e) => updateFrame({ zoom: Number(e.target.value) })}
+                  />
+                  <button type="button" onClick={() => updateFrame({ zoom: photoFrame.zoom + 0.1 })} className="w-8 h-8 rounded-lg border border-border/40 bg-background text-sm font-bold">+</button>
+                </div>
+              </div>
             </div>
             <div><label className={labelClass}>Nama Lengkap *</label><input type="text" className={inputClass} value={form.nama || ''} onChange={e => set('nama', e.target.value)} /></div>
             <div><label className={labelClass}>Tim *</label><select className={inputClass} value={form.tim || ''} onChange={e => set('tim', e.target.value)}>{timList.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
@@ -319,6 +383,7 @@ export default function ProfilerTableClient({
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
+  const [photoFrameTick, setPhotoFrameTick] = useState(0);
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent | TouchEvent) => {
@@ -348,6 +413,7 @@ export default function ProfilerTableClient({
   }, [peserta]);
 
   const activeTab = 'table';
+  const refreshPhotoFrame = useCallback(() => setPhotoFrameTick((v) => v + 1), []);
 
   const handleSaved = (updated: Peserta) => setPeserta(prev => prev.map(p => p.id === updated.id ? updated : p));
   const handleDeleted = (id: string) => setPeserta(prev => prev.filter(p => p.id !== id));
@@ -786,7 +852,7 @@ export default function ProfilerTableClient({
               const showLineBelow = isDragTarget && dragIndex.current !== null && dragIndex.current < i;
 
               return (
-                <div key={p.id}>
+                <div key={`${p.id}-${photoFrameTick}`}>
                   {showLineAbove && (
                     <div className="px-4">
                       <div className="h-0.5 bg-primary rounded-full" />
@@ -844,7 +910,7 @@ export default function ProfilerTableClient({
                       </span>
                       <div className={`${density === 'compact' ? 'w-9 h-9' : 'w-10 h-10'} rounded-[1.25rem] overflow-hidden bg-muted/30 border border-border/40 shrink-0 flex items-center justify-center`}>
                         {p.foto_url
-                          ? <div className="relative w-full h-full"><Image src={p.foto_url} alt={p.nama} fill className="object-cover" referrerPolicy="no-referrer" /></div>
+                          ? <div className="relative w-full h-full"><Image src={p.foto_url} alt={p.nama} fill className="object-cover" style={getPhotoImageStyle(getPhotoFrame(p.id))} referrerPolicy="no-referrer" /></div>
                           : <span className="text-sm font-bold text-muted-foreground">{p.nama?.charAt(0)?.toUpperCase() || '?'}</span>}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -910,7 +976,7 @@ export default function ProfilerTableClient({
 
       {selectedPeserta && (
         <EditModal peserta={selectedPeserta} timList={initialTimList}
-          onClose={() => setSelectedPeserta(null)} onSaved={handleSaved} onDeleted={handleDeleted} isReadOnly={isReadOnly} />
+          onClose={() => setSelectedPeserta(null)} onSaved={handleSaved} onDeleted={handleDeleted} onFrameUpdated={refreshPhotoFrame} isReadOnly={isReadOnly} />
       )}
       {showMoveModal && (
         <MoveFolderModal 

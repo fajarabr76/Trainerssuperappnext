@@ -11,6 +11,7 @@ import {
   Peserta, ProfilerYear, ProfilerFolder, labelTim, labelJabatan,
   hitungMasaDinas, hitungUsia, formatTanggal
 } from '../../lib/profiler-types';
+import { getPhotoFrame, getPhotoInlineStyle } from '../../lib/photo-frame';
 import PageHeroHeader from '@/app/components/PageHeroHeader';
 
 const timTheme = (tim: string) => {
@@ -334,6 +335,7 @@ export default function ProfilerExportClient({
 
   const buildSlideHTML = (p: Peserta, batch: string, orient: 'landscape' | 'portrait') => {
     const theme = timTheme(p.tim);
+    const photoFrame = getPhotoFrame(p.id);
     const fields = (items: Array<[string, string | null | undefined, number?]>) =>
       items.filter(([, v]) => v).map(([label, value, span]) =>
         `<div style="${span === 2 ? 'grid-column:span 2;' : ''}"><div><div style="font-size:8px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">${label}</div><div style="font-size:11px;font-weight:700;color:#111827;">${value || '-'}</div></div></div>`
@@ -348,7 +350,7 @@ export default function ProfilerExportClient({
     <!-- Header -->
     <div style="display:flex;align-items:center;gap:24px;flex-shrink:0;">
       ${p.foto_url 
-        ? `<div style="width:112px;height:112px;border-radius:24px;overflow:hidden;box-shadow:0 6px 15px rgba(0,0,0,0.1);flex-shrink:0;"><img src="${p.foto_url}" crossorigin="anonymous" style="width:100%;height:100%;object-fit:cover;" /></div>` 
+        ? `<div style="width:112px;height:112px;border-radius:24px;overflow:hidden;box-shadow:0 6px 15px rgba(0,0,0,0.1);flex-shrink:0;"><img src="${p.foto_url}" crossorigin="anonymous" style="${getPhotoInlineStyle(photoFrame)}" /></div>` 
         : `<div style="width:112px;height:112px;border-radius:24px;background:#${theme.light.replace('#','')};display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:bold;color:#${theme.accent};flex-shrink:0;">${p.nama?.charAt(0) || '?'}</div>`
       }
       <div style="display:flex;flex-direction:column;">
@@ -433,7 +435,7 @@ export default function ProfilerExportClient({
     <!-- LEFT SIDEBAR -->
     <div style="width:288px;background:#F9FAFB;border-right:1px solid #F3F4F6;display:flex;flex-direction:column;align-items:center;padding:32px 24px;gap:24px;box-sizing:border-box;flex-shrink:0;overflow:hidden;">
       ${p.foto_url 
-        ? `<div style="width:144px;height:144px;border-radius:24px;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,0.1);"><img src="${p.foto_url}" crossorigin="anonymous" style="width:100%;height:100%;object-fit:cover;" /></div>` 
+        ? `<div style="width:144px;height:144px;border-radius:24px;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,0.1);"><img src="${p.foto_url}" crossorigin="anonymous" style="${getPhotoInlineStyle(photoFrame)}" /></div>` 
         : `<div style="width:144px;height:144px;border-radius:24px;background:#${theme.light.replace('#','')};display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:bold;color:#${theme.accent};">${p.nama?.charAt(0) || '?'}</div>`
       }
       <div style="text-align:center;width:100%;">
