@@ -1,7 +1,7 @@
 export const AI_MODELS = [
   // Gemini
   { 
-    id: 'gemini-3.1-flash-lite', 
+    id: 'gemini-3.1-flash-lite-preview', 
     name: 'Gemini 3.1 Flash Lite', 
     description: 'Cepat dan efisien untuk percakapan natural.', 
     provider: 'gemini' as const 
