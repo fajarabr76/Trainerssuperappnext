@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Plus, Upload, Table2, SlidersHorizontal, Download,
   FolderOpen, Trash2, ChevronLeft, Cake,
-  Settings2, UserPlus, Moon, Sun, PieChart
+  Settings2, UserPlus, Moon, Sun, PieChart, CalendarDays, Users, Layers
 } from 'lucide-react';
 import { ProfilerYear, ProfilerFolder } from '../services/profilerService';
 import YearSidebar from './YearSidebar';
@@ -75,9 +75,16 @@ export default function ProfilerLandingClient({
   
   const [years, setYears] = useState<ProfilerYear[]>(initialYears);
   const [folders, setFolders] = useState<ProfilerFolder[]>(initialFolders);
-  const [selectedYearId, setSelectedYearId] = useState<string | null>(initialYears[0]?.id || null);
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(initialFolders[0]?.id || null);
-  const [selectedBatch, setSelectedBatch] = useState<string>(initialFolders[0]?.name || '');
+  const [selectedYearId, setSelectedYearId] = useState<string | null>(() => {
+    if (initialYears.length === 0) return null;
+    const currentYear = new Date().getFullYear();
+    const sameYear = initialYears.find((y) => y.year === currentYear);
+    if (sameYear) return sameYear.id;
+    return [...initialYears].sort((a, b) => b.year - a.year)[0]?.id || initialYears[0]?.id || null;
+  });
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [selectedBatch, setSelectedBatch] = useState<string>('');
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   
   const [counts, setCounts] = useState<Record<string, number>>(initialCounts);
   const [pesertaMap, setPesertaMap] = useState<Record<string, any[]>>(initialPesertaMap);
@@ -96,6 +103,40 @@ export default function ProfilerLandingClient({
   const [deleting, setDeleting] = useState(false);
   const [showBirthdayModal, setShowBirthdayModal] = useState(false);
   const [loadingPeserta, setLoadingPeserta] = useState(false);
+
+  const teamsInSelectedYear = useMemo(() => {
+    if (!selectedYearId) return [];
+    return folders.filter((f) => f.year_id === selectedYearId && !f.parent_id);
+  }, [folders, selectedYearId]);
+
+  const batchesInSelectedTeam = useMemo(() => {
+    if (!selectedTeamId) return [];
+    return folders.filter((f) => f.parent_id === selectedTeamId);
+  }, [folders, selectedTeamId]);
+
+  const selectedTeamFolder = useMemo(
+    () => (selectedTeamId ? folders.find((f) => f.id === selectedTeamId) || null : null),
+    [folders, selectedTeamId]
+  );
+
+  useEffect(() => {
+    if (!selectedYearId) {
+      setSelectedTeamId(null);
+      setSelectedBatch('');
+      setSelectedFolderId(null);
+      return;
+    }
+
+    const teamStillValid = selectedTeamId
+      ? folders.some((f) => f.id === selectedTeamId && f.year_id === selectedYearId && !f.parent_id)
+      : false;
+
+    if (!teamStillValid) {
+      setSelectedTeamId(null);
+      setSelectedBatch('');
+      setSelectedFolderId(null);
+    }
+  }, [selectedYearId, selectedTeamId, folders]);
 
   // Lazy Load Peserta when batch changes
   React.useEffect(() => {
@@ -140,6 +181,7 @@ export default function ProfilerLandingClient({
       setFolders(prev => [...prev, folder]);
       setSelectedFolderId(folder.id);
       setSelectedBatch(folder.name);
+      setSelectedTeamId(showAddFolder.parentId || folder.id);
       setCounts(prev => ({ ...prev, [folder.name]: 0 }));
       setPesertaMap(prev => ({ ...prev, [folder.name]: [] }));
       setNewFolderName('');
@@ -201,7 +243,18 @@ export default function ProfilerLandingClient({
     const folder = folders.find(f => f.id === id);
     if (folder) {
       setSelectedFolderId(id);
-      setSelectedBatch(folder.name);
+      if (!folder.parent_id) {
+        setSelectedTeamId(folder.id);
+        const children = folders.filter((f) => f.parent_id === folder.id);
+        if (children.length === 0) {
+          setSelectedBatch(folder.name);
+        } else {
+          setSelectedBatch('');
+        }
+      } else {
+        setSelectedTeamId(folder.parent_id);
+        setSelectedBatch(folder.name);
+      }
     }
   };
 
@@ -231,8 +284,8 @@ export default function ProfilerLandingClient({
         </div>
         
         <div className="flex flex-col items-center text-center leading-none">
-          <span className="text-[10px] font-black uppercase tracking-[0.25em] text-foreground/80">KTP Workspace</span>
-          <span className="mt-1 text-sm font-semibold tracking-tight">Agent database</span>
+          <span className="text-[10px] font-black uppercase tracking-[0.25em] text-foreground/80">Profiler Workspace</span>
+          <span className="mt-1 text-sm font-semibold tracking-tight">Manajemen Profil Peserta</span>
         </div>
         
         <div className="flex-1 flex justify-end">
@@ -253,13 +306,128 @@ export default function ProfilerLandingClient({
           </div>
 
           {!selectedBatch ? (
-            <div className="h-full flex items-center justify-center text-center p-6">
-              <div className="max-w-xs">
-                <div className="w-20 h-20 rounded-3xl bg-foreground/5 flex items-center justify-center mx-auto mb-6">
-                  <FolderOpen className="w-10 h-10 text-muted-foreground" />
+            <div className="h-full p-6 md:p-8 overflow-y-auto custom-scrollbar relative z-10">
+              <div className="max-w-7xl mx-auto space-y-6">
+                <div className="rounded-3xl border border-border/40 bg-card/70 backdrop-blur-sm p-6">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-primary">Profiler Hub</p>
+                  <h2 className="mt-2 text-3xl font-bold tracking-tight text-foreground">Pilih Tahun dan Tim</h2>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Mulai dari tahun, lanjutkan ke tim, lalu pilih batch yang ingin Anda kelola.
+                  </p>
                 </div>
-                <h3 className="text-xl font-bold mb-2">Pilih Batch</h3>
-                <p className="text-sm text-muted-foreground font-light">Silakan pilih atau buat batch baru di panel sebelah kiri untuk mengelola data agen.</p>
+
+                <section className="rounded-3xl border border-border/40 bg-card/70 backdrop-blur-sm p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <CalendarDays className="w-4 h-4 text-primary" />
+                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Tahun</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {years.map((year) => (
+                      <button
+                        key={year.id}
+                        onClick={() => setSelectedYearId(year.id)}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                          selectedYearId === year.id
+                            ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/10'
+                            : 'bg-background text-muted-foreground border-border/40 hover:text-foreground hover:bg-muted'
+                        }`}
+                      >
+                        {year.label}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="rounded-3xl border border-border/40 bg-card/70 backdrop-blur-sm p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Users className="w-4 h-4 text-primary" />
+                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Tim</p>
+                  </div>
+                  {teamsInSelectedYear.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Belum ada tim untuk tahun yang dipilih.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                      {teamsInSelectedYear.map((team) => {
+                        const batchCount = folders.filter((f) => f.parent_id === team.id).length;
+                        return (
+                          <button
+                            key={team.id}
+                            onClick={() => {
+                              setSelectedTeamId(team.id);
+                              setSelectedFolderId(team.id);
+                              if (batchCount === 0) {
+                                setSelectedBatch(team.name);
+                              } else {
+                                setSelectedBatch('');
+                              }
+                            }}
+                            className={`rounded-2xl border p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                              selectedTeamId === team.id
+                                ? 'border-primary bg-primary/5 shadow-md shadow-primary/10'
+                                : 'border-border/40 bg-background hover:bg-muted'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="font-bold tracking-tight text-foreground truncate">{team.name}</p>
+                              <span className="px-2 py-1 rounded-lg bg-foreground/5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                {batchCount} Batch
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              {batchCount > 0 ? 'Pilih tim untuk melihat daftar batch.' : 'Batch belum tersedia untuk tim ini.'}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
+
+                {selectedTeamFolder && (
+                  <section className="rounded-3xl border border-border/40 bg-card/70 backdrop-blur-sm p-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Layers className="w-4 h-4 text-primary" />
+                      <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+                        Daftar Batch · Tim {selectedTeamFolder.name}
+                      </p>
+                    </div>
+                    {batchesInSelectedTeam.length === 0 ? (
+                      <div className="rounded-2xl border border-border/40 bg-background p-4">
+                        <p className="text-sm text-muted-foreground">Batch belum tersedia untuk tim ini. Buat batch pertama untuk mulai mengelola peserta.</p>
+                        {!isReadOnly && (
+                          <button
+                            onClick={() => setShowAddFolder({ yearId: selectedTeamFolder.year_id, parentId: selectedTeamFolder.id })}
+                            className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            Buat Batch
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                        {batchesInSelectedTeam.map((batch) => (
+                          <button
+                            key={batch.id}
+                            onClick={() => {
+                              setSelectedFolderId(batch.id);
+                              setSelectedBatch(batch.name);
+                            }}
+                            className="rounded-2xl border border-border/40 bg-background p-4 text-left hover:bg-muted transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="font-bold tracking-tight text-foreground truncate">{batch.name}</p>
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                {counts[batch.name] || 0} Peserta
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2">Buka workspace batch ini.</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                )}
               </div>
             </div>
           ) : (
@@ -267,21 +435,21 @@ export default function ProfilerLandingClient({
               <div className="mb-6 flex items-start justify-between">
                 <div>
                   <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
-                    Unified database shell
+                    Batch Workspace
                   </div>
                   <div className="flex items-center gap-4 mb-2">
                     <h2 className="text-3xl font-bold tracking-tight">{selectedBatch}</h2>
                     {count > 0 && (
                       <span className="px-3 py-1 bg-foreground/5 text-muted-foreground text-[10px] font-bold uppercase tracking-widest rounded-full border border-border flex items-center gap-2">
                         {loadingPeserta ? <Loader2 size={10} className="animate-spin" /> : null}
-                        {count} Agen
+                        {count} Peserta
                       </span>
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground font-light">
                     {count > 0 
-                      ? 'Kelola profil, tim, dan ekspor data secara efisien.' 
-                      : 'Batch ini kosong. Tambahkan data agen di bawah.'}
+                      ? 'Kelola profil peserta, analisis data, dan ekspor dokumen dari satu workspace.' 
+                      : 'Batch ini belum memiliki peserta. Tambahkan data untuk memulai.'}
                   </p>
                 </div>
 
@@ -292,14 +460,14 @@ export default function ProfilerLandingClient({
                       className="flex items-center gap-2 px-5 py-2.5 bg-module-profiler text-white rounded-xl text-sm font-bold shadow-lg shadow-module-profiler/20 hover:scale-105 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
                     >
                       <UserPlus size={18} />
-                      Pilih dari Batch Lain
+                      Ambil dari Batch Lain
                     </button>
                     <button 
                       onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(selectedBatch)}`)}
                       className="flex items-center gap-2 px-5 py-2.5 bg-accent text-foreground rounded-xl text-sm font-bold border border-border/40 hover:bg-accent/80 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
                     >
                       <Plus size={18} />
-                      Input Baru
+                      Tambah Peserta
                     </button>
                   </div>
                 )}
@@ -316,8 +484,8 @@ export default function ProfilerLandingClient({
                       icon={<Plus className="w-5 h-5" />}
                       iconBg="bg-primary/10"
                       iconColor="text-primary"
-                      title="Registrasi Manual"
-                      desc="Tambahkan data agen baru secara individual melalui formulir input."
+                      title="Input Manual"
+                      desc="Tambahkan data peserta satu per satu melalui formulir."
                       className="md:col-span-2"
                       onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(selectedBatch)}`)}
                     />
@@ -325,8 +493,8 @@ export default function ProfilerLandingClient({
                       icon={<Upload className="w-5 h-5" />}
                       iconBg="bg-module-telefun-bg"
                       iconColor="text-module-telefun"
-                      title="Impor Kolektif"
-                      desc="Unggah XLS untuk perbarui data massal."
+                      title="Impor Massal"
+                      desc="Unggah file Excel untuk menambah atau memperbarui data peserta."
                       onClick={() => router.push(`/profiler/import?batch=${encodeURIComponent(selectedBatch)}`)}
                     />
                   </div>
@@ -336,7 +504,7 @@ export default function ProfilerLandingClient({
               <section className={`transition-all duration-500 mb-8 ${!hasPeserta ? 'opacity-30 grayscale pointer-events-none' : ''}`}>
                 <div className="flex items-center gap-3 mb-4 px-1">
                   <div className="w-1 h-3 bg-primary rounded-full" />
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground"> Analisis & Ekspor </p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Analisis & Ekspor</p>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <ActionCard
@@ -344,7 +512,7 @@ export default function ProfilerLandingClient({
                     iconBg="bg-chart-blue/10"
                     iconColor="text-chart-blue"
                     title="Database"
-                    desc="Kelola data dalam format tabel."
+                    desc="Kelola data peserta dalam tampilan tabel."
                     onClick={() => router.push(`/profiler/table?batch=${encodeURIComponent(selectedBatch)}`)}
                   />
                   <ActionCard
@@ -352,7 +520,7 @@ export default function ProfilerLandingClient({
                     iconBg="bg-module-pdkt/10"
                     iconColor="text-module-pdkt"
                     title="Slides"
-                    desc="Profil agen format presentasi."
+                    desc="Lihat profil peserta dalam format presentasi."
                     onClick={() => router.push(`/profiler/slides?batch=${encodeURIComponent(selectedBatch)}`)}
                   />
                   <ActionCard
@@ -360,7 +528,7 @@ export default function ProfilerLandingClient({
                     iconBg="bg-chart-orange/10"
                     iconColor="text-chart-orange"
                     title="Ekspor"
-                    desc="Konversi ke PDF & Excel."
+                    desc="Unduh data ke format PDF dan Excel."
                     onClick={() => router.push(`/profiler/export?batch=${encodeURIComponent(selectedBatch)}`)}
                   />
                   <ActionCard
@@ -368,7 +536,7 @@ export default function ProfilerLandingClient({
                     iconBg="bg-module-telefun-bg"
                     iconColor="text-module-telefun"
                     title="Statistik"
-                    desc="Dashboard distribusi batch."
+                    desc="Lihat ringkasan distribusi data per batch."
                     onClick={() => router.push(`/profiler/analytics?batch=${encodeURIComponent(selectedBatch)}`)}
                   />
                 </div>
@@ -386,7 +554,7 @@ export default function ProfilerLandingClient({
                       iconBg="bg-foreground/10"
                       iconColor="text-muted-foreground"
                       title="Manajemen Tim"
-                      desc="Kustomisasi daftar tim."
+                      desc="Kelola daftar tim untuk kebutuhan input data."
                       onClick={() => router.push('/profiler/teams')}
                     />
                   </div>
@@ -395,8 +563,8 @@ export default function ProfilerLandingClient({
 
               {hasPeserta && (
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <StatCard label="Total Agen" value={String(count)} />
-                  <StatCard label="Folder Saat Ini" value={selectedBatch} small />
+                  <StatCard label="Total Peserta" value={String(count)} />
+                  <StatCard label="Batch Aktif" value={selectedBatch} small />
                   <button
                     onClick={() => setShowBirthdayModal(true)}
                     className="group relative overflow-hidden bg-primary/5 border border-primary/10 rounded-2xl p-4 text-left hover:shadow-lg hover:shadow-primary/5 transition-all"
@@ -422,7 +590,7 @@ export default function ProfilerLandingClient({
                         </div>
                       </>
                     ) : (
-                      <p className="text-xs text-muted-foreground font-light">Data tidak tersedia</p>
+                      <p className="text-xs text-muted-foreground font-light">Belum ada data ulang tahun.</p>
                     )}
                   </button>
                 </div>
@@ -452,7 +620,7 @@ export default function ProfilerLandingClient({
       {showAddYear && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md">
           <div className="bg-card w-full max-w-sm rounded-[2rem] p-6 shadow-2xl border border-border/40">
-            <h3 className="text-lg font-bold mb-4">Tambah Tahun</h3>
+            <h3 className="text-lg font-bold mb-4">Tambah Tahun Data</h3>
             <input 
               type="number"
               value={newYearValue}
@@ -471,12 +639,12 @@ export default function ProfilerLandingClient({
       {showAddFolder && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md">
           <div className="bg-card w-full max-w-sm rounded-[2rem] p-6 shadow-2xl border border-border/40">
-            <h3 className="text-lg font-bold mb-4">{showAddFolder.parentId ? 'Tambah Sub-folder' : 'Tambah Folder'}</h3>
+            <h3 className="text-lg font-bold mb-4">{showAddFolder.parentId ? 'Tambah Batch' : 'Tambah Tim'}</h3>
             <input 
               type="text"
               value={newFolderName}
               onChange={e => setNewFolderName(e.target.value)}
-              placeholder="Nama folder..."
+              placeholder={showAddFolder.parentId ? 'Contoh: Batch April' : 'Contoh: Tim OM'}
               className="w-full px-4 py-3 rounded-2xl border border-border/40 bg-background mb-4 transition-all focus:outline-none focus:ring-2 focus:ring-primary/20"
               autoFocus
             />
@@ -491,7 +659,7 @@ export default function ProfilerLandingClient({
       {renamingFolder && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md">
           <div className="bg-card w-full max-w-sm rounded-[2rem] p-6 shadow-2xl border border-border/40">
-            <h3 className="text-lg font-bold mb-4">Rename Folder</h3>
+            <h3 className="text-lg font-bold mb-4">Ubah Nama</h3>
             <input 
               type="text"
               value={renameValue}
@@ -517,10 +685,10 @@ export default function ProfilerLandingClient({
             </div>
             <h3 className="text-base font-bold text-center mb-1">Hapus Folder?</h3>
             <p className="text-sm text-muted-foreground text-center mb-1 font-semibold">{confirmDeleteFolder.name}</p>
-            <p className="text-xs text-red-500 text-center mb-6">Semua data peserta akan terhapus permanen.</p>
+            <p className="text-xs text-red-500 text-center mb-6">Tindakan ini menghapus folder dan seluruh data peserta secara permanen.</p>
             <div className="space-y-2">
               <button onClick={handleDeleteFolder} disabled={deleting} className="w-full py-3 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white rounded-2xl font-bold text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background">
-                {deleting ? 'Menghapus...' : 'Ya, Hapus Permanen'}
+                {deleting ? 'Menghapus...' : 'Hapus Permanen'}
               </button>
               <button onClick={() => setConfirmDeleteFolder(null)} disabled={deleting} className="w-full py-3 bg-accent border border-border/40 hover:bg-accent/80 rounded-2xl font-bold text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-2 focus-visible:ring-ring">Batal</button>
             </div>
@@ -572,7 +740,7 @@ export default function ProfilerLandingClient({
                   <div key={i} className={`flex items-center gap-3 p-4 rounded-2xl border transition-all ${b.days === 0 ? 'bg-pink-50 border-pink-200 dark:bg-pink-500/10' : 'bg-background border-border/40'}`}>
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-bold truncate ${b.days === 0 ? 'text-pink-600 dark:text-pink-400' : 'text-foreground'}`}>
-                        {b.nama} {b.days === 0 && '🎉'}
+                        {b.nama}
                       </p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">{formatDate(b.tglLahir)} · {b.age} tahun</p>
                     </div>
@@ -588,7 +756,7 @@ export default function ProfilerLandingClient({
             {upcomingBirthdays.length > 0 && (
               <div className="px-6 pb-5">
                 <p className="text-[10px] text-muted-foreground/40 text-center font-mono">
-                  Menampilkan 5 ulang tahun terdekat
+                  Maksimal 5 ulang tahun terdekat
                 </p>
               </div>
             )}
