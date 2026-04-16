@@ -34,7 +34,9 @@ export const TIM_TO_DEFAULT_SERVICE: Record<string, ServiceType> = {
   'Telepon': 'call',
   'Chat': 'chat',
   'Email': 'email',
-  'Mix': 'cso'
+  'Mix': 'cso',
+  'BKO': 'bko',
+  'SLIK': 'slik'
 };
 
 // ── Interfaces ────────────────────────────────────────────────

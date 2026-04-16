@@ -20,7 +20,7 @@ import { createClient } from '@/app/lib/supabase/client';
 import { deleteUserAction, updateUserRoleAction, updateUserStatusAction } from './actions';
 
 type ManagerRole = 'trainer' | 'admin' | 'superadmin';
-type UserStatus = 'approved' | 'pending';
+type UserStatus = 'approved' | 'pending' | 'rejected';
 
 interface ManagedUser {
   id: string;
@@ -61,7 +61,7 @@ export default function UsersClient({ user, role, profile: _profile }: UsersClie
   const [searchTerm, setSearchTerm] = useState('');
   const [updating, setUpdating] = useState<string | null>(null);
   const [resetSuccess, setResetSuccess] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'active'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'active' | 'rejected'>('all');
   const [selectedRoles, setSelectedRoles] = useState<Record<string, string>>({});
 
   const fetchAllUsers = useCallback(async () => {
@@ -175,10 +175,12 @@ export default function UsersClient({ user, role, profile: _profile }: UsersClie
 
     if (activeTab === 'pending') return matchesSearch && entry.status === 'pending';
     if (activeTab === 'active') return matchesSearch && entry.status === 'approved';
+    if (activeTab === 'rejected') return matchesSearch && entry.status === 'rejected';
     return matchesSearch;
   });
 
   const pendingCount = users.filter((entry) => entry.status === 'pending').length;
+  const rejectedCount = users.filter((entry) => entry.status === 'rejected').length;
 
   return (
     <div className="h-full overflow-hidden bg-background text-foreground transition-colors duration-500">
@@ -222,11 +224,12 @@ export default function UsersClient({ user, role, profile: _profile }: UsersClie
                 {[
                   { id: 'all', label: 'Semua', count: users.length },
                   { id: 'pending', label: 'Menunggu', count: pendingCount },
-                  { id: 'active', label: 'Aktif', count: users.length - pendingCount },
+                  { id: 'active', label: 'Aktif', count: users.filter((entry) => entry.status === 'approved').length },
+                  { id: 'rejected', label: 'Ditolak', count: rejectedCount },
                 ].map((tab) => (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id as 'all' | 'pending' | 'active')}
+                    onClick={() => setActiveTab(tab.id as 'all' | 'pending' | 'active' | 'rejected')}
                     className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
                       activeTab === tab.id
                         ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
@@ -259,6 +262,7 @@ export default function UsersClient({ user, role, profile: _profile }: UsersClie
                 {filteredUsers.map((entry) => {
                   const normalizedEntryRole = normalizeRoleValue(entry.role) || 'agent';
                   const isPending = entry.status === 'pending';
+                  const isRejected = entry.status === 'rejected';
                   const isSelf = entry.id === user.id;
                   const canDelete = (managerRole === 'admin' || managerRole === 'superadmin') && !isSelf;
                   const canChangeRole = !isSelf || managerRole === 'superadmin';
@@ -275,9 +279,11 @@ export default function UsersClient({ user, role, profile: _profile }: UsersClie
                     >
                       <div className="space-y-5">
                         <div className="flex items-start gap-4">
-                          <div className={`relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${isPending ? 'bg-amber-500/10' : 'bg-blue-500/10'}`}>
+                          <div className={`relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${isPending ? 'bg-amber-500/10' : isRejected ? 'bg-red-500/10' : 'bg-blue-500/10'}`}>
                             {isPending ? (
                               <UserPlus className="h-6 w-6 text-amber-500" />
+                            ) : isRejected ? (
+                              <XCircle className="h-6 w-6 text-red-500" />
                             ) : (
                               <ShieldCheck className="h-6 w-6 text-blue-500" />
                             )}
@@ -286,8 +292,8 @@ export default function UsersClient({ user, role, profile: _profile }: UsersClie
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
                               <h3 className="text-lg font-semibold tracking-tight">{entry.full_name || entry.email || 'Tanpa nama'}</h3>
-                              <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] ${isPending ? 'bg-amber-500/10 text-amber-600' : 'bg-emerald-500/10 text-emerald-600'}`}>
-                                {isPending ? 'Pending' : 'Approved'}
+                              <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] ${isPending ? 'bg-amber-500/10 text-amber-600' : isRejected ? 'bg-red-500/10 text-red-600' : 'bg-emerald-500/10 text-emerald-600'}`}>
+                                {isPending ? 'Pending' : isRejected ? 'Rejected' : 'Approved'}
                               </span>
                               {isSelf && (
                                 <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-primary">
@@ -309,9 +315,9 @@ export default function UsersClient({ user, role, profile: _profile }: UsersClie
                         <div className="grid gap-3 md:grid-cols-3">
                           <ActionCard
                             icon={<CheckCircle2 className="h-4 w-4" />}
-                            title={isPending ? 'Approve user' : 'Suspend user'}
-                            description={isPending ? 'Aktifkan akses login pengguna yang masih menunggu approval.' : 'Kembalikan user ke status pending tanpa menghapus akun.'}
-                            tone={isPending ? 'success' : 'warning'}
+                            title={isPending ? 'Approve user' : isRejected ? 'Pulihkan user' : 'Suspend user'}
+                            description={isPending ? 'Aktifkan akses login pengguna yang masih menunggu approval.' : isRejected ? 'Kembalikan user yang ditolak agar bisa direview kembali.' : 'Kembalikan user ke status pending tanpa menghapus akun.'}
+                            tone={isPending ? 'success' : isRejected ? 'neutral' : 'warning'}
                           />
                           <ActionCard
                             icon={<KeyRound className="h-4 w-4" />}
@@ -368,13 +374,32 @@ export default function UsersClient({ user, role, profile: _profile }: UsersClie
 
                           <div className="grid gap-2 sm:grid-cols-2">
                             {isPending ? (
+                              <>
+                                <button
+                                  onClick={() => void updateUserStatus(entry.id, 'approved')}
+                                  disabled={updating === entry.id}
+                                  className="flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  <CheckCircle2 className="h-4 w-4" />
+                                  Approve user
+                                </button>
+                                <button
+                                  onClick={() => void updateUserStatus(entry.id, 'rejected')}
+                                  disabled={updating === entry.id}
+                                  className="flex items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                  Tolak user
+                                </button>
+                              </>
+                            ) : isRejected ? (
                               <button
-                                onClick={() => void updateUserStatus(entry.id, 'approved')}
+                                onClick={() => void updateUserStatus(entry.id, 'pending')}
                                 disabled={updating === entry.id}
-                                className="flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="flex items-center justify-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-600 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                               >
-                                <CheckCircle2 className="h-4 w-4" />
-                                Approve user
+                                <UserPlus className="h-4 w-4" />
+                                Pulihkan ke pending
                               </button>
                             ) : (
                               <button
@@ -412,7 +437,7 @@ export default function UsersClient({ user, role, profile: _profile }: UsersClie
 
                           {managerRole === 'trainer' && (
                             <p className="text-xs leading-5 text-muted-foreground">
-                              Trainer dapat approve user, reset password, suspend user, dan mengubah role sampai level Trainer.
+                              Trainer dapat approve/tolak user, reset password, suspend user, dan mengubah role sampai level Trainer.
                             </p>
                           )}
                           {managerRole === 'admin' && (
