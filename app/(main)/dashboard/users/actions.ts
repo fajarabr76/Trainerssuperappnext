@@ -24,7 +24,7 @@ async function validateManagerRole() {
   return { user, role };
 }
 
-export async function updateUserStatusAction(userId: string, status: 'approved' | 'pending') {
+export async function updateUserStatusAction(userId: string, status: 'approved' | 'pending' | 'rejected') {
   await validateManagerRole();
   const supabase = await createClient();
 

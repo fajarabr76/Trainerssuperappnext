@@ -114,8 +114,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         const parts = responseText.split('[BREAK]').map(p => p.trim()).filter(p => p);
         let delay = 1000;
         for (const part of parts) {
-          const isSystem = part.includes('[SISTEM]');
-          const cleanText = part.replace('[SISTEM]', '').trim();
+          const isSystem = /\[(sistem|system)\]/i.test(part);
+          const cleanText = part.replace(/\[(sistem|system)\]/gi, '').trim();
           
           setTimeout(() => {
             setMessages(prev => [...prev, {
@@ -219,8 +219,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         
         let delay = 1000;
         for (const part of parts) {
-          const isSystem = part.includes('[SISTEM]');
-          const cleanText = part.replace('[SISTEM]', '').trim();
+          const isSystem = /\[(sistem|system)\]/i.test(part);
+          const cleanText = part.replace(/\[(sistem|system)\]/gi, '').trim();
           
           setTimeout(() => {
             setMessages(prev => [...prev, {
@@ -274,10 +274,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   const renderMessageContent = (text: string) => {
     const scenarioImages = (scenario as any).images || [];
-    const parts = text.split(/(\[SEND_IMAGE: \d+\])/g);
+    const parts = text.split(/(\[SEND_IMAGE\s*:\s*\d+\])/gi);
     
     return parts.map((part, index) => {
-        const match = part.match(/\[SEND_IMAGE: (\d+)\]/);
+        const match = part.match(/\[SEND_IMAGE\s*:\s*(\d+)\]/i);
         if (match) {
             const imgIndex = parseInt(match[1]);
             const imgSrc = scenarioImages[imgIndex];
@@ -295,6 +295,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         alt={`Attachment ${imgIndex}`} 
                         width={400}
                         height={400}
+                        unoptimized
                         className="rounded-2xl max-h-64 w-full object-cover border border-gray-200 dark:border-white/10 cursor-pointer hover:opacity-90 transition-all"
                         onClick={() => setSelectedImage(imgSrc)}
                         referrerPolicy="no-referrer"
