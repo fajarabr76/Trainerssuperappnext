@@ -1,6 +1,7 @@
 'use client';
 
 import type { CSSProperties } from 'react';
+import type { PesertaPhotoFrame } from './profiler-types';
 
 export interface PhotoFrame {
   x: number;
@@ -18,7 +19,7 @@ const STORAGE_KEY = 'profiler-photo-frames-v1';
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-const sanitizeFrame = (raw?: Partial<PhotoFrame> | null): PhotoFrame => {
+const sanitizeFrame = (raw?: Partial<PhotoFrame> | PesertaPhotoFrame | null): PhotoFrame => {
   if (!raw) return DEFAULT_PHOTO_FRAME;
   return {
     x: clamp(Number(raw.x ?? DEFAULT_PHOTO_FRAME.x), 0, 100),
@@ -48,7 +49,28 @@ const writeFrames = (frames: Record<string, PhotoFrame>) => {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(frames));
 };
 
-export const getPhotoFrame = (pesertaId?: string | null): PhotoFrame => {
+export const getPhotoFrame = (
+  pesertaId?: string | null,
+  serverFrame?: Partial<PhotoFrame> | PesertaPhotoFrame | null
+): PhotoFrame => {
+  if (serverFrame) {
+    const normalized = sanitizeFrame(serverFrame);
+    if (pesertaId) {
+      const frames = readFrames();
+      const existing = frames[pesertaId];
+      if (
+        !existing ||
+        existing.x !== normalized.x ||
+        existing.y !== normalized.y ||
+        existing.zoom !== normalized.zoom
+      ) {
+        frames[pesertaId] = normalized;
+        writeFrames(frames);
+      }
+    }
+    return normalized;
+  }
+
   if (!pesertaId) return DEFAULT_PHOTO_FRAME;
   const frames = readFrames();
   return frames[pesertaId] || DEFAULT_PHOTO_FRAME;

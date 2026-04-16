@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS public.profiler_peserta (
     tim text NOT NULL,
     jabatan text NOT NULL,
     foto_url text,
+    photo_frame jsonb,
     
     -- Data Kerja
     nik_ojk text,

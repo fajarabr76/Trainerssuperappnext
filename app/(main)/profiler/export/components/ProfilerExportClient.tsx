@@ -104,6 +104,46 @@ export default function ProfilerExportClient({
     } finally { setGenerating(null); }
   };
 
+  const buildFramedPhotoData = async (
+    fotoUrl: string,
+    frame: ReturnType<typeof getPhotoFrame>,
+    size = 512
+  ): Promise<string | null> => {
+    try {
+      const image = new window.Image();
+      image.crossOrigin = 'anonymous';
+      image.decoding = 'async';
+
+      await new Promise<void>((resolve, reject) => {
+        image.onload = () => resolve();
+        image.onerror = () => reject(new Error('Failed to load image'));
+        image.src = fotoUrl;
+      });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+
+      const coverScale = Math.max(size / image.width, size / image.height);
+      const scale = coverScale * frame.zoom;
+      const drawW = image.width * scale;
+      const drawH = image.height * scale;
+
+      const posXRatio = frame.x / 100;
+      const posYRatio = frame.y / 100;
+      const offsetX = (size * posXRatio) - (drawW * posXRatio);
+      const offsetY = (size * posYRatio) - (drawH * posYRatio);
+
+      ctx.clearRect(0, 0, size, size);
+      ctx.drawImage(image, offsetX, offsetY, drawW, drawH);
+      return canvas.toDataURL('image/jpeg', 0.95);
+    } catch {
+      return null;
+    }
+  };
+
   const downloadPPTX = async () => {
     setGenerating('pptx');
     try {
@@ -123,6 +163,47 @@ export default function ProfilerExportClient({
         const slide = prs.addSlide();
         const theme = timTheme(p.tim);
         const accentColor = theme.accent;
+        const addProfilePhoto = async (x: number, y: number, w: number, h: number, fallbackFontSize: number) => {
+          if (p.foto_url) {
+            const frame = getPhotoFrame(p.id, p.photo_frame);
+            const framedData = await buildFramedPhotoData(p.foto_url, frame);
+            try {
+              if (framedData) {
+                slide.addImage({ data: framedData, x, y, w, h, rounding: true });
+              } else {
+                slide.addImage({
+                  path: p.foto_url,
+                  x,
+                  y,
+                  w,
+                  h,
+                  rounding: true,
+                  sizing: { type: 'cover', w, h },
+                });
+              }
+              return;
+            } catch (_e) {}
+          }
+
+          slide.addShape(prs.ShapeType.rect, {
+            x,
+            y,
+            w,
+            h,
+            fill: { color: theme.light.replace('#', '') },
+          });
+          slide.addText(p.nama?.charAt(0) || '?', {
+            x,
+            y,
+            w,
+            h,
+            align: 'center',
+            valign: 'middle',
+            fontSize: fallbackFontSize,
+            bold: true,
+            color: accentColor,
+          });
+        };
 
         if (isLandscape) {
           // Top Accent Bar
@@ -134,17 +215,7 @@ export default function ProfilerExportClient({
           slide.addShape(prs.ShapeType.rect, { x: sidebarW, y: 0.04, w: 0.01, h: 5.585, fill: { color: 'F3F4F6' } });
 
           // Profile Photo
-          if (p.foto_url) {
-            try {
-              slide.addImage({ path: p.foto_url, x: 0.75, y: 0.35, w: 1.5, h: 1.5, rounding: true });
-            } catch (_e) {
-              slide.addShape(prs.ShapeType.rect, { x: 0.75, y: 0.35, w: 1.5, h: 1.5, fill: { color: theme.light.replace('#', '') } });
-              slide.addText(p.nama?.charAt(0) || '?', { x: 0.75, y: 0.35, w: 1.5, h: 1.5, align: 'center', valign: 'middle', fontSize: 40, bold: true, color: accentColor });
-            }
-          } else {
-            slide.addShape(prs.ShapeType.rect, { x: 0.75, y: 0.35, w: 1.5, h: 1.5, fill: { color: theme.light.replace('#', '') } });
-            slide.addText(p.nama?.charAt(0) || '?', { x: 0.75, y: 0.35, w: 1.5, h: 1.5, align: 'center', valign: 'middle', fontSize: 40, bold: true, color: accentColor });
-          }
+          await addProfilePhoto(0.75, 0.35, 1.5, 1.5, 40);
 
           // Name & Jabatan
           slide.addText(p.nama || '-', { x: 0.2, y: 1.95, w: 2.6, h: 0.4, align: 'center', fontSize: 16, bold: true, color: '111827' });
@@ -236,17 +307,7 @@ export default function ProfilerExportClient({
           slide.addShape(prs.ShapeType.rect, { x: 0, y: 0, w: '100%', h: 0.04, fill: { color: accentColor } });
 
           // Header Section
-          if (p.foto_url) {
-            try {
-              slide.addImage({ path: p.foto_url, x: 0.5, y: 0.5, w: 1.5, h: 1.5, rounding: true });
-            } catch (_e) {
-              slide.addShape(prs.ShapeType.rect, { x: 0.5, y: 0.5, w: 1.5, h: 1.5, fill: { color: theme.light.replace('#', '') } });
-              slide.addText(p.nama?.charAt(0) || '?', { x: 0.5, y: 0.5, w: 1.5, h: 1.5, align: 'center', valign: 'middle', fontSize: 36, bold: true, color: accentColor });
-            }
-          } else {
-            slide.addShape(prs.ShapeType.rect, { x: 0.5, y: 0.5, w: 1.5, h: 1.5, fill: { color: theme.light.replace('#', '') } });
-            slide.addText(p.nama?.charAt(0) || '?', { x: 0.5, y: 0.5, w: 1.5, h: 1.5, align: 'center', valign: 'middle', fontSize: 36, bold: true, color: accentColor });
-          }
+          await addProfilePhoto(0.5, 0.5, 1.5, 1.5, 36);
 
           slide.addText(p.nama || '-', { x: 2.3, y: 0.6, w: 5.5, h: 0.4, fontSize: 24, bold: true, color: '111827' });
           slide.addText(labelJabatan[p.jabatan] || p.jabatan || '-', { x: 2.3, y: 1.0, w: 5.5, h: 0.2, fontSize: 12, bold: true, color: accentColor });
@@ -335,7 +396,7 @@ export default function ProfilerExportClient({
 
   const buildSlideHTML = (p: Peserta, batch: string, orient: 'landscape' | 'portrait') => {
     const theme = timTheme(p.tim);
-    const photoFrame = getPhotoFrame(p.id);
+    const photoFrame = getPhotoFrame(p.id, p.photo_frame);
     const fields = (items: Array<[string, string | null | undefined, number?]>) =>
       items.filter(([, v]) => v).map(([label, value, span]) =>
         `<div style="${span === 2 ? 'grid-column:span 2;' : ''}"><div><div style="font-size:8px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">${label}</div><div style="font-size:11px;font-weight:700;color:#111827;">${value || '-'}</div></div></div>`

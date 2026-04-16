@@ -1,6 +1,6 @@
 # Master Backlog Trainers SuperApp
 
-Last update: 15 April 2026
+Last update: 16 April 2026
 Owner default: Product + Engineering
 
 ## Cara Pakai
@@ -62,17 +62,17 @@ Owner default: Product + Engineering
 ## C. Belum Selesai - Prioritas Tinggi
 
 ### C1. Profiler Table (P0)
-- [ ] Ratakan ke visual system terbaru.
-- [ ] Rapikan toolbar, filter, bulk action, modal edit.
-- [ ] Rapikan empty/loading/error state.
-- [ ] Final check responsive density desktop/mobile.
+- [x] Ratakan ke visual system terbaru.
+- [x] Rapikan toolbar, filter, bulk action, modal edit.
+- [x] Rapikan empty/loading/error state.
+- [x] Final check responsive density desktop/mobile.
 
 ### C2. Profiler Slides Export Mode (P0)
-- [ ] Finalisasi pilihan export:
-  - [ ] `Original`
-  - [ ] `Opsi 2 (Portrait A4)` berbasis konsep polished
-- [ ] Pastikan preview aktif merepresentasikan hasil export.
-- [ ] Pastikan output download benar-benar sesuai mode aktif.
+- [x] Finalisasi pilihan export:
+  - [x] `Original`
+  - [x] `Opsi 2 (Portrait A4)` berbasis konsep polished
+- [x] Pastikan preview aktif merepresentasikan hasil export.
+- [x] Pastikan output download benar-benar sesuai mode aktif.
 
 ### C3. Crop/Zoom Foto Peserta (P0)
 - [x] Crop/zoom in/zoom out saat upload/edit dari table.

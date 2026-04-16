@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, ChevronLeft, ChevronRight, ImageDown, Loader2, ChevronDown, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Peserta, Jabatan, labelJabatan, labelTim,
+  Peserta, labelJabatan, labelTim,
   hitungMasaDinas, hitungUsia, formatTanggal 
 } from '../../lib/profiler-types';
 import { ProfilerYear, ProfilerFolder } from '../../services/profilerService';
@@ -42,21 +42,22 @@ interface ProfilerSlidesClientProps {
   role?: string;
 }
 
+type SlideMode = 'original' | 'portraitA4';
+
 export default function ProfilerSlidesClient({
   initialPeserta,
   initialYears,
   initialFolders,
   batchName,
-  role = 'trainer'
+  role: _role = 'trainer'
 }: ProfilerSlidesClientProps) {
-  const isReadOnly = role === 'leader';
   const router = useRouter();
   const [index, setIndex] = useState(0);
   const [fade, setFade] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingPdf, setSavingPdf] = useState(false);
   const [showFolderDropdown, setShowFolderDropdown] = useState(false);
-  const [slideMode, setSlideMode] = useState<'original' | 'polished'>('original');
+  const [slideMode, setSlideMode] = useState<SlideMode>('original');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const slideRef = useRef<HTMLDivElement>(null);
 
@@ -119,8 +120,9 @@ export default function ProfilerSlidesClient({
     try {
       const canvas = await captureSlideCanvas();
       if (!canvas) return;
+      const modeSuffix = slideMode === 'portraitA4' ? 'opsi2-portrait-a4' : 'original';
       const link = document.createElement('a');
-      link.download = `${batchName}_${initialPeserta[index].nama?.replace(/\s+/g, '_') || index + 1}.png`;
+      link.download = `${batchName}_${initialPeserta[index].nama?.replace(/\s+/g, '_') || index + 1}_${modeSuffix}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
     } catch (err: any) {
@@ -135,24 +137,23 @@ export default function ProfilerSlidesClient({
     setSavingPdf(true);
     try {
       const { jsPDF } = await import('jspdf');
-      const isA4Portrait = slideMode === 'polished';
-      const pdfFormat = isA4Portrait ? [1240, 1754] : [1920, 1080];
+      const isA4Portrait = slideMode === 'portraitA4';
+
+      const canvas = await captureSlideCanvas();
+      if (!canvas) return;
+
+      const pdfFormat: [number, number] = [canvas.width, canvas.height];
       const pdf = new jsPDF({
         orientation: isA4Portrait ? 'p' : 'l',
         unit: 'px',
         format: pdfFormat,
         hotfixes: ['px_scaling'],
       });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-
-      const canvas = await captureSlideCanvas();
-      if (!canvas) return;
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
 
-      pdf.save(`${batchName}_${initialPeserta[index].nama?.replace(/\s+/g, '_') || index + 1}.pdf`);
+      const modeSuffix = isA4Portrait ? 'opsi2-portrait-a4' : 'original';
+      pdf.save(`${batchName}_${initialPeserta[index].nama?.replace(/\s+/g, '_') || index + 1}_${modeSuffix}.pdf`);
     } catch (err: any) {
       alert('Gagal simpan PDF: ' + err.message);
     } finally {
@@ -162,7 +163,7 @@ export default function ProfilerSlidesClient({
 
   const p = initialPeserta[index];
   const theme = p ? timTheme(p.tim) : timTheme('');
-  const isA4Portrait = slideMode === 'polished';
+  const isA4Portrait = slideMode === 'portraitA4';
 
   const renderPolishedContent = (participant: Peserta) => {
     const headlineGradient = {
@@ -179,7 +180,7 @@ export default function ProfilerSlidesClient({
             <div className="grid grid-cols-1 sm:grid-cols-[132px_1fr] gap-4 items-center">
               {participant.foto_url ? (
                 <div className="w-[132px] h-[172px] rounded-[1.2rem] overflow-hidden shadow-xl relative ring-[5px] ring-card" style={{ boxShadow: `0 10px 24px ${theme.accent}32` }}>
-                  <Image src={participant.foto_url} alt={participant.nama || ''} fill className="object-cover" style={getPhotoImageStyle(getPhotoFrame(participant.id))} referrerPolicy="no-referrer" />
+                  <Image src={participant.foto_url} alt={participant.nama || ''} fill className="object-cover" style={getPhotoImageStyle(getPhotoFrame(participant.id, participant.photo_frame))} referrerPolicy="no-referrer" />
                 </div>
               ) : (
                 <div className="w-[132px] h-[172px] rounded-[1.2rem] flex items-center justify-center font-black text-5xl shadow-lg ring-[5px] ring-card" style={{ background: theme.light, color: theme.accent, border: `1px solid ${theme.accent}40` }}>
@@ -366,17 +367,17 @@ export default function ProfilerSlidesClient({
             </button>
             <button
               onClick={() => {
-                setSlideMode('polished');
+                setSlideMode('portraitA4');
               }}
-              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${slideMode === 'polished' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-              title="Opsi 2 (Polished)"
+              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${slideMode === 'portraitA4' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              title="Opsi 2 (Portrait A4)"
             >
               Opsi 2
             </button>
           </div>
 
           <div className="px-3 py-1.5 rounded-xl border border-primary/20 bg-primary/5 text-[10px] uppercase tracking-widest font-bold text-primary">
-            Mode: {slideMode === 'original' ? 'Versi Original' : 'Opsi 2 (Polished)'}
+            Mode: {slideMode === 'original' ? 'Versi Original' : 'Opsi 2 (Portrait A4)'}
           </div>
 
           <button
@@ -427,7 +428,7 @@ export default function ProfilerSlidesClient({
                       <div className="w-[30%] flex-shrink-0 bg-muted/20 border-r border-border/40 flex flex-col items-center px-6 py-8 gap-6 overflow-y-auto box-border pb-12">
                         {p.foto_url ? (
                           <div className="w-32 h-32 rounded-[2rem] overflow-hidden flex-shrink-0 shadow-lg relative ring-[6px] ring-card" style={{ boxShadow: `0 8px 24px ${theme.accent}30` }}>
-                            <Image src={p.foto_url} alt={p.nama || ''} fill className="object-cover" style={getPhotoImageStyle(getPhotoFrame(p.id))} referrerPolicy="no-referrer" />
+                            <Image src={p.foto_url} alt={p.nama || ''} fill className="object-cover" style={getPhotoImageStyle(getPhotoFrame(p.id, p.photo_frame))} referrerPolicy="no-referrer" />
                           </div>
                         ) : (
                           <div className="w-32 h-32 rounded-[2rem] flex-shrink-0 flex items-center justify-center font-bold text-4xl shadow-md ring-[6px] ring-card" style={{ background: theme.light, color: theme.accent, border: `1px solid ${theme.accent}40` }}>

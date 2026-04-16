@@ -250,6 +250,14 @@
     --module-clean-accent: var(--module-pdkt);
   }
 
+  .module-clean-app[data-module='profiler'] {
+    --module-clean-accent: var(--module-profiler);
+  }
+
+  .module-clean-app[data-module='qa-analyzer'] {
+    --module-clean-accent: var(--module-sidak);
+  }
+
   .module-clean-stage {
     background:
       radial-gradient(circle at top right, color-mix(in srgb, var(--module-clean-accent) 10%, transparent), transparent 34%),

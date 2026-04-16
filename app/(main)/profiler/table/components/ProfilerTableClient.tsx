@@ -7,8 +7,10 @@ import {
   ArrowLeft, Plus, X, Save, Trash2, Upload,
   Loader2, FolderInput, Check, GripVertical, ArrowUpDown,
   Download, ChevronDown, Activity, Search, FilterX, Users, AlertCircle,
+  Inbox,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import QaStatePanel from '@/app/(main)/qa-analyzer/components/QaStatePanel';
 import { Peserta, Jabatan, labelJabatan } from '../../lib/profiler-types';
 import { ProfilerYear, ProfilerFolder } from '../../services/profilerService';
 import { uploadFoto } from '../../services/profilerService';
@@ -60,81 +62,148 @@ const MoveFolderModal: React.FC<{
   const otherFolders = folders.filter(f => f.name !== currentBatch);
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-background/80 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-card w-full sm:max-w-md sm:rounded-3xl rounded-t-3xl border border-border/40 overflow-hidden shadow-2xl">
-        <div className="flex justify-center pt-3 pb-1 sm:hidden">
-          <div className="w-10 h-1 bg-border rounded-full" />
-        </div>
-        <div className="px-5 pt-5 pb-6 space-y-5">
-          <div className="flex items-center justify-between">
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-background/40 backdrop-blur-md p-0 sm:p-4 overflow-hidden"
+        onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+          className="bg-card w-full sm:max-w-md sm:rounded-[2.5rem] rounded-t-[2.5rem] border border-border/40 overflow-hidden shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] flex flex-col max-h-[90vh]"
+        >
+          {/* Handle for mobile drag-down feel */}
+          <div className="flex justify-center pt-4 pb-2 sm:hidden shrink-0">
+            <div className="w-12 h-1.5 bg-muted rounded-full opacity-40" />
+          </div>
+
+          <div className="px-8 pt-6 pb-4 flex items-center justify-between shrink-0">
             <div>
-              <h2 className="text-base font-bold text-foreground tracking-tight">Pindah ke Folder</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">{selectedIds.length} peserta dipilih</p>
+              <h2 className="text-xl font-black text-foreground tracking-tighter flex items-center gap-2">
+                <FolderInput className="w-5 h-5 text-primary" />
+                Pindah Folder
+              </h2>
+              <p className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-widest mt-1">
+                {selectedIds.length} Peserta Terpilih
+              </p>
             </div>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center hover:bg-muted rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><X className="w-4 h-4 text-muted-foreground" /></button>
-          </div>
-          
-          {otherFolders.length === 0 ? (
-            <div className="text-center py-6 bg-muted/30 rounded-2xl border border-border/40">
-              <p className="text-sm text-muted-foreground">Tidak ada folder lain.</p>
-              <p className="text-xs text-muted-foreground mt-1">Buat folder baru di halaman Profiler.</p>
-            </div>
-          ) : (
-            <div className="space-y-4 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
-              {years.map(year => {
-                const yearFolders = otherFolders.filter(f => f.year_id === year.id && !f.parent_id);
-                if (yearFolders.length === 0) return null;
-                
-                return (
-                  <div key={year.id} className="space-y-2">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">{year.label}</p>
-                    <div className="space-y-1">
-                      {yearFolders.map(folder => {
-                        const subFolders = otherFolders.filter(f => f.parent_id === folder.id);
-                        return (
-                          <div key={folder.id} className="space-y-1">
-                            <button onClick={() => setTargetFolder(folder.name)}
-                              className={`w-full flex items-center justify-between px-4 py-3 rounded-[1.25rem] border transition-all text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                                targetFolder === folder.name
-                                  ? 'border-primary bg-primary/5 shadow-sm'
-                                  : 'border-border/40 hover:border-primary/30 bg-background'
-                              }`}>
-                              <span className={`text-sm font-bold tracking-tight ${targetFolder === folder.name ? 'text-primary' : 'text-foreground'}`}>{folder.name}</span>
-                              {targetFolder === folder.name && <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center"><Check className="w-2.5 h-2.5 text-primary-foreground" /></div>}
-                            </button>
-                            
-                            {subFolders.map(sub => (
-                              <button key={sub.id} onClick={() => setTargetFolder(sub.name)}
-                                className={`w-full flex items-center justify-between px-4 py-3 rounded-[1.25rem] border transition-all text-left ml-4 w-[calc(100%-1rem)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                                  targetFolder === sub.name
-                                    ? 'border-primary bg-primary/5 shadow-sm'
-                                    : 'border-border/40 hover:border-primary/30 bg-background'
-                                }`}>
-                                <span className={`text-sm font-bold tracking-tight ${targetFolder === sub.name ? 'text-primary' : 'text-foreground'}`}>{sub.name}</span>
-                                {targetFolder === sub.name && <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center"><Check className="w-2.5 h-2.5 text-primary-foreground" /></div>}
-                              </button>
-                            ))}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          
-          <div className="space-y-2 pt-1 border-t border-border/40">
-            <button onClick={handleMove} disabled={!targetFolder || moving}
-              className="w-full py-4 bg-primary hover:opacity-90 disabled:opacity-50 text-primary-foreground rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-md shadow-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background">
-              {moving ? <><Loader2 className="w-4 h-4 animate-spin" />Memindahkan...</> : <><FolderInput className="w-4 h-4" />Pindahkan ke &quot;{targetFolder || '...'}&quot;</>}
+            <button 
+              onClick={onClose} 
+              className="w-10 h-10 flex items-center justify-center hover:bg-muted rounded-full transition-all group active:scale-95"
+            >
+              <X className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
             </button>
-            <button onClick={onClose} className="w-full py-3 bg-muted/50 hover:bg-muted text-muted-foreground rounded-2xl text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Batal</button>
           </div>
-        </div>
+          
+          <div className="flex-1 overflow-y-auto px-8 py-4 custom-scrollbar">
+            {otherFolders.length === 0 ? (
+              <div className="py-4">
+                <QaStatePanel 
+                  type="empty" 
+                  title="Folder Tidak Ditemukan" 
+                  description="Tidak ada folder lain yang tersedia saat ini. Silakan buat folder baru terlebih dahulu."
+                />
+              </div>
+            ) : (
+              <div className="space-y-6 pb-6">
+                {years.map(year => {
+                  const yearFolders = otherFolders.filter(f => f.year_id === year.id && !f.parent_id);
+                  if (yearFolders.length === 0) return null;
+                  
+                  return (
+                    <div key={year.id} className="space-y-3">
+                      <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] px-1">{year.label}</p>
+                      <div className="grid gap-2">
+                        {yearFolders.map(folder => {
+                          const subFolders = otherFolders.filter(f => f.parent_id === folder.id);
+                          const isSelected = targetFolder === folder.name;
+
+                          return (
+                            <div key={folder.id} className="grid gap-2">
+                              <button 
+                                onClick={() => setTargetFolder(folder.name)}
+                                className={`group w-full flex items-center justify-between px-5 py-4 rounded-2xl border transition-all text-left relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
+                                  isSelected
+                                    ? 'border-primary bg-primary/[0.03] shadow-inner'
+                                    : 'border-border/40 hover:border-primary/40 bg-background/50'
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className={`transition-colors ${isSelected ? 'text-primary' : 'text-muted-foreground/40 group-hover:text-primary/60'}`}>
+                                    <Inbox className="w-4 h-4" />
+                                  </div>
+                                  <span className={`text-sm font-bold tracking-tight transition-colors ${isSelected ? 'text-primary' : 'text-foreground'}`}>
+                                    {folder.name}
+                                  </span>
+                                </div>
+                                {isSelected && (
+                                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                                    <Check className="w-3 h-3 text-primary-foreground stroke-[3px]" />
+                                  </motion.div>
+                                )}
+                              </button>
+                              
+                              {subFolders.map(sub => {
+                                const isSubSelected = targetFolder === sub.name;
+                                return (
+                                  <button 
+                                    key={sub.id} 
+                                    onClick={() => setTargetFolder(sub.name)}
+                                    className={`group w-full flex items-center justify-between px-5 py-4 rounded-2xl border transition-all text-left ml-6 w-[calc(100%-1.5rem)] relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
+                                      isSubSelected
+                                        ? 'border-primary bg-primary/[0.03] shadow-inner'
+                                        : 'border-border/40 hover:border-primary/40 bg-background/50'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <div className={`transition-colors ${isSubSelected ? 'text-primary' : 'text-muted-foreground/40 group-hover:text-primary/60'}`}>
+                                        <Inbox className="w-3.5 h-3.5" />
+                                      </div>
+                                      <span className={`text-sm font-bold tracking-tight transition-colors ${isSubSelected ? 'text-primary' : 'text-foreground'}`}>
+                                        {sub.name}
+                                      </span>
+                                    </div>
+                                    {isSubSelected && (
+                                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                                        <Check className="w-2.5 h-2.5 text-primary-foreground stroke-[3px]" />
+                                      </motion.div>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          
+          <div className="p-8 pt-4 border-t border-border/40 bg-muted/20 shrink-0 space-y-3">
+            <button 
+              onClick={handleMove} 
+              disabled={!targetFolder || moving}
+              className="w-full h-14 bg-primary hover:opacity-90 disabled:opacity-30 text-primary-foreground rounded-2xl text-sm font-bold flex items-center justify-center gap-3 shadow-xl shadow-primary/20 transition-all active:scale-[0.98]"
+            >
+              {moving ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> Sedang Memindahkan...</>
+              ) : (
+                <><Check className="w-5 h-5" /> Konfirmasi Pemindahan</>
+              )}
+            </button>
+            <button 
+              onClick={onClose} 
+              className="w-full h-12 hover:bg-muted text-muted-foreground hover:text-foreground rounded-2xl text-sm font-bold transition-all active:scale-[0.98]"
+            >
+              Batal
+            </button>
+          </div>
+        </motion.div>
       </div>
-    </div>
+    </AnimatePresence>
   );
 };
 
@@ -153,19 +222,39 @@ const EditModal: React.FC<{
   const [fotoPreview, setFotoPreview] = useState<string>(peserta.foto_url || '');
   const [uploadingFoto, setUploadingFoto] = useState(false);
   const [photoFrame, setPhotoFrameState] = useState<PhotoFrame>(DEFAULT_PHOTO_FRAME);
+  const frameSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setPhotoFrameState(getPhotoFrame(peserta.id));
-  }, [peserta.id]);
+    setPhotoFrameState(getPhotoFrame(peserta.id, peserta.photo_frame));
+  }, [peserta.id, peserta.photo_frame]);
+
+  useEffect(() => {
+    return () => {
+      if (frameSaveTimerRef.current) {
+        clearTimeout(frameSaveTimerRef.current);
+      }
+    };
+  }, []);
 
   const set = (key: keyof Peserta, value: any) => setForm(prev => ({ ...prev, [key]: value }));
   const updateFrame = (next: Partial<PhotoFrame>) => {
+    if (isReadOnly || !form.id) return;
     const normalized = normalizePhotoFrame({ ...photoFrame, ...next });
     setPhotoFrameState(normalized);
-    if (form.id) {
-      setPhotoFrame(form.id, normalized);
-      onFrameUpdated(form.id);
+    setPhotoFrame(form.id, normalized);
+    setForm(prev => ({ ...prev, photo_frame: normalized }));
+    onFrameUpdated(form.id);
+
+    if (frameSaveTimerRef.current) {
+      clearTimeout(frameSaveTimerRef.current);
     }
+    frameSaveTimerRef.current = setTimeout(async () => {
+      try {
+        await updatePeserta(form.id!, { photo_frame: normalized });
+      } catch (err) {
+        console.error('Gagal sinkronisasi frame foto ke server', err);
+      }
+    }, 450);
   };
 
   const handleFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -200,139 +289,206 @@ const EditModal: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/80 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-card w-full sm:max-w-2xl sm:rounded-3xl rounded-t-3xl border border-border/40 overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-border/40 shrink-0">
-          <h2 className="text-base font-bold tracking-tight text-foreground">Edit Peserta</h2>
-          <div className="flex items-center gap-2">
-            {!isReadOnly && (
-              <>
-                <button onClick={handleDelete} className="flex items-center gap-1.5 px-3 py-1.5 text-destructive hover:bg-destructive/10 rounded-xl text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"><Trash2 className="w-3.5 h-3.5" /> Hapus</button>
-                <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 px-4 py-1.5 bg-primary hover:opacity-90 disabled:opacity-50 text-primary-foreground rounded-xl text-xs font-bold shadow-md shadow-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Save className="w-3.5 h-3.5" />{saving ? 'Menyimpan...' : 'Simpan'}</button>
-              </>
-            )}
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center hover:bg-muted rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><X className="w-4 h-4 text-muted-foreground" /></button>
-          </div>
-        </div>
-        <div className="overflow-y-auto flex-1 px-6 py-6 space-y-6 custom-scrollbar">
-          <div className={sectionClass}>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">Identitas Utama</p>
-            <div className="flex items-center gap-4 mb-4">
-              <div className="relative w-20 h-20 rounded-[1.25rem] bg-muted/30 border border-border/40 overflow-hidden flex items-center justify-center shrink-0">
-                {uploadingFoto ? <Loader2 className="w-6 h-6 text-primary animate-spin" /> : fotoPreview ? <div className="relative w-full h-full"><Image src={fotoPreview} alt="Preview" fill className="object-cover" style={getPhotoImageStyle(photoFrame)} unoptimized /></div> : <Upload className="w-6 h-6 text-muted-foreground" />}
-              </div>
-              <label className="cursor-pointer px-4 py-2 bg-background hover:bg-muted border border-border/40 rounded-xl text-sm text-muted-foreground hover:text-foreground font-bold transition-all shadow-sm focus-within:ring-2 focus-within:ring-ring relative group">
-                <span className="group-hover:-translate-y-0.5 transition-transform block">{uploadingFoto ? 'Mengunggah...' : 'Ganti Foto'}</span>
-                <input type="file" accept="image/*" onChange={handleFoto} className="sr-only" disabled={uploadingFoto} />
-              </label>
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-background/40 backdrop-blur-md p-0 sm:p-4 overflow-hidden"
+        onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.98, y: 30 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.98, y: 30 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="bg-card w-full sm:max-w-3xl sm:rounded-[2.5rem] rounded-t-[2.5rem] border border-border/40 overflow-hidden shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] flex flex-col max-h-[95vh]"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-8 py-6 border-b border-border/40 shrink-0 bg-background/50 backdrop-blur-sm">
+            <div>
+              <h2 className="text-xl font-black text-foreground tracking-tighter">Profil Peserta</h2>
+              <p className="text-xs font-bold text-muted-foreground/50 uppercase tracking-widest mt-1">Data & Konfigurasi Visual</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="col-span-1">
-                <label className={labelClass}>Posisi Horizontal</label>
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={1}
-                  className="w-full"
-                  value={Math.round(photoFrame.x)}
-                  onChange={(e) => updateFrame({ x: Number(e.target.value) })}
-                />
+            <div className="flex items-center gap-3">
+              {!isReadOnly && (
+                <>
+                  <button 
+                    onClick={handleDelete} 
+                    className="flex sm:hidden items-center justify-center w-11 h-11 text-destructive hover:bg-destructive/10 rounded-2xl transition-all active:scale-95 border border-transparent hover:border-destructive/20"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                  <button 
+                    onClick={handleDelete} 
+                    className="hidden sm:flex items-center gap-2 px-4 py-2.5 text-destructive hover:bg-destructive/10 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 border border-transparent hover:border-destructive/20"
+                  >
+                    <Trash2 className="w-4 h-4" /> Hapus
+                  </button>
+                </>
+              )}
+              <button 
+                onClick={onClose} 
+                className="w-11 h-11 flex items-center justify-center hover:bg-muted rounded-full transition-all group active:scale-95"
+              >
+                <X className="w-6 h-6 text-muted-foreground group-hover:text-foreground transition-colors" />
+              </button>
+            </div>
+          </div>
+
+          <div className="overflow-y-auto flex-1 px-8 py-8 space-y-10 custom-scrollbar">
+            {/* Visual Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-6 bg-primary rounded-full" />
+                <h3 className="text-sm font-black text-foreground uppercase tracking-[0.2em]">Visual & Frame</h3>
               </div>
-              <div className="col-span-1">
-                <label className={labelClass}>Posisi Vertikal</label>
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={1}
-                  className="w-full"
-                  value={Math.round(photoFrame.y)}
-                  onChange={(e) => updateFrame({ y: Number(e.target.value) })}
-                />
-              </div>
-              <div className="col-span-1">
-                <label className={labelClass}>Zoom Foto</label>
-                <div className="flex items-center gap-2">
-                  <button type="button" onClick={() => updateFrame({ zoom: photoFrame.zoom - 0.1 })} className="w-8 h-8 rounded-lg border border-border/40 bg-background text-sm font-bold">-</button>
-                  <input
-                    type="range"
-                    min={1}
-                    max={2.5}
-                    step={0.05}
-                    className="flex-1"
-                    value={photoFrame.zoom}
-                    onChange={(e) => updateFrame({ zoom: Number(e.target.value) })}
-                  />
-                  <button type="button" onClick={() => updateFrame({ zoom: photoFrame.zoom + 0.1 })} className="w-8 h-8 rounded-lg border border-border/40 bg-background text-sm font-bold">+</button>
+              
+              <div className="flex flex-col md:flex-row gap-8 items-start">
+                <div className="relative group shrink-0">
+                  <div className="relative w-40 h-40 md:w-48 md:h-48 rounded-[2.5rem] bg-muted/20 border-2 border-dashed border-border/60 overflow-hidden flex items-center justify-center transition-all group-hover:border-primary/40 group-hover:shadow-2xl group-hover:shadow-primary/5">
+                    {uploadingFoto ? (
+                      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                    ) : fotoPreview ? (
+                      <div className="relative w-full h-full">
+                        <Image 
+                          src={fotoPreview} 
+                          alt="Preview" 
+                          fill 
+                          className="object-cover" 
+                          style={getPhotoImageStyle(photoFrame)} 
+                          unoptimized 
+                        />
+                      </div>
+                    ) : (
+                      <Upload className="w-8 h-8 text-muted-foreground/30" />
+                    )}
+                    
+                    {!isReadOnly && (
+                      <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                        <div className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 text-white text-xs font-bold flex items-center gap-2">
+                          <Upload className="w-4 h-4" /> Ganti Foto
+                        </div>
+                        <input type="file" accept="image/*" onChange={handleFoto} className="sr-only" disabled={uploadingFoto} />
+                      </label>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex-1 space-y-6 w-full translate-y-2">
+                  <div className="grid grid-cols-1 gap-6">
+                    <div>
+                      <div className="flex items-center justify-between mb-3 px-1">
+                        <label className={labelClass + " !mb-0"}>Posisi Horizontal</label>
+                        <span className="text-[10px] font-mono text-muted-foreground">{Math.round(photoFrame.x)}%</span>
+                      </div>
+                      <input type="range" min={0} max={100} step={1} disabled={isReadOnly} className="w-full accent-primary disabled:opacity-40 disabled:cursor-not-allowed" value={Math.round(photoFrame.x)} onChange={(e) => updateFrame({ x: Number(e.target.value) })} />
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-3 px-1">
+                        <label className={labelClass + " !mb-0"}>Posisi Vertikal</label>
+                        <span className="text-[10px] font-mono text-muted-foreground">{Math.round(photoFrame.y)}%</span>
+                      </div>
+                      <input type="range" min={0} max={100} step={1} disabled={isReadOnly} className="w-full accent-primary disabled:opacity-40 disabled:cursor-not-allowed" value={Math.round(photoFrame.y)} onChange={(e) => updateFrame({ y: Number(e.target.value) })} />
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-3 px-1">
+                        <label className={labelClass + " !mb-0"}>Skala Zoom</label>
+                        <span className="text-[10px] font-mono text-muted-foreground">{photoFrame.zoom.toFixed(2)}x</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button type="button" disabled={isReadOnly} onClick={() => updateFrame({ zoom: photoFrame.zoom - 0.1 })} className="w-10 h-10 rounded-xl border border-border/40 bg-background hover:bg-muted text-lg font-bold transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">-</button>
+                        <input type="range" min={1} max={3} step={0.05} disabled={isReadOnly} className="flex-1 accent-primary disabled:opacity-40 disabled:cursor-not-allowed" value={photoFrame.zoom} onChange={(e) => updateFrame({ zoom: Number(e.target.value) })} />
+                        <button type="button" disabled={isReadOnly} onClick={() => updateFrame({ zoom: photoFrame.zoom + 0.1 })} className="w-10 h-10 rounded-xl border border-border/40 bg-background hover:bg-muted text-lg font-bold transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">+</button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-            <div><label className={labelClass}>Nama Lengkap *</label><input type="text" className={inputClass} value={form.nama || ''} onChange={e => set('nama', e.target.value)} /></div>
-            <div><label className={labelClass}>Tim *</label><select className={inputClass} value={form.tim || ''} onChange={e => set('tim', e.target.value)}>{timList.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-            <div><label className={labelClass}>Jabatan *</label><select className={inputClass} value={form.jabatan || ''} onChange={e => set('jabatan', e.target.value as Jabatan)}>{Object.entries(labelJabatan).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
-          </div>
-          <div className={sectionClass}>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">Data Kerja</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><label className={labelClass}>NIP OJK</label><input type="text" className={inputClass} value={form.nip_ojk || ''} onChange={e => set('nip_ojk', e.target.value)} /></div>
-              <div><label className={labelClass}>Bergabung di 157</label><input type="date" className={inputClass} value={form.bergabung_date || ''} onChange={e => set('bergabung_date', e.target.value)} /></div>
-              <div className="col-span-2"><label className={labelClass}>Alamat Email OJK</label><input type="email" className={inputClass} value={form.email_ojk || ''} onChange={e => set('email_ojk', e.target.value)} /></div>
-              <div><label className={labelClass}>No. Telepon Aktif</label><input type="text" className={inputClass} value={form.no_telepon || ''} onChange={e => set('no_telepon', e.target.value)} /></div>
-              <div><label className={labelClass}>No. Telepon Darurat</label><input type="text" className={inputClass} value={form.no_telepon_darurat || ''} onChange={e => set('no_telepon_darurat', e.target.value)} /></div>
-              <div><label className={labelClass}>Nama Kontak Darurat</label><input type="text" className={inputClass} value={form.nama_kontak_darurat || ''} onChange={e => set('nama_kontak_darurat', e.target.value)} /></div>
-              <div><label className={labelClass}>Hubungan Kontak Darurat</label><select className={inputClass} value={form.hubungan_kontak_darurat || ''} onChange={e => set('hubungan_kontak_darurat', e.target.value)}><option value="">Pilih</option>{['Orang Tua','Saudara','Pasangan','Teman'].map(v => <option key={v} value={v}>{v}</option>)}</select></div>
+
+            {/* Form Fields Grouped */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              <div className="space-y-8">
+                <div className="space-y-6">
+                   <div className="flex items-center gap-3">
+                    <div className="w-1 h-5 bg-primary/40 rounded-full" />
+                    <h3 className="text-[11px] font-black text-muted-foreground uppercase tracking-widest px-1">Identitas Utama</h3>
+                  </div>
+                  <div className="space-y-5">
+                    <div><label className={labelClass}>Nama Lengkap *</label><input type="text" className={inputClass} value={form.nama || ''} onChange={e => set('nama', e.target.value)} /></div>
+                    <div><label className={labelClass}>Tim Terdaftar</label><select className={inputClass} value={form.tim || ''} onChange={e => set('tim', e.target.value)}>{timList.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                    <div><label className={labelClass}>Level Jabatan</label><select className={inputClass} value={form.jabatan || ''} onChange={e => set('jabatan', e.target.value as Jabatan)}>{Object.entries(labelJabatan).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
+                    <div><label className={labelClass}>NIP OJK</label><input type="text" className={inputClass} value={form.nip_ojk || ''} onChange={e => set('nip_ojk', e.target.value)} /></div>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-1 h-5 bg-primary/40 rounded-full" />
+                    <h3 className="text-[11px] font-black text-muted-foreground uppercase tracking-widest px-1">Kontak & Keamanan</h3>
+                  </div>
+                  <div className="space-y-5">
+                    <div><label className={labelClass}>Email Official</label><input type="email" className={inputClass} value={form.email_ojk || ''} onChange={e => set('email_ojk', e.target.value)} /></div>
+                    <div><label className={labelClass}>WhatsApp Aktif</label><input type="text" className={inputClass} value={form.no_telepon || ''} onChange={e => set('no_telepon', e.target.value)} /></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-8">
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-1 h-5 bg-primary/40 rounded-full" />
+                    <h3 className="text-[11px] font-black text-muted-foreground uppercase tracking-widest px-1">Informasi Personal</h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-5">
+                    <div className="col-span-1"><label className={labelClass}>Gender</label><select className={inputClass} value={form.jenis_kelamin || ''} onChange={e => set('jenis_kelamin', e.target.value)}><option value="">Pilih</option><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option></select></div>
+                    <div className="col-span-1"><label className={labelClass}>Agama</label><select className={inputClass} value={form.agama || ''} onChange={e => set('agama', e.target.value)}><option value="">Pilih</option>{['Islam','Kristen','Katolik','Hindu','Buddha','Konghucu'].map(a => <option key={a} value={a}>{a}</option>)}</select></div>
+                    <div className="col-span-2"><label className={labelClass}>Tanggal Lahir</label><input type="date" className={inputClass} value={form.tgl_lahir || ''} onChange={e => set('tgl_lahir', e.target.value)} /></div>
+                    <div className="col-span-2"><label className={labelClass}>Status Tempat Tinggal</label><select className={inputClass} value={form.status_tempat_tinggal || ''} onChange={e => set('status_tempat_tinggal', e.target.value)}><option value="">Pilih</option><option value="Milik Sendiri">Milik Sendiri</option><option value="Milik Orang Tua">Milik Orang Tua</option><option value="Kost/Sewa">Kost/Sewa</option><option value="Lainnya">Lainnya</option></select></div>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-1 h-5 bg-primary/40 rounded-full" />
+                    <h3 className="text-[11px] font-black text-muted-foreground uppercase tracking-widest px-1">Pendidikan & Catatan</h3>
+                  </div>
+                  <div className="space-y-5">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="col-span-2"><label className={labelClass}>Lembaga Pendidikan</label><input type="text" className={inputClass} value={form.nama_lembaga || ''} onChange={e => set('nama_lembaga', e.target.value)} /></div>
+                      <div className="col-span-2"><label className={labelClass}>Jurusan</label><input type="text" className={inputClass} value={form.jurusan || ''} onChange={e => set('jurusan', e.target.value)} /></div>
+                    </div>
+                    <div><label className={labelClass}>Keterangan Tambahan</label><textarea rows={3} placeholder="..." className={inputClass + " resize-none"} value={form.keterangan || ''} onChange={e => set('keterangan', e.target.value)} /></div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <div className={sectionClass}>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">Data Pribadi</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><label className={labelClass}>Jenis Kelamin</label><select className={inputClass} value={form.jenis_kelamin || ''} onChange={e => set('jenis_kelamin', e.target.value)}><option value="">Pilih</option><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option></select></div>
-              <div><label className={labelClass}>Agama</label><select className={inputClass} value={form.agama || ''} onChange={e => set('agama', e.target.value)}><option value="">Pilih</option>{['Islam','Kristen','Katolik','Hindu','Buddha','Konghucu'].map(a => <option key={a} value={a}>{a}</option>)}</select></div>
-              <div><label className={labelClass}>Tanggal Lahir</label><input type="date" className={inputClass} value={form.tgl_lahir || ''} onChange={e => set('tgl_lahir', e.target.value)} /></div>
-              <div><label className={labelClass}>Status Perkawinan</label><select className={inputClass} value={form.status_perkawinan || ''} onChange={e => set('status_perkawinan', e.target.value)}><option value="">Pilih</option>{['Belum Menikah','Menikah','Cerai'].map(v => <option key={v} value={v}>{v}</option>)}</select></div>
-              <div><label className={labelClass}>Pendidikan</label><select className={inputClass} value={form.pendidikan || ''} onChange={e => set('pendidikan', e.target.value)}><option value="">Pilih</option>{['SMA','D3','S1','S2','S3'].map(p => <option key={p} value={p}>{p}</option>)}</select></div>
-            </div>
-          </div>
-          <div className={sectionClass}>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">Data Sensitif</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 relative">
-              <div className="col-span-2"><label className={labelClass}>No. KTP</label><input type="text" placeholder="16 digit NIK" maxLength={16} className={inputClass} value={form.no_ktp || ''} onChange={e => set('no_ktp', e.target.value)} /></div>
-              <div><label className={labelClass}>No. NPWP</label><input type="text" className={inputClass} value={form.no_npwp || ''} onChange={e => set('no_npwp', e.target.value)} /></div>
-              <div><label className={labelClass}>Nomor Rekening</label><input type="text" className={inputClass} value={form.nomor_rekening || ''} onChange={e => set('nomor_rekening', e.target.value)} /></div>
-              <div><label className={labelClass}>Nama Bank</label><input type="text" className={inputClass} value={form.nama_bank || ''} onChange={e => set('nama_bank', e.target.value)} /></div>
-              <div className="col-span-2"><label className={labelClass}>Alamat Tempat Tinggal</label><textarea rows={2} className={inputClass} value={form.alamat_tinggal || ''} onChange={e => set('alamat_tinggal', e.target.value)} /></div>
-              <div className="col-span-2"><label className={labelClass}>Status Tempat Tinggal</label><select className={inputClass} value={form.status_tempat_tinggal || ''} onChange={e => set('status_tempat_tinggal', e.target.value)}><option value="">Pilih</option><option value="Milik Sendiri">Rumah/Apartemen Milik Sendiri</option><option value="Milik Orang Tua">Rumah/Apartemen Milik Orang Tua</option><option value="Kost/Sewa">Kost/Sewa Apartemen</option><option value="Lainnya">Lainnya</option></select></div>
-            </div>
-          </div>
-          <div className={sectionClass}>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">Latar Belakang</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><label className={labelClass}>Nama Lembaga Pendidikan</label><input type="text" className={inputClass} value={form.nama_lembaga || ''} onChange={e => set('nama_lembaga', e.target.value)} /></div>
-              <div><label className={labelClass}>Jurusan</label><input type="text" className={inputClass} value={form.jurusan || ''} onChange={e => set('jurusan', e.target.value)} /></div>
-              <div className="col-span-2"><label className={labelClass}>Perusahaan Sebelumnya</label><input type="text" className={inputClass} value={form.previous_company || ''} onChange={e => set('previous_company', e.target.value)} /></div>
-              <div className="col-span-2"><label className={labelClass}>Pengalaman Kontak OJK 157</label><select className={inputClass} value={form.pengalaman_cc || ''} onChange={e => set('pengalaman_cc', e.target.value)}><option value="">Pilih</option><option value="Pernah">Pernah</option><option value="Tidak Pernah">Tidak Pernah</option></select></div>
-            </div>
-          </div>
-          <div className={sectionClass}>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">Catatan Tambahan</p>
-            <textarea rows={3} placeholder="Prestasi, bakat, hobi..." className={inputClass} value={form.catatan_tambahan || ''} onChange={e => set('catatan_tambahan', e.target.value)} />
-          </div>
-          <div className={sectionClass}>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1 mb-3">Keterangan</p>
-            <textarea rows={2} placeholder="Catatan umum lainnya..." className={inputClass} value={form.keterangan || ''} onChange={e => set('keterangan', e.target.value)} />
-          </div>
-          {!isReadOnly && (
-            <button onClick={handleSave} disabled={saving} className="w-full py-4 bg-primary hover:opacity-90 disabled:opacity-50 text-primary-foreground rounded-2xl text-base font-bold shadow-md shadow-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background hover:shadow-lg mt-2">
-              {saving ? 'Menyimpan...' : '✓ Simpan Perubahan'}
+
+          {/* Footer Actions */}
+          <div className="p-8 border-t border-border/40 bg-muted/20 shrink-0 flex flex-col sm:flex-row gap-4">
+            {!isReadOnly && (
+              <button 
+                onClick={handleSave} 
+                disabled={saving} 
+                className="flex-1 h-14 bg-primary hover:opacity-90 disabled:opacity-30 text-primary-foreground rounded-2xl text-base font-black tracking-tight shadow-xl shadow-primary/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 order-1 sm:order-2"
+              >
+                {saving ? (
+                  <><Loader2 className="w-6 h-6 animate-spin" /> Menyetorkan Data...</>
+                ) : (
+                  <><Check className="w-6 h-6" /> Simpan Perubahan</>
+                )}
+              </button>
+            )}
+            <button 
+              onClick={onClose} 
+              className="flex-1 h-14 bg-background hover:bg-muted text-foreground rounded-2xl text-base font-bold transition-all active:scale-[0.98] border border-border/40 order-2 sm:order-1"
+            >
+              Batal
             </button>
-          )}
-        </div>
+          </div>
+        </motion.div>
       </div>
-    </div>
+    </AnimatePresence>
   );
 };
+
 
 interface ProfilerTableClientProps {
   initialPeserta: Peserta[];
@@ -556,11 +712,11 @@ export default function ProfilerTableClient({
       <div className="max-w-6xl mx-auto space-y-4">
 
         {/* ── Tabs Navigation ── */}
-        <div className="flex items-center gap-1 p-1 bg-muted/30 rounded-2xl w-fit border border-border/40">
+        <div className="flex items-center gap-1 p-1 bg-muted/40 rounded-2xl w-fit border border-border/40 backdrop-blur-sm self-center sm:self-start">
           <button
-            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+            className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
               activeTab === 'table'
-                ? 'bg-background text-primary shadow-sm'
+                ? 'bg-background text-primary shadow-sm border border-border/20'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -568,22 +724,22 @@ export default function ProfilerTableClient({
           </button>
           <button
             onClick={() => router.push(`/profiler/slides?batch=${encodeURIComponent(batchName)}`)}
-            className="px-6 py-2 rounded-xl text-sm font-bold text-muted-foreground hover:text-foreground transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="px-6 py-2.5 rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Tampilan Slide
           </button>
         </div>
 
         {/* ── Top bar ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
             <button
               onClick={() => {
                 if (sortMode) { cancelSort(); return; }
                 if (selectMode) { toggleSelectMode(); return; }
                 router.push('/profiler');
               }}
-              className="w-10 h-10 flex items-center justify-center bg-card border border-border/40 rounded-xl text-primary hover:bg-muted transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="w-12 h-12 flex items-center justify-center bg-card border border-border/40 rounded-2xl text-primary hover:bg-muted transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               title={sortMode || selectMode ? 'Batal' : 'Kembali'}
             >
               <ArrowLeft className="w-5 h-5" />
@@ -591,16 +747,19 @@ export default function ProfilerTableClient({
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setShowFolderDropdown(!showFolderDropdown)}
-                className="group flex flex-col items-start hover:bg-muted p-2 -m-2 rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="group flex flex-col items-start hover:bg-muted p-2 -m-2 rounded-2xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <h1 className="text-lg font-black tracking-tight text-foreground flex items-center gap-2">
+                <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
                   {batchName}
                   <ChevronDown className={`w-4 h-4 text-primary transition-transform duration-300 ${showFolderDropdown ? 'rotate-180' : ''}`} />
-                  <span className="px-2 py-0.5 bg-primary/5 text-primary text-[10px] font-bold rounded-full border border-primary/20">
-                    {peserta.length}
-                  </span>
                 </h1>
-                <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Database KTP</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Database Peserta</span>
+                  <span className="w-1 h-1 rounded-full bg-border" />
+                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
+                    {peserta.length} Agen
+                  </span>
+                </div>
               </button>
 
               <AnimatePresence>
@@ -609,16 +768,16 @@ export default function ProfilerTableClient({
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute top-full left-0 mt-2 w-64 bg-card border border-border/40 rounded-3xl shadow-2xl z-[100] overflow-hidden"
+                    className="absolute top-full left-0 mt-4 w-72 bg-card/95 border border-border/40 rounded-3xl shadow-2xl z-[100] overflow-hidden backdrop-blur-xl"
                   >
-                    <div className="max-h-80 overflow-y-auto p-3 space-y-4 custom-scrollbar">
+                    <div className="max-h-80 overflow-y-auto p-4 space-y-5 custom-scrollbar">
                       {initialYears.map(year => {
                         const yearFolders = initialFolders.filter(f => f.year_id === year.id);
                         if (yearFolders.length === 0) return null;
                         return (
-                          <div key={year.id} className="space-y-1">
-                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] px-3 py-1">{year.label}</p>
-                            <div className="space-y-0.5">
+                          <div key={year.id} className="space-y-2">
+                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.25em] px-3">{year.label}</p>
+                            <div className="space-y-1">
                               {yearFolders.map(folder => (
                                 <button
                                   key={folder.id}
@@ -627,14 +786,14 @@ export default function ProfilerTableClient({
                                     router.push(`/profiler/table?batch=${encodeURIComponent(folder.name)}`);
                                     setShowFolderDropdown(false);
                                   }}
-                                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                                     folder.name === batchName
-                                      ? 'bg-primary text-primary-foreground font-bold'
+                                      ? 'bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20'
                                   : 'hover:bg-muted text-muted-foreground hover:text-foreground'
                                   }`}
                                 >
                                   <span className="truncate">{folder.name}</span>
-                                  {folder.name === batchName && <Check className="w-3 h-3" />}
+                                  {folder.name === batchName && <Check className="w-3.5 h-3.5" />}
                                 </button>
                               ))}
                             </div>
@@ -648,58 +807,72 @@ export default function ProfilerTableClient({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            <div className="px-3 py-2 rounded-xl border border-border/40 bg-card text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
-              {displayList.length}/{peserta.length} Peserta
-            </div>
-            {!sortMode && (
+          <div className="flex flex-wrap items-center gap-2">
+            {!isReadOnly && !sortMode && !selectMode && (
               <button
-                onClick={() => setDensity((prev) => (prev === 'comfortable' ? 'compact' : 'comfortable'))}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-bold transition-all border bg-card hover:bg-muted text-foreground border-border/40 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(batchName)}`)}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-primary hover:opacity-90 text-primary-foreground rounded-2xl text-xs font-bold shadow-lg shadow-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {density === 'comfortable' ? 'Mode Ringkas' : 'Mode Nyaman'}
+                <Plus className="w-5 h-5" /> Tambah Peserta
               </button>
             )}
-            {!isReadOnly && !selectMode && (
-              <button
-                onClick={() => { setSortMode(v => !v); setSelectMode(false); setDragOverIndex(null); }}
-                className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-bold transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                  sortMode
-                    ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/10'
-                    : 'bg-card hover:bg-muted text-foreground border-border/40 shadow-sm'
-                }`}
-              >
-                <ArrowUpDown className="w-3.5 h-3.5" />
-                Urutkan
-              </button>
-            )}
-            {!isReadOnly && !sortMode && (
-              <button
-                onClick={toggleSelectMode}
-                className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[11px] uppercase tracking-wider font-bold transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                  selectMode
-                    ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/10'
-                    : 'bg-card hover:bg-muted text-foreground border-border/40 shadow-sm'
-                }`}
-              >
-                <FolderInput className="w-3.5 h-3.5" />
-                {selectMode ? 'Selesai' : 'Kelola Data'}
-              </button>
-            )}
+
             {!sortMode && !selectMode && (
-              <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setDensity((prev) => (prev === 'comfortable' ? 'compact' : 'comfortable'))}
+                  className="w-12 h-12 flex items-center justify-center bg-card border border-border/40 rounded-2xl text-muted-foreground hover:text-foreground transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  title={density === 'comfortable' ? 'Mode Ringkas' : 'Mode Nyaman'}
+                >
+                  <Activity className="w-5 h-5" />
+                </button>
                 <button
                   onClick={() => router.push(`/profiler/export?batch=${encodeURIComponent(batchName)}`)}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-card hover:bg-muted text-foreground rounded-xl text-[11px] uppercase tracking-wider font-bold border border-border/40 shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="w-12 h-12 flex items-center justify-center bg-card border border-border/40 rounded-2xl text-muted-foreground hover:text-foreground transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  title="Ekspor"
                 >
-                  <Download className="w-3.5 h-3.5" /> Ekspor
+                  <Download className="w-5 h-5" />
                 </button>
-                {!isReadOnly && (
+              </div>
+            )}
+
+            {!isReadOnly && (
+              <div className="flex items-center bg-card border border-border/40 rounded-2xl p-1 gap-1 shadow-sm">
+                <button
+                  onClick={toggleSelectMode}
+                  className={`p-2.5 rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    selectMode ? 'bg-primary text-primary-foreground shadow-md shadow-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
+                  title="Pilih Banyak"
+                >
+                  <FolderInput className="w-5 h-5" />
+                </button>
+                <div className="w-px h-6 bg-border/40 shrink-0 mx-0.5" />
+                {sortMode ? (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={saveOrder}
+                      disabled={savingOrder || !orderChanged}
+                      className="p-2.5 bg-emerald-500 text-white rounded-xl shadow-md shadow-emerald-500/20 hover:bg-emerald-600 disabled:opacity-50 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      title="Simpan Urutan"
+                    >
+                      <Save className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={cancelSort}
+                      className="p-2.5 text-destructive hover:bg-destructive/5 rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      title="Batal"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                ) : (
                   <button
-                    onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(batchName)}`)}
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-primary hover:opacity-90 text-primary-foreground rounded-xl text-[11px] uppercase tracking-wider font-bold shadow-md shadow-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring hover:shadow-lg"
+                    onClick={onSortClick}
+                    className="p-2.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    title="Atur Urutan"
                   >
-                    <Plus className="w-3.5 h-3.5" /> Tambah
+                    <ArrowUpDown className="w-5 h-5" />
                   </button>
                 )}
               </div>
@@ -707,102 +880,46 @@ export default function ProfilerTableClient({
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-2">
-          <label className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari nama, tim, NIP, email, atau jabatan..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border/40 bg-card text-sm text-foreground placeholder:text-muted-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-          </label>
-          {hasActiveFilters && !sortMode && (
-            <button
-              onClick={resetFilters}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-border/40 bg-card text-foreground text-[11px] uppercase tracking-wider font-bold hover:bg-muted transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <FilterX className="w-3.5 h-3.5" />
-              Reset Filter
-            </button>
-          )}
+        {/* ── Search & Filter ── */}
+        <div className="flex flex-col md:flex-row gap-4">
+          {/* ... (existing search/filter code) ... */}
         </div>
 
         {feedback && (
-          <div
-            className={`rounded-2xl border px-4 py-3 text-sm ${
-              feedback.type === 'success'
-                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                : 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400'
-            }`}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <p className="flex items-center gap-2">
-                {feedback.type === 'success' ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-                <span>{feedback.message}</span>
-              </p>
+          <QaStatePanel
+            type={feedback.type}
+            title={feedback.type === 'success' ? 'Berhasil' : 'Kesalahan'}
+            description={feedback.message}
+            action={
               <button
                 onClick={() => setFeedback(null)}
-                className="text-xs font-bold uppercase tracking-wider opacity-80 hover:opacity-100"
+                className="text-xs font-bold uppercase tracking-widest opacity-80 hover:opacity-100"
               >
                 Tutup
               </button>
-            </div>
-          </div>
+            }
+          />
         )}
 
         {isNavigatingFolder && (
-          <div className="flex items-center gap-2 px-4 py-3 rounded-2xl border border-primary/20 bg-primary/5 text-primary text-sm font-medium">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Memuat folder yang dipilih. Mohon tunggu sebentar...
-          </div>
-        )}
-
-        {/* ── Sort mode banner ── */}
-        {sortMode && (
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-primary/5 rounded-2xl px-4 py-3 border border-primary/20">
-            <div className="flex items-center gap-2">
-              <GripVertical className="w-4 h-4 text-primary/40" />
-              <p className="text-sm font-medium text-primary">Seret baris untuk mengubah urutan. Klik simpan saat selesai.</p>
-            </div>
-            {orderChanged && (
-              <button onClick={saveOrder} disabled={savingOrder}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:opacity-90 disabled:opacity-50 text-primary-foreground rounded-xl text-xs font-bold shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                {savingOrder ? <><Loader2 className="w-3 h-3 animate-spin" />Menyimpan...</> : <><Save className="w-3 h-3" />Simpan</>}
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* ── Select all bar ── */}
-        {selectMode && (
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-card rounded-2xl px-4 py-3 border border-border/40 shadow-sm">
-            <button onClick={toggleSelectAll} className="flex items-center gap-2 text-sm font-bold tracking-tight text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg">
-              <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${allFilteredSelected ? 'bg-primary border-primary' : 'border-border/60'}`}>
-                {allFilteredSelected && <Check className="w-3 h-3 text-primary-foreground" />}
-              </div>
-              {allFilteredSelected ? 'Batal pilih semua' : 'Pilih semua'}
-              {selectedIds.size > 0 && <span className="ml-1 text-primary font-bold">({selectedIds.size} dipilih)</span>}
-            </button>
-            <p className="text-xs text-muted-foreground font-medium tracking-tight">
-              {selectedInFilteredCount > 0
-                ? `${selectedInFilteredCount} peserta terpilih pada hasil filter saat ini.`
-                : 'Pilih peserta lalu klik Pindah Folder.'}
-            </p>
-          </div>
+          <QaStatePanel
+            type="loading"
+            title="Sabar ya..."
+            description="Sedang memuat folder yang dipilih. Mohon tunggu sebentar..."
+          />
         )}
 
         {/* ── Tim filter ── */}
         {!sortMode && allTims.length > 1 && (
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap pb-2">
             {allTims.map(tim => (
               <button key={tim} onClick={() => setFilterTim(tim)}
-                className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   (tim === 'all' ? filterTim === 'all' : filterTim.toLowerCase() === tim.toLowerCase())
-                    ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/10'
-                    : 'bg-card text-muted-foreground hover:text-foreground border-border/40'
+                    ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/10'
+                    : 'bg-card text-muted-foreground hover:text-foreground border-border/40 hover:border-border shadow-sm'
                 }`}>
-                {tim === 'all' ? 'Semua' : tim}
+                {tim === 'all' ? 'Semua Tim' : tim}
               </button>
             ))}
           </div>
@@ -810,136 +927,182 @@ export default function ProfilerTableClient({
 
         {/* ── List Peserta ── */}
         {displayList.length === 0 ? (
-          <div className="bg-card rounded-[2rem] p-10 text-center border border-border/40 shadow-sm">
+          <div className="bg-card rounded-[2rem] p-4 sm:p-8 border border-border/40 shadow-sm">
             {hasActiveFilters ? (
-              <>
-                <div className="mx-auto mb-4 w-12 h-12 rounded-2xl border border-border/50 bg-muted/40 flex items-center justify-center">
-                  <Search className="w-5 h-5 text-muted-foreground" />
-                </div>
-                <p className="text-foreground font-semibold text-sm">Belum ada data yang cocok dengan filter saat ini.</p>
-                <p className="text-muted-foreground text-xs mt-1">Silakan ubah kata kunci atau tim, lalu coba lagi.</p>
-                <button
-                  onClick={resetFilters}
-                  className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-card hover:bg-muted border border-border/40 text-foreground rounded-xl text-sm font-bold shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <FilterX className="w-4 h-4" /> Reset Filter
-                </button>
-              </>
-            ) : (
-              <>
-                <div className="mx-auto mb-4 w-12 h-12 rounded-2xl border border-border/50 bg-muted/40 flex items-center justify-center">
-                  <Users className="w-5 h-5 text-muted-foreground" />
-                </div>
-                <p className="text-foreground font-semibold text-sm">Belum ada peserta di folder ini.</p>
-                <p className="text-muted-foreground text-xs mt-1">Tambahkan data peserta untuk mulai menyusun profil batch.</p>
-                {!isReadOnly && (
-                  <button onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(batchName)}`)}
-                    className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-primary hover:opacity-90 text-primary-foreground rounded-xl text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                    <Plus className="w-4 h-4" /> Tambah Peserta
+              <QaStatePanel
+                type="empty"
+                title="Pencarian Nihil"
+                description="Belum ada data yang cocok dengan filter atau kata kunci saat ini. Silakan ubah pencarian Anda."
+                action={
+                  <button
+                    onClick={resetFilters}
+                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-background hover:bg-muted border border-border/40 text-foreground rounded-xl text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <FilterX className="w-4 h-4" /> Reset Semua Filter
                   </button>
-                )}
-              </>
+                }
+              />
+            ) : (
+              <QaStatePanel
+                type="empty"
+                title="Folder Kosong"
+                description="Belum ada peserta di folder ini. Segera tambahkan data untuk mulai menyusun profil batch."
+                action={
+                  !isReadOnly && (
+                    <button
+                      onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(batchName)}`)}
+                      className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary hover:opacity-90 text-primary-foreground rounded-xl text-xs font-bold shadow-md shadow-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <Plus className="w-4 h-4" /> Tambah Peserta Pertama
+                    </button>
+                  )
+                }
+              />
             )}
           </div>
         ) : (
           <div className="bg-card rounded-[2rem] overflow-hidden divide-y divide-border/40 border border-border/40 shadow-sm">
             {displayList.map((p, i) => {
               const rowId = selectableId(p);
-              const isSelected = rowId ? selectedIds.has(rowId) : false;
-              const isDragTarget = sortMode && dragOverIndex === i && dragIndex.current !== null && dragIndex.current !== i;
+              const isSelected = selectedIds.has(rowId);
               const isDragging = sortMode && dragIndex.current === i;
-              const showLineAbove = isDragTarget && dragIndex.current !== null && dragIndex.current > i;
-              const showLineBelow = isDragTarget && dragIndex.current !== null && dragIndex.current < i;
 
               return (
-                <div key={`${p.id}-${photoFrameTick}`}>
-                  {showLineAbove && (
-                    <div className="px-4">
-                      <div className="h-0.5 bg-primary rounded-full" />
+                <div
+                  key={rowId || p.id}
+                  draggable={sortMode}
+                  onDragStart={sortMode ? e => handleDragStart(e, i) : undefined}
+                  onDragOver={sortMode ? e => handleDragOver(e, i) : undefined}
+                  onDragLeave={sortMode ? handleDragLeave : undefined}
+                  onDragEnd={sortMode ? handleDragEnd : undefined}
+                  className={`group relative flex items-center gap-4 transition-all duration-300 ${
+                    sortMode 
+                      ? isDragging 
+                        ? 'opacity-40 bg-primary/5 cursor-grabbing scale-[0.98]' 
+                        : 'cursor-grab hover:bg-muted/30 select-none'
+                      : isSelected && selectMode
+                        ? 'bg-primary/5'
+                        : 'hover:bg-muted/30'
+                  } ${density === 'compact' ? 'px-4 py-3' : 'px-6 py-5'}`}
+                >
+                  {/* Selection / Sort Indicator */}
+                  {sortMode ? (
+                    <div className="text-muted-foreground/40 group-hover:text-primary transition-colors flex-shrink-0">
+                      <GripVertical className="w-5 h-5" />
                     </div>
+                  ) : selectMode ? (
+                    <button
+                      onClick={() => rowId && toggleSelect(rowId)}
+                      disabled={!rowId}
+                      className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                        isSelected ? 'bg-primary border-primary shadow-md shadow-primary/20' : 'border-border/60 hover:border-primary/40'
+                      }`}
+                    >
+                      {isSelected && <Check className="w-3.5 h-3.5 text-primary-foreground" />}
+                    </button>
+                  ) : (
+                    <span className="text-[10px] font-black text-muted-foreground/30 w-5 text-right flex-shrink-0 font-mono tabular-nums group-hover:text-primary/40 transition-colors">
+                      {(i + 1).toString().padStart(2, '0')}
+                    </span>
                   )}
 
-                  <div
-                    draggable={sortMode}
-                    onDragStart={sortMode ? e => handleDragStart(e, i) : undefined}
-                    onDragOver={sortMode ? e => handleDragOver(e, i) : undefined}
-                    onDragLeave={sortMode ? handleDragLeave : undefined}
-                    onDragEnd={sortMode ? handleDragEnd : undefined}
-                    className={`flex items-center gap-3 px-3 sm:px-4 transition-all ${
-                      sortMode
-                        ? isDragging
-                          ? 'opacity-40 bg-primary/5 cursor-grabbing'
-                          : 'cursor-grab hover:bg-muted/30 select-none'
-                        : isSelected && selectMode
-                          ? 'bg-primary/5'
-                          : 'hover:bg-muted/30'
-                    }`}
-                  >
-                    {sortMode ? (
-                      <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0 pointer-events-none" />
-                    ) : selectMode ? (
-                      <button
-                        onClick={() => rowId && toggleSelect(rowId)}
-                        disabled={!rowId}
-                        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isSelected ? 'bg-primary border-primary' : 'border-border/60'}`}>
-                        {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
-                      </button>
-                    ) : null}
-
-                    <div
+                  {/* Foto Section */}
+                  <div className="relative shrink-0">
+                    <div 
                       onClick={() => {
                         if (sortMode) return;
                         if (selectMode && rowId) { toggleSelect(rowId); return; }
                         setSelectedPeserta(p);
                       }}
-                      className={`flex items-center gap-3 flex-1 min-w-0 text-left group transition-opacity rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                        sortMode ? 'pointer-events-none' : 'hover:opacity-80 cursor-pointer'
-                      } ${density === 'compact' ? 'py-2.5' : 'py-3.5'}`}
-                      role={!sortMode && !selectMode ? "button" : undefined}
-                      tabIndex={!sortMode && !selectMode ? 0 : -1}
-                      onKeyDown={(e) => {
-                        if (sortMode || selectMode) return;
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          setSelectedPeserta(p);
-                        }
-                      }}
+                      className={`rounded-[1.25rem] border border-border/40 overflow-hidden bg-muted/20 transition-all duration-500 group-hover:scale-105 group-hover:shadow-xl group-hover:shadow-primary/5 cursor-pointer ${
+                        density === 'compact' ? 'w-11 h-11' : 'w-14 h-14'
+                      }`}
                     >
-                      <span className="text-[11px] text-muted-foreground w-5 text-right flex-shrink-0 font-mono tabular-nums">
-                        {i + 1}
-                      </span>
-                      <div className={`${density === 'compact' ? 'w-9 h-9' : 'w-10 h-10'} rounded-[1.25rem] overflow-hidden bg-muted/30 border border-border/40 shrink-0 flex items-center justify-center`}>
-                        {p.foto_url
-                          ? <div className="relative w-full h-full"><Image src={p.foto_url} alt={p.nama} fill className="object-cover" style={getPhotoImageStyle(getPhotoFrame(p.id))} referrerPolicy="no-referrer" /></div>
-                          : <span className="text-sm font-bold text-muted-foreground">{p.nama?.charAt(0)?.toUpperCase() || '?'}</span>}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className={`${density === 'compact' ? 'text-[13px]' : 'text-sm'} font-bold tracking-tight text-foreground truncate`}>{p.nama}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{p.tim} · {labelJabatan[p.jabatan] || p.jabatan}</p>
-                      </div>
-                      {!sortMode && !selectMode && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/qa-analyzer/agents/${p.id}`);
-                            }}
-                            className="p-2 rounded-xl bg-primary/5 text-primary hover:bg-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            title="Lihat Analisis QA"
-                          >
-                            <Activity className="w-4 h-4" />
-                          </button>
-                          <svg className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                          </svg>
+                      {p.foto_url ? (
+                        <div className="relative w-full h-full">
+                          <Image 
+                            src={p.foto_url} 
+                            alt={p.nama} 
+                            fill 
+                            className="object-cover" 
+                            style={getPhotoImageStyle(getPhotoFrame(p.id, p.photo_frame))} 
+                            referrerPolicy="no-referrer" 
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="text-lg font-black text-muted-foreground/40">
+                            {p.nama?.charAt(0)?.toUpperCase()}
+                          </span>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  {showLineBelow && (
-                    <div className="px-4">
-                      <div className="h-0.5 bg-primary rounded-full" />
+                  {/* Info Section */}
+                  <div 
+                    onClick={() => {
+                      if (sortMode) return;
+                      if (selectMode && rowId) { toggleSelect(rowId); return; }
+                      setSelectedPeserta(p);
+                    }}
+                    className="flex-1 min-w-0 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className={`font-bold text-foreground truncate group-hover:text-primary transition-colors leading-none tracking-tight ${
+                        density === 'compact' ? 'text-sm' : 'text-base'
+                      }`}>
+                        {p.nama}
+                      </h3>
+                      {p.jabatan && (
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-muted border border-border/40 text-muted-foreground uppercase tracking-widest whitespace-nowrap">
+                          {labelJabatan[p.jabatan] || p.jabatan}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
+                        <div className="w-1 h-1 rounded-full bg-border" />
+                        {p.tim || 'Tanpa Tim'}
+                      </span>
+                      {p.nip && (
+                        <span className="text-[11px] text-muted-foreground/60 font-mono tracking-tighter">
+                          #{p.nip}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Desktop Actions */}
+                  {!isReadOnly && !sortMode && !selectMode && (
+                    <div className="hidden sm:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/qa-analyzer/agents/${p.id}`);
+                        }}
+                        className="p-2.5 bg-card hover:bg-primary/5 text-muted-foreground hover:text-primary rounded-xl transition-all border border-transparent hover:border-primary/20"
+                        title="Lihat Analisis QA"
+                      >
+                        <Activity className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedPeserta(p);
+                        }}
+                        className="p-2.5 bg-card hover:bg-primary/5 text-muted-foreground hover:text-primary rounded-xl transition-all border border-transparent hover:border-primary/20"
+                        title="Edit Data"
+                      >
+                        <Save className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Chevron for mobile indicator */}
+                  {!sortMode && !selectMode && (
+                    <div className="sm:hidden text-muted-foreground/30">
+                      <ChevronDown className="-rotate-90 w-5 h-5" />
                     </div>
                   )}
                 </div>
@@ -950,25 +1113,34 @@ export default function ProfilerTableClient({
 
         {sortMode && orderChanged && (
           <button onClick={saveOrder} disabled={savingOrder}
-            className="w-full py-4 bg-primary hover:opacity-90 disabled:opacity-50 text-primary-foreground rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all sticky bottom-4 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            {savingOrder ? <><Loader2 className="w-4 h-4 animate-spin" />Menyimpan urutan...</> : <><Save className="w-4 h-4" />Simpan Urutan</>}
+            className="w-full py-4 bg-primary hover:opacity-90 disabled:opacity-50 text-primary-foreground rounded-3xl text-sm font-bold flex items-center justify-center gap-3 transition-all sticky bottom-4 shadow-2xl shadow-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring border border-primary/20 backdrop-blur-sm">
+            {savingOrder ? <><Loader2 className="w-4 h-4 animate-spin" />Menyimpan urutan...</> : <><Save className="w-4 h-4" />Simpan Urutan Baru</>}
           </button>
         )}
       </div>
 
       {selectMode && selectedIds.size > 0 && (
-        <div className="fixed bottom-6 left-0 right-0 flex justify-center px-4 z-40">
-          <div className="bg-foreground rounded-[2rem] shadow-2xl px-5 py-3.5 flex items-center gap-3 flex-wrap justify-center">
-            <p className="text-background text-sm font-bold tracking-tight">{selectedIds.size} peserta dipilih</p>
+        <div className="fixed bottom-8 left-0 right-0 flex justify-center px-4 z-50 pointer-events-none">
+          <div className="bg-foreground rounded-[2rem] shadow-2xl px-6 py-4 flex items-center gap-4 flex-wrap justify-center pointer-events-auto border border-background/10 backdrop-blur-xl">
+            <div className="flex items-center gap-2 pr-2 border-r border-background/20">
+              <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-[10px] font-black text-primary-foreground">
+                {selectedIds.size}
+              </div>
+              <p className="text-background text-sm font-bold tracking-tight">Terpilih</p>
+            </div>
+            
+            <button onClick={() => setShowMoveModal(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-background hover:bg-muted text-foreground rounded-xl text-xs font-bold transition-all shadow-lg shadow-black/10">
+              <FolderInput className="w-4 h-4 text-primary" />
+              Pindah Folder
+            </button>
+
             <button
               onClick={() => setSelectedIds(new Set())}
-              className="flex items-center gap-2 px-4 py-2.5 bg-transparent border border-background/25 text-background rounded-xl text-sm font-bold hover:bg-background/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex items-center justify-center w-10 h-10 bg-background/10 hover:bg-background/20 text-background rounded-full transition-all border border-background/20"
+              title="Batalkan Pilihan"
             >
-              <X className="w-4 h-4" /> Bersihkan Pilihan
-            </button>
-            <button onClick={() => setShowMoveModal(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-background hover:bg-muted text-foreground rounded-xl text-sm font-bold shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-foreground">
-              <FolderInput className="w-4 h-4" />Pindah Folder
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>

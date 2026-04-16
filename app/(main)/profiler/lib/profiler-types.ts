@@ -1,5 +1,11 @@
 // ── Types ────────────────────────────────────────────────────
 export type Tim = string;
+export interface PesertaPhotoFrame {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
 export type Jabatan =
   | 'operation_manager'
   | 'spv'
@@ -35,6 +41,7 @@ export interface Peserta {
   jabatan: Jabatan;
   nama: string;
   foto_url?: string;
+  photo_frame?: PesertaPhotoFrame | null;
   bergabung_date?: string;
   nip_ojk?: string;
   email_ojk?: string;
