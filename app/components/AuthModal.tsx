@@ -14,19 +14,19 @@ interface AuthModalProps {
 
 const AUTH_COPY = {
   login: {
-    title: 'Masuk ke workspace',
-    description: 'Akses dashboard terpadu dan seluruh modul simulasi tim trainer dengan satu langkah masuk.',
-    submit: 'Masuk',
+    title: 'Masuk',
+    description: 'Silakan masuk menggunakan akun aktif perusahaan Anda.',
+    submit: 'Masuk sekarang',
   },
   register: {
-    title: 'Ajukan akses',
-    description: 'Isi data singkat untuk mengirim permintaan akses. Setelah disetujui, akun bisa langsung dipakai masuk.',
-    submit: 'Kirim permintaan',
+    title: 'Minta Akses Baru',
+    description: 'Isi data berikut untuk meminta akses ke sistem. Proses ini memerlukan persetujuan dari administrator.',
+    submit: 'Ajukan akses',
   },
   forgot: {
-    title: 'Reset kata sandi',
-    description: 'Masukkan email kerja Anda. Tautan untuk membuat kata sandi baru akan dikirim ke inbox.',
-    submit: 'Kirim link reset',
+    title: 'Lupa Kata Sandi',
+    description: 'Masukkan email Anda dan kami akan mengirimkan instruksi untuk mengatur ulang kata sandi.',
+    submit: 'Kirim tautan pemulihan',
   },
 } as const;
 
@@ -91,13 +91,13 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       .maybeSingle();
 
     if (existingProfile?.status === 'pending') {
-      setError('Akun ini sudah terdaftar dan masih menunggu persetujuan trainer.');
+      setError('Pengajuan Anda telah kami terima dan saat ini sedang menunggu persetujuan administrator.');
       setLoading(false);
       return;
     }
 
     if (existingProfile?.status === 'rejected') {
-      setError('Pendaftaran sebelumnya ditolak. Hubungi trainer untuk informasi lebih lanjut.');
+      setError('Pengajuan Anda sebelumnya belum dapat disetujui. Silakan hubungi administrator Anda.');
       setLoading(false);
       return;
     }
@@ -124,13 +124,13 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       );
 
       if (profileError) {
-        setError('Gagal membuat profil. Silakan coba lagi.');
+        setError('Terjadi masalah jaringan saat mendaftar. Silakan coba lagi.');
         setLoading(false);
         return;
       }
     }
 
-    setSuccessMessage('Pendaftaran berhasil. Akun Anda sedang menunggu persetujuan trainer sebelum dashboard dapat digunakan.');
+    setSuccessMessage('Permintaan akses berhasil dikirim! Anda bisa masuk setelah akun Anda disetujui.');
     setLoading(false);
   }
 
@@ -150,7 +150,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     if (forgotError) {
       setError(forgotError.message);
     } else {
-      setSuccessMessage('Tautan reset kata sandi telah dikirim ke email Anda. Cek inbox atau folder spam.');
+      setSuccessMessage('Tautan untuk mengatur ulang kata sandi sudah dikirim ke email Anda.');
     }
 
     setForgotLoading(false);
@@ -196,31 +196,31 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                   <div className="space-y-4">
                     <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
                       <ShieldCheck className="h-3.5 w-3.5" />
-                      Akses terpusat
+                      Arsitektur Terpadu
                     </div>
                     <h2 className="max-w-sm text-3xl font-semibold tracking-tight text-balance">
-                      Satu akses untuk seluruh ekosistem kerja tim trainer.
+                      Platform operasional pintar untuk tim trainer.
                     </h2>
                     <p className="max-w-md text-sm leading-6 text-muted-foreground">
-                      Kelola modul simulasi, pantau profil peserta, dan akses analytics kualitas interaksi dalam satu dashboard terpadu yang efisien.
+                      Latih tim, pantau metrik, dan analisis kualitas interaksi layanan dari satu panel instrumen yang terpusat.
                     </p>
                   </div>
 
                   <div className="mt-auto space-y-3 pt-10">
                     <div className="rounded-[1.5rem] border border-border/50 bg-background/70 p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Kapasitas Platform</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Lebih Teratur</p>
                       <p className="mt-2 text-sm leading-6 text-foreground/90">
-                        Memantau aktivitas, membuka modul simulasi, melihat data profiler, dan mengecek kualitas interaksi dari satu tempat.
+                        Dirancang agar pelatih bisa fokus penuh membimbing tim tanpa terdistraksi masalah pelaporan data.
                       </p>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="rounded-[1.5rem] border border-border/50 bg-card/70 p-4">
-                        <p className="text-xs font-semibold">Simulasi Realistis</p>
-                        <p className="mt-1 text-xs leading-5 text-muted-foreground">Latih agen dengan skenario menyerupai lapangan.</p>
+                        <p className="text-xs font-semibold">Simulasi Nyata</p>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">Praktikkan dialog pelanggan layaknya kasus sesungguhnya.</p>
                       </div>
                       <div className="rounded-[1.5rem] border border-border/50 bg-card/70 p-4">
-                        <p className="text-xs font-semibold">Satu Kredensial</p>
-                        <p className="mt-1 text-xs leading-5 text-muted-foreground">Satu akun untuk seluruh fitur platform.</p>
+                        <p className="text-xs font-semibold">Terkendali Penuh</p>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">Kelola siapa yang bisa mengakses bagian dari sistem ini sedetail mungkin.</p>
                       </div>
                     </div>
                   </div>
@@ -320,7 +320,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                               className="px-1 text-xs font-semibold text-muted-foreground transition hover:text-primary"
                               disabled={loading}
                             >
-                              Lupa password?
+                              Lupa kata sandi?
                             </button>
                           </div>
                         )}
@@ -356,7 +356,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                           className="text-xs font-semibold text-muted-foreground transition hover:text-primary"
                           disabled={isBusy}
                         >
-                          Kembali ke halaman masuk
+                          Sudah ingat kata sandimu? Masuk lagi
                         </button>
                       ) : (
                         <button
@@ -369,7 +369,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                           className="text-xs font-semibold text-muted-foreground transition hover:text-primary"
                           disabled={isBusy}
                         >
-                          {mode === 'login' ? 'Belum punya akses? Ajukan dari sini' : 'Sudah punya akun? Masuk di sini'}
+                          {mode === 'login' ? 'Belum punya akun? Ajukan akses' : 'Sudah punya akun? Masuk di sini'}
                         </button>
                       )}
                     </div>

@@ -135,8 +135,8 @@ export default function LandingPage() {
             </motion.h1>
             
             <motion.p variants={itemVariants} className="mx-auto max-w-2xl text-lg leading-8 text-muted-foreground mb-10">
-              Trainers SuperApp menyatukan simulasi chat, email, telepon, profiling, dan QA analytics dalam satu tempat. 
-              Dibuat untuk operasional harian tim trainer yang presisi dan efisien.
+              Trainers SuperApp menyatukan semua kebutuhan operasional Anda—mulai dari simulasi chat, email, telepon, profiling, hingga analitik QA. 
+              Satu ruang kerja yang terpusat agar tim bisa bekerja lebih produktif dan efisien.
             </motion.p>
             
             <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -181,7 +181,7 @@ export default function LandingPage() {
               {[
                 { label: 'Modul Terintegrasi', value: '5 Modul Utama' },
                 { label: 'Eksklusif Untuk', value: 'Tim internal' },
-                { label: 'Kesiapan Operasional', value: 'Terstandarisasi' }
+                { label: 'Kesiapan Operasional', value: 'Siap Pakai' }
               ].map((stat) => (
                 <div key={stat.label} className="flex flex-col items-center justify-center space-y-1 text-center">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{stat.label}</span>
@@ -196,9 +196,9 @@ export default function LandingPage() {
         <section className="py-24 px-6 lg:px-8 bg-background">
           <div className="mx-auto max-w-7xl">
             <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4">Semua kebutuhan trainer, satu ruang kerja.</h2>
+              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4">Satu tempat untuk berbagai kebutuhan.</h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                Setiap modul tetap punya fungsi yang berbeda, tapi tampilan dan arahnya dibuat selaras supaya tim tidak terasa sedang berpindah ke produk lain.
+                Gonta-ganti tugas jadi jauh lebih mulus dengan desain antarmuka yang seragam di tiap modul.
               </p>
             </div>
             
@@ -217,11 +217,11 @@ export default function LandingPage() {
                   </div>
                   <h3 className="text-lg font-bold tracking-tight mb-2 uppercase">{module.shortTitle}</h3>
                   <p className="text-xs leading-relaxed text-muted-foreground mt-auto">
-                    {module.id === 'ketik' && 'Latih kemampuan chat layanan dengan simulasi interaktif.'}
-                    {module.id === 'pdkt' && 'Susun email standar dengan template dan AI assistant.'}
-                    {module.id === 'telefun' && 'Latihan percakapan telepon dengan skenario realistis.'}
-                    {module.id === 'profiler' && 'Kelola profil agen dan peserta training.'}
-                    {module.id === 'qa-analyzer' && 'Pantau kualitas layanan dengan analytics dan ranking.'}
+                    {module.id === 'ketik' && 'Simulasi interaktif untuk melatih penanganan chat pelanggan.'}
+                    {module.id === 'pdkt' && 'Penyusunan penulisan email dengan draf terpandu dan asisten AI cerdas.'}
+                    {module.id === 'telefun' && 'Skenario penanganan telepon berdasarkan kasus interaksi sebenarnya di lapangan.'}
+                    {module.id === 'profiler' && 'Sistem pengadaan data operasional dari rekam performa histori para agen.'}
+                    {module.id === 'qa-analyzer' && 'Pantauan analitikal untuk visibilitas hasil peringkat kualitas dari penilaian QA.'}
                   </p>
                   <ChevronRight className="absolute bottom-6 right-6 h-4 w-4 opacity-0 transition-all -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0" />
                 </motion.div>
@@ -235,12 +235,12 @@ export default function LandingPage() {
           <div className="mx-auto max-w-7xl">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
               <div className="lg:col-span-1">
-                <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-6">Kenapa satu platform?</h2>
+                <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-6">Mengapa platform terpusat?</h2>
                 <p className="text-muted-foreground text-lg mb-8">
-                  Kami memahami kompleksitas tugas tim trainer. Trainers SuperApp dirancang untuk menghilangkan hambatan teknis agar Anda bisa fokus pada pengembangan SDM.
+                  Kami paham padatnya jadwal tim Anda. Dengan platform terpusat ini, proses operasional jadi lebih ramping agar Anda bisa fokus membantu tim berkembang.
                 </p>
                 <div className="flex items-center gap-2 text-primary font-semibold">
-                  <span>Mulai transformasi hari ini</span>
+                  <span>Lihat keunggulan lainnya</span>
                   <ArrowRight className="h-5 w-5" />
                 </div>
               </div>
@@ -248,23 +248,23 @@ export default function LandingPage() {
               <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
                 {[
                   {
-                    title: 'Satu kali login, semua modul terbuka',
-                    desc: 'Akses seluruh instrumen simulasi dan evaluasi tanpa perlu login berulang kali di setiap tools yang berbeda.',
+                    title: 'Satu akses untuk semua',
+                    desc: 'Cukup sekali login untuk mengakses seluruh alat kerja dan simulasi yang Anda butuhkan.',
                     icon: LockKeyhole
                   },
                   {
-                    title: 'Dashboard fokus pekerjaan',
-                    desc: 'Antarmuka minimalis yang menonjolkan metrik kritikal, bukan sekadar tumpukan menu yang membingungkan.',
+                    title: 'Dasbor yang bersih',
+                    desc: 'Tampilan rapi dan bebas distraksi untuk memantau data yang paling penting dari tim Anda.',
                     icon: PanelsTopLeft
                   },
                   {
-                    title: 'Navigasi yang familiar',
-                    desc: 'Pindah antar modul terasa natural karena mengikuti standar desain yang konsisten di seluruh aplikasi.',
+                    title: 'Navigasi konsisten',
+                    desc: 'Desain setiap modul dibuat senada, memastikan adaptasi lebih cepat ketika Anda berganti antara fungsi simulasi dan rekap data.',
                     icon: Orbit
                   },
                   {
-                    title: 'Efisiensi Operasional',
-                    desc: 'Mengurangi waktu administrasi manual sehingga trainer punya lebih banyak waktu untuk coaching agen.',
+                    title: 'Hemat waktu',
+                    desc: 'Tinggalkan banyak sekali pekerjaan manual—sekarang Anda punya lebih banyak waktu bebas untuk rekan kerja.',
                     icon: Sparkles
                   }
                 ].map((item) => (
@@ -285,23 +285,23 @@ export default function LandingPage() {
         <section className="relative overflow-hidden py-24 px-6 lg:px-8">
           <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
           <div className="relative mx-auto max-w-7xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-6">Siap meningkatkan standar kualitas layanan?</h2>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-6">Siap beralih ke cara kerja yang lebih baik?</h2>
             <p className="text-muted-foreground text-lg mb-10 max-w-2xl mx-auto">
-              Masuk sekarang dan kembangkan potensi terbaik tim internal melalui platform operasional terpadu.
+              Sederhanakan alur pelatihan dan pantau target operasional tim Anda dalam satu layar.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
                 onClick={() => handleOpenAuth('login')}
                 className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-10 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-[1.05]"
               >
-                Mulai Gunakan Platform
+                Mulai Sekarang
                 <ArrowRight className="h-4 w-4" />
               </button>
               <button
                 onClick={() => handleOpenAuth('register')}
                 className="text-sm font-semibold hover:underline"
               >
-                Daftar Akses Baru
+                Belum punya akses? Minta akses
               </button>
             </div>
           </div>

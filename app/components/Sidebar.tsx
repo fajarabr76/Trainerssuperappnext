@@ -10,6 +10,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   UserCog,
+  Shield,
+  History,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -47,18 +49,21 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
   const qaModule = APP_MODULES.find((module) => module.id === 'qa-analyzer');
   const managementLinks = [
     {
-      href: '/dashboard/monitoring',
-      label: 'Monitoring',
-      allowed: ['trainer', 'trainers', 'leader', 'admin', 'superadmin'].includes(normalizedRole || ''),
-    },
-    {
       href: '/dashboard/users',
       label: 'User Management',
+      icon: Shield,
       allowed: ['trainer', 'trainers', 'admin', 'superadmin'].includes(normalizedRole || ''),
+    },
+    {
+      href: '/dashboard/monitoring',
+      label: 'Monitoring',
+      icon: Activity,
+      allowed: ['trainer', 'trainers', 'leader', 'admin', 'superadmin'].includes(normalizedRole || ''),
     },
     {
       href: '/dashboard/activities',
       label: 'Activity Logs',
+      icon: History,
       allowed: ['trainer', 'trainers', 'admin', 'superadmin'].includes(normalizedRole || ''),
     },
   ].filter((item) => item.allowed);
@@ -198,7 +203,7 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
                 {!effectiveIsCollapsed && <p className="mb-4 ml-2 mt-8 text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Management</p>}
                 {managementLinks.map((item) => (
                   <Link key={item.href} href={item.href} className={navItemClass(pathname === item.href)}>
-                    <Activity className="h-4 w-4 shrink-0" />
+                    <item.icon className="h-4 w-4 shrink-0" />
                     {!effectiveIsCollapsed && <span>{item.label}</span>}
                   </Link>
                 ))}
