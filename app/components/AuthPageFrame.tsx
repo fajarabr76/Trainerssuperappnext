@@ -40,7 +40,7 @@ export default function AuthPageFrame({
             </span>
             <span className="flex flex-col">
               <span className="text-foreground">Trainers SuperApp</span>
-              <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Kontak OJK 157</span>
+              <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Workspace internal</span>
             </span>
           </Link>
           <ThemeToggle />

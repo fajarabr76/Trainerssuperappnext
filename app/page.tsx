@@ -127,7 +127,7 @@ export default function LandingPage() {
           >
             <motion.div variants={itemVariants} className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-5 py-1.5 text-[10px] font-bold uppercase tracking-widest text-primary">
               <Shield className="h-3.5 w-3.5" />
-              Platform Trainer · Kontak OJK 157
+              Platform Trainer · Workspace internal
             </motion.div>
             
             <motion.h1 variants={itemVariants} className="font-display text-5xl font-extrabold tracking-tight text-foreground sm:text-7xl mb-8 max-w-4xl mx-auto leading-[1.05]">
@@ -136,7 +136,7 @@ export default function LandingPage() {
             
             <motion.p variants={itemVariants} className="mx-auto max-w-2xl text-lg leading-8 text-muted-foreground mb-10">
               Trainers SuperApp menyatukan simulasi chat, email, telepon, profiling, dan QA analytics dalam satu tempat. 
-              Dibuat khusus untuk operasional harian tim Kontak OJK 157 yang presisi dan efisien.
+              Dibuat untuk operasional harian tim trainer yang presisi dan efisien.
             </motion.p>
             
             <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -180,7 +180,7 @@ export default function LandingPage() {
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
               {[
                 { label: 'Modul Terintegrasi', value: '5 Modul Utama' },
-                { label: 'Eksklusif Untuk', value: 'Kontak OJK 157' },
+                { label: 'Eksklusif Untuk', value: 'Tim internal' },
                 { label: 'Kesiapan Operasional', value: 'Terstandarisasi' }
               ].map((stat) => (
                 <div key={stat.label} className="flex flex-col items-center justify-center space-y-1 text-center">
@@ -287,7 +287,7 @@ export default function LandingPage() {
           <div className="relative mx-auto max-w-7xl text-center">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-6">Siap meningkatkan standar kualitas layanan?</h2>
             <p className="text-muted-foreground text-lg mb-10 max-w-2xl mx-auto">
-              Masuk sekarang dan kembangkan potensi terbaik tim Kontak OJK 157 melalui platform operasional terpadu.
+              Masuk sekarang dan kembangkan potensi terbaik tim internal melalui platform operasional terpadu.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <button

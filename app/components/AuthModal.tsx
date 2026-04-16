@@ -189,7 +189,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                     </div>
                     <div className="flex flex-col">
                       <span className="text-sm font-semibold tracking-tight">Trainers SuperApp</span>
-                      <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Kontak OJK 157</span>
+                      <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Workspace internal</span>
                     </div>
                   </div>
 
@@ -242,7 +242,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                   </div>
                   <div className="flex flex-col">
                     <span className="text-sm font-semibold tracking-tight">Trainers SuperApp</span>
-                    <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Kontak OJK 157</span>
+                    <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Workspace internal</span>
                   </div>
                 </div>
 
