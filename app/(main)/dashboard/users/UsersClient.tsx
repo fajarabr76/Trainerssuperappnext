@@ -293,7 +293,7 @@ export default function UsersClient({ user, role, profile: _profile }: UsersClie
                             <div className="flex flex-wrap items-center gap-2">
                               <h3 className="text-lg font-semibold tracking-tight">{entry.full_name || entry.email || 'Tanpa nama'}</h3>
                               <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] ${isPending ? 'bg-amber-500/10 text-amber-600' : isRejected ? 'bg-red-500/10 text-red-600' : 'bg-emerald-500/10 text-emerald-600'}`}>
-                                {isPending ? 'Pending' : isRejected ? 'Rejected' : 'Approved'}
+                                {isPending ? 'Pending' : isRejected ? 'Ditolak' : 'Approved'}
                               </span>
                               {isSelf && (
                                 <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-primary">
@@ -315,8 +315,8 @@ export default function UsersClient({ user, role, profile: _profile }: UsersClie
                         <div className="grid gap-3 md:grid-cols-3">
                           <ActionCard
                             icon={<CheckCircle2 className="h-4 w-4" />}
-                            title={isPending ? 'Approve user' : isRejected ? 'Pulihkan user' : 'Suspend user'}
-                            description={isPending ? 'Aktifkan akses login pengguna yang masih menunggu approval.' : isRejected ? 'Kembalikan user yang ditolak agar bisa direview kembali.' : 'Kembalikan user ke status pending tanpa menghapus akun.'}
+                            title={isPending ? 'Approve atau Tolak' : isRejected ? 'Pulihkan user' : 'Suspend user'}
+                            description={isPending ? 'Kelola pendaftaran pengguna baru sebelum mengizinkan login.' : isRejected ? 'Kembalikan user yang ditolak agar bisa direview kembali.' : 'Kembalikan user ke status pending tanpa menghapus akun.'}
                             tone={isPending ? 'success' : isRejected ? 'neutral' : 'warning'}
                           />
                           <ActionCard
