@@ -78,7 +78,7 @@ Owner default: Product + Engineering
 - [x] Crop/zoom in/zoom out saat upload/edit dari table.
 - [x] Persist metadata framing.
 - [x] Framing dipakai konsisten untuk table + slide + export.
-- [ ] Uji fallback data lama tanpa metadata crop secara menyeluruh.
+- [x] Uji fallback data lama tanpa metadata crop secara menyeluruh.
 
 ## D. SIDAK / QA Analyzer
 
@@ -90,13 +90,13 @@ Owner default: Product + Engineering
 - [x] `ranking`
 - [x] `reports`
 - [x] `settings`
-- [ ] Final pass komponen minor yang belum tersentuh di masing-masing halaman.
+- [x] Final pass komponen minor yang belum tersentuh di masing-masing halaman.
 
 ### D2. Responsive + Dark Mode QA (P1)
 - [ ] Audit responsive halaman kompleks:
-  - [ ] `/qa-analyzer/input`
-  - [ ] `/qa-analyzer/reports`
-- [ ] Audit dark mode halaman SIDAK yang belum disentuh detail.
+  - [x] `/qa-analyzer/input`
+  - [x] `/qa-analyzer/reports`
+- [x] Audit dark mode halaman SIDAK yang belum disentuh detail.
 
 ## E. Regression & Functional QA
 

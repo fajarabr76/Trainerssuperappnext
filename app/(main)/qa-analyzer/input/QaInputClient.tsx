@@ -645,7 +645,7 @@ export default function QaInputClient({
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           <div className="max-w-2xl mx-auto space-y-6">
             <div className="flex items-center gap-1.5 text-xs flex-wrap">
               <button onClick={() => resetToStep('folder')} className={`font-semibold ${step === 'folder' ? 'text-primary' : 'text-primary/60'}`}>Folder</button>
@@ -781,7 +781,7 @@ export default function QaInputClient({
                       </div>
                     </div>
                     {activeWeight.scoring_mode === 'weighted' ? (
-                      <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="grid grid-cols-1 gap-3 mb-4 sm:grid-cols-2">
                         <div className="bg-blue-500/10 rounded-xl p-3 text-center">
                           <p className="text-[10px] text-blue-500 font-bold uppercase">Non-Critical ({Math.round(activeWeight.non_critical_weight * 100)}%)</p>
                           <p className={`text-xl font-black ${scoreColor(liveScore.nonCriticalScore)}`}>{liveScore.nonCriticalScore.toFixed(1)}</p>
@@ -814,7 +814,7 @@ export default function QaInputClient({
                   {!showForm && !showImport && (() => {
                     const hasBadFindings = temuan.some(t => t.nilai < 3);
                     return (
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2 justify-end">
                         {role !== 'leader' && (
                           <>
                             <button onClick={() => { setShowImport(true); setImportTab('download'); setImportRows([]); setImportFile(null); }} className="flex items-center gap-2 px-4 py-2.5 bg-card border border-border hover:border-primary/40 rounded-xl text-sm font-semibold transition-all"><FileSpreadsheet className="w-4 h-4"/>Import</button>
@@ -886,7 +886,7 @@ export default function QaInputClient({
                             <div className="p-4 space-y-4">
                               <div><label className="text-xs font-bold text-muted-foreground mb-2 block uppercase tracking-wider">Parameter</label><IndicatorDropdown value={entry.indicator_id} indicators={indicators} scoringMode={activeWeight.scoring_mode} open={entry.showDropdown} onToggle={() => { closeAllDropdowns(); updateEntry(entry.uid, { showDropdown: !entry.showDropdown }); }} onSelect={id => updateEntry(entry.uid, { indicator_id: id, showDropdown: false })}/></div>
                               <div><label className="text-xs font-bold text-muted-foreground mb-2 block uppercase tracking-wider">Nilai</label><div className="grid grid-cols-4 gap-2">{NILAI_OPTIONS.map(opt => <button key={opt.v} type="button" onClick={() => updateEntry(entry.uid, { nilai: opt.v })} className={`py-3 rounded-xl border-2 transition-all text-center ${entry.nilai === opt.v ? opt.active : opt.inactive}`}><p className="text-lg font-black">{opt.v}</p><p className="text-[9px] font-bold uppercase opacity-60">{opt.sub.split(' ')[0]}</p></button>)}</div></div>
-                              <div className="grid grid-cols-2 gap-3">
+                              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <div><label className="text-xs font-bold text-muted-foreground mb-2 block uppercase tracking-wider">Ketidaksesuaian</label><textarea value={entry.ketidaksesuaian} onChange={e => updateEntry(entry.uid, { ketidaksesuaian: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"/></div>
                                 <div><label className="text-xs font-bold text-muted-foreground mb-2 block uppercase tracking-wider">Sebaiknya</label><textarea value={entry.sebaiknya} onChange={e => updateEntry(entry.uid, { sebaiknya: e.target.value })} rows={2} className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"/></div>
                               </div>
@@ -895,7 +895,7 @@ export default function QaInputClient({
                         ))}
                       </div>
                       <button onClick={() => setEntries(prev => [...prev, newEntry()])} className="w-full py-3 border-2 border-dashed border-primary/20 rounded-2xl text-sm font-bold text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-2"><Plus className="w-4 h-4"/>Tambah Parameter</button>
-                      <div className="flex gap-3 pt-2"><button onClick={handleSave} disabled={saving || entries.some(e => !e.indicator_id)} className="flex-1 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2">{saving ? <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"/> : <Check className="w-5 h-5"/>}{saving ? 'Menyimpan...' : 'Simpan Temuan'}</button><button onClick={resetForm} className="px-6 py-3.5 bg-foreground/5 text-muted-foreground rounded-xl font-bold">Batal</button></div>
+                      <div className="flex flex-col gap-3 pt-2 sm:flex-row"><button onClick={handleSave} disabled={saving || entries.some(e => !e.indicator_id)} className="flex-1 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2">{saving ? <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"/> : <Check className="w-5 h-5"/>}{saving ? 'Menyimpan...' : 'Simpan Temuan'}</button><button onClick={resetForm} className="px-6 py-3.5 bg-foreground/5 text-muted-foreground rounded-xl font-bold sm:w-auto">Batal</button></div>
                     </div>
                   </div>
                 )}
@@ -948,7 +948,7 @@ export default function QaInputClient({
                                 <div className="mt-4 p-4 rounded-2xl bg-primary/5 border border-primary/10 space-y-4 animate-in fade-in slide-in-from-top-2">
                                   <p className="text-xs font-bold text-primary uppercase tracking-wider">Edit Temuan</p>
                                   <div><label className="text-[10px] font-bold text-muted-foreground mb-2 block uppercase tracking-wider">Nilai</label><div className="grid grid-cols-4 gap-2">{NILAI_OPTIONS.map(opt => <button key={opt.v} type="button" onClick={() => setEditNilai(opt.v)} className={`py-2 rounded-xl border-2 transition-all text-center ${editNilai === opt.v ? opt.active : opt.inactive}`}><p className="text-base font-black">{opt.v}</p></button>)}</div></div>
-                                  <div className="grid grid-cols-2 gap-3">
+                                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                     <div><label className="text-[10px] font-bold text-muted-foreground mb-2 block uppercase tracking-wider">Ketidaksesuaian</label><textarea value={editKetidaksesuaian} onChange={e => setEditKetidaksesuaian(e.target.value)} rows={2} className="w-full px-3 py-2 rounded-xl border border-border bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary resize-none"/></div>
                                     <div><label className="text-[10px] font-bold text-muted-foreground mb-2 block uppercase tracking-wider">Sebaiknya</label><textarea value={editSebaiknya} onChange={e => setEditSebaiknya(e.target.value)} rows={2} className="w-full px-3 py-2 rounded-xl border border-border bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary resize-none"/></div>
                                   </div>

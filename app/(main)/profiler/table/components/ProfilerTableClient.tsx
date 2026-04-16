@@ -642,6 +642,14 @@ export default function ProfilerTableClient({
     setPeserta(initialPeserta);
   };
 
+  const onSortClick = () => {
+    setSortMode(true);
+    setSelectMode(false);
+    setSelectedIds(new Set());
+    setOrderChanged(false);
+    setPeserta(filtered);
+  };
+
   // ── Select helpers ───────────────────────────────────────────
   const toggleSelectMode = () => { setSelectMode(v => !v); setSelectedIds(new Set()); };
   const toggleSelect = (id: string) => setSelectedIds(prev => { 
@@ -1065,9 +1073,9 @@ export default function ProfilerTableClient({
                         <div className="w-1 h-1 rounded-full bg-border" />
                         {p.tim || 'Tanpa Tim'}
                       </span>
-                      {p.nip && (
+                      {p.nip_ojk && (
                         <span className="text-[11px] text-muted-foreground/60 font-mono tracking-tighter">
-                          #{p.nip}
+                          #{p.nip_ojk}
                         </span>
                       )}
                     </div>

@@ -15,7 +15,7 @@ export function ReportWarningModal({ isOpen, onClose }: ReportWarningModalProps)
 
   const handleBackToDashboard = () => {
     onClose();
-    router.push('/dashboard');
+    router.push('/qa-analyzer/dashboard');
   };
 
   return (

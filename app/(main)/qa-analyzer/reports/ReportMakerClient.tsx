@@ -197,7 +197,7 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
 
   return (
     <main className="flex flex-1 flex-col overflow-hidden">
-      <header className="relative z-20 flex h-28 shrink-0 items-center justify-between border-b border-border/50 bg-background/80 px-10 backdrop-blur-xl">
+      <header className="relative z-20 flex shrink-0 flex-col items-start justify-between gap-4 border-b border-border/50 bg-background/80 px-4 py-4 backdrop-blur-xl sm:h-28 sm:flex-row sm:items-center sm:px-6 sm:py-0 lg:px-10">
         <div>
           <Link
             href="/qa-analyzer/dashboard"
@@ -215,7 +215,7 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
         </div>
         {rate && (
           <div
-            className={`rounded-2xl border px-5 py-3 text-right text-xs ${
+            className={`w-full rounded-2xl border px-5 py-3 text-left text-xs sm:w-auto sm:text-right ${
               rate.allowed ? 'border-border/50 bg-foreground/[0.02]' : 'border-rose-500/30 bg-rose-500/10'
             }`}
           >
@@ -232,9 +232,9 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
         )}
       </header>
 
-      <div className="flex flex-1 overflow-y-auto p-8 lg:p-10">
+      <div className="flex flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10">
         <div className="mx-auto w-full max-w-3xl space-y-8">
-          <section className="rounded-[2rem] border border-border/50 bg-card/40 p-8 backdrop-blur-sm">
+          <section className="rounded-[2rem] border border-border/50 bg-card/40 p-5 backdrop-blur-sm sm:p-8">
             <label className="mb-3 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
               Tipe laporan
             </label>

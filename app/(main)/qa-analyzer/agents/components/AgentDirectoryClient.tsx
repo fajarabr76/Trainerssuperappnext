@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { 
   Users, Search, ChevronRight, TrendingUp, TrendingDown, 
   Minus
@@ -50,7 +51,7 @@ export default function AgentDirectoryClient({
   return (
     <>
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-28 px-10 border-b border-border/50 bg-background/80 backdrop-blur-xl flex items-center justify-between shrink-0 relative z-20">
+        <header className="px-4 py-4 border-b border-border/50 bg-background/80 backdrop-blur-xl flex flex-col gap-4 sm:h-28 sm:px-6 lg:px-10 sm:py-0 sm:flex-row sm:items-center sm:justify-between shrink-0 relative z-20">
           <div>
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">
               <Users className="w-3 h-3" /> SIDAK
@@ -58,7 +59,7 @@ export default function AgentDirectoryClient({
             <h1 className="text-3xl font-black tracking-tighter text-foreground">Direktori Agent</h1>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-6 w-full sm:w-auto">
              <div className="relative group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-all duration-300" />
               <input 
@@ -66,13 +67,13 @@ export default function AgentDirectoryClient({
                 placeholder="Cari nama agent..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-96 h-12 pl-12 pr-4 bg-foreground/5 border border-border/50 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-background transition-all"
+                className="w-full sm:w-72 lg:w-96 h-12 pl-12 pr-4 bg-foreground/5 border border-border/50 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-background transition-all"
               />
             </div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8 bg-foreground/[0.02]">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-foreground/[0.02]">
           <div className="flex items-center gap-2 mb-10 overflow-x-auto pb-2 no-scrollbar">
             <button 
               onClick={() => setSelectedBatch('all')}
@@ -110,12 +111,13 @@ export default function AgentDirectoryClient({
                 <div className="flex items-start justify-between mb-8 relative z-10">
                   <div className="w-16 h-16 rounded-2xl bg-foreground/5 p-0.5 border border-border/50 group-hover:border-primary/30 transition-all duration-500 overflow-hidden shadow-inner flex items-center justify-center">
                       {agent.foto_url ? (
-                        <img
+                        <Image
                           src={agent.foto_url}
                           alt={agent.nama}
-                          loading="lazy"
-                          decoding="async"
+                          width={64}
+                          height={64}
                           className="w-full h-full object-cover rounded-xl"
+                          referrerPolicy="no-referrer"
                         />
                       ) : (
                         <Users className="w-8 h-8 text-muted-foreground/30 group-hover:text-primary/20 transition-colors" />

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import {
   Activity, ArrowLeft, Sun, Moon, ExternalLink,
   Download, Plus, ShieldCheck, TrendingUp, TrendingDown, Minus, Zap,
@@ -125,7 +126,7 @@ export default function QaAgentDetailClient({
   return (
     <>
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        <header className="h-20 flex items-center justify-between px-8 bg-background/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-40">
+        <header className="h-20 flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-background/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-40">
           <button 
             onClick={() => router.push('/qa-analyzer/agents')} 
             className="w-10 h-10 rounded-xl bg-foreground/5 hover:bg-primary hover:text-white flex items-center justify-center text-muted-foreground transition-all duration-300 shadow-sm group"
@@ -150,15 +151,21 @@ export default function QaAgentDetailClient({
         <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Profile Bar */}
-            <div className="bg-card/40 border-b border-border/50 px-10 py-6 backdrop-blur-xl relative z-30">
+            <div className="bg-card/40 border-b border-border/50 px-4 py-6 sm:px-6 lg:px-10 backdrop-blur-xl relative z-30">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 <div className="flex items-center gap-6">
                   <div className="h-12 w-4 flex-shrink-0" />
                   
                   <div className="relative">
                     {agent.foto_url ? (
-                      <div className="h-20 w-20 rounded-[1.5rem] p-1 border-2 border-primary/20 bg-background overflow-hidden shadow-2xl shadow-primary/10">
-                        <img src={agent.foto_url} alt={agent.nama} className="h-full w-full rounded-xl object-cover" />
+                      <div className="relative h-20 w-20 rounded-[1.5rem] p-1 border-2 border-primary/20 bg-background overflow-hidden shadow-2xl shadow-primary/10">
+                        <Image
+                          src={agent.foto_url}
+                          alt={agent.nama}
+                          fill
+                          className="rounded-xl object-cover"
+                          referrerPolicy="no-referrer"
+                        />
                       </div>
                     ) : (
                       <div className="h-20 w-20 rounded-[1.5rem] bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-white text-2xl font-black shadow-2xl shadow-primary/20">
@@ -196,7 +203,7 @@ export default function QaAgentDetailClient({
                         </div>
                       )}
                       {agent.bergabung_date && (
-                        <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-[10px] font-black uppercase tracking-widest text-amber-600 leading-none">
+                        <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-300 leading-none">
                           Masa Kerja: {hitungMasaDinas(agent.bergabung_date)}
                         </div>
                       )}
@@ -228,7 +235,7 @@ export default function QaAgentDetailClient({
             </div>
 
             {/* Unified Sticky Control Bar */}
-            <div className="sticky top-20 z-40 bg-background/60 backdrop-blur-md px-10 py-4 border-b border-border/40">
+            <div className="sticky top-20 z-40 bg-background/60 backdrop-blur-md px-4 py-4 sm:px-6 lg:px-10 border-b border-border/40">
               <div className="flex flex-col md:flex-row md:items-center justify-center gap-6 max-w-4xl mx-auto">
                 {/* Navigation Tabs */}
                 <div className="flex items-center gap-1.5 p-1 bg-foreground/[0.03] border border-border/40 rounded-2xl shadow-inner-sm">
@@ -290,7 +297,7 @@ export default function QaAgentDetailClient({
               </div>
             </div>
 
-            <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+            <div className="max-w-5xl mx-auto px-4 py-8 sm:px-6 space-y-8">
               {temuan.length === 0 ? (
                 <div className="bg-card rounded-3xl border border-border p-12 text-center">
                   <QaStatePanel
