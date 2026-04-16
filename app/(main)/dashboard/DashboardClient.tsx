@@ -81,8 +81,8 @@ export default function DashboardClient({
       <div className="sticky top-0 z-30 border-b border-border/40 bg-background/70 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between px-6 py-4 lg:px-10">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Unified Dashboard</p>
-            <h1 className="mt-1 text-lg font-semibold tracking-tight">Command center</h1>
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Dashboard Terpadu</p>
+            <h1 className="mt-1 text-lg font-semibold tracking-tight">Pusat Kendali</h1>
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
@@ -100,7 +100,7 @@ export default function DashboardClient({
           <div className="rounded-[2rem] border border-border/50 bg-card/75 p-7 shadow-xl shadow-black/5 backdrop-blur-xl lg:p-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
               <Sparkles className="h-3.5 w-3.5" />
-              Role-aware workspace
+              Workspace berbasis peran
             </div>
             <div className="mt-5 space-y-4">
               <h2 className="max-w-3xl text-4xl font-semibold tracking-tight text-balance lg:text-5xl">
@@ -114,22 +114,22 @@ export default function DashboardClient({
 
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
               <div className="rounded-3xl border border-border/50 bg-background/70 p-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Modules in view</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Modul Aktif</p>
                 <p className="mt-2 text-3xl font-semibold tracking-tight">{visibleModules.length}</p>
               </div>
               <div className="rounded-3xl border border-border/50 bg-background/70 p-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Primary focus</p>
-                <p className="mt-2 text-sm font-medium text-foreground">{roleLabel === 'Agent' ? 'Simulation & self-practice' : 'Monitoring & orchestration'}</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Fokus Utama</p>
+                <p className="mt-2 text-sm font-medium text-foreground">{roleLabel === 'Agent' ? 'Simulasi dan latihan mandiri' : 'Monitoring dan orkestrasi operasional'}</p>
               </div>
               <div className="rounded-3xl border border-border/50 bg-background/70 p-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Access model</p>
-                <p className="mt-2 text-sm font-medium text-foreground">Unified shell, preserved legacy routes</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Model Akses</p>
+                <p className="mt-2 text-sm font-medium text-foreground">Shell terpadu dengan kompatibilitas route lama</p>
               </div>
             </div>
           </div>
 
           <div className="rounded-[2rem] border border-border/50 bg-card/65 p-6 backdrop-blur-xl lg:p-7">
-            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Quick actions</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Aksi Cepat</p>
             <div className="mt-5 space-y-3">
               {[...managementActions, ...visibleModules.map((module) => ({
                 href: module.href,
@@ -166,7 +166,7 @@ export default function DashboardClient({
 
         <section className="space-y-4">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Unified workspaces</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Workspace Terpadu</p>
             <h3 className="mt-2 text-2xl font-semibold tracking-tight">Masuk ke modul tanpa keluar dari ritme kerja yang sama</h3>
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
@@ -195,7 +195,7 @@ export default function DashboardClient({
                   </div>
                   <h4 className="text-lg font-semibold tracking-tight">{module.title}</h4>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">{module.description}</p>
-                  <div className="mt-auto pt-5 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">Open workspace</div>
+                  <div className="mt-auto pt-5 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">Buka workspace</div>
                 </Link>
               </motion.div>
             ))}

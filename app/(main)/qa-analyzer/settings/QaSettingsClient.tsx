@@ -461,7 +461,7 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
               <QaStatePanel
                 type="empty"
                 compact
-                title="Belum ada parameter untuk layanan ini."
+                title="Parameter untuk layanan ini belum tersedia"
                 description="Tambahkan parameter agar proses penilaian dapat dijalankan."
               />
             </div>

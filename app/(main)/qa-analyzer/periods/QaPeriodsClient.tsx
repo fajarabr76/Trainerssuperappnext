@@ -197,7 +197,7 @@ export default function QaPeriodsClient({ user, role, initialPeriods }: QaPeriod
             {periods.length === 0 ? (
               <QaStatePanel
                 type="empty"
-                title="Belum ada periode pelaporan."
+                title="Periode pelaporan belum tersedia"
                 description="Tambahkan periode pertama agar proses input dan analisis SIDAK bisa dimulai."
                 className="text-center"
               />

@@ -717,7 +717,7 @@ export default function ProfilerTableClient({
 
   return (
     <div className={`h-full overflow-auto bg-background/50 backdrop-blur-sm relative flex flex-col ${selectMode && selectedIds.size > 0 ? 'pb-28' : ''}`}>
-      <div className="max-w-6xl mx-auto space-y-4">
+      <div className="mx-auto w-full max-w-6xl space-y-4 px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
 
         {/* ── Tabs Navigation ── */}
         <div className="flex items-center gap-1 p-1 bg-muted/40 rounded-2xl w-fit border border-border/40 backdrop-blur-sm self-center sm:self-start">
@@ -896,7 +896,7 @@ export default function ProfilerTableClient({
         {feedback && (
           <QaStatePanel
             type={feedback.type}
-            title={feedback.type === 'success' ? 'Berhasil' : 'Kesalahan'}
+            title={feedback.type === 'success' ? 'Perubahan berhasil disimpan' : 'Terjadi kendala saat menyimpan perubahan'}
             description={feedback.message}
             action={
               <button
@@ -912,8 +912,8 @@ export default function ProfilerTableClient({
         {isNavigatingFolder && (
           <QaStatePanel
             type="loading"
-            title="Sabar ya..."
-            description="Sedang memuat folder yang dipilih. Mohon tunggu sebentar..."
+            title="Memuat folder tujuan"
+            description="Data folder sedang disiapkan. Mohon tunggu sebentar."
           />
         )}
 
@@ -939,8 +939,8 @@ export default function ProfilerTableClient({
             {hasActiveFilters ? (
               <QaStatePanel
                 type="empty"
-                title="Pencarian Nihil"
-                description="Belum ada data yang cocok dengan filter atau kata kunci saat ini. Silakan ubah pencarian Anda."
+                title="Data sesuai filter belum ditemukan"
+                description="Tidak ada peserta yang cocok dengan filter atau kata kunci saat ini. Sesuaikan filter untuk melanjutkan."
                 action={
                   <button
                     onClick={resetFilters}
@@ -953,8 +953,8 @@ export default function ProfilerTableClient({
             ) : (
               <QaStatePanel
                 type="empty"
-                title="Folder Kosong"
-                description="Belum ada peserta di folder ini. Segera tambahkan data untuk mulai menyusun profil batch."
+                title="Folder ini belum memiliki peserta"
+                description="Tambahkan peserta pertama untuk mulai menyusun profil batch."
                 action={
                   !isReadOnly && (
                     <button
@@ -991,7 +991,7 @@ export default function ProfilerTableClient({
                       : isSelected && selectMode
                         ? 'bg-primary/5'
                         : 'hover:bg-muted/30'
-                  } ${density === 'compact' ? 'px-4 py-3' : 'px-6 py-5'}`}
+                  } ${density === 'compact' ? 'px-3 py-2.5 sm:px-4 sm:py-3' : 'px-4 py-3.5 sm:px-6 sm:py-5'}`}
                 >
                   {/* Selection / Sort Indicator */}
                   {sortMode ? (
@@ -1023,7 +1023,7 @@ export default function ProfilerTableClient({
                         setSelectedPeserta(p);
                       }}
                       className={`rounded-[1.25rem] border border-border/40 overflow-hidden bg-muted/20 transition-all duration-500 group-hover:scale-105 group-hover:shadow-xl group-hover:shadow-primary/5 cursor-pointer ${
-                        density === 'compact' ? 'w-11 h-11' : 'w-14 h-14'
+                        density === 'compact' ? 'w-10 h-10 sm:w-11 sm:h-11' : 'w-12 h-12 sm:w-14 sm:h-14'
                       }`}
                     >
                       {p.foto_url ? (

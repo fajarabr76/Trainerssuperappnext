@@ -37,7 +37,7 @@ export default async function DashboardPage() {
 
   const formattedLogs = activities.map(act => ({
     id: act.id,
-    user: act.user_name || 'Hamba Allah',
+    user: act.user_name || 'Pengguna internal',
     action: normalizeActionText(act.action),
     time: activityServiceServer.formatTimeAgo(act.created_at),
     type: act.type

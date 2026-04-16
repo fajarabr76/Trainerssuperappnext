@@ -7,12 +7,12 @@ import type { TrendData, TrendDataset } from '../../../lib/qa-types';
 import QaStatePanel from '../../../components/QaStatePanel';
 
 const TREND_COLORS = [
-  '#A855F7', // Purple
-  '#EC4899', // Pink
-  '#3B82F6', // Blue
-  '#10B981', // Emerald
-  '#F59E0B', // Amber
-  '#06B6D4'  // Cyan
+  '#0F766E', // Teal
+  '#D97706', // Amber
+  '#2563EB', // Blue
+  '#BE123C', // Rose
+  '#4338CA', // Indigo
+  '#0891B2'  // Cyan
 ];
 
 interface AgentTrendTabProps {
@@ -34,11 +34,11 @@ export default function AgentTrendTab({
 }: AgentTrendTabProps) {
   if (loadingTrend) {
     return (
-      <div className="bg-card/40 backdrop-blur-sm rounded-[2.5rem] border border-border/50 p-10 h-[550px] flex items-center justify-center">
+      <div className="bg-card/50 backdrop-blur-sm rounded-[2rem] border border-border/50 p-6 sm:p-8 h-[520px] flex items-center justify-center">
         <QaStatePanel
           type="loading"
-          title="Memuat tren performa agent"
-          description="Data histori audit sedang disiapkan."
+          title="Memuat tren performa agen"
+          description="Riwayat penilaian sedang disiapkan."
           className="w-full max-w-lg"
         />
       </div>
@@ -46,14 +46,14 @@ export default function AgentTrendTab({
   }
 
   return (
-    <div className="bg-card/40 backdrop-blur-sm rounded-[2.5rem] border border-border/50 p-10 shadow-2xl shadow-primary/5">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-10 gap-6">
+    <div className="bg-card/50 backdrop-blur-sm rounded-[2rem] border border-border/50 p-5 sm:p-8 shadow-sm">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-4">
         <div>
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mb-2">
-            <TrendingUp className="w-3.5 h-3.5" /> Performance Analytics
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-muted-foreground mb-2">
+            <TrendingUp className="w-3.5 h-3.5" /> Tren Kinerja
           </div>
-          <h3 className="text-3xl font-black tracking-tighter">Personal Scoring Trend</h3>
-          <p className="text-[10px] text-muted-foreground font-bold mt-2 uppercase tracking-widest">Aggregate historical data & all audited parameters</p>
+          <h3 className="text-2xl sm:text-3xl font-black tracking-tight">Pergerakan skor per periode audit</h3>
+          <p className="text-[11px] text-muted-foreground font-medium mt-2">Pantau konsistensi nilai agen berdasarkan parameter yang telah dievaluasi.</p>
         </div>
         <div className="flex p-1.5 bg-foreground/5 dark:bg-foreground/[0.03] border border-border/50 rounded-2xl w-fit shadow-inner">
           {(['3m', '6m', 'all'] as const).map((tf) => (
@@ -66,7 +66,7 @@ export default function AgentTrendTab({
                   : 'text-muted-foreground hover:text-muted-foreground hover:bg-foreground/5'
               }`}
             >
-              {tf === '3m' ? '3 Months' : tf === '6m' ? '6 Months' : 'All Time'}
+              {tf === '3m' ? '3 Bulan' : tf === '6m' ? '6 Bulan' : 'Semua'}
             </button>
           ))}
         </div>
@@ -74,7 +74,7 @@ export default function AgentTrendTab({
 
       {personalTrend && personalTrend.labels.length > 0 ? (
         <>
-          <div className="flex flex-wrap gap-2 mb-10">
+          <div className="flex flex-wrap gap-2 mb-8">
             <button
               onClick={() => onFilterChange('all')}
               className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all duration-500 border-2 ${
@@ -83,7 +83,7 @@ export default function AgentTrendTab({
                   : 'bg-card/40 border-border/50 text-muted-foreground hover:border-foreground/20 hover:text-muted-foreground'
               }`}
             >
-              Overall Trend
+              Ringkasan
             </button>
             {personalTrend.datasets.map((ds: TrendDataset, i: number) => {
               const isActive = activeTrendFilter === ds.label;
@@ -109,7 +109,7 @@ export default function AgentTrendTab({
             })}
           </div>
 
-          <div className="h-[400px] w-full relative rounded-[2rem] border border-border/40 bg-background/60 dark:bg-white/[0.04] p-3 shadow-inner">
+          <div className="h-[380px] w-full relative rounded-[1.5rem] border border-border/40 bg-background/70 dark:bg-white/[0.04] p-3 shadow-inner">
             <ParamTrendChart 
               data={personalTrend} 
               filterLabel={activeTrendFilter} 
@@ -117,22 +117,22 @@ export default function AgentTrendTab({
             />
           </div>
           
-          <div className="mt-10 pt-10 border-t border-border/50 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-6 rounded-3xl bg-foreground/[0.02] border border-border/30">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4">Volume Activity</p>
+          <div className="mt-8 pt-8 border-t border-border/50 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-5 rounded-2xl bg-foreground/[0.02] border border-border/30">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Volume Periode</p>
               <div className="flex items-baseline gap-2">
                 <span className="text-3xl font-black tracking-tight">{personalTrend.labels.length}</span>
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Active Periods</span>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Periode Aktif</span>
               </div>
             </div>
-            <div className="md:col-span-2 p-6 rounded-3xl bg-primary/5 border border-primary/10 flex items-center gap-6">
+            <div className="md:col-span-2 p-5 rounded-2xl bg-primary/5 border border-primary/10 flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
                 <Zap className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-primary/40 mb-1">Trend Insight</p>
-                <p className="text-sm font-medium text-foreground/70 leading-relaxed italic">
-                  Visualizing scoring progress across different dimensions of service quality.
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary/40 mb-1">Insight Tren</p>
+                <p className="text-sm font-medium text-foreground/70 leading-relaxed">
+                  Gunakan pola naik-turun per parameter untuk menentukan fokus coaching pada periode berikutnya.
                 </p>
               </div>
             </div>
@@ -141,8 +141,8 @@ export default function AgentTrendTab({
       ) : (
         <QaStatePanel
           type="empty"
-          title="Belum ada histori tren"
-          description="Tren akan muncul setelah data audit tersedia pada periode yang dipilih."
+          title="Data tren belum tersedia"
+          description="Tren akan muncul setelah audit pada periode yang dipilih memiliki data penilaian."
         />
       )}
     </div>

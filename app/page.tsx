@@ -4,18 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import {
-  ArrowRight,
-  CheckCircle2,
-  ChevronRight,
-  Cpu,
-  LockKeyhole,
-  Loader2,
-  Orbit,
-  PanelsTopLeft,
-  Shield,
-  Sparkles,
-} from 'lucide-react';
+import { ArrowRight, ChevronRight, Cpu, Loader2, LockKeyhole, Orbit, PanelsTopLeft, Shield, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AuthModal from '@/app/components/AuthModal';
@@ -35,30 +24,6 @@ function AuthTrigger({ onOpen }: { onOpen: (mode: 'login' | 'register' | 'forgot
 
   return null;
 }
-
-const featureRows = [
-  'Akses terpusat untuk seluruh modul utama.',
-  'Alur kerja dibedakan jelas untuk setiap peran.',
-  'Navigasi konsisten dari landing page ke workspace internal.',
-];
-
-const proofPoints = [
-  {
-    title: 'Akses Terpusat & Aman',
-    description: 'Otentikasi tunggal menuju seluruh instrumen pelatihan dan pemantauan kualitas tanpa hambatan.',
-    icon: LockKeyhole,
-  },
-  {
-    title: 'Fokus Operasional',
-    description: 'Antarmuka yang dioptimalkan untuk menyoroti metrik kritikal dan tugas mendesak secara real-time.',
-    icon: PanelsTopLeft,
-  },
-  {
-    title: 'Arsitektur Konsisten',
-    description: 'Transisi logis antar modul dengan standar navigasi yang identik untuk meminimalkan beban kognitif.',
-    icon: Orbit,
-  },
-];
 
 const pageVariants = {
   hidden: { opacity: 0, y: 10 },
@@ -160,7 +125,7 @@ export default function LandingPage() {
             animate="show"
             className="mx-auto max-w-7xl text-center"
           >
-            <motion.div variants={itemVariants} className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-primary mb-8 px-5">
+            <motion.div variants={itemVariants} className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-5 py-1.5 text-[10px] font-bold uppercase tracking-widest text-primary">
               <Shield className="h-3.5 w-3.5" />
               Platform Trainer · Kontak OJK 157
             </motion.div>
@@ -201,7 +166,7 @@ export default function LandingPage() {
                     onClick={() => handleOpenAuth('register')}
                     className="inline-flex h-12 items-center gap-2 rounded-full border border-border bg-card/50 px-8 text-sm font-semibold transition hover:bg-muted/50"
                   >
-                    Ajukan Hak Akses
+                    Ajukan Akses
                   </button>
                 </>
               )}

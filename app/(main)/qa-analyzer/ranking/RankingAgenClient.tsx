@@ -305,7 +305,7 @@ export default function RankingAgenClient({
                     <td colSpan={6} className="px-6 py-24 text-center">
                       <QaStatePanel
                         type="empty"
-                        title="Belum ada data ranking untuk filter ini."
+                        title="Data ranking belum tersedia untuk filter ini"
                         description="Ubah layanan, periode, tahun, atau folder untuk menampilkan data ranking agen."
                         className="mx-auto max-w-md text-left"
                       />

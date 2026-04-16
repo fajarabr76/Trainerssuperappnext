@@ -21,7 +21,7 @@ export default function ParetoChart({ data }: ParetoChartProps) {
         <QaStatePanel
           type="empty"
           compact
-          title="Belum ada data kategori temuan."
+          title="Data kategori temuan belum tersedia"
           description="Grafik Pareto akan tampil jika data temuan tersedia."
           className="max-w-sm"
         />

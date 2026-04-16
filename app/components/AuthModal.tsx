@@ -14,7 +14,7 @@ interface AuthModalProps {
 
 const AUTH_COPY = {
   login: {
-    title: 'Masuk ke workspace kerja',
+    title: 'Masuk ke workspace',
     description: 'Akses dashboard terpadu dan seluruh modul simulasi tim trainer dengan satu langkah masuk.',
     submit: 'Masuk',
   },
@@ -24,8 +24,8 @@ const AUTH_COPY = {
     submit: 'Kirim permintaan',
   },
   forgot: {
-    title: 'Reset password',
-    description: 'Masukkan email kerja Anda. Tautan untuk membuat password baru akan dikirim ke inbox.',
+    title: 'Reset kata sandi',
+    description: 'Masukkan email kerja Anda. Tautan untuk membuat kata sandi baru akan dikirim ke inbox.',
     submit: 'Kirim link reset',
   },
 } as const;
@@ -130,7 +130,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       }
     }
 
-    setSuccessMessage('Pendaftaran berhasil. Akun Anda sekarang menunggu persetujuan trainer sebelum dashboard dapat digunakan.');
+    setSuccessMessage('Pendaftaran berhasil. Akun Anda sedang menunggu persetujuan trainer sebelum dashboard dapat digunakan.');
     setLoading(false);
   }
 
@@ -150,7 +150,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     if (forgotError) {
       setError(forgotError.message);
     } else {
-      setSuccessMessage('Link reset password telah dikirim ke email Anda. Cek inbox atau folder spam.');
+      setSuccessMessage('Tautan reset kata sandi telah dikirim ke email Anda. Cek inbox atau folder spam.');
     }
 
     setForgotLoading(false);
@@ -199,7 +199,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                       Akses terpusat
                     </div>
                     <h2 className="max-w-sm text-3xl font-semibold tracking-tight text-balance">
-                      Satu akses untuk seluruh ekosistem kerja tim trainers.
+                      Satu akses untuk seluruh ekosistem kerja tim trainer.
                     </h2>
                     <p className="max-w-md text-sm leading-6 text-muted-foreground">
                       Kelola modul simulasi, pantau profil peserta, dan akses analytics kualitas interaksi dalam satu dashboard terpadu yang efisien.
@@ -328,9 +328,9 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                         {mode === 'register' && (
                           <Field label="Peran">
                             <select name="role" required disabled={loading} className="auth-input">
-                              <option value="Agent">Agent</option>
-                              <option value="Leader">Leader</option>
-                              <option value="Trainer">Trainer</option>
+                              <option value="agent">Agent</option>
+                              <option value="leader">Leader</option>
+                              <option value="trainer">Trainer</option>
                             </select>
                           </Field>
                         )}
@@ -356,7 +356,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                           className="text-xs font-semibold text-muted-foreground transition hover:text-primary"
                           disabled={isBusy}
                         >
-                          Kembali ke login
+                          Kembali ke halaman masuk
                         </button>
                       ) : (
                         <button

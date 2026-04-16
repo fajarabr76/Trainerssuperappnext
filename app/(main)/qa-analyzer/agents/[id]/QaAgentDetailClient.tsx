@@ -288,7 +288,7 @@ export default function QaAgentDetailClient({
                         {selectedPeriod.serviceType}
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground leading-none mb-0.5">Period</span>
+                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground leading-none mb-0.5">Periode</span>
                         <span className="text-[12px] font-black tracking-tight text-foreground/80">{selectedPeriod.label}</span>
                       </div>
                     </div>
@@ -302,8 +302,8 @@ export default function QaAgentDetailClient({
                 <div className="bg-card rounded-3xl border border-border p-12 text-center">
                   <QaStatePanel
                     type="empty"
-                    title="Belum ada data evaluasi"
-                    description="Agent ini belum memiliki histori audit pada periode yang tersedia."
+                    title="Data evaluasi belum tersedia"
+                    description="Agen ini belum memiliki histori audit pada periode yang tersedia."
                     className="mx-auto max-w-lg"
                     action={
                       <button 

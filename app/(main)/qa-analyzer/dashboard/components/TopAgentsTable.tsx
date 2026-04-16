@@ -40,7 +40,7 @@ export default function TopAgentsTable({ agents, serviceType, selectedYear }: To
         <QaStatePanel
           type="empty"
           compact
-          title="Belum ada data agen dengan temuan."
+          title="Data agen dengan temuan belum tersedia"
           description="Tabel akan otomatis terisi saat data penilaian tersedia."
           className="max-w-sm"
         />

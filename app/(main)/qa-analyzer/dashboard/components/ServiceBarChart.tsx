@@ -24,7 +24,7 @@ export default function ServiceBarChart({ data }: ServiceBarChartProps) {
         <QaStatePanel
           type="empty"
           compact
-          title="Belum ada data temuan per layanan."
+          title="Data temuan per layanan belum tersedia"
           description="Data akan tampil setelah periode dan filter menghasilkan temuan."
           className="max-w-sm"
         />

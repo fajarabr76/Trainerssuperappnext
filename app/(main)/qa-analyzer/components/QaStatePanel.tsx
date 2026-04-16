@@ -46,14 +46,14 @@ export default function QaStatePanel({
 
   return (
     <div
-      className={`rounded-2xl border ${tone} ${compact ? 'p-3' : 'p-6'} ${className}`}
+      className={`rounded-2xl border ${tone} ${compact ? 'p-3' : 'p-4 sm:p-5'} ${className}`}
       role={type === 'error' ? 'alert' : 'status'}
     >
-      <div className={`flex ${compact ? 'items-center gap-2' : 'items-start gap-3'}`}>
-        <div className={`rounded-xl ${compact ? 'p-1.5' : 'p-2'} bg-background/70`}>{icon}</div>
+      <div className={`flex ${compact ? 'items-center gap-2' : 'items-start gap-3.5'}`}>
+        <div className={`rounded-xl ${compact ? 'p-1.5' : 'p-2.5'} bg-background/80 shadow-sm`}>{icon}</div>
         <div className="min-w-0 flex-1">
-          <p className={`${compact ? 'text-xs' : 'text-sm'} font-bold tracking-tight`}>{title}</p>
-          {description ? <p className={`${compact ? 'text-[11px]' : 'text-xs'} mt-1 opacity-90`}>{description}</p> : null}
+          <p className={`${compact ? 'text-xs' : 'text-sm'} font-semibold leading-snug tracking-tight`}>{title}</p>
+          {description ? <p className={`${compact ? 'text-[11px]' : 'text-xs'} mt-1.5 leading-relaxed opacity-90`}>{description}</p> : null}
         </div>
       </div>
       {action ? <div className={`${compact ? 'mt-2' : 'mt-3'}`}>{action}</div> : null}

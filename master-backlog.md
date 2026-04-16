@@ -52,12 +52,12 @@ Owner default: Product + Engineering
 - [ ] Validasi ulang quick actions agar benar-benar role-driven.
 
 ### B2. Profiler Visual Consistency
-- [ ] Final pass konsistensi style lintas seluruh submodule Profiler.
-- [ ] Audit spacing/card density desktop vs mobile di halaman padat.
+- [x] Final pass konsistensi style lintas seluruh submodule Profiler.
+- [x] Audit spacing/card density desktop vs mobile di halaman padat.
 
 ### B3. SIDAK Visual Consistency
-- [ ] Rapikan hierarchy card/panel agar tidak ada sisa nuansa old app.
-- [ ] Samakan tone copywriting semua empty/loading/error state.
+- [x] Rapikan hierarchy card/panel agar tidak ada sisa nuansa old app.
+- [x] Samakan tone copywriting semua empty/loading/error state.
 
 ## C. Belum Selesai - Prioritas Tinggi
 
