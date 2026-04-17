@@ -9,7 +9,7 @@ export default async function ActivitiesPage() {
     redirect('/?auth=login');
   }
 
-  if (!hasRole(role, ['trainer', 'admin', 'superadmin'])) {
+  if (!hasRole(role, ['trainer', 'admin'])) {
     redirect('/dashboard');
   }
 

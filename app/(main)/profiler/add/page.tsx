@@ -35,7 +35,7 @@ export default async function ProfilerAddPage({
   const role = profile?.role || 'trainer';
 
   // Allowed roles for this page (EXCLUDING leader)
-  const allowedRoles = ['trainer', 'trainers', 'admin', 'superadmin'];
+  const allowedRoles = ['trainer', 'trainers', 'admin'];
   if (!allowedRoles.includes(role)) {
     redirect('/dashboard');
   }

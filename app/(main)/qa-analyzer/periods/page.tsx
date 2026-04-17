@@ -12,7 +12,7 @@ export default async function QaPeriodsPage() {
     redirect('/?auth=login');
   }
 
-  if (!hasRole(role, ['trainer', 'admin', 'superadmin'])) {
+  if (!hasRole(role, ['trainer', 'admin'])) {
     redirect('/qa-analyzer/dashboard');
   }
 

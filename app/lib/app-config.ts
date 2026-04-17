@@ -72,7 +72,7 @@ export const APP_MODULES: AppModuleConfig[] = [
     icon: Users,
     accentClassName: 'text-module-profiler',
     accentSoftClassName: 'bg-module-profiler/10',
-    allowedRoles: ['trainer', 'leader', 'admin', 'superadmin'],
+    allowedRoles: ['trainer', 'leader', 'admin'],
   },
   {
     id: 'qa-analyzer',
@@ -83,13 +83,13 @@ export const APP_MODULES: AppModuleConfig[] = [
     icon: BarChart3,
     accentClassName: 'text-module-sidak',
     accentSoftClassName: 'bg-module-sidak/10',
-    allowedRoles: ['trainer', 'leader', 'admin', 'superadmin'],
+    allowedRoles: ['trainer', 'leader', 'admin'],
     children: [
       { title: 'Dashboard SIDAK', href: '/qa-analyzer/dashboard' },
       { title: 'Analisis Individu', href: '/qa-analyzer/agents' },
       { title: 'Ranking Agen', href: '/qa-analyzer/ranking' },
-      { title: 'Laporan', href: '/qa-analyzer/reports', allowedRoles: ['trainer', 'admin', 'superadmin'] },
-      { title: 'Input Temuan', href: '/qa-analyzer/input', allowedRoles: ['agent', 'trainer', 'admin', 'superadmin'] },
+      { title: 'Laporan', href: '/qa-analyzer/reports', allowedRoles: ['trainer', 'admin'] },
+      { title: 'Input Temuan', href: '/qa-analyzer/input', allowedRoles: ['agent', 'trainer', 'admin'] },
       { title: 'Periode QA', href: '/qa-analyzer/periods', allowedRoles: ['trainer'] },
       { title: 'Parameter QA', href: '/qa-analyzer/settings', allowedRoles: ['trainer'] },
     ],
@@ -103,7 +103,7 @@ export const APP_MODULES: AppModuleConfig[] = [
     icon: Activity,
     accentClassName: 'text-primary',
     accentSoftClassName: 'bg-primary/10',
-    allowedRoles: ['trainer', 'leader', 'admin', 'superadmin'],
+    allowedRoles: ['trainer', 'leader', 'admin'],
   },
 ];
 
@@ -120,8 +120,6 @@ export function normalizeRoleLabel(role?: string | null) {
       return 'Trainer';
     case 'admin':
       return 'Admin';
-    case 'superadmin':
-      return 'Superadmin';
     default:
       return 'User';
   }

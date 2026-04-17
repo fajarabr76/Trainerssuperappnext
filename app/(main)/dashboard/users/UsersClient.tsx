@@ -19,7 +19,7 @@ import { normalizeRoleLabel } from '@/app/lib/app-config';
 import { createClient } from '@/app/lib/supabase/client';
 import { deleteUserAction, updateUserRoleAction, updateUserStatusAction } from './actions';
 
-type ManagerRole = 'trainer' | 'admin' | 'superadmin';
+type ManagerRole = 'trainer' | 'admin';
 type UserStatus = 'approved' | 'pending' | 'rejected';
 
 interface ManagedUser {
@@ -41,14 +41,13 @@ interface UsersClientProps {
 const ROLE_OPTIONS: Record<ManagerRole, string[]> = {
   trainer: ['agent', 'leader', 'trainer'],
   admin: ['agent', 'leader', 'trainer', 'admin'],
-  superadmin: ['agent', 'leader', 'trainer', 'admin', 'superadmin'],
 };
 
 function normalizeRoleValue(role?: string | null) {
   const value = role?.toLowerCase().trim() ?? '';
   if (value === 'trainers') return 'trainer';
   if (value === 'agents') return 'agent';
-  if (['agent', 'leader', 'trainer', 'admin', 'superadmin'].includes(value)) return value;
+  if (['agent', 'leader', 'trainer', 'admin'].includes(value)) return value;
   return '';
 }
 
@@ -264,8 +263,8 @@ export default function UsersClient({ user, role, profile: _profile }: UsersClie
                   const isPending = entry.status === 'pending';
                   const isRejected = entry.status === 'rejected';
                   const isSelf = entry.id === user.id;
-                  const canDelete = (managerRole === 'admin' || managerRole === 'superadmin') && !isSelf;
-                  const canChangeRole = !isSelf || managerRole === 'superadmin';
+                  const canDelete = managerRole === 'admin' && !isSelf;
+                  const canChangeRole = !isSelf;
                   const isRoleChanged = selectedRoles[entry.id] && selectedRoles[entry.id] !== normalizedEntryRole;
 
                   return (
@@ -368,7 +367,7 @@ export default function UsersClient({ user, role, profile: _profile }: UsersClie
                               </button>
                             </div>
                             {!canChangeRole && (
-                              <p className="text-xs text-muted-foreground">Role akun sendiri hanya bisa diubah oleh superadmin.</p>
+                              <p className="text-xs text-muted-foreground">Role akun sendiri tidak dapat diubah dari panel ini.</p>
                             )}
                           </div>
 
@@ -442,7 +441,7 @@ export default function UsersClient({ user, role, profile: _profile }: UsersClie
                           )}
                           {managerRole === 'admin' && (
                             <p className="text-xs leading-5 text-muted-foreground">
-                              Admin dapat menghapus akun dan mengatur role sampai level Admin. Role Superadmin tetap dibatasi.
+                              Admin memiliki akses penuh untuk menghapus akun dan mengatur role sampai level Admin.
                             </p>
                           )}
                         </div>

@@ -107,14 +107,14 @@ export async function updateSession(request: NextRequest) {
       ];
 
       if (trainerOnlyRoutes.some((route) => path.startsWith(route))) {
-        const allowed = ['trainer', 'admin', 'superadmin'];
+        const allowed = ['trainer', 'admin'];
         if (!allowed.includes(role)) {
           return NextResponse.redirect(new URL('/dashboard', request.url));
         }
       }
 
       if (trainerOrLeaderRoutes.some((route) => path.startsWith(route))) {
-        const allowed = ['trainer', 'leader', 'admin', 'superadmin'];
+        const allowed = ['trainer', 'leader', 'admin'];
         if (!allowed.includes(role)) {
           return NextResponse.redirect(new URL('/dashboard', request.url));
         }

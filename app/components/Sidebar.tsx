@@ -52,19 +52,19 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
       href: '/dashboard/users',
       label: 'User Management',
       icon: Shield,
-      allowed: ['trainer', 'trainers', 'admin', 'superadmin'].includes(normalizedRole || ''),
+      allowed: ['trainer', 'trainers', 'admin'].includes(normalizedRole || ''),
     },
     {
       href: '/dashboard/monitoring',
       label: 'Monitoring',
       icon: Activity,
-      allowed: ['trainer', 'trainers', 'leader', 'admin', 'superadmin'].includes(normalizedRole || ''),
+      allowed: ['trainer', 'trainers', 'leader', 'admin'].includes(normalizedRole || ''),
     },
     {
       href: '/dashboard/activities',
       label: 'Activity Logs',
       icon: History,
-      allowed: ['trainer', 'trainers', 'admin', 'superadmin'].includes(normalizedRole || ''),
+      allowed: ['trainer', 'trainers', 'admin'].includes(normalizedRole || ''),
     },
   ].filter((item) => item.allowed);
 

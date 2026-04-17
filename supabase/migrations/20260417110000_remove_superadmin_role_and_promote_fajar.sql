@@ -1,46 +1,53 @@
-DO $$
-BEGIN
-  IF to_regclass('public.pdkt_history') IS NULL THEN
-    RAISE EXCEPTION 'Migration requires public.pdkt_history to exist before adding async evaluation columns';
-  END IF;
+-- Remove legacy superadmin role and consolidate all elevated access under admin.
+-- This also ensures fajarabr76@gmail.com has full admin access.
 
-  ALTER TABLE public.pdkt_history
-    ADD COLUMN IF NOT EXISTS evaluation_status text NOT NULL DEFAULT 'processing',
-    ADD COLUMN IF NOT EXISTS evaluation_error text,
-    ADD COLUMN IF NOT EXISTS evaluation_started_at timestamptz,
-    ADD COLUMN IF NOT EXISTS evaluation_completed_at timestamptz;
+ALTER TABLE public.profiles
+DROP CONSTRAINT IF EXISTS profiles_role_check;
 
-  ALTER TABLE public.pdkt_history
-    DROP CONSTRAINT IF EXISTS pdkt_history_evaluation_status_check;
+UPDATE public.profiles
+SET role = 'admin'
+WHERE LOWER(COALESCE(role, '')) = 'superadmin';
 
-  ALTER TABLE public.pdkt_history
-    ADD CONSTRAINT pdkt_history_evaluation_status_check
-    CHECK (evaluation_status IN ('processing', 'completed', 'failed'));
+UPDATE public.profiles
+SET role = 'admin'
+WHERE LOWER(COALESCE(email, '')) = 'fajarabr76@gmail.com';
 
-  CREATE INDEX IF NOT EXISTS idx_pdkt_history_user_timestamp
-    ON public.pdkt_history (user_id, timestamp DESC);
+ALTER TABLE public.profiles
+ADD CONSTRAINT profiles_role_check
+CHECK (
+  lower(role) = ANY (ARRAY['trainer'::text, 'trainers'::text, 'leader'::text, 'agent'::text, 'admin'::text])
+);
 
-  CREATE INDEX IF NOT EXISTS idx_pdkt_history_evaluation_status
-    ON public.pdkt_history (evaluation_status);
+DROP POLICY IF EXISTS "weights_write_auth" ON public.qa_service_weights;
+CREATE POLICY "weights_write_auth" ON public.qa_service_weights
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid()
+      AND role IN ('admin', 'trainer', 'trainers')
+    )
+  );
 
-  -- Legacy rows that already have evaluation payload are considered finished.
-  UPDATE public.pdkt_history
-  SET
-    evaluation_status = 'completed',
-    evaluation_completed_at = COALESCE(evaluation_completed_at, timestamp),
-    evaluation_error = NULL
-  WHERE evaluation IS NOT NULL
-    AND evaluation_status = 'processing';
+DROP POLICY IF EXISTS "Trainers can view all reports" ON public.reports;
+CREATE POLICY "Trainers can view all reports" ON public.reports
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.role IN ('trainer', 'trainers', 'admin')
+    )
+  );
 
-  -- Legacy rows without evaluation payload should not appear as "still processing".
-  UPDATE public.pdkt_history
-  SET
-    evaluation_status = 'failed',
-    evaluation_error = COALESCE(evaluation_error, 'Evaluasi historis tidak tersedia untuk sesi lama.'),
-    evaluation_completed_at = COALESCE(evaluation_completed_at, timestamp)
-  WHERE evaluation IS NULL
-    AND evaluation_status = 'processing';
-END $$;
+DROP POLICY IF EXISTS "Trainers can download reports" ON storage.objects;
+CREATE POLICY "Trainers can download reports" ON storage.objects
+  FOR SELECT USING (
+    bucket_id = 'reports'
+    AND EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.role IN ('trainer', 'trainers', 'admin')
+    )
+  );
 
 CREATE OR REPLACE FUNCTION public.bulk_reorder_profiler_peserta(p_updates jsonb)
 RETURNS void
@@ -111,5 +118,3 @@ BEGIN
   END IF;
 END;
 $$;
-
-GRANT EXECUTE ON FUNCTION public.bulk_reorder_profiler_peserta(jsonb) TO authenticated;

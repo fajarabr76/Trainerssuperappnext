@@ -20,7 +20,7 @@ export default async function QaDashboardPage({
   }
 
   // Allowed roles - consistent with Level 1 Summary for all personas (EXCLUDING agent now)
-  if (!hasRole(role, ['trainer', 'leader', 'admin', 'superadmin'])) {
+  if (!hasRole(role, ['trainer', 'leader', 'admin'])) {
     redirect('/dashboard');
   }
 

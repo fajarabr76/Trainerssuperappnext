@@ -28,7 +28,7 @@ export default async function RankingAgenPage({
     .single();
 
   const role = profile?.role || '';
-  const allowedRoles = ['trainer', 'trainers', 'leader', 'admin', 'superadmin'];
+  const allowedRoles = ['trainer', 'trainers', 'leader', 'admin'];
   if (!allowedRoles.includes(role)) {
     redirect('/dashboard');
   }

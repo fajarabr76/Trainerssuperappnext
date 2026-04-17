@@ -61,25 +61,25 @@ export default function DashboardClient({
       title: 'User Management',
       description: 'Kelola peran pengguna dan atur akses operasional setiap individu di tim Anda.',
       icon: Shield,
-      allowed: ['trainer', 'admin', 'superadmin'].includes(role?.toLowerCase()),
+      allowed: ['trainer', 'admin'].includes(role?.toLowerCase()),
     },
     {
       href: '/dashboard/monitoring',
       title: 'Monitoring',
       description: 'Pantau log aktivitas layanan secara ringkas untuk menjamin kualitas operasional berjalan konsisten.',
       icon: Activity,
-      allowed: ['trainer', 'leader', 'admin', 'superadmin'].includes(role?.toLowerCase()),
+      allowed: ['trainer', 'leader', 'admin'].includes(role?.toLowerCase()),
     },
     {
       href: '/dashboard/activities',
       title: 'Activity Logs',
       description: 'Riwayat rekam jejak untuk menelusuri aktivitas yang dilakukan pengguna kapan saja.',
       icon: History,
-      allowed: ['trainer', 'admin', 'superadmin'].includes(role?.toLowerCase()),
+      allowed: ['trainer', 'admin'].includes(role?.toLowerCase()),
     },
   ].filter((item) => item.allowed);
 
-  const isTrainerRole = ['trainer', 'admin', 'superadmin'].includes(role?.toLowerCase());
+  const isTrainerRole = ['trainer', 'admin'].includes(role?.toLowerCase());
 
   const trainerShortcuts = [
     {

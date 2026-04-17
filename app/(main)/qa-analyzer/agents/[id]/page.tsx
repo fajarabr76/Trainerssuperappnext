@@ -16,7 +16,7 @@ export default async function QaAgentDetailPage({ params }: { params: Promise<{ 
   }
 
   // Allowed roles - Agent is now allowed but will be filtered below
-  if (!hasRole(role, ['trainer', 'leader', 'agent', 'admin', 'superadmin'])) {
+  if (!hasRole(role, ['trainer', 'leader', 'agent', 'admin'])) {
     redirect('/dashboard');
   }
 

@@ -54,6 +54,6 @@ CREATE POLICY "weights_write_auth" ON qa_service_weights
     EXISTS (
       SELECT 1 FROM profiles
       WHERE id = auth.uid()
-      AND role IN ('admin', 'trainer', 'trainers', 'superadmin')
+      AND role IN ('admin', 'trainer', 'trainers')
     )
   );

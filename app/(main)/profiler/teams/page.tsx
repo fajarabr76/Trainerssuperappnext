@@ -28,7 +28,7 @@ export default async function ProfilerTeamsPage() {
   const role = profile?.role || 'trainer';
 
   // Allowed roles for this page (including leader for read-only)
-  const allowedRoles = ['trainer', 'trainers', 'leader', 'admin', 'superadmin'];
+  const allowedRoles = ['trainer', 'trainers', 'leader', 'admin'];
   if (!allowedRoles.includes(role)) {
     redirect('/dashboard');
   }

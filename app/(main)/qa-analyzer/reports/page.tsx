@@ -21,7 +21,7 @@ export default async function ReportMakerPage() {
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
 
   const role = profile?.role || 'trainer';
-  const allowedRoles = ['trainer', 'trainers', 'admin', 'superadmin'];
+  const allowedRoles = ['trainer', 'trainers', 'admin'];
   if (!allowedRoles.includes(role)) {
     redirect('/dashboard');
   }

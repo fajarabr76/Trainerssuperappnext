@@ -11,7 +11,7 @@ import { SERVICE_LABELS } from '../../lib/qa-types';
 import { getReportMaxPerDay } from '../lib/report-models';
 import { buildIndividualReportDocx, buildServiceReportDocx } from '../lib/docx-builder';
 
-const ALLOWED_ROLES = ['trainer', 'trainers', 'admin', 'superadmin'];
+const ALLOWED_ROLES = ['trainer', 'trainers', 'admin'];
 const MAX_DOCX_BYTES = 10 * 1024 * 1024;
 const AI_TIMEOUT_MS = 300_000;
 
@@ -41,7 +41,7 @@ async function requireReportUser() {
 
   const role = profile?.role?.toLowerCase() ?? '';
   if (!ALLOWED_ROLES.includes(role)) {
-    throw new Error('Akses ditolak: hanya trainer, admin, atau superadmin yang dapat membuat laporan.');
+    throw new Error('Akses ditolak: hanya trainer atau admin yang dapat membuat laporan.');
   }
 
   return { supabase, user, profile };

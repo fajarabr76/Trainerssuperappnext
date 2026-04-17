@@ -14,7 +14,7 @@ export default async function AgentDirectoryPage() {
     redirect('/?auth=login');
   }
 
-  if (!hasRole(role, ['trainer', 'leader', 'admin', 'superadmin'])) {
+  if (!hasRole(role, ['trainer', 'leader', 'admin'])) {
     redirect('/dashboard');
   }
 

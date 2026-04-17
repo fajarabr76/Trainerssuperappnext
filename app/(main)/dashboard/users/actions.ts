@@ -16,7 +16,7 @@ async function validateManagerRole() {
     .single();
 
   const role = profile?.role?.toLowerCase() || '';
-  const allowedRoles = ['admin', 'superadmin', 'trainer', 'trainers'];
+  const allowedRoles = ['admin', 'trainer', 'trainers'];
   if (!allowedRoles.includes(role)) {
     throw new Error('Akses ditolak: Anda tidak memiliki izin untuk mengelola pengguna');
   }
@@ -56,12 +56,8 @@ export async function updateUserRoleAction(userId: string, newRole: string) {
   // If caller is trainer/trainers, restrict the roles they can assign
   if (callerRole === 'trainer' || callerRole === 'trainers') {
     if (!trainerAllowedRoles.includes(normalizedNewRole)) {
-      throw new Error('Trainer tidak dapat memberikan role admin atau superadmin');
+      throw new Error('Trainer tidak dapat memberikan role admin');
     }
-  }
-
-  if (callerRole === 'admin' && normalizedNewRole === 'superadmin') {
-    throw new Error('Hanya superadmin yang dapat memberikan role superadmin');
   }
 
   const { error } = await supabase
@@ -77,8 +73,8 @@ export async function deleteUserAction(userId: string) {
   const { user, role } = await validateManagerRole();
   const supabase = await createClient();
 
-  if (!['admin', 'superadmin'].includes(role)) {
-    throw new Error('Hanya admin atau superadmin yang dapat menghapus pengguna');
+  if (!['admin'].includes(role)) {
+    throw new Error('Hanya admin yang dapat menghapus pengguna');
   }
 
   if (user.id === userId) {

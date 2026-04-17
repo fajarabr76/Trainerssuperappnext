@@ -19,8 +19,8 @@ export async function POST(request: Request) {
       .single();
 
     const callerRole = normalizeRole(callerProfile?.role);
-    if (!['trainer', 'admin', 'superadmin'].includes(callerRole)) {
-      return NextResponse.json({ error: 'Forbidden: Only trainers, admin, or superadmin can reset passwords' }, { status: 403 });
+    if (!['trainer', 'admin'].includes(callerRole)) {
+      return NextResponse.json({ error: 'Forbidden: Only trainers or admin can reset passwords' }, { status: 403 });
     }
 
     const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';

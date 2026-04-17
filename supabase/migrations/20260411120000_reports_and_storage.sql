@@ -34,7 +34,7 @@ CREATE POLICY "Trainers can view all reports" ON public.reports
     EXISTS (
       SELECT 1 FROM public.profiles
       WHERE profiles.id = auth.uid()
-      AND profiles.role IN ('trainer', 'trainers', 'admin', 'superadmin')
+      AND profiles.role IN ('trainer', 'trainers', 'admin')
     )
   );
 
@@ -62,7 +62,7 @@ CREATE POLICY "Trainers can download reports" ON storage.objects
     AND EXISTS (
       SELECT 1 FROM public.profiles
       WHERE profiles.id = auth.uid()
-      AND profiles.role IN ('trainer', 'trainers', 'admin', 'superadmin')
+      AND profiles.role IN ('trainer', 'trainers', 'admin')
     )
   );
 

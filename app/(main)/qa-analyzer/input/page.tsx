@@ -26,7 +26,7 @@ export default async function QaInputPage({ searchParams }: PageProps) {
     .single();
 
   const role = profile?.role || 'trainer';
-  const allowedRoles = ['trainer', 'trainers', 'admin', 'superadmin'];
+  const allowedRoles = ['trainer', 'trainers', 'admin'];
   if (!allowedRoles.includes(role)) {
     redirect('/dashboard');
   }

@@ -21,7 +21,7 @@ export async function deleteActivityAction(id: string) {
     .single();
 
   const role = normalizeRole(profile?.role);
-  if (!hasRole(role, ['trainer', 'admin', 'superadmin'])) {
+  if (!hasRole(role, ['trainer', 'admin'])) {
     throw new Error('Akses ditolak');
   }
 

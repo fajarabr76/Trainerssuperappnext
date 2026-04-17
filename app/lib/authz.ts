@@ -6,14 +6,13 @@ export type AppRole =
   | 'leader'
   | 'trainer'
   | 'admin'
-  | 'superadmin'
   | '';
 
 export function normalizeRole(role?: string | null): AppRole {
   const value = role?.toLowerCase().trim() ?? '';
   if (value === 'trainers') return 'trainer';
   if (value === 'agents') return 'agent';
-  if (value === 'agent' || value === 'leader' || value === 'trainer' || value === 'admin' || value === 'superadmin') {
+  if (value === 'agent' || value === 'leader' || value === 'trainer' || value === 'admin') {
     return value;
   }
   return '';

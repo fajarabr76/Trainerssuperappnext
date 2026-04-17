@@ -80,7 +80,7 @@ export async function createPeriodAction(month: number, year: number) {
     .eq('id', user.id)
     .single();
 
-  const allowedMutationRoles = ['trainer', 'trainers', 'admin', 'superadmin'];
+  const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
   if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
     throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
   }
@@ -111,7 +111,7 @@ export async function deletePeriodAction(id: string) {
     .eq('id', user.id)
     .single();
 
-  const allowedMutationRoles = ['trainer', 'trainers', 'admin', 'superadmin'];
+  const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
   if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
     throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
   }
@@ -146,7 +146,7 @@ export async function createIndicatorAction(
     .eq('id', user.id)
     .single();
 
-  const allowedMutationRoles = ['trainer', 'trainers', 'admin', 'superadmin'];
+  const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
   if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
     throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
   }
@@ -176,7 +176,7 @@ export async function updateIndicatorAction(
     .eq('id', user.id)
     .single();
 
-  const allowedMutationRoles = ['trainer', 'trainers', 'admin', 'superadmin'];
+  const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
   if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
     throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
   }
@@ -203,7 +203,7 @@ export async function deleteIndicatorAction(id: string) {
     .eq('id', user.id)
     .single();
 
-  const allowedMutationRoles = ['trainer', 'trainers', 'admin', 'superadmin'];
+  const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
   if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
     throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
   }
@@ -258,7 +258,7 @@ export async function createTemuanAction(
     .eq('id', user.id)
     .single();
 
-  const allowedMutationRoles = ['trainer', 'trainers', 'admin', 'superadmin'];
+  const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
   if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
     throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
   }
@@ -308,7 +308,7 @@ export async function createTemuanBatchAction(
     .eq('id', user.id)
     .single();
 
-  const allowedMutationRoles = ['trainer', 'trainers', 'admin', 'superadmin'];
+  const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
   if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
     throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
   }
@@ -374,7 +374,7 @@ export async function updateTemuanAction(
     .eq('id', user.id)
     .single();
 
-  const allowedMutationRoles = ['trainer', 'trainers', 'admin', 'superadmin'];
+  const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
   if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
     throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
   }
@@ -405,7 +405,7 @@ export async function deleteTemuanAction(id: string) {
     .eq('id', user.id)
     .single();
 
-  const allowedMutationRoles = ['trainer', 'trainers', 'admin', 'superadmin'];
+  const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
   if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
     throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
   }
@@ -451,7 +451,7 @@ export async function createPerfectScoreSessionAction(
     .eq('id', user.id)
     .single();
 
-  const allowedMutationRoles = ['trainer', 'trainers', 'admin', 'superadmin'];
+  const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
   if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
     throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
   }
@@ -679,7 +679,7 @@ export async function updateServiceWeightAction(
     .eq('id', user.id)
     .single();
 
-  const allowedMutationRoles = ['trainer', 'trainers', 'admin', 'superadmin'];
+  const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
   if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
     throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
   }

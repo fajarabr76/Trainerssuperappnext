@@ -21,7 +21,7 @@ async function validateRole() {
     .single();
 
   const role = profile?.role || 'trainer';
-  const allowedRoles = ['trainer', 'trainers', 'admin', 'superadmin'];
+  const allowedRoles = ['trainer', 'trainers', 'admin'];
   
   if (!allowedRoles.includes(role)) {
     throw new Error('Anda tidak memiliki izin untuk melakukan perubahan data (Read-only)');
@@ -74,7 +74,7 @@ export async function deleteYear(id: string) {
     .single();
 
   const role = profile?.role?.toLowerCase() || '';
-  if (role !== 'admin' && role !== 'superadmin') {
+  if (role !== 'admin') {
     throw new Error('Hanya admin yang dapat menghapus tahun');
   }
 
