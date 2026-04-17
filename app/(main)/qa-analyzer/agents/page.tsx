@@ -18,22 +18,34 @@ export default async function AgentDirectoryPage() {
     redirect('/dashboard');
   }
 
-  const supabase = await createClient();
+  let agents;
+  let folderData;
+  try {
+    const supabase = await createClient();
+    [agents, folderData] = await Promise.all([
+      qaServiceServer.getAgentDirectorySummary(),
+      supabase.from('profiler_folders').select('name').order('created_at', { ascending: true })
+    ]);
+  } catch (error) {
+    console.error('Error loading agent directory server data:', error);
+  }
 
-  // Fetch initial data
-  const [agents, folderData] = await Promise.all([
-    qaServiceServer.getAgentDirectorySummary(),
-    supabase.from('profiler_folders').select('name').order('created_at', { ascending: true })
-  ]);
+  if (!agents || !folderData) {
+    return (
+      <div className="p-8 text-center text-red-500">
+        Terjadi kendala saat memproses data agen. Silakan coba lagi.
+      </div>
+    );
+  }
 
   const batchList = (folderData.data ?? [])
     .map(f => f.name)
     .filter(name => !EXCLUDED_FOLDERS.includes(name.toLowerCase().trim()));
 
   return (
-    <AgentDirectoryClient 
-      user={user} 
-      role={role} 
+    <AgentDirectoryClient
+      user={user}
+      role={role}
       initialAgents={agents}
       initialBatches={batchList}
     />

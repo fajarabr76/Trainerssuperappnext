@@ -33,6 +33,27 @@ function revalidateQaTemuanCaches(agentId?: string) {
   }
 }
 
+async function hasPhantomPaddingSupport(
+  supabase: Awaited<ReturnType<typeof createClient>>
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('qa_temuan')
+    .select('id, is_phantom_padding')
+    .limit(1);
+  if (!error) return true;
+
+  const message = (error.message || '').toLowerCase();
+  const missingColumn = error.code === '42703'
+    || error.code === 'PGRST204'
+    || message.includes('is_phantom_padding')
+    || message.includes('schema cache');
+
+  if (missingColumn) return false;
+
+  // Default to true when probe fails for non-schema reasons (e.g. permission/intermittent).
+  return true;
+}
+
 
 export async function getAgentExportDataAction(agentId: string): Promise<ExportData> {
   const { qaServiceServer } = await import('./services/qaService.server');
@@ -314,7 +335,12 @@ export async function createTemuanBatchAction(
     .insert(insertData)
     .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)');
   
-  if (error) throw error;
+  if (error) {
+    if (error.code === '23505' && error.message.includes('uq_qa_temuan_single_phantom_batch_per_period')) {
+      throw new Error('Sesi tanpa temuan gagal dibuat karena constraint database lama. Jalankan migration fix index terbaru terlebih dahulu.');
+    }
+    throw error;
+  }
   
   // Log Activity once for the batch
   await supabase.from('activity_logs').insert({
@@ -410,7 +436,7 @@ export async function createPerfectScoreSessionAction(
   peserta_id: string,
   period_id: string,
   service_type: ServiceType,
-  no_tiket?: string
+  _no_tiket?: string
 ) {
   const { createClient } = await import('@/app/lib/supabase/server');
   const supabase = await createClient();
@@ -429,16 +455,22 @@ export async function createPerfectScoreSessionAction(
   if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
     throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
   }
+  const supportsPhantom = await hasPhantomPaddingSupport(supabase);
+  if (!supportsPhantom) {
+    throw new Error('Fitur sesi tanpa temuan belum aktif. Jalankan migration database terbaru terlebih dahulu.');
+  }
 
-  // get pesertas info
-  const { data: agent, error: agentErr } = await supabase
-    .from('profiler_peserta')
-    .select('tim, jabatan')
-    .eq('id', peserta_id)
-    .single();
-  if (agentErr || !agent) throw new Error('Agent tidak ditemukan');
-
-  
+  const { count: existingPhantomCount, error: existingErr } = await supabase
+    .from('qa_temuan')
+    .select('id', { count: 'exact', head: true })
+    .eq('peserta_id', peserta_id)
+    .eq('period_id', period_id)
+    .eq('service_type', service_type)
+    .eq('is_phantom_padding', true);
+  if (existingErr) throw existingErr;
+  if ((existingPhantomCount ?? 0) > 0) {
+    throw new Error('Sesi tanpa temuan untuk periode ini sudah pernah dibuat.');
+  }
 
   // get indicators
   const { data: inds, error: indsErr } = await supabase
@@ -449,26 +481,37 @@ export async function createPerfectScoreSessionAction(
 
   if (inds.length === 0) throw new Error('Tidak ada parameter untuk tim agent ini');
 
-  const insertData = inds.map((ind: any) => ({
-    peserta_id,
-    period_id,
-    indicator_id: ind.id,
-    no_tiket: no_tiket || undefined,
-    nilai: 3,
-    service_type
-  }));
+  const phantomBatchId = crypto.randomUUID();
+  const PADDING_COUNT = 5;
+  const insertData = Array.from({ length: PADDING_COUNT }).flatMap((_, sessionIdx) =>
+    inds.map((ind: any) => ({
+      peserta_id,
+      period_id,
+      indicator_id: ind.id,
+      no_tiket: `__PHANTOM__${phantomBatchId}_${sessionIdx + 1}`,
+      nilai: 3,
+      service_type,
+      is_phantom_padding: true,
+      phantom_batch_id: phantomBatchId,
+    }))
+  );
 
   const { data, error } = await supabase
     .from('qa_temuan')
     .insert(insertData)
     .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)');
   
-  if (error) throw error;
+  if (error) {
+    if (error.code === '23505' && error.message.includes('uq_qa_temuan_single_phantom_batch_per_period')) {
+      throw new Error('Sesi tanpa temuan gagal dibuat karena constraint database lama. Jalankan migration fix index terbaru terlebih dahulu.');
+    }
+    throw error;
+  }
 
   await supabase.from('activity_logs').insert({
     user_id: user.id,
     user_name: user.email,
-    action: `Input Sesi Tanpa Temuan SIDAK untuk Peserta ID: ${peserta_id}`,
+    action: `Input Sesi Tanpa Temuan SIDAK (phantom x5) untuk Peserta ID: ${peserta_id}`,
     module: 'SIDAK',
     type: 'add'
   });

@@ -71,6 +71,15 @@ interface ImportRow {
   errors: string[];
 }
 
+function isMissingPhantomColumnError(error: { code?: string; message?: string } | null | undefined): boolean {
+  if (!error) return false;
+  const message = (error.message || '').toLowerCase();
+  return error.code === '42703'
+    || error.code === 'PGRST204'
+    || message.includes('is_phantom_padding')
+    || message.includes('schema cache');
+}
+
 function newEntry(): ParamEntry {
   return { uid: Math.random().toString(36).slice(2), indicator_id: '', showDropdown: false, nilai: 3, ketidaksesuaian: '', sebaiknya: '' };
 }
@@ -457,13 +466,21 @@ export default function QaInputClient({
     if (selectedAgent && selectedPeriod) {
       setLoading(true);
       try {
-        const { data: found } = await supabase
+        const query = supabase
           .from('qa_temuan')
           .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
           .eq('peserta_id', selectedAgent.id)
           .eq('period_id', selectedPeriod.id)
-          .eq('service_type', newService)
+          .eq('service_type', newService);
+        let { data: found, error } = await query
+          .eq('is_phantom_padding', false)
           .order('created_at', { ascending: false });
+        if (error && isMissingPhantomColumnError(error)) {
+          const fallback = await query.order('created_at', { ascending: false });
+          found = fallback.data;
+          error = fallback.error;
+        }
+        if (error) throw error;
         setTemuan(found || []);
       } catch (err: any) { 
         setErrorMsg(err.message); 
@@ -477,13 +494,21 @@ export default function QaInputClient({
     if (!selectedAgent) return;
     setSelectedPeriod(period); setLoading(true); setErrorMsg(null);
     try { 
-      const { data: found } = await supabase
+      const query = supabase
         .from('qa_temuan')
         .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
         .eq('peserta_id', selectedAgent.id)
         .eq('period_id', period.id)
-        .eq('service_type', selectedService) // Bug 2 Fix: Only fetch temuan for the relevant service
+        .eq('service_type', selectedService); // Bug 2 Fix: Only fetch temuan for the relevant service
+      let { data: found, error } = await query
+        .eq('is_phantom_padding', false)
         .order('created_at', { ascending: false });
+      if (error && isMissingPhantomColumnError(error)) {
+        const fallback = await query.order('created_at', { ascending: false });
+        found = fallback.data;
+        error = fallback.error;
+      }
+      if (error) throw error;
       setTemuan(found || []); 
       setStep('list'); 
     }
@@ -580,14 +605,11 @@ export default function QaInputClient({
 
   const handlePerfectScore = async () => {
     if (!selectedAgent || !selectedPeriod) return;
-    const ticket = prompt('Masukkan No. Tiket (Opsional, biarkan kosong untuk sesi internal):');
-    if (ticket === null) return; // cancelled
-    
+
     setSaving(true); setErrorMsg(null);
     try {
-      const created = await createPerfectScoreSessionAction(selectedAgent.id, selectedPeriod.id, selectedService as ServiceType, ticket);
-      setTemuan(prev => [...created.reverse(), ...prev]);
-      setSuccessMsg(`Sesi Tanpa Temuan berhasil ditambahkan! (${created.length} parameter)`);
+      await createPerfectScoreSessionAction(selectedAgent.id, selectedPeriod.id, selectedService as ServiceType);
+      setSuccessMsg('Sesi Tanpa Temuan berhasil ditambahkan (phantom padding 5 sesi).');
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err: any) {
       setErrorMsg(err.message);

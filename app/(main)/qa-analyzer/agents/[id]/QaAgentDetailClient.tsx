@@ -95,7 +95,6 @@ export default function QaAgentDetailClient({
     availableYears,
     
     // Computed
-    temuan,
     personalTrend,
     sortedPeriods,
     selectedScore,
@@ -298,7 +297,7 @@ export default function QaAgentDetailClient({
             </div>
 
             <div className="max-w-5xl mx-auto px-4 py-8 sm:px-6 space-y-8">
-              {temuan.length === 0 ? (
+              {sortedPeriods.length === 0 ? (
                 <div className="bg-card rounded-3xl border border-border p-12 text-center">
                   <QaStatePanel
                     type="empty"
