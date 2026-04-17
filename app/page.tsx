@@ -216,6 +216,7 @@ export default function LandingPage() {
                     <module.icon className="h-6 w-6" />
                   </div>
                   <h3 className="text-lg font-bold tracking-tight mb-2 uppercase">{module.shortTitle}</h3>
+                  <p className="text-xs font-semibold text-primary mb-1">{module.title}</p>
                   <p className="text-xs leading-relaxed text-muted-foreground mt-auto">
                     {module.id === 'ketik' && 'Simulasi interaktif untuk melatih penanganan chat pelanggan.'}
                     {module.id === 'pdkt' && 'Penyusunan penulisan email dengan draf terpandu dan asisten AI cerdas.'}

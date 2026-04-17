@@ -35,7 +35,7 @@ export const APP_MODULES: AppModuleConfig[] = [
   },
   {
     id: 'ketik',
-    title: 'KETIK',
+    title: 'Kelas Etika dan Trik Komunikasi',
     shortTitle: 'Ketik',
     description: 'Simulasi chat layanan untuk melatih komunikasi tertulis yang empatik dan solutif.',
     href: '/ketik',
@@ -45,7 +45,7 @@ export const APP_MODULES: AppModuleConfig[] = [
   },
   {
     id: 'pdkt',
-    title: 'PDKT',
+    title: 'Paham Dulu Kasih Tanggapan',
     shortTitle: 'PDKT',
     description: 'Workspace korespondensi email untuk standardisasi tanggapan layanan konsumen.',
     href: '/pdkt',
@@ -55,7 +55,7 @@ export const APP_MODULES: AppModuleConfig[] = [
   },
   {
     id: 'telefun',
-    title: 'TELEFUN',
+    title: 'Telephone Fun',
     shortTitle: 'Telefun',
     description: 'Simulasi komunikasi suara untuk melatih percakapan telepon yang presisi dan profesional.',
     href: '/telefun',
@@ -65,7 +65,7 @@ export const APP_MODULES: AppModuleConfig[] = [
   },
   {
     id: 'profiler',
-    title: 'KTP',
+    title: 'Kotak Tool Profil',
     shortTitle: 'KTP',
     description: 'Database profil agen dan peserta untuk operasional training yang lebih rapi dan terstruktur.',
     href: '/profiler',
@@ -76,7 +76,7 @@ export const APP_MODULES: AppModuleConfig[] = [
   },
   {
     id: 'qa-analyzer',
-    title: 'SIDAK',
+    title: 'Sistem Informasi Data Analisis Kualitas',
     shortTitle: 'SIDAK',
     description: 'Analytics kualitas untuk membaca pola temuan, ranking, dan area perbaikan lintas tim.',
     href: '/qa-analyzer/dashboard',
