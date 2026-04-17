@@ -1192,12 +1192,19 @@ export const qaServiceServer = {
     const supabase = await createClient();
     const allIndicators = context?.indicators || (await this.getIndicators()) as QAIndicator[];
     const pIds = await this.resolvePeriodIds(periodId);
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
 
-    let query = supabase
-      .from('qa_temuan')
-      .select('nilai, no_tiket, indicator_id, qa_indicators(category), profiler_peserta!inner(id, nama, batch_name, tim, jabatan)')
-      .in('period_id', pIds)
-      .eq('service_type', serviceType);
+    let query = hasPhantomSupport
+      ? supabase
+          .from('qa_temuan')
+          .select('nilai, no_tiket, indicator_id, is_phantom_padding, qa_indicators(category), profiler_peserta!inner(id, nama, batch_name, tim, jabatan)')
+          .in('period_id', pIds)
+          .eq('service_type', serviceType)
+      : supabase
+          .from('qa_temuan')
+          .select('nilai, no_tiket, indicator_id, qa_indicators(category), profiler_peserta!inner(id, nama, batch_name, tim, jabatan)')
+          .in('period_id', pIds)
+          .eq('service_type', serviceType);
 
     if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
 
@@ -1214,7 +1221,12 @@ export const qaServiceServer = {
         agentTemuanMap[p.id] = [];
         agentInfoMap[p.id] = { id: p.id, nama: p.nama, batch_name: p.batch_name, tim: p.tim, jabatan: p.jabatan };
       }
-      agentTemuanMap[p.id].push({ indicator_id: d.indicator_id, nilai: d.nilai, no_tiket: d.no_tiket });
+      agentTemuanMap[p.id].push({
+        indicator_id: d.indicator_id,
+        nilai: d.nilai,
+        no_tiket: d.no_tiket,
+        is_phantom_padding: hasPhantomSupport ? (d as any).is_phantom_padding === true : false,
+      });
     });
 
     const serviceInds = allIndicators.filter(i => i.service_type === serviceType);
@@ -1225,9 +1237,9 @@ export const qaServiceServer = {
       const info = agentInfoMap[id];
       const temuanList = agentTemuanMap[id];
       const result = calculateQAScoreFromTemuan(serviceInds, temuanList, activeWeight);
-      // Count ALL temuan records (including nilai=3) as total findings
-      const defects = temuanList.length;
+      const defects = temuanList.filter((t: any) => !t.is_phantom_padding).length;
       const hasCritical = temuanList.some(t => {
+        if (t.is_phantom_padding) return false;
         const ind = serviceInds.find(i => i.id === t.indicator_id);
         return t.nilai === 0 && ind?.category === 'critical';
       });
@@ -1249,12 +1261,19 @@ export const qaServiceServer = {
     const supabase = await createClient();
     const allIndicators = context?.indicators || (await this.getIndicators()) as QAIndicator[];
     const pIds = await this.resolvePeriodIds(periodId, year);
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
 
-    let query = supabase
-      .from('qa_temuan')
-      .select('nilai, no_tiket, indicator_id, qa_indicators(category), profiler_peserta!inner(id, nama, batch_name, tim, jabatan)')
-      .in('period_id', pIds)
-      .eq('service_type', serviceType);
+    let query = hasPhantomSupport
+      ? supabase
+          .from('qa_temuan')
+          .select('nilai, no_tiket, indicator_id, is_phantom_padding, qa_indicators(category), profiler_peserta!inner(id, nama, batch_name, tim, jabatan)')
+          .in('period_id', pIds)
+          .eq('service_type', serviceType)
+      : supabase
+          .from('qa_temuan')
+          .select('nilai, no_tiket, indicator_id, qa_indicators(category), profiler_peserta!inner(id, nama, batch_name, tim, jabatan)')
+          .in('period_id', pIds)
+          .eq('service_type', serviceType);
 
     if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
 
@@ -1271,7 +1290,12 @@ export const qaServiceServer = {
         agentTemuanMap[p.id] = [];
         agentInfoMap[p.id] = { id: p.id, nama: p.nama, batch_name: p.batch_name, tim: p.tim, jabatan: p.jabatan };
       }
-      agentTemuanMap[p.id].push({ indicator_id: d.indicator_id, nilai: d.nilai, no_tiket: d.no_tiket });
+      agentTemuanMap[p.id].push({
+        indicator_id: d.indicator_id,
+        nilai: d.nilai,
+        no_tiket: d.no_tiket,
+        is_phantom_padding: hasPhantomSupport ? (d as any).is_phantom_padding === true : false,
+      });
     });
 
     const serviceInds = allIndicators.filter(i => i.service_type === serviceType);
@@ -1282,9 +1306,9 @@ export const qaServiceServer = {
       const info = agentInfoMap[id];
       const temuanList = agentTemuanMap[id];
       const result = calculateQAScoreFromTemuan(serviceInds, temuanList, activeWeight);
-      // Count ALL temuan records (including nilai=3) as total findings
-      const defects = temuanList.length;
+      const defects = temuanList.filter((t: any) => !t.is_phantom_padding).length;
       const hasCritical = temuanList.some(t => {
+        if (t.is_phantom_padding) return false;
         const ind = serviceInds.find(i => i.id === t.indicator_id);
         return t.nilai === 0 && ind?.category === 'critical';
       });
