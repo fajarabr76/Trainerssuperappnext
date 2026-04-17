@@ -116,8 +116,36 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         for (const part of parts) {
           const isSystem = /\[(sistem|system)\]/i.test(part);
           const cleanText = part.replace(/\[(sistem|system)\]/gi, '').trim();
+          const imageTags = cleanText.match(/\[SEND_IMAGE\s*:\s*\d+\]/gi) || [];
+          const hasImageTag = imageTags.length > 0;
+          const systemCaption = cleanText.replace(/\[SEND_IMAGE\s*:\s*\d+\]/gi, '').trim();
           
           setTimeout(() => {
+            if (isSystem && hasImageTag) {
+              setMessages(prev => {
+                const next = [...prev];
+
+                if (systemCaption) {
+                  next.push({
+                    id: Date.now().toString() + Math.random(),
+                    sender: 'system',
+                    text: systemCaption,
+                    timestamp: new Date()
+                  });
+                }
+
+                next.push({
+                  id: Date.now().toString() + Math.random(),
+                  sender: 'consumer',
+                  text: imageTags.join(' '),
+                  timestamp: new Date()
+                });
+
+                return next;
+              });
+              return;
+            }
+
             setMessages(prev => [...prev, {
               id: Date.now().toString() + Math.random(),
               sender: isSystem ? 'system' : 'consumer',
@@ -221,8 +249,36 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         for (const part of parts) {
           const isSystem = /\[(sistem|system)\]/i.test(part);
           const cleanText = part.replace(/\[(sistem|system)\]/gi, '').trim();
+          const imageTags = cleanText.match(/\[SEND_IMAGE\s*:\s*\d+\]/gi) || [];
+          const hasImageTag = imageTags.length > 0;
+          const systemCaption = cleanText.replace(/\[SEND_IMAGE\s*:\s*\d+\]/gi, '').trim();
           
           setTimeout(() => {
+            if (isSystem && hasImageTag) {
+              setMessages(prev => {
+                const next = [...prev];
+
+                if (systemCaption) {
+                  next.push({
+                    id: Date.now().toString() + Math.random(),
+                    sender: 'system',
+                    text: systemCaption,
+                    timestamp: new Date()
+                  });
+                }
+
+                next.push({
+                  id: Date.now().toString() + Math.random(),
+                  sender: 'consumer',
+                  text: imageTags.join(' '),
+                  timestamp: new Date()
+                });
+
+                return next;
+              });
+              return;
+            }
+
             setMessages(prev => [...prev, {
               id: Date.now().toString() + Math.random(),
               sender: isSystem ? 'system' : 'consumer',
@@ -429,6 +485,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         <AnimatePresence initial={false}>
             {messages.map((msg, index) => {
                if (msg.sender === 'system') {
+                  const hasImageTag = /\[SEND_IMAGE\s*:\s*\d+\]/i.test(msg.text);
+                  const systemTextWithoutTag = msg.text
+                    .replace(/\[SEND_IMAGE\s*:\s*\d+\]/gi, '')
+                    .trim();
+
                    return (
                        <motion.div 
                         key={msg.id}
@@ -436,9 +497,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         animate={{ opacity: 1, y: 0 }}
                         className="flex justify-center py-4"
                        >
-                           <p className="text-[10px] font-medium text-muted-foreground text-center uppercase tracking-wide">
-                               {msg.text}
-                           </p>
+                           <div className="flex flex-col items-center gap-2">
+                             {systemTextWithoutTag ? (
+                               <p className="text-[10px] font-medium text-muted-foreground text-center uppercase tracking-wide">
+                                 {systemTextWithoutTag}
+                               </p>
+                             ) : null}
+                             {hasImageTag ? (
+                               <div className="w-full max-w-sm">
+                                 {renderMessageContent(msg.text)}
+                               </div>
+                             ) : null}
+                           </div>
                        </motion.div>
                    );
                }
