@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Trash2, Calendar, Mail, Clock, ChevronRight, History as HistoryIcon, Eye, User, Tag, Loader2, AlertTriangle } from 'lucide-react';
+import { X, Trash2, Calendar, Clock, ChevronRight, History as HistoryIcon, Eye, User, Tag, Loader2, AlertTriangle } from 'lucide-react';
 import { SessionHistory } from '../types';
 
 interface HistoryModalProps {
@@ -72,7 +72,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 scrollbar-hide">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-5 sm:p-6 space-y-4 scrollbar-hide">
               {history.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-24 text-center">
                   <div className="w-20 h-20 bg-foreground/5 rounded-full flex items-center justify-center mb-6 border border-border">
@@ -103,12 +103,12 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                       <motion.div
                         key={session.id}
                         whileHover={{ scale: 1.01, backgroundColor: 'rgba(var(--foreground),0.03)' }}
-                        className="module-clean-panel group relative rounded-[1.5rem] p-4 sm:p-5 transition-all cursor-pointer"
+                        className="module-clean-panel group relative rounded-[1.5rem] p-4 sm:p-5 transition-all cursor-pointer overflow-hidden"
                         onClick={() => onSelectSession(session)}
                       >
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-3 mb-2">
+                        <div className="flex justify-between items-start gap-3 mb-4">
+                          <div className="space-y-1 min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2.5 mb-2">
                               <div className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border flex items-center gap-1.5 ${statusBadge}`}>
                                 {session.evaluationStatus === 'processing' ? (
                                   <>
@@ -124,19 +124,19 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                                   <>Skor: {score}</>
                                 )}
                               </div>
-                              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
+                              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono uppercase tracking-wider min-w-0">
                                 <Calendar className="w-3 h-3" />
                                 {new Date(session.timestamp).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                                 <span className="mx-1">•</span>
                                 {new Date(session.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                               </div>
                             </div>
-                            <h3 className="text-lg font-bold leading-tight group-hover:text-module-pdkt transition-colors line-clamp-1 text-foreground">
+                            <h3 className="text-lg font-bold leading-tight group-hover:text-module-pdkt transition-colors line-clamp-1 text-foreground min-w-0">
                               {subject}
                             </h3>
                           </div>
                           
-                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 shrink-0">
                             <button
                               onClick={(e) => { e.stopPropagation(); onSelectSession(session); }}
                               className="p-2 bg-foreground/5 hover:bg-foreground/10 text-muted-foreground hover:text-foreground rounded-lg border border-border transition-all"
@@ -154,15 +154,15 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                           </div>
                         </div>
                         
-                        <div className="flex flex-wrap gap-2 mt-4">
-                          <div className="flex items-center gap-1.5 text-[10px] text-foreground/50 bg-foreground/5 px-3 py-1.5 rounded-full border border-border">
+                        <div className="flex flex-wrap gap-2 mt-4 min-w-0">
+                          <div className="flex items-center gap-1.5 text-[10px] text-foreground/50 bg-foreground/5 px-3 py-1.5 rounded-full border border-border max-w-full min-w-0">
                             <User className="w-3 h-3" />
-                            {session.config.consumerType.name}
+                            <span className="truncate">{session.config.consumerType.name}</span>
                           </div>
                           {session.config.scenarios.slice(0, 2).map(s => (
-                            <div key={s.id} className="flex items-center gap-1.5 text-[10px] text-foreground/50 bg-foreground/5 px-3 py-1.5 rounded-full border border-border max-w-[180px] truncate">
+                            <div key={s.id} className="flex items-center gap-1.5 text-[10px] text-foreground/50 bg-foreground/5 px-3 py-1.5 rounded-full border border-border max-w-full sm:max-w-[180px] min-w-0">
                               <Tag className="w-3 h-3" />
-                              {s.title}
+                              <span className="truncate">{s.title}</span>
                             </div>
                           ))}
                           {session.config.scenarios.length > 2 && (
@@ -171,12 +171,12 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                             </div>
                           )}
                           {session.evaluationStatus === 'failed' && session.evaluationError && (
-                            <div className="text-[10px] text-rose-500 px-2 py-1.5 max-w-full truncate">
+                            <div className="text-[10px] text-rose-500 px-2 py-1.5 max-w-full truncate min-w-0">
                               {session.evaluationError}
                             </div>
                           )}
                           {session.timeTaken && (
-                            <div className="flex items-center gap-1.5 text-[10px] text-foreground/50 bg-foreground/5 px-3 py-1.5 rounded-full border border-border ml-auto">
+                            <div className="flex items-center gap-1.5 text-[10px] text-foreground/50 bg-foreground/5 px-3 py-1.5 rounded-full border border-border sm:ml-auto">
                               <Clock className="w-3 h-3" />
                               {Math.floor(session.timeTaken / 60)}m {session.timeTaken % 60}s
                             </div>
