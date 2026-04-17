@@ -40,7 +40,18 @@ async function hasPhantomPaddingSupport(
     .from('qa_temuan')
     .select('id, is_phantom_padding')
     .limit(1);
-  return !error;
+  if (!error) return true;
+
+  const message = (error.message || '').toLowerCase();
+  const missingColumn = error.code === '42703'
+    || error.code === 'PGRST204'
+    || message.includes('is_phantom_padding')
+    || message.includes('schema cache');
+
+  if (missingColumn) return false;
+
+  // Default to true when probe fails for non-schema reasons (e.g. permission/intermittent).
+  return true;
 }
 
 

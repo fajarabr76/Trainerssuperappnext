@@ -45,18 +45,41 @@ function getServiceSupabase() {
 
 let phantomSupportCache: boolean | null = null;
 
+function isMissingPhantomColumnError(error: { code?: string; message?: string } | null | undefined): boolean {
+  if (!error) return false;
+  const message = (error.message || '').toLowerCase();
+  return error.code === '42703'
+    || error.code === 'PGRST204'
+    || message.includes('is_phantom_padding')
+    || message.includes('column')
+    || message.includes('schema cache');
+}
+
 async function hasPhantomPaddingSupport(
   client: any
 ): Promise<boolean> {
   if (phantomSupportCache !== null) return phantomSupportCache;
 
-  const { error } = await client
+  const probeClient = getServiceSupabase() || client;
+  const { error } = await probeClient
     .from('qa_temuan')
     .select('id, is_phantom_padding')
     .limit(1);
 
-  phantomSupportCache = !error;
-  return phantomSupportCache;
+  if (!error) {
+    phantomSupportCache = true;
+    return true;
+  }
+
+  if (isMissingPhantomColumnError(error)) {
+    phantomSupportCache = false;
+    return false;
+  }
+
+  // Jika error bukan karena kolom tidak ada (mis. permission/intermitten),
+  // default ke true agar filter phantom tetap aktif dan tidak bocor ke metrik temuan.
+  console.warn('[QA] Phantom support probe ambiguous, defaulting to enabled:', error.message);
+  return true;
 }
 
 // ── Cached Fetchers (Pure logic, no cookies() inside) ──────────

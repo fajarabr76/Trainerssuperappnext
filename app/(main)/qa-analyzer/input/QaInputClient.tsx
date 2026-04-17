@@ -71,6 +71,15 @@ interface ImportRow {
   errors: string[];
 }
 
+function isMissingPhantomColumnError(error: { code?: string; message?: string } | null | undefined): boolean {
+  if (!error) return false;
+  const message = (error.message || '').toLowerCase();
+  return error.code === '42703'
+    || error.code === 'PGRST204'
+    || message.includes('is_phantom_padding')
+    || message.includes('schema cache');
+}
+
 function newEntry(): ParamEntry {
   return { uid: Math.random().toString(36).slice(2), indicator_id: '', showDropdown: false, nilai: 3, ketidaksesuaian: '', sebaiknya: '' };
 }
@@ -466,7 +475,7 @@ export default function QaInputClient({
         let { data: found, error } = await query
           .eq('is_phantom_padding', false)
           .order('created_at', { ascending: false });
-        if (error) {
+        if (error && isMissingPhantomColumnError(error)) {
           const fallback = await query.order('created_at', { ascending: false });
           found = fallback.data;
           error = fallback.error;
@@ -494,7 +503,7 @@ export default function QaInputClient({
       let { data: found, error } = await query
         .eq('is_phantom_padding', false)
         .order('created_at', { ascending: false });
-      if (error) {
+      if (error && isMissingPhantomColumnError(error)) {
         const fallback = await query.order('created_at', { ascending: false });
         found = fallback.data;
         error = fallback.error;
