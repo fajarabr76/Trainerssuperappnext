@@ -913,6 +913,7 @@ export const qaServiceServer = {
 
   async getDashboardSummary(periodId: string, serviceType: string, folderIds: string[] = [], context?: SharedContext, year?: number): Promise<DashboardSummary> {
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     const pIds = await this.resolvePeriodIds(periodId, year);
 
     // 1. Fetch Findings first to determine audited population
@@ -925,6 +926,9 @@ export const qaServiceServer = {
 
     if (folderIds.length > 0) {
       query = query.in('profiler_peserta.batch_name', folderIds);
+    }
+    if (hasPhantomSupport) {
+      query = query.eq('is_phantom_padding', false);
     }
 
     const { data, error } = await query;
@@ -1003,6 +1007,7 @@ export const qaServiceServer = {
 
   async getKpiSparkline(periodId: string | undefined | null, metric: 'total' | 'avg' | 'zero_error' | 'compliance', timeframe: '3m' | '6m' | 'all' = '3m', serviceType: string = 'call', folderIds: string[] = [], context?: SharedContext, year?: number): Promise<TrendPoint[]> {
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     // 1. Fetch recent periods
     const limitMap = { '3m': 3, '6m': 6, 'all': 12 };
     const limit = limitMap[timeframe] || 3;
@@ -1033,6 +1038,9 @@ export const qaServiceServer = {
 
     if (folderIds.length > 0) {
       temuanQuery = temuanQuery.in('profiler_peserta.batch_name', folderIds);
+    }
+    if (hasPhantomSupport) {
+      temuanQuery = temuanQuery.eq('is_phantom_padding', false);
     }
 
     const { data: temuan, error: tError } = await temuanQuery;
@@ -1102,6 +1110,7 @@ export const qaServiceServer = {
 
   async getTrendWithParameters(periodId: string, serviceType: string, folderIds: string[] = [], timeframe: '3m' | '6m' | 'all' = '3m', context?: SharedContext, year?: number) {
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     const limitMap = { '3m': 3, '6m': 6, 'all': 12 };
     const limit = limitMap[timeframe] || 3;
 
@@ -1125,6 +1134,7 @@ export const qaServiceServer = {
       .eq('service_type', serviceType);
 
     if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
+    if (hasPhantomSupport) query = query.eq('is_phantom_padding', false);
 
     const { data: temuan } = await query;
     if (!temuan) return { labels, datasets: [] };
@@ -1157,6 +1167,7 @@ export const qaServiceServer = {
 
   async getServiceComparison(periodId: string, folderIds: string[] = [], context?: SharedContext): Promise<ServiceComparisonData[]> {
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     const pIds = await this.resolvePeriodIds(periodId);
     // Include ALL temuan records (including nilai=3) as QA findings
     let query = supabase
@@ -1165,6 +1176,7 @@ export const qaServiceServer = {
       .in('period_id', pIds);
 
     if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
+    if (hasPhantomSupport) query = query.eq('is_phantom_padding', false);
 
     const { data, error } = await query;
     if (error || !data) return [];
@@ -1322,6 +1334,7 @@ export const qaServiceServer = {
 
   async getParetoData(periodId: string, serviceType: string, folderIds: string[] = [], context?: SharedContext): Promise<ParetoData[]> {
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     const pIds = await this.resolvePeriodIds(periodId);
     // Include ALL temuan records (including nilai=3) as QA findings
     let query = supabase
@@ -1332,6 +1345,7 @@ export const qaServiceServer = {
       .order('created_at', { ascending: true });
 
     if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
+    if (hasPhantomSupport) query = query.eq('is_phantom_padding', false);
 
     const { data, error } = await query;
     if (error || !data) return [];
@@ -2075,6 +2089,7 @@ export const qaServiceServer = {
   
   async getPersonalTrendWithParameters(agentId: string, timeframe: '3m' | '6m' | 'all' = '3m', serviceType?: string) {
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     const periodQuery = supabase.from('qa_periods').select('*').order('year', { ascending: false }).order('month', { ascending: false });
     const limitMap = { '3m': 3, '6m': 6, 'all': 12 };
     const { data: periods } = await periodQuery.limit(limitMap[timeframe]);
@@ -2090,6 +2105,7 @@ export const qaServiceServer = {
       .eq('peserta_id', agentId)
       .in('period_id', pIds);
     if (serviceType) temuanQuery = temuanQuery.eq('service_type', serviceType);
+    if (hasPhantomSupport) temuanQuery = temuanQuery.eq('is_phantom_padding', false);
     const { data: temuanRaw } = await temuanQuery;
 
     if (!temuanRaw) return { labels, datasets: [] };
@@ -2491,6 +2507,7 @@ export const qaServiceServer = {
     }>
   > {
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     const allPeriods = context?.periods || (await this.getPeriods());
     const sortedPeriods = allPeriods
       .filter((p) => p.year === year && p.month >= startMonth && p.month <= endMonth)
@@ -2515,6 +2532,7 @@ export const qaServiceServer = {
         .range(from, from + PAGE_SIZE - 1);
 
       if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
+      if (hasPhantomSupport) query = query.eq('is_phantom_padding', false);
 
       const { data, error } = await query;
       if (error) throw error;
@@ -2546,6 +2564,7 @@ export const qaServiceServer = {
     endMonth: number
   ): Promise<Array<{ label: string; score: number; findings: number }>> {
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     const { data: periods } = await supabase
       .from('qa_periods')
       .select('id, month, year')
@@ -2562,13 +2581,17 @@ export const qaServiceServer = {
     let hasMore = true;
 
     while (hasMore) {
-      const { data, error } = await supabase
+      let query = supabase
         .from('qa_temuan')
         .select('indicator_id, nilai, no_tiket, service_type, period_id, created_at')
         .eq('peserta_id', agentId)
         .in('period_id', pIds)
         .order('id', { ascending: true })
         .range(from, from + PAGE - 1);
+      if (hasPhantomSupport) {
+        query = query.eq('is_phantom_padding', false);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       if (!data?.length) hasMore = false;
       else {
@@ -2613,6 +2636,7 @@ export const qaServiceServer = {
    * Helper private method to fetch QA findings with pagination to bypass Supabase 1000-row limit
    */
   async fetchPaginatedTrendData(supabase: any, pIds: string[], year?: number) {
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     let allData: any[] = [];
     let from = 0;
     const step = 1000;
@@ -2628,6 +2652,9 @@ export const qaServiceServer = {
 
       if (year) {
         query = query.eq('tahun', year);
+      }
+      if (hasPhantomSupport) {
+        query = query.eq('is_phantom_padding', false);
       }
 
       const { data, error } = await query;
