@@ -38,7 +38,7 @@ interface DashboardAnalyticsPanelProps {
     activeServices: string[];
     serviceSummary: Record<string, { totalDefects: number; auditedAgents: number }>;
     totalSummary: { totalDefects: number; auditedAgents: number; activeServiceCount: number };
-    topParameter?: { name: string; count: number } | null;
+    topParameters?: Record<string, { name: string; count: number }>;
   }>;
   initialRecentLogs: Array<{ id: string | number; user: string; action: string; time: string; type: string }>;
   availableYears: number[];
@@ -174,7 +174,7 @@ export default function DashboardAnalyticsPanel({
     ? ((lastVal - prevTrendVal) / prevTrendVal) * 100
     : null;
   const chartColor = theme === 'dark' ? 'var(--gold)' : 'var(--navy)';
-  const topParameter = activeTrend.topParameter;
+  const topParameter = selectedService !== 'all' && activeTrend.topParameters ? activeTrend.topParameters[selectedService] : null;
 
   return (
     <>

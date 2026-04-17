@@ -2406,25 +2406,36 @@ export const qaServiceServer = {
         activeServiceCount: activeServicesSet.size
       },
       periodStats,
-      topParameter: this.calculateTopParameter(temuan)
+      topParameters: this.calculateTopParameters(temuan)
     };
   },
 
-  calculateTopParameter(temuan: any[]) {
-    if (!temuan || temuan.length === 0) return null;
+  calculateTopParameters(temuan: any[]) {
+    if (!temuan || temuan.length === 0) return {};
     
-    const counts: Record<string, { count: number, name: string }> = {};
+    const countsPerService: Record<string, Record<string, { count: number, name: string }>> = {};
+    
     temuan.forEach(t => {
       if (!isCountableFinding(t)) return;
       const id = t.indicator_id;
       const name = t.qa_indicators?.name || 'Unknown';
+      const service = t.service_type || 'unknown';
       if (!id) return;
-      if (!counts[id]) counts[id] = { count: 0, name };
-      counts[id].count++;
+      
+      if (!countsPerService[service]) countsPerService[service] = {};
+      if (!countsPerService[service][id]) countsPerService[service][id] = { count: 0, name };
+      countsPerService[service][id].count++;
     });
 
-    const sorted = Object.values(counts).sort((a, b) => b.count - a.count);
-    return sorted[0] || null;
+    const result: Record<string, { name: string, count: number }> = {};
+    Object.keys(countsPerService).forEach(service => {
+      const sorted = Object.values(countsPerService[service]).sort((a, b) => b.count - a.count);
+      if (sorted[0]) {
+        result[service] = sorted[0];
+      }
+    });
+
+    return result;
   },
 
   async getServiceTrendForDashboardByRange(year: number, startMonth: number, endMonth: number, context?: SharedContext) {
@@ -2443,9 +2454,9 @@ export const qaServiceServer = {
     // Use paginated fetch to bypass 1000 row limit
     const temuan = await this.fetchPaginatedTrendData(supabase, pIds, year);
 
-    const topParameter = this.calculateTopParameter(temuan);
+    const topParameters = this.calculateTopParameters(temuan);
 
-    if (!temuan || temuan.length === 0) return { labels, totalData: labels.map(() => 0), serviceData: {}, activeServices: [], serviceSummary: {}, totalSummary: { totalDefects: 0, auditedAgents: 0, activeServiceCount: 0 }, periodStats: [], topParameter: null };
+    if (!temuan || temuan.length === 0) return { labels, totalData: labels.map(() => 0), serviceData: {}, activeServices: [], serviceSummary: {}, totalSummary: { totalDefects: 0, auditedAgents: 0, activeServiceCount: 0 }, periodStats: [], topParameters: {} };
 
     const activeServicesSet = new Set<string>();
     const totalData = labels.map(() => 0);
@@ -2525,7 +2536,7 @@ export const qaServiceServer = {
         activeServiceCount: activeServicesSet.size
       },
       periodStats,
-      topParameter: this.calculateTopParameter(temuan)
+      topParameters
     };
   },
 
