@@ -80,11 +80,84 @@ export type GenerateConsumerResponseResult =
   | { success: true; text: string }
   | { success: false; error: string };
 
+export interface SessionTimingContext {
+  remainingSeconds?: number;
+  elapsedSeconds?: number;
+  totalDurationSeconds?: number;
+}
+
+function formatDurationLabel(totalSeconds: number): string {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+
+  if (minutes <= 0) {
+    return `${seconds} detik`;
+  }
+
+  if (seconds === 0) {
+    return `${minutes} menit`;
+  }
+
+  return `${minutes} menit ${seconds} detik`;
+}
+
+function buildTimeLimitInstruction(
+  simulationDurationMinutes: number | undefined,
+  timing?: SessionTimingContext
+): string {
+  if (!simulationDurationMinutes || simulationDurationMinutes <= 0) {
+    return '';
+  }
+
+  const totalDurationSeconds = timing?.totalDurationSeconds ?? simulationDurationMinutes * 60;
+  const remainingSecondsRaw = timing?.remainingSeconds;
+
+  if (remainingSecondsRaw === undefined || Number.isNaN(remainingSecondsRaw)) {
+    return `
+STATUS WAKTU SIMULASI:
+- Simulasi dibatasi maksimal ${simulationDurationMinutes} menit.
+- Anda TIDAK boleh menutup percakapan lebih awal hanya karena menebak-nebak waktu hampir habis.
+- Jangan bilang harus pergi, baterai habis, sinyal jelek, atau alasan serupa kecuali memang ada instruksi eksplisit bahwa waktu benar-benar hampir habis atau sudah habis.
+- Selama belum ada instruksi waktu yang eksplisit, fokuslah membantu agen menyelesaikan percakapan secara natural.`;
+  }
+
+  const remainingSeconds = Math.max(0, Math.floor(remainingSecondsRaw));
+  const nearEndThreshold = Math.min(45, Math.max(20, Math.floor(totalDurationSeconds * 0.15)));
+  const wrapUpThreshold = Math.min(90, Math.max(45, Math.floor(totalDurationSeconds * 0.3)));
+
+  if (remainingSeconds <= nearEndThreshold) {
+    return `
+STATUS WAKTU SIMULASI SAAT INI:
+- Sisa waktu nyata sekitar ${formatDurationLabel(remainingSeconds)}. Ini benar-benar fase akhir sesi.
+- Anda BOLEH mulai menutup percakapan secara natural, tetapi jangan mendadak memotong jawaban agen bila agen sedang memberi langkah penting.
+- Jika agen masih menjelaskan solusi yang relevan, beri kesempatan satu respons singkat yang tetap menanggapi inti penjelasan, lalu arahkan ke penutupan yang wajar.
+- Jangan menyebut "timer", "waktu sistem", atau istilah teknis simulasi. Tetap sebagai konsumen biasa.`;
+  }
+
+  if (remainingSeconds <= wrapUpThreshold) {
+    return `
+STATUS WAKTU SIMULASI SAAT INI:
+- Sisa waktu nyata sekitar ${formatDurationLabel(remainingSeconds)}. Sesi sudah mulai mendekati akhir, tetapi BELUM perlu menutup percakapan secara tiba-tiba.
+- Prioritaskan menanggapi penjelasan agen sampai inti solusi atau langkah berikutnya jelas.
+- Anda baru boleh mulai merapikan arah percakapan ke penutupan jika pembahasan memang sudah cukup selesai secara natural.
+- Jangan berpura-pura waktu habis dan jangan memberi alasan pergi mendadak kalau masalah belum cukup dijelaskan.`;
+  }
+
+  return `
+STATUS WAKTU SIMULASI SAAT INI:
+- Sisa waktu nyata masih sekitar ${formatDurationLabel(remainingSeconds)} dari total ${formatDurationLabel(totalDurationSeconds)}. Sesi masih panjang.
+- JANGAN menutup percakapan, JANGAN bersikap seolah waktu habis, dan JANGAN memberi alasan seperti harus pergi, baterai habis, atau sinyal jelek hanya karena asumsi waktu.
+- Walau sedang frustrasi, bingung, atau kesal, tetap tanggapi agen selama agen masih berusaha menjelaskan atau mencari solusi.
+- Fokuslah pada substansi masalah, bukan pada penutupan percakapan karena batas waktu.`;
+}
+
 export async function generateConsumerResponse(
   config: SessionConfig,
   scenario: Scenario,
   chatHistory: ChatMessage[],
-  extraPrompt?: string
+  extraPrompt?: string,
+  timing?: SessionTimingContext
 ): Promise<GenerateConsumerResponseResult> {
   const imagesCount = scenario.images?.length || 0;
   const imageInstruction = imagesCount > 0
@@ -113,9 +186,7 @@ Isi skrip:
 ${scenario.script}`
     : '';
 
-  const timeLimitInstruction = config.simulationDuration && config.simulationDuration > 0
-    ? `\nBATAS WAKTU: Simulasi ini dibatasi maksimal ${config.simulationDuration} menit. Jika kamu merasa percakapan sudah mendekati batas waktu ini, kamu HARUS segera mengakhiri percakapan dengan alasan natural (misal: "Maaf saya ada urusan lain", "Baterai saya habis", dll) MESKIPUN SKRIP BELUM SELESAI. Prioritaskan menutup percakapan jika waktu habis.`
-    : '';
+  const timeLimitInstruction = buildTimeLimitInstruction(config.simulationDuration, timing);
 
   const systemInstruction = `
 ROLEPLAY: Anda adalah KONSUMEN yang sedang menghubungi Kontak OJK 157 melalui chat. Anda bukan agen, bukan petugas, dan bukan AI.
@@ -151,6 +222,8 @@ ATURAN BALASAN:
 10. Output Anda harus berupa isi chat konsumen SAJA, bukan dialog dua arah, bukan analisis, bukan narasi panggung.
 11. Jika agen salah paham atau memberi jawaban ngawur, reaksi Anda harus sesuai karakter: bisa bingung, kesal, kritis, atau minta penjelasan ulang. Tetap sebagai konsumen.
 12. Jika Anda ingin meminta tindak lanjut ke OJK, lakukan secara realistis sesuai peran konsumen, misalnya meminta arahan, kanal pelaporan, atau langkah berikutnya. Jangan menuntut tindakan internal yang mustahil Anda verifikasi saat itu juga kecuali memang sesuai karakter marah.
+13. Jangan mengakhiri percakapan terlalu cepat hanya karena Anda frustrasi, tidak sabar, atau mengira waktu hampir habis. Selama agen masih relevan dan belum selesai menjelaskan, tetap beri ruang percakapan berjalan.
+14. Jangan berpura-pura tahu timer internal simulasi. Jika belum ada status waktu yang benar-benar kritis, jangan beri respons seolah sesi sudah habis.
   `;
 
   const historyText = chatHistory

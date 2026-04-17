@@ -188,6 +188,8 @@ export default function AppKetik() {
   };
 
   const handleReviewHistory = (session: ChatSession) => {
+    const matchingScenario = settings.scenarios.find((scenario) => scenario.title === session.scenarioTitle);
+
     setCurrentConfig({
       scenarios: settings.scenarios,
       consumerType: settings.consumerTypes[0],
@@ -195,7 +197,11 @@ export default function AppKetik() {
       model: settings.selectedModel,
       simulationDuration: 5,
     });
-    setCurrentScenario({ id: 'review', title: session.scenarioTitle, description: '', category: 'Review', isActive: true });
+    setCurrentScenario(
+      matchingScenario
+        ? { ...matchingScenario, id: 'review' }
+        : { id: 'review', title: session.scenarioTitle, description: '', category: 'Review', isActive: true }
+    );
     setReviewMessages(session.messages);
     setIsHistoryOpen(false);
     setView('chat');

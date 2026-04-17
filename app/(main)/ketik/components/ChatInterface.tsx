@@ -28,6 +28,95 @@ const TickIcon: React.FC<{ status?: string }> = ({ status }) => {
   return <CheckCheck className={`w-3.5 h-3.5 ${color}`} />;
 };
 
+const IMAGE_TAG_PATTERN = /\[SEND_IMAGE\s*:\s*\d+\]/i;
+const IMAGE_TAG_PATTERN_GLOBAL = /\[SEND_IMAGE\s*:\s*\d+\]/gi;
+const SYSTEM_TAG_PATTERN = /\[(sistem|system)\]/i;
+const SYSTEM_TAG_PATTERN_GLOBAL = /\[(sistem|system)\]/gi;
+
+function stripSystemTags(text: string): string {
+  return text.replace(SYSTEM_TAG_PATTERN_GLOBAL, '').trim();
+}
+
+function hasImageTag(text: string): boolean {
+  return IMAGE_TAG_PATTERN.test(text);
+}
+
+function isImageOnlyText(text: string): boolean {
+  const cleaned = stripSystemTags(text);
+  return cleaned.length > 0 && hasImageTag(cleaned) && cleaned.replace(IMAGE_TAG_PATTERN_GLOBAL, '').trim() === '';
+}
+
+function normalizeGeneratedParts(parts: string[]): Array<Pick<ChatMessage, 'sender' | 'text'>> {
+  const normalized: Array<Pick<ChatMessage, 'sender' | 'text'>> = [];
+
+  for (let index = 0; index < parts.length; index += 1) {
+    const currentRaw = parts[index];
+    const currentText = stripSystemTags(currentRaw);
+    const nextRaw = parts[index + 1];
+
+    if (!currentText) {
+      continue;
+    }
+
+    if (SYSTEM_TAG_PATTERN.test(currentRaw) && nextRaw && isImageOnlyText(nextRaw)) {
+      normalized.push({
+        sender: 'consumer',
+        text: `${currentText} ${stripSystemTags(nextRaw)}`.trim(),
+      });
+      index += 1;
+      continue;
+    }
+
+    normalized.push({
+      sender: hasImageTag(currentText) ? 'consumer' : SYSTEM_TAG_PATTERN.test(currentRaw) ? 'system' : 'consumer',
+      text: currentText,
+    });
+  }
+
+  return normalized;
+}
+
+function normalizeMessagesForDisplay(messages: ChatMessage[]): ChatMessage[] {
+  const normalized: ChatMessage[] = [];
+
+  for (let index = 0; index < messages.length; index += 1) {
+    const current = messages[index];
+    const currentText = typeof current.text === 'string' ? current.text : '';
+    const cleanedText = stripSystemTags(currentText);
+    const next = messages[index + 1];
+
+    if (current.sender === 'system' && next && isImageOnlyText(next.text)) {
+      normalized.push({
+        ...next,
+        sender: 'consumer',
+        text: `${cleanedText} ${stripSystemTags(next.text)}`.trim(),
+      });
+      index += 1;
+      continue;
+    }
+
+    if (hasImageTag(currentText)) {
+      normalized.push({
+        ...current,
+        sender: 'consumer',
+        text: cleanedText,
+      });
+      continue;
+    }
+
+    normalized.push(
+      cleanedText !== currentText
+        ? {
+            ...current,
+            text: cleanedText,
+          }
+        : current
+    );
+  }
+
+  return normalized;
+}
+
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ 
   config,
   scenario,
@@ -36,7 +125,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   initialMessages = [],
   isEnding = false
 }: ChatInterfaceProps) => {
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => normalizeMessagesForDisplay(initialMessages));
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isTimedOut, setIsTimedOut] = useState(false);
@@ -92,7 +181,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 - Balasan harus mengarah ke penutupan chat, bukan melanjutkan diskusi.
 - Berikan alasan manusiawi yang singkat dan wajar, misalnya harus pergi, sinyal jelek, baterai habis, sedang rapat, atau mau lanjut nanti.
 - Jika masih perlu, Anda boleh menambahkan satu pesan penutup singkat setelahnya dengan [BREAK].
-- Jangan gunakan [NO_RESPONSE].`
+- Jangan gunakan [NO_RESPONSE].`,
+        {
+          remainingSeconds: 0,
+          elapsedSeconds,
+          totalDurationSeconds: config.simulationDuration * 60,
+        }
       );
 
       if (!result.success) {
@@ -111,49 +205,20 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       const responseText = result.text;
       if (responseText !== '[NO_RESPONSE]') {
-        const parts = responseText.split('[BREAK]').map(p => p.trim()).filter(p => p);
+        const parts = normalizeGeneratedParts(
+          responseText.split('[BREAK]').map(p => p.trim()).filter(p => p)
+        );
         let delay = 1000;
         for (const part of parts) {
-          const isSystem = /\[(sistem|system)\]/i.test(part);
-          const cleanText = part.replace(/\[(sistem|system)\]/gi, '').trim();
-          const imageTags = cleanText.match(/\[SEND_IMAGE\s*:\s*\d+\]/gi) || [];
-          const hasImageTag = imageTags.length > 0;
-          const systemCaption = cleanText.replace(/\[SEND_IMAGE\s*:\s*\d+\]/gi, '').trim();
-          
           setTimeout(() => {
-            if (isSystem && hasImageTag) {
-              setMessages(prev => {
-                const next = [...prev];
-
-                if (systemCaption) {
-                  next.push({
-                    id: Date.now().toString() + Math.random(),
-                    sender: 'system',
-                    text: systemCaption,
-                    timestamp: new Date()
-                  });
-                }
-
-                next.push({
-                  id: Date.now().toString() + Math.random(),
-                  sender: 'consumer',
-                  text: imageTags.join(' '),
-                  timestamp: new Date()
-                });
-
-                return next;
-              });
-              return;
-            }
-
-            setMessages(prev => [...prev, {
+            setMessages(prev => normalizeMessagesForDisplay([...prev, {
               id: Date.now().toString() + Math.random(),
-              sender: isSystem ? 'system' : 'consumer',
-              text: cleanText,
+              sender: part.sender,
+              text: part.text,
               timestamp: new Date()
-            }]);
+            }]));
           }, delay);
-          delay += Math.max(1500, cleanText.length * 50);
+          delay += Math.max(1500, part.text.length * 50);
         }
         setTimeout(() => setIsLoading(false), delay);
       } else {
@@ -163,7 +228,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       console.error("Error generating timeout response", error);
       setIsLoading(false);
     }
-  }, [config, scenario, messages]);
+  }, [config, elapsedSeconds, messages, scenario]);
 
   // Countdown Timer Logic
   useEffect(() => {
@@ -225,7 +290,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const currentHistory = [...messages, userMsg];
     
     try {
-      const result = await generateConsumerResponse(config, scenario, currentHistory);
+      const result = await generateConsumerResponse(
+        config,
+        scenario,
+        currentHistory,
+        undefined,
+        {
+          remainingSeconds: timeLeft,
+          elapsedSeconds,
+          totalDurationSeconds: config.simulationDuration * 60,
+        }
+      );
 
       if (!result.success) {
         setIsLoading(false);
@@ -243,50 +318,21 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       const responseText = result.text;
       if (responseText !== '[NO_RESPONSE]') {
-        const parts = responseText.split('[BREAK]').map(p => p.trim()).filter(p => p);
+        const parts = normalizeGeneratedParts(
+          responseText.split('[BREAK]').map(p => p.trim()).filter(p => p)
+        );
         
         let delay = 1000;
         for (const part of parts) {
-          const isSystem = /\[(sistem|system)\]/i.test(part);
-          const cleanText = part.replace(/\[(sistem|system)\]/gi, '').trim();
-          const imageTags = cleanText.match(/\[SEND_IMAGE\s*:\s*\d+\]/gi) || [];
-          const hasImageTag = imageTags.length > 0;
-          const systemCaption = cleanText.replace(/\[SEND_IMAGE\s*:\s*\d+\]/gi, '').trim();
-          
           setTimeout(() => {
-            if (isSystem && hasImageTag) {
-              setMessages(prev => {
-                const next = [...prev];
-
-                if (systemCaption) {
-                  next.push({
-                    id: Date.now().toString() + Math.random(),
-                    sender: 'system',
-                    text: systemCaption,
-                    timestamp: new Date()
-                  });
-                }
-
-                next.push({
-                  id: Date.now().toString() + Math.random(),
-                  sender: 'consumer',
-                  text: imageTags.join(' '),
-                  timestamp: new Date()
-                });
-
-                return next;
-              });
-              return;
-            }
-
-            setMessages(prev => [...prev, {
+            setMessages(prev => normalizeMessagesForDisplay([...prev, {
               id: Date.now().toString() + Math.random(),
-              sender: isSystem ? 'system' : 'consumer',
-              text: cleanText,
+              sender: part.sender,
+              text: part.text,
               timestamp: new Date()
-            }]);
+            }]));
           }, delay);
-          delay += Math.max(1500, cleanText.length * 50); // Simulate typing time
+          delay += Math.max(1500, part.text.length * 50); // Simulate typing time
         }
         
         setTimeout(() => setIsLoading(false), delay);
@@ -359,7 +405,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     </motion.div>
                 );
             }
-            return null;
+            return <span key={index} className="text-sm italic text-muted-foreground">Lampiran gambar</span>;
         }
         return <span key={index}>{part}</span>;
     });
