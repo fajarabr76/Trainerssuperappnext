@@ -194,6 +194,8 @@ BEGIN
     q.service_type, 
     q.no_tiket, 
     q.nilai, 
+    q.ketidaksesuaian,
+    q.sebaiknya,
     p.nama, 
     p.batch_name, 
     p.tim
@@ -207,8 +209,11 @@ BEGIN
   -- STEP 2: Summary (hanya untuk p_service_type)
   SELECT 
     COUNT(DISTINCT peserta_id),
-    -- Count ALL temuan records (including nilai=3) as total QA findings
-    COUNT(*)
+    COUNT(*) FILTER (
+      WHERE nilai < 3
+         OR NULLIF(TRIM(COALESCE(ketidaksesuaian, '')), '') IS NOT NULL
+         OR NULLIF(TRIM(COALESCE(sebaiknya, '')), '') IS NOT NULL
+    )
   INTO v_total_agents, v_total_defects
   FROM temp_base
   WHERE service_type = p_service_type;
@@ -259,7 +264,7 @@ BEGIN
     'totalAgents', COALESCE(v_total_agents, 0)
   );
 
-  -- STEP 3: Pareto (hanya untuk p_service_type, ALL temuan including nilai=3)
+  -- STEP 3: Pareto (hanya untuk p_service_type, hanya temuan yang benar-benar countable)
   WITH pareto_counts AS (
     SELECT 
       i.name AS param_name,
@@ -268,6 +273,11 @@ BEGIN
     FROM temp_base b
     JOIN qa_indicators i ON b.indicator_id = i.id
     WHERE b.service_type = p_service_type
+      AND (
+        b.nilai < 3
+        OR NULLIF(TRIM(COALESCE(b.ketidaksesuaian, '')), '') IS NOT NULL
+        OR NULLIF(TRIM(COALESCE(b.sebaiknya, '')), '') IS NOT NULL
+      )
     GROUP BY i.id, i.name, i.category
     ORDER BY count_defects DESC, param_name ASC
   ),
@@ -296,8 +306,11 @@ BEGIN
     SELECT 
       service_type,
       COUNT(DISTINCT peserta_id) AS s_agents,
-      -- Count ALL temuan records (including nilai=3) as total QA findings
-      COUNT(*) AS s_defects
+      COUNT(*) FILTER (
+        WHERE nilai < 3
+           OR NULLIF(TRIM(COALESCE(ketidaksesuaian, '')), '') IS NOT NULL
+           OR NULLIF(TRIM(COALESCE(sebaiknya, '')), '') IS NOT NULL
+      ) AS s_defects
     FROM temp_base
     GROUP BY service_type
   )
@@ -325,14 +338,19 @@ BEGIN
   ), '[]'::jsonb) INTO v_service_json
   FROM svc_summary;
 
-  -- STEP 5: Donut (hanya p_service_type, ALL temuan including nilai=3)
+  -- STEP 5: Donut (hanya p_service_type, hanya temuan yang benar-benar countable)
   SELECT 
     COUNT(*) FILTER (WHERE i.category = 'critical'),
     COUNT(*) FILTER (WHERE i.category = 'non_critical')
   INTO v_critical_count, v_non_critical_count
   FROM temp_base b
   JOIN qa_indicators i ON b.indicator_id = i.id
-  WHERE b.service_type = p_service_type;
+  WHERE b.service_type = p_service_type
+    AND (
+      b.nilai < 3
+      OR NULLIF(TRIM(COALESCE(b.ketidaksesuaian, '')), '') IS NOT NULL
+      OR NULLIF(TRIM(COALESCE(b.sebaiknya, '')), '') IS NOT NULL
+    );
 
   v_donut_json := jsonb_build_object(
     'critical', COALESCE(v_critical_count, 0),
@@ -340,14 +358,17 @@ BEGIN
     'total', COALESCE(v_critical_count, 0) + COALESCE(v_non_critical_count, 0)
   );
 
-  -- STEP 6: Top Agents (hanya p_service_type, top 5 by total temuan)
+  -- STEP 6: Top Agents (hanya p_service_type, top 5 by temuan countable)
   WITH agent_stats AS (
     SELECT 
       b.peserta_id,
       b.nama,
       b.batch_name,
-      -- Count ALL temuan records (including nilai=3) as total QA findings
-      COUNT(*) AS defects,
+      COUNT(*) FILTER (
+        WHERE b.nilai < 3
+           OR NULLIF(TRIM(COALESCE(b.ketidaksesuaian, '')), '') IS NOT NULL
+           OR NULLIF(TRIM(COALESCE(b.sebaiknya, '')), '') IS NOT NULL
+      ) AS defects,
       BOOL_OR(b.nilai = 0 AND i.category = 'critical') AS has_critical
     FROM temp_base b
     LEFT JOIN qa_indicators i ON b.indicator_id = i.id
@@ -391,4 +412,3 @@ BEGIN
   );
 END;
 $$;
-

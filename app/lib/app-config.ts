@@ -90,8 +90,8 @@ export const APP_MODULES: AppModuleConfig[] = [
       { title: 'Ranking Agen', href: '/qa-analyzer/ranking' },
       { title: 'Laporan', href: '/qa-analyzer/reports', allowedRoles: ['trainer', 'admin'] },
       { title: 'Input Temuan', href: '/qa-analyzer/input', allowedRoles: ['agent', 'trainer', 'admin'] },
-      { title: 'Periode QA', href: '/qa-analyzer/periods', allowedRoles: ['trainer'] },
-      { title: 'Parameter QA', href: '/qa-analyzer/settings', allowedRoles: ['trainer'] },
+      { title: 'Periode QA', href: '/qa-analyzer/periods', allowedRoles: ['trainer', 'admin'] },
+      { title: 'Parameter QA', href: '/qa-analyzer/settings', allowedRoles: ['trainer', 'admin'] },
     ],
   },
   {
