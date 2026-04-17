@@ -226,7 +226,7 @@ export default function AppKetik() {
                     whileTap={{ scale: 0.99 }}
                     onClick={startSimulation}
                     disabled={isLoading}
-                    className="module-clean-button-primary flex h-14 w-full items-center justify-center gap-3 rounded-2xl px-6 text-[11px] font-black uppercase tracking-[0.22em] transition-all hover:opacity-95"
+                    className="module-clean-button-primary flex h-12 w-full items-center justify-center gap-2.5 rounded-xl px-5 text-[10px] font-black uppercase tracking-[0.18em] transition-all hover:opacity-95"
                   >
                     {isLoading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <Play className="h-4 w-4 fill-current" />}
                     <span>Mulai Simulasi</span>
@@ -235,7 +235,7 @@ export default function AppKetik() {
                     whileHover={{ scale: 1.01, y: -1 }}
                     whileTap={{ scale: 0.99 }}
                     onClick={() => setIsSettingsOpen(true)}
-                    className="module-clean-button-secondary flex h-14 w-full items-center justify-center gap-3 rounded-2xl px-6 text-[11px] font-black uppercase tracking-[0.22em] transition-all"
+                    className="module-clean-button-secondary flex h-12 w-full items-center justify-center gap-2.5 rounded-xl px-5 text-[10px] font-black uppercase tracking-[0.18em] transition-all"
                   >
                     <Settings className="h-4 w-4 opacity-60" />
                     <span>Pengaturan</span>
@@ -244,7 +244,7 @@ export default function AppKetik() {
                     whileHover={{ scale: 1.01, y: -1 }}
                     whileTap={{ scale: 0.99 }}
                     onClick={() => setIsHistoryOpen(true)}
-                    className="module-clean-button-secondary flex h-14 w-full items-center justify-center gap-3 rounded-2xl px-6 text-[11px] font-black uppercase tracking-[0.22em] transition-all"
+                    className="module-clean-button-secondary flex h-12 w-full items-center justify-center gap-2.5 rounded-xl px-5 text-[10px] font-black uppercase tracking-[0.18em] transition-all"
                   >
                     <History className="h-4 w-4 opacity-60" />
                     <span>Riwayat</span>
@@ -259,9 +259,9 @@ export default function AppKetik() {
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }} 
-            className="fixed inset-0 z-[100] module-clean-stage flex flex-col items-center justify-center p-0 md:p-8 overflow-hidden transition-colors duration-500"
+            className="fixed inset-0 z-[100] module-clean-stage flex flex-col items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden transition-colors duration-500"
           >
-            <div data-module="ketik" className="module-clean-app module-clean-shell w-full max-w-6xl h-full md:rounded-[3rem] overflow-hidden relative flex flex-col">
+            <div data-module="ketik" className="module-clean-app module-clean-shell w-full max-w-5xl h-full md:max-h-[92vh] md:rounded-[2rem] overflow-hidden relative flex flex-col shadow-2xl shadow-black/10">
               {currentConfig && currentScenario && (
                 <ChatInterface 
                   config={currentConfig} 

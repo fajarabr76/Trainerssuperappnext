@@ -311,7 +311,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   return (
     <AnimatePresence>
       {isOpen && (
-        <div data-module="ketik" className="module-clean-app module-clean-modal fixed inset-0 module-clean-overlay z-[200] flex items-center justify-center p-4">
+        <div data-module="ketik" className="module-clean-app module-clean-modal fixed inset-0 module-clean-overlay z-[200] flex items-center justify-center p-3 sm:p-4 md:p-6">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -323,13 +323,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="module-clean-modal-shell relative w-full max-w-5xl max-h-[90vh] rounded-[3rem] flex flex-col overflow-hidden"
+            className="module-clean-modal-shell relative w-full max-w-4xl max-h-[86vh] rounded-[2rem] flex flex-col overflow-hidden shadow-2xl shadow-black/10"
           >
             {/* Modal Header */}
-            <div className="module-clean-toolbar px-10 py-8 border-b flex justify-between items-center shrink-0 relative overflow-hidden">
+            <div className="module-clean-toolbar px-5 py-4 sm:px-6 sm:py-5 border-b flex justify-between items-center shrink-0 relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-module-ketik/10 to-transparent pointer-events-none" />
               <div className="relative z-10">
-                <h2 className="text-3xl font-black text-foreground tracking-tighter">Pengaturan Simulasi</h2>
+                <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">Pengaturan Simulasi</h2>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">Module KETIK</span>
                 </div>
@@ -337,15 +337,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
               <div className="flex items-center gap-4 relative z-10">
                 <button
                   onClick={handleClose}
-                  className="w-12 h-12 flex items-center justify-center bg-foreground/5 hover:bg-foreground/10 rounded-2xl text-muted-foreground hover:text-foreground transition-all border border-transparent hover:border-border/50"
+                  className="w-10 h-10 flex items-center justify-center bg-foreground/5 hover:bg-foreground/10 rounded-xl text-muted-foreground hover:text-foreground transition-all border border-transparent hover:border-border/50"
                 >
-                  <X className="w-6 h-6" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
             {/* Segmented Control Tabs */}
-            <div className="px-10 pt-8 pb-4 shrink-0 bg-transparent">
+            <div className="px-5 sm:px-6 pt-5 pb-3 shrink-0 bg-transparent">
               <div className="module-clean-panel flex p-2 rounded-2xl">
             {tabs.map((tab) => (
               <button
@@ -374,7 +374,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
             </div>
 
             {/* Modal Body */}
-            <div className="module-clean-stage flex-1 overflow-y-auto px-10 pb-10 bg-transparent custom-scrollbar">
+            <div className="module-clean-stage flex-1 overflow-y-auto px-5 sm:px-6 pb-6 sm:pb-8 bg-transparent custom-scrollbar">
 
           {/* TAB 1: SCENARIOS */}
           {activeTab === 'scenarios' && (
