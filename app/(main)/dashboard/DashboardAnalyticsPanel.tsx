@@ -178,7 +178,7 @@ export default function DashboardAnalyticsPanel({
 
   return (
     <>
-      {(role?.toLowerCase() === 'trainer' || role?.toLowerCase() === 'trainers' || role?.toLowerCase() === 'leader' || role?.toLowerCase() === 'admin') && (
+      {(role?.toLowerCase() === 'trainer' || role?.toLowerCase() === 'leader' || role?.toLowerCase() === 'admin') && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -408,7 +408,7 @@ export default function DashboardAnalyticsPanel({
         </div>
       )}
 
-      {(role?.toLowerCase() === 'trainer' || role?.toLowerCase() === 'trainers' || role?.toLowerCase() === 'admin') && (
+      {(role?.toLowerCase() === 'trainer' || role?.toLowerCase() === 'admin') && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -445,7 +445,7 @@ export default function DashboardAnalyticsPanel({
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-[10px] font-mono text-muted-foreground">{log.time}</div>
-                  {(role?.toLowerCase() === 'trainer' || role?.toLowerCase() === 'trainers' || role?.toLowerCase() === 'admin') && (
+                  {(role?.toLowerCase() === 'trainer' || role?.toLowerCase() === 'admin') && (
                     <button
                       onClick={async () => {
                         if (confirm('Hapus log aktivitas ini?')) {

@@ -48,8 +48,8 @@ Owner default: Product + Engineering
 ## B. Sedang Jalan
 
 ### B1. Dashboard & IA
-- [ ] Review penuh prioritas dashboard per role (`agent/leader/trainer/admin/superadmin`).
-- [ ] Validasi ulang quick actions agar benar-benar role-driven.
+- [x] Review penuh prioritas dashboard per role (`agent/leader/trainer/admin/superadmin`). (Standardisasi Admin & Trainer)
+- [x] Validasi ulang quick actions agar benar-benar role-driven. (Unifikasi pintasan produktivitas)
 
 ### B2. Profiler Visual Consistency
 - [x] Final pass konsistensi style lintas seluruh submodule Profiler.
@@ -115,8 +115,8 @@ Owner default: Product + Engineering
 
 ### E3. Security Access Guard (P0)
 - [ ] Review ulang seluruh flow approval user.
-- [ ] Audit route sensitif + role guard.
-- [ ] Validasi ketat bahwa `agent` tidak melihat route/aksi terlarang.
+- [x] Audit route sensitif + role guard. (Pembersihan string redundan & normalisasi role)
+- [x] Validasi ketat bahwa `agent` tidak melihat route/aksi terlarang. (Standardisasi proteksi Admin/Trainer)
 
 ## F. Technical Debt
 

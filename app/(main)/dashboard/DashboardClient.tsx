@@ -80,7 +80,6 @@ export default function DashboardClient({
   ].filter((item) => item.allowed);
 
   const isManagerRole = ['trainer', 'admin'].includes(role?.toLowerCase());
-  const isAdminRole = role?.toLowerCase() === 'admin';
 
   const trainerShortcuts = [
     {
@@ -121,46 +120,7 @@ export default function DashboardClient({
     },
   ];
 
-  const adminShortcuts = [
-    {
-      id: 'qa-input',
-      href: '/qa-analyzer/input',
-      title: 'Input Temuan',
-      description: 'Catat hasil evaluasi QA terbaru',
-      icon: PlusCircle,
-      accentSoftClassName: 'bg-indigo-600/10',
-      accentClassName: 'text-indigo-600 dark:text-indigo-400',
-    },
-    {
-      id: 'qa-agents',
-      href: '/qa-analyzer/agents',
-      title: 'Analisis Individu',
-      description: 'Laporan performa QA agen',
-      icon: Users,
-      accentSoftClassName: 'bg-emerald-600/10',
-      accentClassName: 'text-emerald-600 dark:text-emerald-400',
-    },
-    {
-      id: 'user-management',
-      href: '/dashboard/users',
-      title: 'Kelola Pengguna',
-      description: 'Approve, hapus akun, dan tunjuk admin baru',
-      icon: Shield,
-      accentSoftClassName: 'bg-rose-600/10',
-      accentClassName: 'text-rose-600 dark:text-rose-400',
-    },
-    {
-      id: 'account',
-      href: '/account',
-      title: 'Pengaturan Profil',
-      description: 'Preferensi dan keamanan akun Anda',
-      icon: UserCog,
-      accentSoftClassName: 'bg-slate-600/10',
-      accentClassName: 'text-slate-600 dark:text-slate-400',
-    },
-  ];
-
-  const shortcutsToDisplay = isAdminRole ? adminShortcuts : isManagerRole ? trainerShortcuts : visibleModules.slice(0, 4);
+  const shortcutsToDisplay = isManagerRole ? trainerShortcuts : visibleModules.slice(0, 4);
 
   return (
     <main className="relative flex flex-1 flex-col overflow-y-auto">

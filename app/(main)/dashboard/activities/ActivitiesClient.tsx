@@ -40,7 +40,7 @@ export default function ActivitiesClient({
     return matchesSearch && matchesType;
   });
 
-  const isTrainer = role?.toLowerCase() === 'trainer' || role?.toLowerCase() === 'trainers';
+  const canManage = role?.toLowerCase() === 'trainer' || role?.toLowerCase() === 'trainers' || role?.toLowerCase() === 'admin';
 
   return (
     <main className="h-full overflow-y-auto relative bg-background/50 backdrop-blur-3xl">
@@ -95,13 +95,13 @@ export default function ActivitiesClient({
                   <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest opacity-40">Aktivitas</th>
                   <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest opacity-40">Modul</th>
                   <th className="px-6 py-5 font-black text-[10px] uppercase tracking-widest opacity-40">Tipe</th>
-                  {isTrainer && <th className="px-4 py-5 font-black text-[10px] uppercase tracking-widest opacity-40 text-right w-16">Aksi</th>}
+                  {canManage && <th className="px-4 py-5 font-black text-[10px] uppercase tracking-widest opacity-40 text-right w-16">Aksi</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {loading ? (
                   <tr>
-                    <td colSpan={isTrainer ? 6 : 5} className="px-6 py-20 text-center">
+                    <td colSpan={canManage ? 6 : 5} className="px-6 py-20 text-center">
                       <div className="flex flex-col items-center gap-4">
                           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                           <span className="text-xs font-black uppercase tracking-widest opacity-40">Menyelaraskan audit log...</span>
@@ -110,7 +110,7 @@ export default function ActivitiesClient({
                   </tr>
                 ) : filteredLogs.length === 0 ? (
                   <tr>
-                    <td colSpan={isTrainer ? 6 : 5} className="px-6 py-20 text-center">
+                    <td colSpan={canManage ? 6 : 5} className="px-6 py-20 text-center">
                        <div className="flex flex-col items-center gap-4">
                           <AlertCircle className="w-12 h-12 text-foreground/10" />
                           <span className="text-xs font-black uppercase tracking-widest opacity-40">Tidak ada log aktivitas ditemukan.</span>
@@ -150,7 +150,7 @@ export default function ActivitiesClient({
                           {log.type}
                         </span>
                       </td>
-                      {isTrainer && (
+                      {canManage && (
                         <td className="px-4 py-5 text-right">
                            <button 
                               onClick={() => handleDelete(log.id)}

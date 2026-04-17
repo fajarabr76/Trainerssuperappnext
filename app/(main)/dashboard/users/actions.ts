@@ -15,8 +15,8 @@ async function validateManagerRole() {
     .eq('id', user.id)
     .single();
 
-  const role = profile?.role?.toLowerCase() || '';
-  const allowedRoles = ['admin', 'trainer', 'trainers'];
+  const role = normalizeRole(profile?.role);
+  const allowedRoles: string[] = ['admin', 'trainer'];
   if (!allowedRoles.includes(role)) {
     throw new Error('Akses ditolak: Anda tidak memiliki izin untuk mengelola pengguna');
   }
@@ -46,15 +46,15 @@ export async function updateUserRoleAction(userId: string, newRole: string) {
     throw new Error('Role yang dipilih tidak valid');
   }
 
-  if (user.id === userId && (callerRole === 'admin' || callerRole === 'trainer' || callerRole === 'trainers')) {
+  if (user.id === userId) {
     throw new Error('Anda tidak dapat mengubah role akun Anda sendiri dari panel ini');
   }
 
   // Role restriction logic
   const trainerAllowedRoles = ['agent', 'leader', 'trainer'];
   
-  // If caller is trainer/trainers, restrict the roles they can assign
-  if (callerRole === 'trainer' || callerRole === 'trainers') {
+  // If caller is trainer, restrict the roles they can assign
+  if (callerRole === 'trainer') {
     if (!trainerAllowedRoles.includes(normalizedNewRole)) {
       throw new Error('Trainer tidak dapat memberikan role admin');
     }
