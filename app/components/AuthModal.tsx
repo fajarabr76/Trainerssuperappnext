@@ -3,7 +3,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { AlertCircle, ArrowRight, Cpu, Loader2, ShieldCheck, X } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/app/lib/supabase/client';
 
 interface AuthModalProps {
@@ -36,7 +35,6 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
-  const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
@@ -54,8 +52,53 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     setSuccessMessage(null);
     setLoading(false);
     setForgotLoading(false);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('auth');
+    window.history.replaceState({}, '', url.pathname || '/');
     onClose();
   };
+
+  async function waitForActiveSession() {
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (session?.user) {
+        return session;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+
+    return null;
+  }
+
+  async function resolvePostLoginPath(userId: string) {
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('status')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (profileError) {
+      console.warn('[AuthModal] Failed to read profile after login:', profileError.message);
+      return '/dashboard';
+    }
+
+    const profileStatus = profile?.status?.toLowerCase();
+
+    if (profileStatus === 'pending') {
+      return '/waiting-approval';
+    }
+
+    if (profileStatus === 'rejected') {
+      await supabase.auth.signOut();
+      throw new Error('Akun Anda belum dapat diakses. Silakan hubungi administrator Anda.');
+    }
+
+    return '/dashboard';
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -76,10 +119,21 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
         return;
       }
 
-      await supabase.auth.getSession();
-      await new Promise((resolve) => setTimeout(resolve, 150));
-      router.replace('/dashboard');
-      router.refresh();
+      const session = await waitForActiveSession();
+
+      if (!session?.user) {
+        setError('Sesi login belum siap. Silakan coba sekali lagi.');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const nextPath = await resolvePostLoginPath(session.user.id);
+        window.location.assign(nextPath);
+      } catch (postLoginError) {
+        setError(postLoginError instanceof Error ? postLoginError.message : 'Login berhasil, tetapi status akun belum dapat diverifikasi.');
+        setLoading(false);
+      }
       return;
     }
 

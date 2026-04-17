@@ -27,7 +27,7 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           supabaseResponse = NextResponse.next({
             request,
           });
@@ -63,27 +63,33 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(url);
       }
 
-      // Cek status approval user
-      const { data: profile } = await supabase
+      // Hanya terapkan gate jika status profile memang terbaca jelas.
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('status, role')
+        .select('status, role, is_deleted')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (!profile || profile.status === 'pending') {
+      if (profileError) {
+        console.warn('[middleware] Failed to read profile during auth check:', profileError.message);
+      }
+
+      const profileStatus = profile?.status?.toLowerCase();
+
+      if (profile?.is_deleted || profileStatus === 'rejected') {
+        await supabase.auth.signOut();
+        const url = new URL('/', request.url);
+        url.searchParams.set('auth', 'login');
+        url.searchParams.set('message', profile?.is_deleted ? 'deleted' : 'rejected');
+        return NextResponse.redirect(url);
+      }
+
+      if (profileStatus === 'pending') {
         const url = new URL('/waiting-approval', request.url);
         return NextResponse.redirect(url);
       }
 
-      if (profile.status === 'rejected') {
-        await supabase.auth.signOut();
-        const url = new URL('/', request.url);
-        url.searchParams.set('auth', 'login');
-        url.searchParams.set('message', 'rejected');
-        return NextResponse.redirect(url);
-      }
-
-      const role = normalizeRole(profile.role);
+      const role = normalizeRole(profile?.role);
       const trainerOnlyRoutes = [
         '/dashboard/users',
         '/dashboard/activities',

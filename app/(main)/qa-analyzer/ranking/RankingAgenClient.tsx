@@ -6,9 +6,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Users, 
   Calendar, 
-  ChevronRight, 
   Trophy, 
-  LayoutGrid
+  LayoutGrid,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import { 
   TopAgentData, 
@@ -33,6 +35,9 @@ interface Props {
   role: string;
 }
 
+type SortKey = 'defects' | 'nama' | 'score';
+type SortDirection = 'asc' | 'desc';
+
 export default function RankingAgenClient({
   initialData,
   periods,
@@ -55,39 +60,66 @@ export default function RankingAgenClient({
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const isFirstRender = useRef(true);
+  const [sortKey, setSortKey] = useState<SortKey>('defects');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   const isReadOnly = role?.toLowerCase() === 'leader';
 
   // Local state for rankings (refetched when filters change)
   const [rankings, setRankings] = useState<TopAgentData[]>(initialData);
 
+  const sortedRankings = React.useMemo(() => {
+    const collator = new Intl.Collator('id', { sensitivity: 'base', numeric: true });
+    const sorted = [...rankings].sort((a, b) => {
+      if (sortKey === 'nama') {
+        return sortDirection === 'asc'
+          ? collator.compare(a.nama, b.nama)
+          : collator.compare(b.nama, a.nama);
+      }
+
+      if (sortKey === 'score') {
+        return sortDirection === 'asc'
+          ? a.score - b.score
+          : b.score - a.score;
+      }
+
+      return sortDirection === 'asc'
+        ? a.defects - b.defects
+        : b.defects - a.defects;
+    });
+
+    return sorted;
+  }, [rankings, sortKey, sortDirection]);
+
   // Derive filters from URL or defaults
   const serviceType = searchParams.get('service') as ServiceType || defaultServiceType;
   const periodId = searchParams.get('period') || defaultPeriodId;
   const selectedYear = Number(searchParams.get('year')) || defaultYear;
   const folderId = searchParams.get('folder') || 'ALL';
-
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const folderIds = folderId === 'ALL' ? [] : [folderId];
-      const { data, error } = await getRankingAgenAction(
-        periodId,
-        serviceType,
-        folderIds,
-        selectedYear
-      );
-      if (!error && data) setRankings(data);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const isYearToDate = periodId === 'ytd';
+  const scoreColumnLabel = isYearToDate ? 'Rata-rata Skor QA' : 'Skor QA';
 
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
     }
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const folderIds = folderId === 'ALL' ? [] : [folderId];
+        const { data, error } = await getRankingAgenAction(
+          periodId,
+          serviceType,
+          folderIds,
+          selectedYear
+        );
+        if (!error && data) setRankings(data);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     fetchData();
   }, [serviceType, periodId, selectedYear, folderId]);
 
@@ -97,6 +129,28 @@ export default function RankingAgenClient({
       params.set(key, String(value));
     });
     router.push(`?${params.toString()}`, { scroll: false });
+  };
+
+  const toggleSort = (key: SortKey, defaultDirection: SortDirection) => {
+    if (sortKey === key) {
+      setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+
+    setSortKey(key);
+    setSortDirection(defaultDirection);
+  };
+
+  const renderSortIcon = (key: SortKey) => {
+    const isActive = sortKey === key;
+
+    if (!isActive) {
+      return <ArrowUpDown className="w-3.5 h-3.5 opacity-40" />;
+    }
+
+    return sortDirection === 'asc'
+      ? <ArrowUp className="w-3.5 h-3.5" />
+      : <ArrowDown className="w-3.5 h-3.5" />;
   };
 
   return (
@@ -124,7 +178,7 @@ export default function RankingAgenClient({
             )}
           </div>
           <p className="text-muted-foreground pl-12 text-sm md:text-base font-medium">
-            Peringkat agen berdasarkan jumlah temuan QA.
+            Peringkat agen berdasarkan jumlah temuan QA. Klik nama atau skor QA untuk mengubah urutan.
           </p>
         </motion.div>
       </div>
@@ -222,10 +276,40 @@ export default function RankingAgenClient({
             <thead>
               <tr className="bg-white/50 dark:bg-black/20">
                 <th className="px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 w-16">Rank</th>
-                <th className="px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">Agen</th>
+                <th className="px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('nama', 'asc')}
+                    className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors"
+                    aria-label="Sortir berdasarkan nama agen"
+                  >
+                    Agen
+                    {renderSortIcon('nama')}
+                  </button>
+                </th>
                 <th className="px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">Tim/Batch</th>
-                <th className="px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 text-right">Total Temuan</th>
-                <th className="px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 text-right">Skor QA</th>
+                <th className="px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 text-right">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('defects', 'desc')}
+                    className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors"
+                    aria-label="Sortir berdasarkan jumlah temuan"
+                  >
+                    Total Temuan
+                    {renderSortIcon('defects')}
+                  </button>
+                </th>
+                <th className="px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 text-right">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('score', 'desc')}
+                    className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors"
+                    aria-label="Sortir berdasarkan skor QA"
+                  >
+                    {scoreColumnLabel}
+                    {renderSortIcon('score')}
+                  </button>
+                </th>
                 <th className="px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 text-center">Status</th>
               </tr>
             </thead>
@@ -244,8 +328,8 @@ export default function RankingAgenClient({
                       </td>
                     </motion.tr>
                   ))
-                ) : rankings.length > 0 ? (
-                  rankings.map((agent, i) => {
+                ) : sortedRankings.length > 0 ? (
+                  sortedRankings.map((agent, i) => {
                     const rank = i + 1;
                     const isTop3 = rank <= 3;
                     return (

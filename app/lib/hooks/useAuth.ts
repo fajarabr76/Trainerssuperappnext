@@ -23,24 +23,30 @@ export function useAuth(requireRole?: string[]) {
         return;
       }
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (profile?.status === 'pending') {
+      if (profileError) {
+        console.warn('[useAuth] Failed to read profile:', profileError.message);
+      }
+
+      const profileStatus = profile?.status?.toLowerCase();
+
+      if (profileStatus === 'pending') {
         router.push('/waiting-approval');
         return;
       }
 
-      if (profile?.is_deleted) {
+      if (profile?.is_deleted || profileStatus === 'rejected') {
         await supabase.auth.signOut();
         router.push('/?auth=login');
         return;
       }
 
-      const userRole = profile?.role || 'Agent';
+      const userRole = profile?.role || '';
       setUser(user);
       setProfile(profile);
       setRole(userRole);
