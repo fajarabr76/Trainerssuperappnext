@@ -293,7 +293,7 @@ const cachedFetchAgentPeriodSummaries = unstable_cache(
     const [{ data: temuanRaw, error: temuanError }, indicators, weights] = await Promise.all([
       serviceSupabase
         .from('qa_temuan')
-        .select('indicator_id, nilai, no_tiket, service_type, created_at, period_id, qa_periods(month, year)')
+        .select('indicator_id, nilai, no_tiket, service_type, created_at, period_id, is_phantom_padding, qa_periods(month, year)')
         .eq('peserta_id', agentId)
         .eq('tahun', year)
         .order('created_at', { ascending: false }),
@@ -313,6 +313,7 @@ const cachedFetchAgentPeriodSummaries = unstable_cache(
       service_type: ServiceType;
       created_at?: string;
       period_id: string;
+      is_phantom_padding?: boolean | null;
       qa_periods?: { month: number; year: number } | Array<{ month: number; year: number }> | null;
     }>).map((item) => ({
       ...item,
@@ -358,7 +359,7 @@ const cachedFetchAgentPeriodSummaries = unstable_cache(
         nonCriticalScore: score.nonCriticalScore,
         criticalScore: score.criticalScore,
         sessionCount: score.sessionCount,
-        findingsCount: items.length,
+        findingsCount: items.filter((item) => !item.is_phantom_padding).length,
       });
     });
 
@@ -445,6 +446,7 @@ export const qaServiceServer = {
       .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
       .eq('peserta_id', peserta_id)
       .eq('period_id', period_id)
+      .eq('is_phantom_padding', false)
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data ?? [];
@@ -627,7 +629,7 @@ export const qaServiceServer = {
     const [{ data: temuanRaw, error }, allIndicators, weights] = await Promise.all([
       supabase
         .from('qa_temuan')
-        .select('indicator_id, nilai, no_tiket, service_type, created_at, period_id, qa_periods(month, year)')
+        .select('indicator_id, nilai, no_tiket, service_type, created_at, period_id, is_phantom_padding, qa_periods(month, year)')
         .eq('peserta_id', agentId)
         .eq('tahun', year)
         .order('created_at', { ascending: false }),
@@ -644,6 +646,7 @@ export const qaServiceServer = {
       service_type: ServiceType;
       created_at?: string;
       period_id: string;
+      is_phantom_padding?: boolean | null;
       qa_periods?: { month: number; year: number } | Array<{ month: number; year: number }> | null;
     }>).map((item) => ({
       ...item,
@@ -685,7 +688,7 @@ export const qaServiceServer = {
           nonCriticalScore: score.nonCriticalScore,
           criticalScore: score.criticalScore,
           sessionCount: score.sessionCount,
-          findingsCount: items.length,
+          findingsCount: items.filter((item) => !item.is_phantom_padding).length,
         };
       })
       .sort((a, b) => {
@@ -719,6 +722,7 @@ export const qaServiceServer = {
       .eq('tahun', year)
       .eq('period_id', periodId)
       .eq('service_type', serviceType)
+      .eq('is_phantom_padding', false)
       .order('created_at', { ascending: false })
       .range(from, to - 1);
 
@@ -748,6 +752,7 @@ export const qaServiceServer = {
       .from('qa_temuan')
       .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
       .eq('peserta_id', peserta_id)
+      .eq('is_phantom_padding', false)
       .order('created_at', { ascending: false });
 
     if (year) {

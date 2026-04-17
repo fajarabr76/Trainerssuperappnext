@@ -463,6 +463,7 @@ export default function QaInputClient({
           .eq('peserta_id', selectedAgent.id)
           .eq('period_id', selectedPeriod.id)
           .eq('service_type', newService)
+          .eq('is_phantom_padding', false)
           .order('created_at', { ascending: false });
         setTemuan(found || []);
       } catch (err: any) { 
@@ -483,6 +484,7 @@ export default function QaInputClient({
         .eq('peserta_id', selectedAgent.id)
         .eq('period_id', period.id)
         .eq('service_type', selectedService) // Bug 2 Fix: Only fetch temuan for the relevant service
+        .eq('is_phantom_padding', false)
         .order('created_at', { ascending: false });
       setTemuan(found || []); 
       setStep('list'); 
@@ -580,14 +582,11 @@ export default function QaInputClient({
 
   const handlePerfectScore = async () => {
     if (!selectedAgent || !selectedPeriod) return;
-    const ticket = prompt('Masukkan No. Tiket (Opsional, biarkan kosong untuk sesi internal):');
-    if (ticket === null) return; // cancelled
-    
+
     setSaving(true); setErrorMsg(null);
     try {
-      const created = await createPerfectScoreSessionAction(selectedAgent.id, selectedPeriod.id, selectedService as ServiceType, ticket);
-      setTemuan(prev => [...created.reverse(), ...prev]);
-      setSuccessMsg(`Sesi Tanpa Temuan berhasil ditambahkan! (${created.length} parameter)`);
+      await createPerfectScoreSessionAction(selectedAgent.id, selectedPeriod.id, selectedService as ServiceType);
+      setSuccessMsg('Sesi Tanpa Temuan berhasil ditambahkan (phantom padding 5 sesi).');
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err: any) {
       setErrorMsg(err.message);
