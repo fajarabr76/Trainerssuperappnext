@@ -1385,6 +1385,12 @@ export const qaServiceServer = {
   // ── Dashboard Trend RPC ──────────────────────────────────────
   async getServiceTrendDashboard(p_period_ids: string[]) {
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
+
+    if (hasPhantomSupport) {
+      return this.getServiceTrendForDashboard('all');
+    }
+
     const { data, error } = await supabase.rpc('get_service_trend_dashboard', {
       p_period_ids
     });
@@ -1413,6 +1419,7 @@ export const qaServiceServer = {
     year?: number
   ) {
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     const pIds = await this.resolvePeriodIds(periodId, year);
     const currentYear = year || new Date().getFullYear();
 
@@ -1426,6 +1433,9 @@ export const qaServiceServer = {
 
     if (folderIds.length > 0) {
       query = query.in('profiler_peserta.batch_name', folderIds);
+    }
+    if (hasPhantomSupport) {
+      query = query.eq('is_phantom_padding', false);
     }
 
     const { data, error } = await query;
@@ -1637,6 +1647,22 @@ export const qaServiceServer = {
     endMonth: number
   ) {
     const startedAt = measureStart();
+    const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
+
+    if (hasPhantomSupport) {
+      const fallback = await this.getConsolidatedDashboardDataByRange(
+        serviceType,
+        folderIds,
+        context,
+        year,
+        startMonth,
+        endMonth
+      );
+      logServerMetric('qa.dashboardRangeData.fallback.phantom', startedAt, { serviceType, year, startMonth, endMonth });
+      return fallback;
+    }
+
     const cached = await cachedFetchDashboardRangeData(
       serviceType,
       encodeFolderIds(folderIds),
@@ -1671,6 +1697,22 @@ export const qaServiceServer = {
     endMonth: number
   ) {
     const startedAt = measureStart();
+    const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
+
+    if (hasPhantomSupport) {
+      const fallback = await this.getConsolidatedTrendDataByRange(
+        serviceType,
+        folderIds,
+        context,
+        year,
+        startMonth,
+        endMonth
+      );
+      logServerMetric('qa.dashboardRangeTrend.fallback.phantom', startedAt, { serviceType, year, startMonth, endMonth });
+      return fallback;
+    }
+
     const cached = await cachedFetchDashboardRangeTrend(
       serviceType,
       encodeFolderIds(folderIds),
@@ -1806,6 +1848,7 @@ export const qaServiceServer = {
     endMonth: number
   ) {
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     
     // 1. Filter periods from context based on range and year
     const allPeriods = context?.periods || (await this.getPeriods());
@@ -1834,6 +1877,7 @@ export const qaServiceServer = {
         .range(from, from + PAGE_SIZE - 1);
 
       if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
+      if (hasPhantomSupport) query = query.eq('is_phantom_padding', false);
 
       const { data, error } = await query;
       if (error) throw error;
@@ -1920,6 +1964,7 @@ export const qaServiceServer = {
     endMonth: number
   ) {
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     
     // 1. Resolve period IDs
     const allPeriods = context?.periods || (await this.getPeriods());
@@ -1945,6 +1990,7 @@ export const qaServiceServer = {
         .range(from, from + PAGE_SIZE - 1);
 
       if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
+      if (hasPhantomSupport) query = query.eq('is_phantom_padding', false);
 
       const { data, error } = await query;
       if (error) throw error;
