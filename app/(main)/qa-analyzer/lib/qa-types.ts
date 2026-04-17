@@ -77,6 +77,8 @@ export interface QATemuan {
   indicator_id: string;
   service_type: ServiceType;
   no_tiket?: string | null;
+  is_phantom_padding?: boolean;
+  phantom_batch_id?: string | null;
   nilai: number;
   ketidaksesuaian?: string | null;
   sebaiknya?: string | null;

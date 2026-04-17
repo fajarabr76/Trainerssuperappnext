@@ -43,6 +43,45 @@ function getServiceSupabase() {
   return createJSClient(url, key);
 }
 
+let phantomSupportCache: boolean | null = null;
+
+function isMissingPhantomColumnError(error: { code?: string; message?: string } | null | undefined): boolean {
+  if (!error) return false;
+  const message = (error.message || '').toLowerCase();
+  return error.code === '42703'
+    || error.code === 'PGRST204'
+    || message.includes('is_phantom_padding')
+    || message.includes('column')
+    || message.includes('schema cache');
+}
+
+async function hasPhantomPaddingSupport(
+  client: any
+): Promise<boolean> {
+  if (phantomSupportCache !== null) return phantomSupportCache;
+
+  const probeClient = getServiceSupabase() || client;
+  const { error } = await probeClient
+    .from('qa_temuan')
+    .select('id, is_phantom_padding')
+    .limit(1);
+
+  if (!error) {
+    phantomSupportCache = true;
+    return true;
+  }
+
+  if (isMissingPhantomColumnError(error)) {
+    phantomSupportCache = false;
+    return false;
+  }
+
+  // Jika error bukan karena kolom tidak ada (mis. permission/intermitten),
+  // default ke true agar filter phantom tetap aktif dan tidak bocor ke metrik temuan.
+  console.warn('[QA] Phantom support probe ambiguous, defaulting to enabled:', error.message);
+  return true;
+}
+
 // ── Cached Fetchers (Pure logic, no cookies() inside) ──────────
 
 const cachedFetchIndicators = unstable_cache(
@@ -289,14 +328,23 @@ const cachedFetchAgentPeriodSummaries = unstable_cache(
   async (agentId: string, year: number): Promise<AgentPeriodSummary[] | null> => {
     const serviceSupabase = getServiceSupabase();
     if (!serviceSupabase) return null;
+    const hasPhantomSupport = await hasPhantomPaddingSupport(serviceSupabase);
+    const temuanPromise = hasPhantomSupport
+      ? serviceSupabase
+          .from('qa_temuan')
+          .select('indicator_id, nilai, no_tiket, service_type, created_at, period_id, is_phantom_padding, qa_periods(month, year)')
+          .eq('peserta_id', agentId)
+          .eq('tahun', year)
+          .order('created_at', { ascending: false })
+      : serviceSupabase
+          .from('qa_temuan')
+          .select('indicator_id, nilai, no_tiket, service_type, created_at, period_id, qa_periods(month, year)')
+          .eq('peserta_id', agentId)
+          .eq('tahun', year)
+          .order('created_at', { ascending: false });
 
     const [{ data: temuanRaw, error: temuanError }, indicators, weights] = await Promise.all([
-      serviceSupabase
-        .from('qa_temuan')
-        .select('indicator_id, nilai, no_tiket, service_type, created_at, period_id, qa_periods(month, year)')
-        .eq('peserta_id', agentId)
-        .eq('tahun', year)
-        .order('created_at', { ascending: false }),
+      temuanPromise,
       cachedFetchIndicators(),
       cachedFetchServiceWeights(),
     ]);
@@ -313,6 +361,7 @@ const cachedFetchAgentPeriodSummaries = unstable_cache(
       service_type: ServiceType;
       created_at?: string;
       period_id: string;
+      is_phantom_padding?: boolean | null;
       qa_periods?: { month: number; year: number } | Array<{ month: number; year: number }> | null;
     }>).map((item) => ({
       ...item,
@@ -358,7 +407,7 @@ const cachedFetchAgentPeriodSummaries = unstable_cache(
         nonCriticalScore: score.nonCriticalScore,
         criticalScore: score.criticalScore,
         sessionCount: score.sessionCount,
-        findingsCount: items.length,
+        findingsCount: items.filter((item) => !item.is_phantom_padding).length,
       });
     });
 
@@ -440,12 +489,16 @@ export const qaServiceServer = {
     peserta_id: string, period_id: string
   ): Promise<QATemuan[]> {
     const supabase = await createClient();
-    const { data, error } = await supabase
+    const supportsPhantom = await hasPhantomPaddingSupport(supabase);
+    let query = supabase
       .from('qa_temuan')
       .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
       .eq('peserta_id', peserta_id)
-      .eq('period_id', period_id)
-      .order('created_at', { ascending: false });
+      .eq('period_id', period_id);
+    if (supportsPhantom) {
+      query = query.eq('is_phantom_padding', false);
+    }
+    const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
     return data ?? [];
   },
@@ -624,13 +677,22 @@ export const qaServiceServer = {
     }
 
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
+    const temuanPromise = hasPhantomSupport
+      ? supabase
+          .from('qa_temuan')
+          .select('indicator_id, nilai, no_tiket, service_type, created_at, period_id, is_phantom_padding, qa_periods(month, year)')
+          .eq('peserta_id', agentId)
+          .eq('tahun', year)
+          .order('created_at', { ascending: false })
+      : supabase
+          .from('qa_temuan')
+          .select('indicator_id, nilai, no_tiket, service_type, created_at, period_id, qa_periods(month, year)')
+          .eq('peserta_id', agentId)
+          .eq('tahun', year)
+          .order('created_at', { ascending: false });
     const [{ data: temuanRaw, error }, allIndicators, weights] = await Promise.all([
-      supabase
-        .from('qa_temuan')
-        .select('indicator_id, nilai, no_tiket, service_type, created_at, period_id, qa_periods(month, year)')
-        .eq('peserta_id', agentId)
-        .eq('tahun', year)
-        .order('created_at', { ascending: false }),
+      temuanPromise,
       this.getIndicators(),
       this.getServiceWeights(),
     ]);
@@ -644,6 +706,7 @@ export const qaServiceServer = {
       service_type: ServiceType;
       created_at?: string;
       period_id: string;
+      is_phantom_padding?: boolean | null;
       qa_periods?: { month: number; year: number } | Array<{ month: number; year: number }> | null;
     }>).map((item) => ({
       ...item,
@@ -685,7 +748,7 @@ export const qaServiceServer = {
           nonCriticalScore: score.nonCriticalScore,
           criticalScore: score.criticalScore,
           sessionCount: score.sessionCount,
-          findingsCount: items.length,
+          findingsCount: items.filter((item) => !item.is_phantom_padding).length,
         };
       })
       .sort((a, b) => {
@@ -707,10 +770,11 @@ export const qaServiceServer = {
     pageSize: number = 50
   ) {
     const supabase = await createClient();
+    const supportsPhantom = await hasPhantomPaddingSupport(supabase);
     const from = Math.max(page, 0) * pageSize;
     const to = from + pageSize;
 
-    const { data, error, count } = await supabase
+    let query = supabase
       .from('qa_temuan')
       .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)', {
         count: 'exact',
@@ -718,7 +782,11 @@ export const qaServiceServer = {
       .eq('peserta_id', agentId)
       .eq('tahun', year)
       .eq('period_id', periodId)
-      .eq('service_type', serviceType)
+      .eq('service_type', serviceType);
+    if (supportsPhantom) {
+      query = query.eq('is_phantom_padding', false);
+    }
+    const { data, error, count } = await query
       .order('created_at', { ascending: false })
       .range(from, to - 1);
 
@@ -735,6 +803,7 @@ export const qaServiceServer = {
 
   async getAgentWithTemuan(peserta_id: string, year?: number, page?: number) {
     const supabase = await createClient();
+    const supportsPhantom = await hasPhantomPaddingSupport(supabase);
     const { data: agentRaw, error: agentError } = await supabase
       .from('profiler_peserta').select('*').eq('id', peserta_id).single();
     if (agentError) throw agentError;
@@ -749,6 +818,9 @@ export const qaServiceServer = {
       .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
       .eq('peserta_id', peserta_id)
       .order('created_at', { ascending: false });
+    if (supportsPhantom) {
+      query = query.eq('is_phantom_padding', false);
+    }
 
     if (year) {
       query = query.eq('tahun', year);
@@ -841,6 +913,7 @@ export const qaServiceServer = {
 
   async getDashboardSummary(periodId: string, serviceType: string, folderIds: string[] = [], context?: SharedContext, year?: number): Promise<DashboardSummary> {
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     const pIds = await this.resolvePeriodIds(periodId, year);
 
     // 1. Fetch Findings first to determine audited population
@@ -853,6 +926,9 @@ export const qaServiceServer = {
 
     if (folderIds.length > 0) {
       query = query.in('profiler_peserta.batch_name', folderIds);
+    }
+    if (hasPhantomSupport) {
+      query = query.eq('is_phantom_padding', false);
     }
 
     const { data, error } = await query;
@@ -931,6 +1007,7 @@ export const qaServiceServer = {
 
   async getKpiSparkline(periodId: string | undefined | null, metric: 'total' | 'avg' | 'zero_error' | 'compliance', timeframe: '3m' | '6m' | 'all' = '3m', serviceType: string = 'call', folderIds: string[] = [], context?: SharedContext, year?: number): Promise<TrendPoint[]> {
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     // 1. Fetch recent periods
     const limitMap = { '3m': 3, '6m': 6, 'all': 12 };
     const limit = limitMap[timeframe] || 3;
@@ -961,6 +1038,9 @@ export const qaServiceServer = {
 
     if (folderIds.length > 0) {
       temuanQuery = temuanQuery.in('profiler_peserta.batch_name', folderIds);
+    }
+    if (hasPhantomSupport) {
+      temuanQuery = temuanQuery.eq('is_phantom_padding', false);
     }
 
     const { data: temuan, error: tError } = await temuanQuery;
@@ -1030,6 +1110,7 @@ export const qaServiceServer = {
 
   async getTrendWithParameters(periodId: string, serviceType: string, folderIds: string[] = [], timeframe: '3m' | '6m' | 'all' = '3m', context?: SharedContext, year?: number) {
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     const limitMap = { '3m': 3, '6m': 6, 'all': 12 };
     const limit = limitMap[timeframe] || 3;
 
@@ -1053,6 +1134,7 @@ export const qaServiceServer = {
       .eq('service_type', serviceType);
 
     if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
+    if (hasPhantomSupport) query = query.eq('is_phantom_padding', false);
 
     const { data: temuan } = await query;
     if (!temuan) return { labels, datasets: [] };
@@ -1085,6 +1167,7 @@ export const qaServiceServer = {
 
   async getServiceComparison(periodId: string, folderIds: string[] = [], context?: SharedContext): Promise<ServiceComparisonData[]> {
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     const pIds = await this.resolvePeriodIds(periodId);
     // Include ALL temuan records (including nilai=3) as QA findings
     let query = supabase
@@ -1093,6 +1176,7 @@ export const qaServiceServer = {
       .in('period_id', pIds);
 
     if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
+    if (hasPhantomSupport) query = query.eq('is_phantom_padding', false);
 
     const { data, error } = await query;
     if (error || !data) return [];
@@ -1120,12 +1204,19 @@ export const qaServiceServer = {
     const supabase = await createClient();
     const allIndicators = context?.indicators || (await this.getIndicators()) as QAIndicator[];
     const pIds = await this.resolvePeriodIds(periodId);
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
 
-    let query = supabase
-      .from('qa_temuan')
-      .select('nilai, no_tiket, indicator_id, qa_indicators(category), profiler_peserta!inner(id, nama, batch_name, tim, jabatan)')
-      .in('period_id', pIds)
-      .eq('service_type', serviceType);
+    let query = hasPhantomSupport
+      ? supabase
+          .from('qa_temuan')
+          .select('nilai, no_tiket, indicator_id, is_phantom_padding, qa_indicators(category), profiler_peserta!inner(id, nama, batch_name, tim, jabatan)')
+          .in('period_id', pIds)
+          .eq('service_type', serviceType)
+      : supabase
+          .from('qa_temuan')
+          .select('nilai, no_tiket, indicator_id, qa_indicators(category), profiler_peserta!inner(id, nama, batch_name, tim, jabatan)')
+          .in('period_id', pIds)
+          .eq('service_type', serviceType);
 
     if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
 
@@ -1142,7 +1233,12 @@ export const qaServiceServer = {
         agentTemuanMap[p.id] = [];
         agentInfoMap[p.id] = { id: p.id, nama: p.nama, batch_name: p.batch_name, tim: p.tim, jabatan: p.jabatan };
       }
-      agentTemuanMap[p.id].push({ indicator_id: d.indicator_id, nilai: d.nilai, no_tiket: d.no_tiket });
+      agentTemuanMap[p.id].push({
+        indicator_id: d.indicator_id,
+        nilai: d.nilai,
+        no_tiket: d.no_tiket,
+        is_phantom_padding: hasPhantomSupport ? (d as any).is_phantom_padding === true : false,
+      });
     });
 
     const serviceInds = allIndicators.filter(i => i.service_type === serviceType);
@@ -1153,9 +1249,9 @@ export const qaServiceServer = {
       const info = agentInfoMap[id];
       const temuanList = agentTemuanMap[id];
       const result = calculateQAScoreFromTemuan(serviceInds, temuanList, activeWeight);
-      // Count ALL temuan records (including nilai=3) as total findings
-      const defects = temuanList.length;
+      const defects = temuanList.filter((t: any) => !t.is_phantom_padding).length;
       const hasCritical = temuanList.some(t => {
+        if (t.is_phantom_padding) return false;
         const ind = serviceInds.find(i => i.id === t.indicator_id);
         return t.nilai === 0 && ind?.category === 'critical';
       });
@@ -1177,12 +1273,19 @@ export const qaServiceServer = {
     const supabase = await createClient();
     const allIndicators = context?.indicators || (await this.getIndicators()) as QAIndicator[];
     const pIds = await this.resolvePeriodIds(periodId, year);
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
 
-    let query = supabase
-      .from('qa_temuan')
-      .select('nilai, no_tiket, indicator_id, qa_indicators(category), profiler_peserta!inner(id, nama, batch_name, tim, jabatan)')
-      .in('period_id', pIds)
-      .eq('service_type', serviceType);
+    let query = hasPhantomSupport
+      ? supabase
+          .from('qa_temuan')
+          .select('nilai, no_tiket, indicator_id, is_phantom_padding, qa_indicators(category), profiler_peserta!inner(id, nama, batch_name, tim, jabatan)')
+          .in('period_id', pIds)
+          .eq('service_type', serviceType)
+      : supabase
+          .from('qa_temuan')
+          .select('nilai, no_tiket, indicator_id, qa_indicators(category), profiler_peserta!inner(id, nama, batch_name, tim, jabatan)')
+          .in('period_id', pIds)
+          .eq('service_type', serviceType);
 
     if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
 
@@ -1199,7 +1302,12 @@ export const qaServiceServer = {
         agentTemuanMap[p.id] = [];
         agentInfoMap[p.id] = { id: p.id, nama: p.nama, batch_name: p.batch_name, tim: p.tim, jabatan: p.jabatan };
       }
-      agentTemuanMap[p.id].push({ indicator_id: d.indicator_id, nilai: d.nilai, no_tiket: d.no_tiket });
+      agentTemuanMap[p.id].push({
+        indicator_id: d.indicator_id,
+        nilai: d.nilai,
+        no_tiket: d.no_tiket,
+        is_phantom_padding: hasPhantomSupport ? (d as any).is_phantom_padding === true : false,
+      });
     });
 
     const serviceInds = allIndicators.filter(i => i.service_type === serviceType);
@@ -1210,9 +1318,9 @@ export const qaServiceServer = {
       const info = agentInfoMap[id];
       const temuanList = agentTemuanMap[id];
       const result = calculateQAScoreFromTemuan(serviceInds, temuanList, activeWeight);
-      // Count ALL temuan records (including nilai=3) as total findings
-      const defects = temuanList.length;
+      const defects = temuanList.filter((t: any) => !t.is_phantom_padding).length;
       const hasCritical = temuanList.some(t => {
+        if (t.is_phantom_padding) return false;
         const ind = serviceInds.find(i => i.id === t.indicator_id);
         return t.nilai === 0 && ind?.category === 'critical';
       });
@@ -1226,6 +1334,7 @@ export const qaServiceServer = {
 
   async getParetoData(periodId: string, serviceType: string, folderIds: string[] = [], context?: SharedContext): Promise<ParetoData[]> {
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     const pIds = await this.resolvePeriodIds(periodId);
     // Include ALL temuan records (including nilai=3) as QA findings
     let query = supabase
@@ -1236,6 +1345,7 @@ export const qaServiceServer = {
       .order('created_at', { ascending: true });
 
     if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
+    if (hasPhantomSupport) query = query.eq('is_phantom_padding', false);
 
     const { data, error } = await query;
     if (error || !data) return [];
@@ -1979,6 +2089,7 @@ export const qaServiceServer = {
   
   async getPersonalTrendWithParameters(agentId: string, timeframe: '3m' | '6m' | 'all' = '3m', serviceType?: string) {
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     const periodQuery = supabase.from('qa_periods').select('*').order('year', { ascending: false }).order('month', { ascending: false });
     const limitMap = { '3m': 3, '6m': 6, 'all': 12 };
     const { data: periods } = await periodQuery.limit(limitMap[timeframe]);
@@ -1994,6 +2105,7 @@ export const qaServiceServer = {
       .eq('peserta_id', agentId)
       .in('period_id', pIds);
     if (serviceType) temuanQuery = temuanQuery.eq('service_type', serviceType);
+    if (hasPhantomSupport) temuanQuery = temuanQuery.eq('is_phantom_padding', false);
     const { data: temuanRaw } = await temuanQuery;
 
     if (!temuanRaw) return { labels, datasets: [] };
@@ -2395,6 +2507,7 @@ export const qaServiceServer = {
     }>
   > {
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     const allPeriods = context?.periods || (await this.getPeriods());
     const sortedPeriods = allPeriods
       .filter((p) => p.year === year && p.month >= startMonth && p.month <= endMonth)
@@ -2419,6 +2532,7 @@ export const qaServiceServer = {
         .range(from, from + PAGE_SIZE - 1);
 
       if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
+      if (hasPhantomSupport) query = query.eq('is_phantom_padding', false);
 
       const { data, error } = await query;
       if (error) throw error;
@@ -2450,6 +2564,7 @@ export const qaServiceServer = {
     endMonth: number
   ): Promise<Array<{ label: string; score: number; findings: number }>> {
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     const { data: periods } = await supabase
       .from('qa_periods')
       .select('id, month, year')
@@ -2466,13 +2581,17 @@ export const qaServiceServer = {
     let hasMore = true;
 
     while (hasMore) {
-      const { data, error } = await supabase
+      let query = supabase
         .from('qa_temuan')
         .select('indicator_id, nilai, no_tiket, service_type, period_id, created_at')
         .eq('peserta_id', agentId)
         .in('period_id', pIds)
         .order('id', { ascending: true })
         .range(from, from + PAGE - 1);
+      if (hasPhantomSupport) {
+        query = query.eq('is_phantom_padding', false);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       if (!data?.length) hasMore = false;
       else {
@@ -2517,6 +2636,7 @@ export const qaServiceServer = {
    * Helper private method to fetch QA findings with pagination to bypass Supabase 1000-row limit
    */
   async fetchPaginatedTrendData(supabase: any, pIds: string[], year?: number) {
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     let allData: any[] = [];
     let from = 0;
     const step = 1000;
@@ -2532,6 +2652,9 @@ export const qaServiceServer = {
 
       if (year) {
         query = query.eq('tahun', year);
+      }
+      if (hasPhantomSupport) {
+        query = query.eq('is_phantom_padding', false);
       }
 
       const { data, error } = await query;

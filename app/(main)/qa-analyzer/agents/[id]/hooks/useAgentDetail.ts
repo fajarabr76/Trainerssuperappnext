@@ -259,6 +259,11 @@ export function useAgentDetail({
       setCurrentPage(0);
       setHasMore(pageResult.hasMore);
       setLoadedPeriodKey(periodKey);
+    } catch (err) {
+      console.error(`Gagal mengambil data periode ${period.id}:${period.serviceType}`, err);
+      setData((prev) => ({ ...prev, temuan: [] }));
+      setCurrentPage(0);
+      setHasMore(false);
     } finally {
       setLoadingTemuan(false);
     }
