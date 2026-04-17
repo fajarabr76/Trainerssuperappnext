@@ -324,7 +324,12 @@ export async function createTemuanBatchAction(
     .insert(insertData)
     .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)');
   
-  if (error) throw error;
+  if (error) {
+    if (error.code === '23505' && error.message.includes('uq_qa_temuan_single_phantom_batch_per_period')) {
+      throw new Error('Sesi tanpa temuan gagal dibuat karena constraint database lama. Jalankan migration fix index terbaru terlebih dahulu.');
+    }
+    throw error;
+  }
   
   // Log Activity once for the batch
   await supabase.from('activity_logs').insert({
@@ -485,7 +490,12 @@ export async function createPerfectScoreSessionAction(
     .insert(insertData)
     .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)');
   
-  if (error) throw error;
+  if (error) {
+    if (error.code === '23505' && error.message.includes('uq_qa_temuan_single_phantom_batch_per_period')) {
+      throw new Error('Sesi tanpa temuan gagal dibuat karena constraint database lama. Jalankan migration fix index terbaru terlebih dahulu.');
+    }
+    throw error;
+  }
 
   await supabase.from('activity_logs').insert({
     user_id: user.id,
