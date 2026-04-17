@@ -84,8 +84,15 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
   const latestSubject = emails.length > 0 
     ? emails[emails.length - 1].subject 
     : (isLoading ? "Tiket Baru Masuk..." : "No Subject");
-    
   const hasAgentReplied = emails.some(e => e.isAgent);
+  const firstInboundEmail = emails.find((email) => !email.isAgent) ?? emails[0];
+  const sessionEmailInfo = {
+    subject: firstInboundEmail?.subject || latestSubject,
+    sender: firstInboundEmail?.from || 'Belum tersedia',
+    recipient: firstInboundEmail?.to || config.identity.email || 'Belum tersedia',
+    cc: hasAgentReplied ? 'cc.ojk@ojk.go.id' : '-',
+  };
+
   const isEvaluationProcessing = evaluationStatus === 'processing';
   const isEvaluationFailed = evaluationStatus === 'failed';
 
@@ -178,6 +185,28 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
             <div className="module-clean-panel px-4 py-2 rounded-full flex items-center gap-2">
               <Info className="w-3 h-3 text-primary" />
               <span className="text-[10px] text-muted-foreground font-medium">Simulasi email dimulai. Balas dengan format formal dan profesional.</span>
+            </div>
+          </div>
+
+          <div className="module-clean-panel rounded-2xl border border-border/60 p-4 sm:p-5">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-3">Info Sesi Email</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-border/50 bg-background/60 px-3 py-2.5">
+                <div className="text-[9px] font-black uppercase tracking-[0.18em] text-muted-foreground">Subject</div>
+                <div className="mt-1 text-sm font-semibold text-foreground line-clamp-2">{sessionEmailInfo.subject}</div>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-background/60 px-3 py-2.5">
+                <div className="text-[9px] font-black uppercase tracking-[0.18em] text-muted-foreground">Pengirim</div>
+                <div className="mt-1 text-sm font-semibold text-foreground break-all">{sessionEmailInfo.sender}</div>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-background/60 px-3 py-2.5">
+                <div className="text-[9px] font-black uppercase tracking-[0.18em] text-muted-foreground">Tujuan</div>
+                <div className="mt-1 text-sm font-semibold text-foreground break-all">{sessionEmailInfo.recipient}</div>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-background/60 px-3 py-2.5">
+                <div className="text-[9px] font-black uppercase tracking-[0.18em] text-muted-foreground">CC</div>
+                <div className="mt-1 text-sm font-semibold text-foreground break-all">{sessionEmailInfo.cc}</div>
+              </div>
             </div>
           </div>
 
