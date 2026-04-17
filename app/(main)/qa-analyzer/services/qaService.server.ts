@@ -1385,6 +1385,12 @@ export const qaServiceServer = {
   // ── Dashboard Trend RPC ──────────────────────────────────────
   async getServiceTrendDashboard(p_period_ids: string[]) {
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
+
+    if (hasPhantomSupport) {
+      return this.getServiceTrendForDashboard('all');
+    }
+
     const { data, error } = await supabase.rpc('get_service_trend_dashboard', {
       p_period_ids
     });
@@ -1641,6 +1647,22 @@ export const qaServiceServer = {
     endMonth: number
   ) {
     const startedAt = measureStart();
+    const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
+
+    if (hasPhantomSupport) {
+      const fallback = await this.getConsolidatedDashboardDataByRange(
+        serviceType,
+        folderIds,
+        context,
+        year,
+        startMonth,
+        endMonth
+      );
+      logServerMetric('qa.dashboardRangeData.fallback.phantom', startedAt, { serviceType, year, startMonth, endMonth });
+      return fallback;
+    }
+
     const cached = await cachedFetchDashboardRangeData(
       serviceType,
       encodeFolderIds(folderIds),
@@ -1675,6 +1697,22 @@ export const qaServiceServer = {
     endMonth: number
   ) {
     const startedAt = measureStart();
+    const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
+
+    if (hasPhantomSupport) {
+      const fallback = await this.getConsolidatedTrendDataByRange(
+        serviceType,
+        folderIds,
+        context,
+        year,
+        startMonth,
+        endMonth
+      );
+      logServerMetric('qa.dashboardRangeTrend.fallback.phantom', startedAt, { serviceType, year, startMonth, endMonth });
+      return fallback;
+    }
+
     const cached = await cachedFetchDashboardRangeTrend(
       serviceType,
       encodeFolderIds(folderIds),
