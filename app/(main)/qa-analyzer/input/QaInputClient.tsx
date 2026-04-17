@@ -457,14 +457,21 @@ export default function QaInputClient({
     if (selectedAgent && selectedPeriod) {
       setLoading(true);
       try {
-        const { data: found } = await supabase
+        const query = supabase
           .from('qa_temuan')
           .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
           .eq('peserta_id', selectedAgent.id)
           .eq('period_id', selectedPeriod.id)
-          .eq('service_type', newService)
+          .eq('service_type', newService);
+        let { data: found, error } = await query
           .eq('is_phantom_padding', false)
           .order('created_at', { ascending: false });
+        if (error) {
+          const fallback = await query.order('created_at', { ascending: false });
+          found = fallback.data;
+          error = fallback.error;
+        }
+        if (error) throw error;
         setTemuan(found || []);
       } catch (err: any) { 
         setErrorMsg(err.message); 
@@ -478,14 +485,21 @@ export default function QaInputClient({
     if (!selectedAgent) return;
     setSelectedPeriod(period); setLoading(true); setErrorMsg(null);
     try { 
-      const { data: found } = await supabase
+      const query = supabase
         .from('qa_temuan')
         .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
         .eq('peserta_id', selectedAgent.id)
         .eq('period_id', period.id)
-        .eq('service_type', selectedService) // Bug 2 Fix: Only fetch temuan for the relevant service
+        .eq('service_type', selectedService); // Bug 2 Fix: Only fetch temuan for the relevant service
+      let { data: found, error } = await query
         .eq('is_phantom_padding', false)
         .order('created_at', { ascending: false });
+      if (error) {
+        const fallback = await query.order('created_at', { ascending: false });
+        found = fallback.data;
+        error = fallback.error;
+      }
+      if (error) throw error;
       setTemuan(found || []); 
       setStep('list'); 
     }

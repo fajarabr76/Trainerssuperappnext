@@ -43,6 +43,22 @@ function getServiceSupabase() {
   return createJSClient(url, key);
 }
 
+let phantomSupportCache: boolean | null = null;
+
+async function hasPhantomPaddingSupport(
+  client: any
+): Promise<boolean> {
+  if (phantomSupportCache !== null) return phantomSupportCache;
+
+  const { error } = await client
+    .from('qa_temuan')
+    .select('id, is_phantom_padding')
+    .limit(1);
+
+  phantomSupportCache = !error;
+  return phantomSupportCache;
+}
+
 // ── Cached Fetchers (Pure logic, no cookies() inside) ──────────
 
 const cachedFetchIndicators = unstable_cache(
@@ -289,14 +305,23 @@ const cachedFetchAgentPeriodSummaries = unstable_cache(
   async (agentId: string, year: number): Promise<AgentPeriodSummary[] | null> => {
     const serviceSupabase = getServiceSupabase();
     if (!serviceSupabase) return null;
+    const hasPhantomSupport = await hasPhantomPaddingSupport(serviceSupabase);
+    const temuanPromise = hasPhantomSupport
+      ? serviceSupabase
+          .from('qa_temuan')
+          .select('indicator_id, nilai, no_tiket, service_type, created_at, period_id, is_phantom_padding, qa_periods(month, year)')
+          .eq('peserta_id', agentId)
+          .eq('tahun', year)
+          .order('created_at', { ascending: false })
+      : serviceSupabase
+          .from('qa_temuan')
+          .select('indicator_id, nilai, no_tiket, service_type, created_at, period_id, qa_periods(month, year)')
+          .eq('peserta_id', agentId)
+          .eq('tahun', year)
+          .order('created_at', { ascending: false });
 
     const [{ data: temuanRaw, error: temuanError }, indicators, weights] = await Promise.all([
-      serviceSupabase
-        .from('qa_temuan')
-        .select('indicator_id, nilai, no_tiket, service_type, created_at, period_id, is_phantom_padding, qa_periods(month, year)')
-        .eq('peserta_id', agentId)
-        .eq('tahun', year)
-        .order('created_at', { ascending: false }),
+      temuanPromise,
       cachedFetchIndicators(),
       cachedFetchServiceWeights(),
     ]);
@@ -441,13 +466,16 @@ export const qaServiceServer = {
     peserta_id: string, period_id: string
   ): Promise<QATemuan[]> {
     const supabase = await createClient();
-    const { data, error } = await supabase
+    const supportsPhantom = await hasPhantomPaddingSupport(supabase);
+    let query = supabase
       .from('qa_temuan')
       .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
       .eq('peserta_id', peserta_id)
-      .eq('period_id', period_id)
-      .eq('is_phantom_padding', false)
-      .order('created_at', { ascending: false });
+      .eq('period_id', period_id);
+    if (supportsPhantom) {
+      query = query.eq('is_phantom_padding', false);
+    }
+    const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
     return data ?? [];
   },
@@ -626,13 +654,22 @@ export const qaServiceServer = {
     }
 
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
+    const temuanPromise = hasPhantomSupport
+      ? supabase
+          .from('qa_temuan')
+          .select('indicator_id, nilai, no_tiket, service_type, created_at, period_id, is_phantom_padding, qa_periods(month, year)')
+          .eq('peserta_id', agentId)
+          .eq('tahun', year)
+          .order('created_at', { ascending: false })
+      : supabase
+          .from('qa_temuan')
+          .select('indicator_id, nilai, no_tiket, service_type, created_at, period_id, qa_periods(month, year)')
+          .eq('peserta_id', agentId)
+          .eq('tahun', year)
+          .order('created_at', { ascending: false });
     const [{ data: temuanRaw, error }, allIndicators, weights] = await Promise.all([
-      supabase
-        .from('qa_temuan')
-        .select('indicator_id, nilai, no_tiket, service_type, created_at, period_id, is_phantom_padding, qa_periods(month, year)')
-        .eq('peserta_id', agentId)
-        .eq('tahun', year)
-        .order('created_at', { ascending: false }),
+      temuanPromise,
       this.getIndicators(),
       this.getServiceWeights(),
     ]);
@@ -710,10 +747,11 @@ export const qaServiceServer = {
     pageSize: number = 50
   ) {
     const supabase = await createClient();
+    const supportsPhantom = await hasPhantomPaddingSupport(supabase);
     const from = Math.max(page, 0) * pageSize;
     const to = from + pageSize;
 
-    const { data, error, count } = await supabase
+    let query = supabase
       .from('qa_temuan')
       .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)', {
         count: 'exact',
@@ -721,8 +759,11 @@ export const qaServiceServer = {
       .eq('peserta_id', agentId)
       .eq('tahun', year)
       .eq('period_id', periodId)
-      .eq('service_type', serviceType)
-      .eq('is_phantom_padding', false)
+      .eq('service_type', serviceType);
+    if (supportsPhantom) {
+      query = query.eq('is_phantom_padding', false);
+    }
+    const { data, error, count } = await query
       .order('created_at', { ascending: false })
       .range(from, to - 1);
 
@@ -739,6 +780,7 @@ export const qaServiceServer = {
 
   async getAgentWithTemuan(peserta_id: string, year?: number, page?: number) {
     const supabase = await createClient();
+    const supportsPhantom = await hasPhantomPaddingSupport(supabase);
     const { data: agentRaw, error: agentError } = await supabase
       .from('profiler_peserta').select('*').eq('id', peserta_id).single();
     if (agentError) throw agentError;
@@ -752,8 +794,10 @@ export const qaServiceServer = {
       .from('qa_temuan')
       .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
       .eq('peserta_id', peserta_id)
-      .eq('is_phantom_padding', false)
       .order('created_at', { ascending: false });
+    if (supportsPhantom) {
+      query = query.eq('is_phantom_padding', false);
+    }
 
     if (year) {
       query = query.eq('tahun', year);

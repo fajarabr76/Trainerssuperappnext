@@ -33,6 +33,16 @@ function revalidateQaTemuanCaches(agentId?: string) {
   }
 }
 
+async function hasPhantomPaddingSupport(
+  supabase: Awaited<ReturnType<typeof createClient>>
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('qa_temuan')
+    .select('id, is_phantom_padding')
+    .limit(1);
+  return !error;
+}
+
 
 export async function getAgentExportDataAction(agentId: string): Promise<ExportData> {
   const { qaServiceServer } = await import('./services/qaService.server');
@@ -428,6 +438,10 @@ export async function createPerfectScoreSessionAction(
   const allowedMutationRoles = ['trainer', 'trainers', 'admin', 'superadmin'];
   if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
     throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
+  }
+  const supportsPhantom = await hasPhantomPaddingSupport(supabase);
+  if (!supportsPhantom) {
+    throw new Error('Fitur sesi tanpa temuan belum aktif. Jalankan migration database terbaru terlebih dahulu.');
   }
 
   const { count: existingPhantomCount, error: existingErr } = await supabase
