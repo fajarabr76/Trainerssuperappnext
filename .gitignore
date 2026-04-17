@@ -27,3 +27,25 @@ yarn-error.log*
 # TypeScript build cache
 tsconfig.tsbuildinfo
 *.tsbuildinfo
+
+# Redundant Documentation (Consolidated in /docs)
+agent.md
+design.md
+handover.md
+prd.md
+
+# Reference Materials (Non-Runtime)
+reference-old-app/
+SKOR/
+trainers-superapp/
+metadata.json
+
+# Local SQL Scripts
+add_pencatatan_indicators.sql
+add_performance_indexes.sql
+add_profiler_photo_frame_column.sql
+add_qa_rpc_functions.sql
+add_qa_temuan_indexes.sql
+qa_temuan_rls_update.sql
+supabase-profiler-schema.sql
+supabase_rbac_setup.sql

@@ -1,7 +1,0 @@
-{
-  "name": "Trainers SuperApp Next",
-  "description": "Aplikasi terintegrasi untuk pelatihan agen Kontak OJK 157, mencakup simulasi KETIK, PDKT, TELEFUN, dan manajemen data PROFILER.",
-  "requestFramePermissions": [
-    "microphone"
-  ]
-}
