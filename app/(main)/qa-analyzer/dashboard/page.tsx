@@ -34,30 +34,39 @@ export default async function QaDashboardPage({
 
   const folderIds = folder === 'ALL' ? [] : [folder];
 
-  // 1. Fetch Shared Context Data (Pre-load common metadata)
-  const [periods, foldersData, indicators, availableYears] = await Promise.all([
-    qaServiceServer.getPeriods(),
-    profilerServiceServer.getFolders(),
-    qaServiceServer.getIndicators(service),
-    qaServiceServer.getAvailableYears()
-  ]);
+  let periods;
+  let foldersData;
+  let availableYears;
+  let periodData;
+  let trendData;
+  try {
+    const indicatorsResult = await qaServiceServer.getIndicators(service);
 
-  const context = {
-    periods,
-    indicators
-  };
+    // 1. Fetch Shared Context Data (Pre-load common metadata)
+    [periods, foldersData, availableYears] = await Promise.all([
+      qaServiceServer.getPeriods(),
+      profilerServiceServer.getFolders(),
+      qaServiceServer.getAvailableYears()
+    ]);
 
-  // 2. Fetch Dashboard Aggregations using Consolidated Fetchers
-  const [periodData, trendData] = await Promise.all([
-    qaServiceServer.getDashboardRangeData(service, folderIds, context, yearParam, startMonth, endMonth),
-    qaServiceServer.getDashboardRangeTrendData(service, folderIds, context, yearParam, startMonth, endMonth)
-  ]);
+    const context = {
+      periods,
+      indicators: indicatorsResult
+    };
 
-  if (!periodData || !trendData) {
-    // Fallback or empty state
+    // 2. Fetch Dashboard Aggregations using Consolidated Fetchers
+    [periodData, trendData] = await Promise.all([
+      qaServiceServer.getDashboardRangeData(service, folderIds, context, yearParam, startMonth, endMonth),
+      qaServiceServer.getDashboardRangeTrendData(service, folderIds, context, yearParam, startMonth, endMonth)
+    ]);
+  } catch (error) {
+    console.error('Error loading QA dashboard server data:', error);
+  }
+
+  if (!periods || !foldersData || !availableYears || !periodData || !trendData) {
     return (
       <div className="p-8 text-center text-red-500">
-        Gagal memuat data dashboard. Silakan coba lagi atau perkecil filter Anda.
+        Terjadi kendala saat memproses data dashboard. Silakan coba lagi.
       </div>
     );
   }
@@ -67,9 +76,9 @@ export default async function QaDashboardPage({
     availableYears,
     currentYear: yearParam,
     folders: foldersData
-      .map((f: any) => ({ 
-        id: typeof f === 'string' ? f : f.name, 
-        name: typeof f === 'string' ? f : f.name 
+      .map((f: any) => ({
+        id: typeof f === 'string' ? f : f.name,
+        name: typeof f === 'string' ? f : f.name
       }))
       .filter((f: any) => !EXCLUDED_FOLDERS.some(ef => ef.toLowerCase() === f.name.toLowerCase())),
     summary: periodData.summary,
@@ -90,10 +99,10 @@ export default async function QaDashboardPage({
   };
 
   return (
-    <QaDashboardClient 
-      user={user} 
-      role={role} 
-      profile={profile} 
+    <QaDashboardClient
+      user={user}
+      role={role}
+      profile={profile}
       initialData={initialData}
       filters={filters}
     />
