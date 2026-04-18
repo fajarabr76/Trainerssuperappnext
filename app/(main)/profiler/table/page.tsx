@@ -1,9 +1,9 @@
 import React from 'react';
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/app/lib/supabase/server';
 import { profilerServiceServer } from '../services/profilerService.server';
 import ProfilerTableClient from './components/ProfilerTableClient';
+import { requirePageAccess } from '@/app/lib/authz';
 
 export const metadata: Metadata = {
   title: 'Profiler Table | Trainers SuperApp',
@@ -22,27 +22,9 @@ export default async function ProfilerTablePage({
     redirect('/profiler');
   }
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/?auth=login');
-  }
-
-  // Get profile and role
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  const role = profile?.role || 'trainer';
-
-  // Allowed roles for this page (including leader for read-only)
-  const allowedRoles = ['trainer', 'trainers', 'leader', 'admin'];
-  if (!allowedRoles.includes(role)) {
-    redirect('/dashboard');
-  }
+  const { role } = await requirePageAccess({
+    allowedRoles: ['trainer', 'leader', 'admin']
+  });
 
   // Fetch all data in parallel
   const [peserta, folders, years, timList] = await Promise.all([

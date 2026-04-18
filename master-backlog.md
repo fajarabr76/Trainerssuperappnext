@@ -1,82 +1,44 @@
-# Master Backlog Trainers SuperApp
+# Master Backlog - Trainers SuperApp
 
-Last update: 16 April 2026
-Owner default: Product + Engineering
+## A. Design System & Refactoring
 
-## Cara Pakai
-- Gunakan checklist untuk update progres.
-- Ubah status hanya di satu tempat ini agar tracking tetap konsisten.
-- Prioritas: `P0` (kritis), `P1` (tinggi), `P2` (menengah), `P3` (nice to have).
+### A1. Tailwind 4 & Framer Motion Pass (P1)
+- [x] Migrasi ke Tailwind 4 (utility-first approach).
+- [x] Update Framer Motion ke `motion/react`.
+- [x] Unifikasi skema warna per modul (accent-colors).
 
-## A. Selesai
+### A2. Shared Components Pass (P2)
+- [x] `ModuleWorkspaceIntro` (Intro seragam tiap modul).
+- [x] `PageHeroHeader` (Header seragam tiap modul).
+- [x] `ThemeToggle` (Terintegrasi ke Sidebar).
+- [x] `Sidebar` (Unified navigation & theme controller).
+- [x] `IdleWarningModal` (Global idle session management).
+- [x] `AccessDeniedModal` (Global guard interceptor).
 
-### A1. User Management + Access
-- [x] Aksi `approve user` kembali muncul dan berfungsi.
-- [x] Aksi `delete user` kembali muncul dan berfungsi.
-- [x] Aksi `reset password`, `ubah role`, dan `suspend/pending user` direstore di flow baru.
-- [x] Visibilitas management untuk `trainer/admin/superadmin` dibenahi.
-- [x] Akses `admin/superadmin` ke menu management dan monitoring dipulihkan.
+## B. Dashboard & Core Layout
 
-### A2. Auth Flow Konsisten
-- [x] Redirect ke `/?auth=login` disamakan di area yang masih pakai route lama.
-- [x] Flow `waiting-approval` disamakan.
-- [x] Route legacy `/pending` diarahkan ke flow approval baru.
+### B1. Layout Utama (P1)
+- [x] Sidebar baru dengan responsive hamburger.
+- [x] Integrasi `next-themes` (Dark/Light mode).
+- [x] Session Timeout auto-signout (8 jam max).
 
-### A3. Tooling
-- [x] Script `lint:fix` ditambahkan.
-- [x] Script `type-check` ditambahkan.
+### B2. Analitik Dashboard (P1)
+- [x] Hero section ("Halo, [User]").
+- [x] Pintasan modul cerdas berbasis role.
+- [x] Workspace grid navigation.
+- [x] Recharts dashboard summary (Service trend).
+- [x] Activity logs feed panel.
 
-### A4. Profiler (Visual + Slides Baseline)
-- [x] Unifikasi visual `Profiler`: `add`, `import`, `analytics`, `export`, `teams`.
-- [x] Preview eksplorasi `Profiler Slides` (konservatif + polished) tersedia di route lokal.
-- [x] Opsi alternatif export portrait A4 berbasis preview polished sudah diterapkan.
-- [x] Hub Profiler (pilih tahun/tim/batch sebelum masuk folder) sudah ditambahkan.
-- [x] Copywriting utama Profiler sudah mulai dirapikan ke gaya profesional.
+## C. Profiler (KTP Database)
 
-### A5. SIDAK Unifikasi State (Batch 1)
-- [x] Komponen state terpadu dibuat: `app/(main)/qa-analyzer/components/QaStatePanel.tsx`.
-- [x] State `empty/loading/error/success/warning` mulai disamakan di halaman:
-  - [x] `periods`
-  - [x] `settings`
-  - [x] `ranking`
-  - [x] `dashboard` (chart/table utama)
-  - [x] `input`
-  - [x] `reports`
-  - [x] `agents`
-  - [x] `agents/[id]` (sebagian)
+### C1. Hierarki & Folder Baru (P1)
+- [x] Sidebar `profiler_years` (Navigasi tahun).
+- [x] Subfolder list `profiler_folders` (Navigasi batch/group).
+- [x] CRUD Folder (Add/Edit/Delete).
+- [x] Pengecekan duplikasi batch name yang ketat.
 
-## B. Sedang Jalan
-
-### B1. Dashboard & IA
-- [x] Review penuh prioritas dashboard per role (`agent/leader/trainer/admin/superadmin`). (Standardisasi Admin & Trainer)
-- [x] Validasi ulang quick actions agar benar-benar role-driven. (Unifikasi pintasan produktivitas)
-
-### B2. Profiler Visual Consistency
-- [x] Final pass konsistensi style lintas seluruh submodule Profiler.
-- [x] Audit spacing/card density desktop vs mobile di halaman padat.
-
-### B3. SIDAK Visual Consistency
-- [x] Rapikan hierarchy card/panel agar tidak ada sisa nuansa old app.
-- [x] Samakan tone copywriting semua empty/loading/error state.
-
-## C. Belum Selesai - Prioritas Tinggi
-
-### C1. Profiler Table (P0)
-- [x] Ratakan ke visual system terbaru.
-- [x] Rapikan toolbar, filter, bulk action, modal edit.
-- [x] Rapikan empty/loading/error state.
-- [x] Final check responsive density desktop/mobile.
-
-### C2. Profiler Slides Export Mode (P0)
-- [x] Finalisasi pilihan export:
-  - [x] `Original`
-  - [x] `Opsi 2 (Portrait A4)` berbasis konsep polished
-- [x] Pastikan preview aktif merepresentasikan hasil export.
-- [x] Pastikan output download benar-benar sesuai mode aktif.
-
-### C3. Crop/Zoom Foto Peserta (P0)
-- [x] Crop/zoom in/zoom out saat upload/edit dari table.
-- [x] Persist metadata framing.
+### C2. Photo & Metadata Crop (P1)
+- [x] Integrasi metadata crop (`x`, `y`, `zoom`) ke database.
 - [x] Framing dipakai konsisten untuk table + slide + export.
 - [x] Uji fallback data lama tanpa metadata crop secara menyeluruh.
 
@@ -100,28 +62,27 @@ Owner default: Product + Engineering
 
 ## E. Regression & Functional QA
 
-### E1. Regression Utama (P0)
-- [ ] Audit management lain pasca redesign.
-- [ ] Verifikasi penuh `Telefun` maintenance tidak memblokir area lain.
-- [ ] Pastikan back navigation/dashboard links menjaga flow lama.
+### E1. Navigation & Telefun Regression (P1)
+- [x] Perbaiki logic back navigation agar deterministik. (Ganti `router.back()` dengan explicit redirect di Profiler Download)
+- [x] Sinkronkan modal Telefun Maintenance agar terpusat di `MainLayoutClient`.
+- [x] Hapus ownership ganda modal maintenance di `TelefunPage`.
 
-### E2. Auth Regression (P0)
-- [ ] Login
-- [ ] Register
-- [ ] Forgot password
-- [ ] Reset password
-- [ ] Pending
-- [ ] Waiting approval
+### E2. Auth & Approval Flow (P1)
+- [x] Implementasi helper `requirePageAccess` di `app/lib/authz.ts`.
+- [x] Sinkronkan landing page untuk membaca query `message=rejected|deleted`.
+- [x] Hubungkan `AuthModal` dengan `initialNotice` dari landing page.
+- [x] Perbaiki `/waiting-approval` agar menangani status `rejected`/`deleted` terminal.
+- [x] Jadikan `/pending` alias redirect ke `/waiting-approval`.
 
-### E3. Security Access Guard (P0)
-- [ ] Review ulang seluruh flow approval user.
-- [x] Audit route sensitif + role guard. (Pembersihan string redundan & normalisasi role)
-- [x] Validasi ketat bahwa `agent` tidak melihat route/aksi terlarang. (Standardisasi proteksi Admin/Trainer)
+### E3. Security Access Guard (P1)
+- [x] Audit route sensitif + role guard terpusat di Server Components.
+- [x] Validasi ketat bahwa `agent` tidak melihat route/aksi terlarang.
+- [x] Sinkronisasi status terminal (`rejected`, `deleted`) langsung ke UI login.
 
 ## F. Technical Debt
 
 ### F1. Lint & Type Hygiene (P1)
-- [x] Turunkan warning lint global. (Semua warning tersisa di SessionTimeoutContext, profiler/actions, dan qa-analyzer/actions sudah bersih 100%)
+- [x] Turunkan warning lint global. (Semua warning tersisa bersih 100%)
 - [x] Bersihkan `unused imports`.
 - [x] Bersihkan `unused vars`.
 - [x] Bersihkan `missing exhaustive-deps`.
@@ -129,28 +90,27 @@ Owner default: Product + Engineering
 
 ### F2. Type Safety (P1)
 - [x] Kurangi `any` di area prioritas:
-  - [x] auth/layout & SessionTimeoutContext (Ditambahkan User type dari Supabase)
+  - [x] auth/layout & SessionTimeoutContext (User type Supabase)
   - [x] dashboard/monitoring/users/settings (MonitoringClient, SettingsClient, API pdkt/evaluate)
   - [x] shared services (gemini.ts - bersih dari any)
-  - [x] module config/shared UI (QaSettingsClient, QaPeriodsClient, QaDashboardClient, ParamTrendChart, AgentDirectoryClient, Sidebar, TelefunPage)
-  - [x] QA Server Actions (qa-analyzer/actions.ts - map indicators typed)
+  - [x] module config/shared UI (QaSettingsClient, QaDashboardClient, Sidebar, TelefunPage)
+- [x] Normalkan role ke singular form (`agent`, `leader`, `trainer`, `admin`).
 
 ### F3. Code Health (P2)
-- [ ] Audit hook/effect rapuh.
+- [x] Audit hook/effect rapuh. (Hapus `useAuth` lama, migrasi ke server-side `requirePageAccess`)
 - [x] Rapikan dynamic import/interoperability di export/reporting. (Ditambahkan dynamic import untuk ProfilerExportClient, ReportMakerClient, QaInputClient, ProfilerImportClient)
-- [ ] Audit dead code/shared abstraction yang belum terpakai.
+- [x] Audit dead code/shared abstraction yang belum terpakai. (Hapus `useAuth.ts`)
 
 ## G. Performance & Asset
 
 ### G1. SIDAK Performance (P1)
 - [ ] Audit `<img>` ke `next/image` di SIDAK agent pages.
 - [ ] Review asset/background glow agar mobile tidak berat.
-- [ ] Review page berat:
-  - [x] `/qa-analyzer/input` (Sekarang menggunakan dynamic import)
-  - [x] `/qa-analyzer/reports` (Sekarang menggunakan dynamic import)
-  - [x] `/profiler/import` (Sekarang menggunakan dynamic import)
-  - [x] `/profiler/export` (Sekarang menggunakan dynamic import)
-- [ ] Tambahkan split/lazy load pada komponen berat yang relevan.
+- [x] Review page berat (Sudah menggunakan dynamic import):
+  - [x] `/qa-analyzer/input`
+  - [x] `/qa-analyzer/reports`
+  - [x] `/profiler/import`
+  - [x] `/profiler/export`
 - [ ] Tambahkan split/lazy load pada komponen berat yang relevan.
 
 ## H. Responsive & Visual QA
@@ -172,23 +132,3 @@ Owner default: Product + Engineering
 - [ ] Samakan konfigurasi model ke versi terbaru yang sudah ada di GitHub.
 - [ ] Uji fallback/error handling jika provider timeout/rate-limit.
 - [ ] Verifikasi output skor konsisten dengan rubrik existing.
-
-## J. Urutan Eksekusi Rekomendasi
-
-1. Profiler Table final pass.
-2. Finalisasi mode export Profiler (`Original` + `Opsi 2 Portrait A4`).
-3. QA fallback data lama untuk metadata crop foto.
-4. SIDAK responsive + dark mode full pass.
-5. Regression/auth/access QA menyeluruh.
-6. PDKT Gemini 3.1 Flash Lite fix + verifikasi.
-7. Warning cleanup dan technical debt besar.
-
-## K. Catatan UX Writing / Content Design
-
-- Hindari copy yang terdengar seperti catatan internal percakapan.
-- Gunakan gaya profesional, ringkas, dan berorientasi aksi.
-- Hindari frasa ambigu seperti “sekarang memudahkan trainer untuk ...”.
-- Gunakan pola kalimat:
-  - Konteks singkat
-  - Aksi utama
-  - Dampak/hasil yang jelas

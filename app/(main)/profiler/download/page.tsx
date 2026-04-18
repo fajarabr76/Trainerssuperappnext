@@ -13,7 +13,7 @@ function DownloadPesertaContent() {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center gap-3">
-          <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full text-[#5A5A40] transition-colors">
+          <button onClick={() => router.push('/profiler')} className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full text-[#5A5A40] transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">Download Data</h1>

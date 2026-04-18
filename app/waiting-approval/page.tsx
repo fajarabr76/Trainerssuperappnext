@@ -21,11 +21,30 @@ export default function WaitingApprovalPage() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        router.push('/?auth=login');
+        return;
+      }
 
-      const { data: profile } = await supabase.from('profiles').select('status').eq('id', user.id).single();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('status, is_deleted')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      if (profile?.is_deleted) {
+        await supabase.auth.signOut();
+        router.push('/?auth=login&message=deleted');
+        router.refresh();
+        return;
+      }
+
       if (profile?.status === 'approved') {
         router.push('/dashboard');
+        router.refresh();
+      } else if (profile?.status === 'rejected') {
+        await supabase.auth.signOut();
+        router.push('/?auth=login&message=rejected');
         router.refresh();
       }
     };

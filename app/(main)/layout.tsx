@@ -1,18 +1,13 @@
 import React from 'react';
 import MainLayoutClient from './MainLayoutClient';
-import { redirect } from 'next/navigation';
-import { getCurrentUserContext } from '@/app/lib/authz';
+import { requirePageAccess } from '@/app/lib/authz';
 
 export default async function MainLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const { user, role, profile } = await getCurrentUserContext();
-
-  if (!user) {
-    redirect('/?auth=login');
-  }
+  const { user, role, profile } = await requirePageAccess();
 
   return (
     <MainLayoutClient user={user} role={role} profile={profile}>

@@ -1,27 +1,10 @@
-import { createClient } from '@/app/lib/supabase/server';
-import { redirect } from 'next/navigation';
 import UsersClient from './UsersClient';
+import { requirePageAccess } from '@/app/lib/authz';
 
 export default async function UsersPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    redirect('/?auth=login');
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-
-  const role = profile?.role?.toLowerCase() || '';
-  const allowedRoles = ['admin', 'trainer', 'trainers'];
-  
-  if (!allowedRoles.includes(role)) {
-    redirect('/dashboard');
-  }
+  const { user, profile, role } = await requirePageAccess({
+    allowedRoles: ['admin', 'trainer']
+  });
 
   return <UsersClient user={user} role={role} profile={profile} />;
 }

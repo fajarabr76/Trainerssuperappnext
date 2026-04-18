@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type FormEvent } from 'react';
-import { CheckCircle, KeyRound, Loader2 } from 'lucide-react';
+import { CheckCircle, KeyRound, Loader2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/app/lib/supabase/client';
 import AuthPageFrame from '@/app/components/AuthPageFrame';
@@ -15,6 +15,7 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
+  const [sessionError, setSessionReadyError] = useState(false);
 
   useEffect(() => {
     const {
@@ -22,8 +23,16 @@ export default function ResetPasswordPage() {
     } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') setSessionReady(true);
     });
-    return () => subscription.unsubscribe();
-  }, [supabase]);
+
+    const timeout = setTimeout(() => {
+      if (!sessionReady) setSessionReadyError(true);
+    }, 5000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
+  }, [supabase, sessionReady]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -57,7 +66,18 @@ export default function ResetPasswordPage() {
       description="Gunakan halaman ini untuk membuat password baru lalu kembali ke dashboard terpadu Anda."
     >
       <div className="rounded-[1.6rem] border border-border/50 bg-background/70 p-6">
-        {!sessionReady ? (
+        {sessionError ? (
+          <div className="py-8 text-center">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 text-red-600">
+              <X className="h-8 w-8" />
+            </div>
+            <h2 className="text-2xl font-semibold tracking-tight">Tautan tidak valid</h2>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">Tautan pemulihan mungkin sudah kedaluwarsa atau tidak valid.</p>
+            <button onClick={() => router.push('/?auth=login')} className="auth-submit mt-6">
+              Kembali ke Login
+            </button>
+          </div>
+        ) : !sessionReady ? (
           <div className="py-12 text-center">
             <Loader2 className="mx-auto mb-5 h-10 w-10 animate-spin text-primary" />
             <h2 className="text-2xl font-semibold tracking-tight">Memvalidasi tautan reset</h2>

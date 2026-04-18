@@ -54,7 +54,7 @@ The project uses `npm` for package management.
 *   **UI/UX:** Adhere to existing design guidelines (refer to `docs/design-guidelines.md`). Use Tailwind CSS and existing UI components.
 *   **Documentation:** Consult the `docs/` directory for detailed architecture (`architecture.md`), module specifications (`modules.md`), RBAC (`auth-rbac.md`), and database schema (`database.md`).
 *   **Dependency Management:** Do not add new dependencies without explicit instruction. The project relies heavily on the existing ecosystem (Supabase, Tailwind, Recharts).
-*   **State Management:** Be cautious with `useEffect` dependency arrays (`exhaustive-deps`). Ensure updates don't cause infinite loops, especially in core contexts like `SessionTimeoutContext` or `useAuth`.
+*   **State Management:** Be cautious with `useEffect` dependency arrays (`exhaustive-deps`). Ensure updates don't cause infinite loops, especially in core contexts like `SessionTimeoutContext`.
 
 ## 📂 Key Directories
 *   `app/`: Next.js App Router root.

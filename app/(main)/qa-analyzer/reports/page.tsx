@@ -1,9 +1,8 @@
-import { createClient } from '@/app/lib/supabase/server';
-import { redirect } from 'next/navigation';
 import nextDynamic from 'next/dynamic';
 import { getReportAiModelOptions } from './lib/report-models';
 import { qaServiceServer } from '../services/qaService.server';
 import { EXCLUDED_FOLDERS } from '../lib/qa-types';
+import { requirePageAccess } from '@/app/lib/authz';
 
 const ReportMakerClient = nextDynamic(() => import('./ReportMakerClient'), {
   loading: () => (
@@ -20,28 +19,15 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
 export default async function ReportMakerPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/?auth=login');
-  }
-
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-
-  const role = profile?.role || 'trainer';
-  const allowedRoles = ['trainer', 'trainers', 'admin'];
-  if (!allowedRoles.includes(role)) {
-    redirect('/dashboard');
-  }
+  const { role } = await requirePageAccess({
+    allowedRoles: ['trainer', 'admin']
+  });
 
   const models = getReportAiModelOptions();
 
-  const [agentsRaw, folderRows, availableYears] = await Promise.all([
+  const [agentsRaw, foldersData, availableYears] = await Promise.all([
     qaServiceServer.getAgentListWithScores(),
-    supabase.from('profiler_folders').select('name').order('created_at', { ascending: true }),
+    qaServiceServer.getFolders(),
     qaServiceServer.getAvailableYears(),
   ]);
 
@@ -51,8 +37,8 @@ export default async function ReportMakerPage() {
     batch_name: a.batch_name,
   }));
 
-  const folders = (folderRows.data ?? [])
-    .map((f) => ({ id: f.name, name: f.name }))
+  const folders = (foldersData ?? [])
+    .map((f) => ({ id: f, name: f }))
     .filter((f) => !EXCLUDED_FOLDERS.some((ef) => ef.toLowerCase() === f.name.toLowerCase()));
 
   const years =

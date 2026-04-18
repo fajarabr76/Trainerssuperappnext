@@ -9,6 +9,7 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialMode?: 'login' | 'register' | 'forgot';
+  initialNotice?: { type: 'error' | 'info'; text: string };
 }
 
 const AUTH_COPY = {
@@ -29,10 +30,10 @@ const AUTH_COPY = {
   },
 } as const;
 
-export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalProps) {
+export default function AuthModal({ isOpen, onClose, initialMode = 'login', initialNotice }: AuthModalProps) {
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>(initialMode);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialNotice?.type === 'error' ? initialNotice.text : null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(initialNotice?.type === 'info' ? initialNotice.text : null);
   const [loading, setLoading] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
   const supabase = createClient();
@@ -40,12 +41,12 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   useEffect(() => {
     if (isOpen) {
       setMode(initialMode);
-      setError(null);
-      setSuccessMessage(null);
+      setError(initialNotice?.type === 'error' ? initialNotice.text : null);
+      setSuccessMessage(initialNotice?.type === 'info' ? initialNotice.text : null);
       setLoading(false);
       setForgotLoading(false);
     }
-  }, [initialMode, isOpen]);
+  }, [initialMode, isOpen, initialNotice]);
 
   const handleClose = () => {
     setError(null);

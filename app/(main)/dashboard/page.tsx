@@ -1,17 +1,13 @@
-import { redirect } from 'next/navigation';
 import DashboardClient from './DashboardClient';
 import { qaServiceServer } from '../qa-analyzer/services/qaService.server';
 import { activityServiceServer } from '@/app/lib/services/activityService.server';
 import { normalizeActionText } from '@/app/lib/utils';
-import { getCurrentUserContext } from '@/app/lib/authz';
+import { requirePageAccess } from '@/app/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  const { user, profile, role } = await getCurrentUserContext();
-  if (!user) {
-    redirect('/?auth=login');
-  }
+  const { user, profile, role } = await requirePageAccess();
 
   // 1. Fetch base data
   const periods = await qaServiceServer.getPeriods();

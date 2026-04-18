@@ -89,7 +89,7 @@ export const APP_MODULES: AppModuleConfig[] = [
       { title: 'Analisis Individu', href: '/qa-analyzer/agents' },
       { title: 'Ranking Agen', href: '/qa-analyzer/ranking' },
       { title: 'Laporan', href: '/qa-analyzer/reports', allowedRoles: ['trainer', 'admin'] },
-      { title: 'Input Temuan', href: '/qa-analyzer/input', allowedRoles: ['agent', 'trainer', 'admin'] },
+      { title: 'Input Temuan', href: '/qa-analyzer/input', allowedRoles: ['trainer', 'admin'] },
       { title: 'Periode QA', href: '/qa-analyzer/periods', allowedRoles: ['trainer', 'admin'] },
       { title: 'Parameter QA', href: '/qa-analyzer/settings', allowedRoles: ['trainer', 'admin'] },
     ],
@@ -128,5 +128,9 @@ export function normalizeRoleLabel(role?: string | null) {
 export function isRoleAllowed(role: string | undefined | null, allowedRoles?: string[]) {
   if (!allowedRoles || allowedRoles.length === 0) return true;
   const normalizedRole = role?.toLowerCase().trim();
-  return allowedRoles.includes(normalizedRole || '');
+  
+  // Normalize role to singular form
+  const finalRole = normalizedRole === 'trainers' ? 'trainer' : normalizedRole === 'agents' ? 'agent' : normalizedRole;
+  
+  return allowedRoles.includes(finalRole || '');
 }

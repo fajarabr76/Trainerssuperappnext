@@ -12,44 +12,33 @@ import { ThemeToggle } from './components/ThemeToggle';
 import { createClient } from '@/app/lib/supabase/client';
 import { APP_MODULES } from '@/app/lib/app-config';
 
-function AuthTrigger({ onOpen }: { onOpen: (mode: 'login' | 'register' | 'forgot') => void }) {
+function AuthContent() {
   const searchParams = useSearchParams();
-
-  useEffect(() => {
-    const authParam = searchParams.get('auth');
-    if (authParam === 'login' || authParam === 'register' || authParam === 'forgot') {
-      onOpen(authParam);
-    }
-  }, [onOpen, searchParams]);
-
-  return null;
-}
-
-const pageVariants = {
-  hidden: { opacity: 0, y: 10 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.6, staggerChildren: 0.08 },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.45 } },
-};
-
-export default function LandingPage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const router = useRouter();
-  const productModules = useMemo(
-    () => APP_MODULES.filter((module) => ['ketik', 'pdkt', 'telefun', 'profiler', 'qa-analyzer'].includes(module.id)),
-    []
-  );
+
+  const initialNotice = useMemo(() => {
+    const msg = searchParams.get('message');
+    if (msg === 'rejected') {
+      return { type: 'error' as const, text: 'Akun Anda belum disetujui untuk mengakses sistem.' };
+    }
+    if (msg === 'deleted') {
+      return { type: 'error' as const, text: 'Akun Anda telah dinonaktifkan.' };
+    }
+    return undefined;
+  }, [searchParams]);
+
+  useEffect(() => {
+    const authParam = searchParams.get('auth');
+    if (authParam === 'login' || authParam === 'register' || authParam === 'forgot') {
+      setAuthMode(authParam);
+      setShowAuthModal(true);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -68,21 +57,17 @@ export default function LandingPage() {
     setShowAuthModal(false);
     const url = new URL(window.location.href);
     url.searchParams.delete('auth');
+    url.searchParams.delete('message');
     router.replace(url.pathname, { scroll: false });
   }, [router]);
 
-  return (
-    <main className="relative min-h-screen bg-background text-foreground transition-colors duration-500">
-      {/* Background Effects */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-full max-w-[800px] h-[500px] bg-primary/10 blur-[120px] opacity-60 dark:bg-primary/5" />
-        <div 
-          className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" 
-          style={{ backgroundImage: 'radial-gradient(circle at 1.5px 1.5px, currentColor 1.5px, transparent 0)', backgroundSize: '48px 48px' }} 
-        />
-      </div>
+  const productModules = useMemo(
+    () => APP_MODULES.filter((module) => ['ketik', 'pdkt', 'telefun', 'profiler', 'qa-analyzer'].includes(module.id)),
+    []
+  );
 
-      <div className="relative z-10 flex flex-col min-h-screen">
+  return (
+    <div className="relative z-10 flex flex-col min-h-screen">
         {/* Navbar */}
         <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
           <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
@@ -120,26 +105,26 @@ export default function LandingPage() {
         {/* Hero Section */}
         <section className="relative px-6 pt-24 pb-16 lg:px-8 lg:pt-32">
           <motion.div 
-            variants={pageVariants} 
-            initial="hidden" 
-            animate="show"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
             className="mx-auto max-w-7xl text-center"
           >
-            <motion.div variants={itemVariants} className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-5 py-1.5 text-[10px] font-bold uppercase tracking-widest text-primary">
+            <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-5 py-1.5 text-[10px] font-bold uppercase tracking-widest text-primary">
               <Shield className="h-3.5 w-3.5" />
               Platform Trainer · Workspace internal
-            </motion.div>
+            </div>
             
-            <motion.h1 variants={itemVariants} className="font-display text-5xl font-extrabold tracking-tight text-foreground sm:text-7xl mb-8 max-w-4xl mx-auto leading-[1.05]">
+            <h1 className="font-display text-5xl font-extrabold tracking-tight text-foreground sm:text-7xl mb-8 max-w-4xl mx-auto leading-[1.05]">
               Satu platform untuk seluruh kebutuhan tim trainer.
-            </motion.h1>
+            </h1>
             
-            <motion.p variants={itemVariants} className="mx-auto max-w-2xl text-lg leading-8 text-muted-foreground mb-10">
+            <p className="mx-auto max-w-2xl text-lg leading-8 text-muted-foreground mb-10">
               Trainers SuperApp menyatukan semua kebutuhan operasional Anda—mulai dari simulasi chat, email, telepon, profiling, hingga analitik QA. 
               Satu ruang kerja yang terpusat agar tim bisa bekerja lebih produktif dan efisien.
-            </motion.p>
+            </p>
             
-            <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               {isCheckingAuth ? (
                 <div className="inline-flex h-12 min-w-44 items-center justify-center gap-2 rounded-full bg-primary px-8 text-sm font-semibold text-primary-foreground opacity-70">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -170,7 +155,7 @@ export default function LandingPage() {
                   </button>
                 </>
               )}
-            </motion.div>
+            </div>
           </motion.div>
         </section>
 
@@ -321,17 +306,43 @@ export default function LandingPage() {
             </div>
           </div>
         </footer>
+
+        <AnimatePresence>
+          {showAuthModal && (
+            <AuthModal 
+              isOpen={showAuthModal} 
+              onClose={handleCloseAuth} 
+              initialMode={authMode} 
+              initialNotice={initialNotice}
+            />
+          )}
+        </AnimatePresence>
+    </div>
+  );
+}
+
+export default function LandingPage() {
+  return (
+    <main className="relative min-h-screen bg-background text-foreground transition-colors duration-500">
+      {/* Background Effects */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-full max-w-[800px] h-[500px] bg-primary/10 blur-[120px] opacity-60 dark:bg-primary/5" />
+        <div 
+          className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" 
+          style={{ backgroundImage: 'radial-gradient(circle at 1.5px 1.5px, currentColor 1.5px, transparent 0)', backgroundSize: '48px 48px' }} 
+        />
       </div>
 
-      <Suspense fallback={null}>
-        <AuthTrigger onOpen={handleOpenAuth} />
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+            <p className="text-sm font-medium text-muted-foreground">Menyiapkan platform...</p>
+          </div>
+        </div>
+      }>
+        <AuthContent />
       </Suspense>
-
-      <AnimatePresence>
-        {showAuthModal && (
-          <AuthModal isOpen={showAuthModal} onClose={handleCloseAuth} initialMode={authMode} />
-        )}
-      </AnimatePresence>
     </main>
   );
 }

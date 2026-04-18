@@ -1,33 +1,14 @@
-import { createClient } from '@/app/lib/supabase/server';
-import { redirect } from 'next/navigation';
 import QaSettingsClient from './QaSettingsClient';
 import { qaServiceServer } from '../services/qaService.server';
 import { getAllServiceWeightsAction } from '../actions';
+import { requirePageAccess } from '@/app/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
 export default async function QaSettingsPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/?auth=login');
-  }
-
-  // Get profile and role
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  const role = profile?.role || 'trainer';
-
-  // Allowed roles
-  const allowedRoles = ['trainer', 'trainers', 'admin'];
-  if (!allowedRoles.includes(role)) {
-    redirect('/qa-analyzer/dashboard');
-  }
+  const { user, role } = await requirePageAccess({
+    allowedRoles: ['trainer', 'admin']
+  });
 
   // Fetch initial data - all indicators and weights
   const [indicators, weights] = await Promise.all([

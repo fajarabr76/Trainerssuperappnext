@@ -1,10 +1,9 @@
-import { createClient } from '@/app/lib/supabase/server';
-import { redirect } from 'next/navigation';
 import nextDynamic from 'next/dynamic';
 import { qaServiceServer } from '../services/qaService.server';
 import { getAllServiceWeightsAction } from '../actions';
 import { ServiceType, QAPeriod, EXCLUDED_FOLDERS, Agent } from '../lib/qa-types';
 import { Profile } from '@/app/types/auth';
+import { requirePageAccess } from '@/app/lib/authz';
 
 const QaInputClient = nextDynamic(() => import('./QaInputClient'), {
   loading: () => (
@@ -24,24 +23,9 @@ interface PageProps {
 }
 
 export default async function QaInputPage({ searchParams }: PageProps) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/?auth=login');
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, email, role, status, is_deleted, full_name, avatar_url, created_at, updated_at')
-    .eq('id', user.id)
-    .single();
-
-  const role = profile?.role || 'trainer';
-  const allowedRoles = ['trainer', 'trainers', 'admin'];
-  if (!allowedRoles.includes(role)) {
-    redirect('/dashboard');
-  }
+  const { user, profile, role } = await requirePageAccess({
+    allowedRoles: ['trainer', 'admin']
+  });
 
   // Raw resolution of search params
   const sParams = await searchParams;

@@ -21,24 +21,23 @@ Untuk menjaga keamanan internal, pendaftaran user baru melalui proses approval:
 2. **Pending State**: Akun baru secara default memiliki status `pending`.
 3. **Approval Page**: User `pending` akan otomatis di-redirect ke halaman "Waiting for Approval" saat mencoba masuk.
 4. **Approval**: Admin atau Trainer menyetujui akun melalui menu "Kelola Pengguna" di Dashboard.
-5. **Active Access**: Setelah disetujui (`status: 'active'`), user baru dapat mengakses dashboard dan modul sesuai role yang ditetapkan.
+5. **Approved Access**: Setelah disetujui (`status: 'approved'`), user baru dapat mengakses dashboard dan modul sesuai role yang ditetapkan.
 
 ## Implementasi Teknis
 
-### 1. Unified Auth Hook
-Sistem menggunakan hook kustom atau helper server-side untuk mengecek identitas:
-- `app/lib/authz.ts`: Berisi fungsi `getCurrentUserContext` dan `normalizeRole` untuk memastikan role selalu konsisten (menangani variasi string seperti 'trainer' vs 'trainers').
+### 1. Unified Auth Guard
+Sistem menggunakan helper server-side terpadu untuk menjaga akses route:
+- `app/lib/authz.ts`: Berisi fungsi `requirePageAccess` yang menjadi kontrak tunggal untuk guard halaman server. Helper ini menangani redirect otomatis untuk tamu, user pending, akun ditolak/dihapus, dan ketidakcocokan role.
 - `middleware.ts`: Melakukan pengecekan sesi aktif di tingkat edge/network sebelum request mencapai server/page.
 
 ### 2. Guard Logic
 Setiap halaman atau aksi sensitif dilindungi dengan pengecekan role:
 
 ```tsx
-// Contoh Server Component Guard
-const { role } = await getCurrentUserContext();
-if (!['admin', 'trainer'].includes(role)) {
-  redirect('/dashboard');
-}
+// Contoh Server Component Guard Terstandar
+const { role } = await requirePageAccess({
+  allowedRoles: ['admin', 'trainer']
+});
 ```
 
 ### 3. Database Security (RLS)

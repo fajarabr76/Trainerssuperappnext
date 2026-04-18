@@ -1,11 +1,8 @@
-import { createClient } from '@/app/lib/supabase/server';
-import { redirect } from 'next/navigation';
 import RankingAgenClient from './RankingAgenClient';
 import { qaServiceServer } from '../services/qaService.server';
-import { profilerServiceServer } from '../../profiler/services/profilerService.server';
 import { getRankingAgenAction } from '../actions';
 import { SERVICE_LABELS, ServiceType, EXCLUDED_FOLDERS } from '../lib/qa-types';
-import { ProfilerFolder } from '../../profiler/lib/profiler-types';
+import { requirePageAccess } from '@/app/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,37 +11,21 @@ export default async function RankingAgenPage({
 }: {
   searchParams?: { service?: string; year?: string };
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/?auth=login');
-  }
-
-  // Get user role for consistency with existing module guards
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  const role = profile?.role || '';
-  const allowedRoles = ['trainer', 'trainers', 'leader', 'admin'];
-  if (!allowedRoles.includes(role)) {
-    redirect('/dashboard');
-  }
+  const { role } = await requirePageAccess({
+    allowedRoles: ['trainer', 'leader', 'admin']
+  });
 
   // Master Data
   const [periods, foldersData, availableYears] = await Promise.all([
     qaServiceServer.getPeriods(),
-    profilerServiceServer.getFolders(),
+    qaServiceServer.getFolders(),
     qaServiceServer.getAvailableYears()
   ]);
 
   const folders = foldersData
-    .map((f: ProfilerFolder) => ({
-      id: f.name,
-      name: f.name
+    .map((f: string) => ({
+      id: f,
+      name: f
     }))
     .filter((f) => !EXCLUDED_FOLDERS.some(ef => ef.toLowerCase() === f.name.toLowerCase()));
 

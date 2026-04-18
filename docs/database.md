@@ -21,8 +21,8 @@ erDiagram
 Menyimpan data profil user yang terintegrasi dengan `auth.users`.
 - `id` (UUID, Primary Key): ID user dari Supabase Auth.
 - `email` (Text): Email user.
-- `role` (Text): Role user (`Admin`, `Trainer`, `Leader`, `Agent`).
-- `status` (Text): Status akun (`pending`, `active`, `rejected`).
+- `role` (Text): Role user (`admin`, `trainer`, `leader`, `agent`).
+- `status` (Text): Status akun (`pending`, `approved`, `rejected`).
 - `full_name` (Text): Nama lengkap user.
 
 ### 2. `public.results`

@@ -1,9 +1,9 @@
-import { redirect } from 'next/navigation';
 import QaDashboardClient from './QaDashboardClient';
 import { qaServiceServer } from '../services/qaService.server';
 import { profilerServiceServer } from '../../profiler/services/profilerService.server';
 import { EXCLUDED_FOLDERS } from '../lib/qa-types';
-import { getCurrentUserContext, hasRole } from '@/app/lib/authz';
+import { ProfilerFolder } from '../../profiler/lib/profiler-types';
+import { requirePageAccess } from '@/app/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,16 +13,9 @@ export default async function QaDashboardPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const resolvedParams = await searchParams;
-  const { user, profile, role } = await getCurrentUserContext();
-
-  if (!user) {
-    redirect('/?auth=login');
-  }
-
-  // Allowed roles - consistent with Level 1 Summary for all personas (EXCLUDING agent now)
-  if (!hasRole(role, ['trainer', 'leader', 'admin'])) {
-    redirect('/dashboard');
-  }
+  const { user, profile, role } = await requirePageAccess({
+    allowedRoles: ['trainer', 'leader', 'admin']
+  });
 
   // Parse filters from resolvedParams
   const folder = typeof resolvedParams.folder === 'string' ? resolvedParams.folder : 'ALL';
@@ -76,9 +69,9 @@ export default async function QaDashboardPage({
     availableYears,
     currentYear: yearParam,
     folders: foldersData
-      .map((f: string) => ({
-        id: f,
-        name: f
+      .map((f: ProfilerFolder) => ({
+        id: f.name,
+        name: f.name
       }))
       .filter((f) => !EXCLUDED_FOLDERS.some(ef => ef.toLowerCase() === f.name.toLowerCase())),
     summary: periodData.summary,

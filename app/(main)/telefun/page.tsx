@@ -9,7 +9,6 @@ import { AppSettings, Scenario } from './types';
 import { Settings, PhoneCall, History, Play } from 'lucide-react';
 import { loadTelefunSettings, saveTelefunSettings, defaultTelefunSettings } from './services/settingService';
 import { createClient } from '@/app/lib/supabase/client';
-import { MaintenanceModal } from './components/MaintenanceModal';
 import ModuleWorkspaceIntro from '@/app/components/ModuleWorkspaceIntro';
 
 interface CallRecord {
@@ -27,7 +26,6 @@ export default function TelefunPage() {
   const [settings, setSettings] = useState<AppSettings>(defaultTelefunSettings);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [isMaintenanceOpen] = useState(true);
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -232,11 +230,6 @@ export default function TelefunPage() {
         onDeleteSession={handleDeleteSession}
         onClearHistory={handleClearHistory}
       />
-      
-      <MaintenanceModal 
-        isOpen={isMaintenanceOpen}
-      />
-
     </div>
   );
 }
