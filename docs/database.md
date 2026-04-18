@@ -20,10 +20,14 @@ erDiagram
 ### 1. `public.profiles`
 Menyimpan data profil user yang terintegrasi dengan `auth.users`.
 - `id` (UUID, Primary Key): ID user dari Supabase Auth.
-- `email` (Text): Email user.
+- `email` (Text, Unique): Email user.
+- `full_name` (Text): Nama lengkap user.
 - `role` (Text): Role user (`admin`, `trainer`, `leader`, `agent`).
 - `status` (Text): Status akun (`pending`, `approved`, `rejected`).
-- `full_name` (Text): Nama lengkap user.
+- `created_at` (Timestamptz): Timestamp pendaftaran akun.
+- `is_deleted` (Boolean): Flag untuk soft delete akun.
+
+**Penting:** Tabel ini **TIDAK** memiliki kolom `avatar_url` atau `updated_at`. Seluruh kueri ke tabel ini wajib menggunakan konstanta `PROFILE_FIELDS` dari `app/lib/authz.ts` untuk mencegah *query failure* akibat kolom yang tidak ada.
 
 ### 2. `public.results`
 Menyimpan hasil simulasi dari modul Ketik, PDKT, dan Telefun.

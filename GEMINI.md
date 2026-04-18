@@ -83,3 +83,11 @@ The project uses `npm` for package management.
 1. **Lazy Loading:** Gunakan `next/dynamic` untuk komponen berat (chart, modal besar) dan `import()` dinamis untuk library spreadsheet (XLSX, ExcelJS).
 2. **Asset Optimization:** Gunakan `next/image` dan hindari efek blur/shadow berlebihan (>60px) pada viewport mobile.
 3. **Bundle Awareness:** Minimalisir First Load JS; pastikan komponen capture hanya di-mount saat dibutuhkan (on-demand).
+
+### Auth-Guard-Sentinel
+**Role:** Security & Auth Architect.
+**Trigger:** Perubahan pada `app/lib/authz.ts`, `middleware.ts`, atau kueri ke tabel `profiles`.
+**Instructions:**
+1. **Strict Select:** Selalu gunakan `PROFILE_FIELDS` dari `app/lib/authz.ts` saat melakukan kueri `select` ke tabel `profiles`. Jangan menambahkan kolom manual tanpa memverifikasi skema database.
+2. **Explicit Recovery:** Pastikan setiap kegagalan pembacaan profil (`profile is null` atau `error`) memicu `signOut()` dan redirect ke `/?auth=login&message=profile-unavailable`.
+3. **Type Sync:** Jaga sinkronisasi antara interface `Profile` di `app/types/auth.ts` dengan skema database asli. Jangan biarkan field "asumsi" (seperti `avatar_url`) masuk ke tipe data utama.

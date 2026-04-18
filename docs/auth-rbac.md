@@ -40,15 +40,10 @@ const { role } = await requirePageAccess({
 });
 ```
 
-### 3. Database Security (RLS)
-Keamanan data sesungguhnya berada di tingkat database menggunakan Supabase Row Level Security (RLS). Contoh kebijakan:
-- `profiles`: User hanya bisa melihat profil sendiri, tapi Trainer/Admin bisa melihat semua profil.
-- `results`: Peserta hanya bisa melihat hasil simulasinya sendiri.
-- `profiler_peserta`: Hanya role 'Trainer', 'Leader', dan 'Admin' yang bisa melakukan operasi CRUD.
+### 4. Strict Profile Requirement (No-Profile-No-Entry)
+Untuk mencegah degradasi role secara diam-diam (fallback ke role kosong/"User"), sistem menerapkan kebijakan ketat:
+- **PROFILE_FIELDS**: Seluruh kueri ke tabel `profiles` wajib menggunakan konstanta `PROFILE_FIELDS` dari `app/lib/authz.ts`. **DILARANG** menambahkan kolom baru ke dalam kueri `select` tanpa memverifikasi keberadaannya di skema database asli.
+- **Explicit Recovery**: Jika user terautentikasi tetapi profilnya tidak terbaca (karena drift skema atau data korup), sistem akan langsung melakukan `signOut()` dan me-redirect user ke landing page dengan pesan `profile-unavailable`. Hal ini mencegah user terjebak dalam sesi "setengah login" yang tidak memiliki hak akses.
 
-## Menu & Komponen Berbasis Role
-
-Aplikasi secara dinamis menyembunyikan atau menampilkan elemen UI berdasarkan role:
-- **Management Panel**: Menu Monitoring, Kelola Pengguna, dan Activity Logs tersedia untuk Admin dan Trainer.
-- **Dashboard Shortcuts**: Admin dan Trainer mendapatkan pintasan produktivitas yang sama (Input, Analisis, Ranking) untuk efisiensi operasional.
-- **Action Buttons**: Aksi destruktif seperti "Hapus Pengguna" dibatasi khusus untuk role `admin`, sementara penghapusan "Activity Logs" dapat dilakukan oleh Admin dan Trainer.
+### 5. Role Normalization
+Aplikasi menormalkan role (misalnya dari `trainers` menjadi `trainer`) menggunakan fungsi `normalizeRole()` di `authz.ts`. Seluruh perbandingan role di tingkat aplikasi harus melalui fungsi ini untuk memastikan konsistensi.
