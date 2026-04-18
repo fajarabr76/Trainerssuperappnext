@@ -55,7 +55,7 @@
 - [x] Final pass komponen minor yang belum tersentuh di masing-masing halaman.
 
 ### D2. Responsive + Dark Mode QA (P1)
-- [ ] Audit responsive halaman kompleks:
+- [x] Audit responsive halaman kompleks:
   - [x] `/qa-analyzer/input`
   - [x] `/qa-analyzer/reports`
 - [x] Audit dark mode halaman SIDAK yang belum disentuh detail.
