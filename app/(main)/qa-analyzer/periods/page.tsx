@@ -1,20 +1,13 @@
-import { getCurrentUserWithRole, hasRole } from '@/app/lib/authz';
-import { redirect } from 'next/navigation';
 import QaPeriodsClient from './QaPeriodsClient';
 import { qaServiceServer } from '../services/qaService.server';
+import { requirePageAccess } from '@/app/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
 export default async function QaPeriodsPage() {
-  const { user, role } = await getCurrentUserWithRole();
-
-  if (!user) {
-    redirect('/?auth=login');
-  }
-
-  if (!hasRole(role, ['trainer', 'admin'])) {
-    redirect('/qa-analyzer/dashboard');
-  }
+  const { user, role } = await requirePageAccess({
+    allowedRoles: ['trainer', 'admin']
+  });
 
   // Fetch initial data
   const periods = await qaServiceServer.getPeriods();

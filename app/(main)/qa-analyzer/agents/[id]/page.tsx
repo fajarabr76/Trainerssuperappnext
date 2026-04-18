@@ -1,33 +1,26 @@
 import { createClient } from '@/app/lib/supabase/server';
-import { redirect, notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import QaAgentDetailClient from './QaAgentDetailClient';
 import { qaServiceServer } from '../../services/qaService.server';
 import { TIM_TO_DEFAULT_SERVICE } from '../../lib/qa-types';
-import { getCurrentUserContext, hasRole } from '@/app/lib/authz';
+import { requirePageAccess } from '@/app/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
 export default async function QaAgentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: agentId } = await params;
-  const { user, profile: _profile, role } = await getCurrentUserContext();
+  const { user, role } = await requirePageAccess({
+    allowedRoles: ['trainer', 'leader', 'agent', 'admin']
+  });
 
-  if (!user) {
-    redirect('/?auth=login');
-  }
-
-  // Allowed roles - Agent is now allowed but will be filtered below
-  if (!hasRole(role, ['trainer', 'leader', 'agent', 'admin'])) {
-    redirect('/dashboard');
-  }
-
-  // STSRICT FILTERING FOR AGENT ROLE
-  if (role.toLowerCase() === 'agent') {
+  // STRICT FILTERING FOR AGENT ROLE
+  if (role === 'agent') {
     const supabase = await createClient();
     // Find the peserta record associated with this user's email
     const { data: ownPeserta } = await supabase
       .from('profiler_peserta')
       .select('id')
-      .eq('email_ojk', user.email)
+      .eq('email_ojk', user?.email)
       .single();
     
     // If agent is not registered as a peserta OR trying to access someone else's ID

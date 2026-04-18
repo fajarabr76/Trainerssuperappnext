@@ -1,17 +1,11 @@
-import { getCurrentUserWithRole, hasRole } from '@/app/lib/authz';
-import { redirect } from 'next/navigation';
 import ActivitiesClient from './ActivitiesClient';
 import { activityServiceServer } from '@/app/lib/services/activityService.server';
+import { requirePageAccess } from '@/app/lib/authz';
 
 export default async function ActivitiesPage() {
-  const { user, profile, role } = await getCurrentUserWithRole();
-  if (!user) {
-    redirect('/?auth=login');
-  }
-
-  if (!hasRole(role, ['trainer', 'admin'])) {
-    redirect('/dashboard');
-  }
+  const { user, profile, role } = await requirePageAccess({
+    allowedRoles: ['trainer', 'admin']
+  });
 
   const initialLogs = await activityServiceServer.getRecentActivities(500);
 

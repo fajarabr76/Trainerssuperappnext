@@ -75,14 +75,15 @@
 - [x] Jadikan `/pending` alias redirect ke `/waiting-approval`.
 
 ### E3. Security Access Guard (P1)
-- [x] Audit route sensitif + role guard terpusat di Server Components.
+- [x] Audit route sensitif + role guard terpusat di Server Components. (100% migrasi ke `requirePageAccess`)
 - [x] Validasi ketat bahwa `agent` tidak melihat route/aksi terlarang.
 - [x] Sinkronisasi status terminal (`rejected`, `deleted`) langsung ke UI login.
+- [x] Laporan verifikasi QA tersedia di `docs/QA_VERIFICATION_E_F.md`.
 
 ## F. Technical Debt
 
 ### F1. Lint & Type Hygiene (P1)
-- [x] Turunkan warning lint global. (Semua warning tersisa bersih 100%)
+- [x] Turunkan warning lint global. (Semua warning tersisa bersih 100% - verified with npm run lint)
 - [x] Bersihkan `unused imports`.
 - [x] Bersihkan `unused vars`.
 - [x] Bersihkan `missing exhaustive-deps`.
@@ -93,11 +94,11 @@
   - [x] auth/layout & SessionTimeoutContext (User type Supabase)
   - [x] dashboard/monitoring/users/settings (MonitoringClient, SettingsClient, API pdkt/evaluate)
   - [x] shared services (gemini.ts - bersih dari any)
-  - [x] module config/shared UI (QaSettingsClient, QaDashboardClient, Sidebar, TelefunPage)
+  - [x] module config/shared UI (QaSettingsClient, QaDashboardClient, Sidebar, TelefunPage, KetikClient, PdktClient)
 - [x] Normalkan role ke singular form (`agent`, `leader`, `trainer`, `admin`).
 
 ### F3. Code Health (P2)
-- [x] Audit hook/effect rapuh. (Hapus `useAuth` lama, migrasi ke server-side `requirePageAccess`)
+- [x] Audit hook/effect rapuh. (Hapus `useAuth` lama, migrasi ke server-side `requirePageAccess` di 100% route (main))
 - [x] Rapikan dynamic import/interoperability di export/reporting. (Ditambahkan dynamic import untuk ProfilerExportClient, ReportMakerClient, QaInputClient, ProfilerImportClient)
 - [x] Audit dead code/shared abstraction yang belum terpakai. (Hapus `useAuth.ts`)
 

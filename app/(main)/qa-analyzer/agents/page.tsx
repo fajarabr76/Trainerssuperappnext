@@ -1,22 +1,15 @@
 import { createClient } from '@/app/lib/supabase/server';
-import { getCurrentUserWithRole, hasRole } from '@/app/lib/authz';
-import { redirect } from 'next/navigation';
 import AgentDirectoryClient from './components/AgentDirectoryClient';
 import { qaServiceServer } from '../services/qaService.server';
 import { EXCLUDED_FOLDERS } from '../lib/qa-types';
+import { requirePageAccess } from '@/app/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AgentDirectoryPage() {
-  const { user, role } = await getCurrentUserWithRole();
-
-  if (!user) {
-    redirect('/?auth=login');
-  }
-
-  if (!hasRole(role, ['trainer', 'leader', 'admin'])) {
-    redirect('/dashboard');
-  }
+  const { user, role } = await requirePageAccess({
+    allowedRoles: ['trainer', 'leader', 'admin']
+  });
 
   let agents;
   let folderData;
