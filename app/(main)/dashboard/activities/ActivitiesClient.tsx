@@ -6,14 +6,16 @@ import { ActivityLog } from "@/app/lib/services/activityService";
 import { normalizeModuleName, normalizeActionText } from "@/app/lib/utils";
 import { deleteActivityAction } from "./actions";
 import PageHeroHeader from "@/app/components/PageHeroHeader";
+import { User } from "@supabase/supabase-js";
+import { Profile } from "@/app/types/auth";
 
 export default function ActivitiesClient({
   role,
   initialLogs,
 }: {
-  user: any,
+  user: User | null,
   role: string,
-  profile: any,
+  profile: Profile | null,
   initialLogs: ActivityLog[],
 }) {
   const [logs, setLogs] = useState<ActivityLog[]>(initialLogs);
@@ -27,7 +29,7 @@ export default function ActivitiesClient({
     try {
       await deleteActivityAction(id);
       setLogs(logs.filter(l => l.id !== id));
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
       alert('Gagal menghapus log');
     }

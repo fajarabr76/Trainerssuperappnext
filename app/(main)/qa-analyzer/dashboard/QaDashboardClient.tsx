@@ -6,7 +6,7 @@ import { Loader2, AlertTriangle, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import Link from 'next/link';
 
-import { DashboardData } from '../lib/qa-types';
+import { DashboardData, TrendDataset } from '../lib/qa-types';
 
 import DashboardFilters from './components/DashboardFilters';
 import KpiCard from './components/KpiCard';
@@ -16,10 +16,13 @@ import ParetoChart from './components/ParetoChart';
 import FatalDonutChart from './components/FatalDonutChart';
 import ParamTrendChart, { TREND_COLORS } from './components/ParamTrendChart';
 
+import { User } from '@supabase/supabase-js';
+import { Profile } from '@/app/types/auth';
+
 interface QaDashboardClientProps {
-  user: any;
+  user: User | null;
   role: string;
-  profile: any;
+  profile: Profile | null;
   initialData: DashboardData;
   filters: {
     startMonth: number;
@@ -69,8 +72,8 @@ export default function QaDashboardClient({
     setDisplayData(initialData);
     
     const newLabels = initialData.paramTrend?.datasets
-      .filter((ds: any) => !ds.isTotal && ds.label)
-      .map((ds: any) => ds.label as string) || [];
+      .filter((ds: TrendDataset) => !ds.isTotal && ds.label)
+      .map((ds: TrendDataset) => ds.label as string) || [];
     setHiddenParams(new Set(newLabels));
   }, [initialData, initialFilters]);
 
@@ -114,11 +117,11 @@ export default function QaDashboardClient({
   };
 
   const hasVisibleParam = displayData.paramTrend?.datasets
-    .filter((ds: any) => !ds.isTotal && ds.label)
-    .some((ds: any) => !hiddenParams.has(ds.label)) ?? false;
+    .filter((ds: TrendDataset) => !ds.isTotal && ds.label)
+    .some((ds: TrendDataset) => !hiddenParams.has(ds.label)) ?? false;
 
   const isTrendEmpty = !displayData.paramTrend || displayData.paramTrend.labels.length === 0 || 
-    (displayData.paramTrend.datasets.filter((ds: any) => !ds.isTotal).every((ds: any) => ds.data.every((v: number) => v === 0)));
+    (displayData.paramTrend.datasets.filter((ds: TrendDataset) => !ds.isTotal).every((ds: TrendDataset) => ds.data.every((v: number) => v === 0)));
 
   return (
     <>

@@ -121,18 +121,18 @@ Owner default: Product + Engineering
 ## F. Technical Debt
 
 ### F1. Lint & Type Hygiene (P1)
-- [ ] Turunkan warning lint global.
-- [ ] Bersihkan `unused imports`.
-- [ ] Bersihkan `unused vars`.
-- [ ] Bersihkan `missing exhaustive-deps`.
-- [ ] Bersihkan `unused expressions`.
+- [x] Turunkan warning lint global.
+- [x] Bersihkan `unused imports`.
+- [x] Bersihkan `unused vars`.
+- [x] Bersihkan `missing exhaustive-deps` (sisa 4 intentional).
+- [x] Bersihkan `unused expressions`.
 
 ### F2. Type Safety (P1)
-- [ ] Kurangi `any` di area prioritas:
-  - [ ] auth/layout
-  - [ ] dashboard/monitoring/users/settings
-  - [ ] shared services
-  - [ ] module config/shared UI
+- [x] Kurangi `any` di area prioritas:
+  - [x] auth/layout
+  - [x] dashboard/monitoring/users/settings
+  - [x] shared services
+  - [x] module config/shared UI
 
 ### F3. Code Health (P2)
 - [ ] Audit hook/effect rapuh.

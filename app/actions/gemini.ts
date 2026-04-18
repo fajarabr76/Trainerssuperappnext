@@ -1,27 +1,34 @@
 'use server';
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Content, Schema, SpeechConfig } from "@google/genai";
+
+export interface GeminiResponse {
+  success: boolean;
+  text?: string;
+  audioData?: string;
+  error?: string;
+}
 
 export async function generateGeminiContent(options: {
   model?: string;
   systemInstruction?: string;
-  contents: any[];
+  contents: Content[];
   responseMimeType?: string;
-  responseSchema?: any;
+  responseSchema?: Schema;
   temperature?: number;
   responseModalities?: string[];
-  speechConfig?: any;
-}) {
+  speechConfig?: SpeechConfig;
+}): Promise<GeminiResponse> {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY is not set in environment variables");
     }
     const ai = new GoogleGenAI({ apiKey });
-    const model = options.model || "gemini-1.5-flash";
+    const modelName = options.model || "gemini-1.5-flash";
 
     const buildRequest = (withSystemInstruction: boolean) => ({
-      model,
+      model: modelName,
       contents: withSystemInstruction
         ? options.contents
         : injectSystemInstructionIntoContents(options.contents, options.systemInstruction),
@@ -48,7 +55,7 @@ export async function generateGeminiContent(options: {
       }
 
       console.warn(
-        `[Gemini Action] Model "${model}" does not support developer instruction. Retrying without systemInstruction.`
+        `[Gemini Action] Model "${modelName}" does not support developer instruction. Retrying without systemInstruction.`
       );
       response = await ai.models.generateContent(buildRequest(false));
     }
@@ -77,7 +84,7 @@ export async function generateGeminiContent(options: {
   }
 }
 
-function injectSystemInstructionIntoContents(contents: any[], systemInstruction?: string) {
+function injectSystemInstructionIntoContents(contents: Content[], systemInstruction?: string): Content[] {
   if (!systemInstruction) return contents;
 
   const instructionText = `[System Instruction]\n${systemInstruction}\n\n[User Request]\n`;

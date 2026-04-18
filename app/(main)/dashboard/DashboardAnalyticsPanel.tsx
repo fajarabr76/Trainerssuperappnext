@@ -29,17 +29,19 @@ import { MonthRangePicker } from '@/app/components/ui/MonthRangePicker';
 import { getDashboardTrendByRangeAction } from './actions';
 import { deleteActivityAction } from './activities/actions';
 
+interface TrendData {
+  labels: string[];
+  totalData: number[];
+  serviceData: Record<string, number[]>;
+  activeServices: string[];
+  serviceSummary: Record<string, { totalDefects: number; auditedAgents: number }>;
+  totalSummary: { totalDefects: number; auditedAgents: number; activeServiceCount: number };
+  topParameters?: Record<string, { name: string; count: number }>;
+}
+
 interface DashboardAnalyticsPanelProps {
   role: string;
-  serviceTrendMap: Record<'3m' | '6m' | 'all', {
-    labels: string[];
-    totalData: number[];
-    serviceData: Record<string, number[]>;
-    activeServices: string[];
-    serviceSummary: Record<string, { totalDefects: number; auditedAgents: number }>;
-    totalSummary: { totalDefects: number; auditedAgents: number; activeServiceCount: number };
-    topParameters?: Record<string, { name: string; count: number }>;
-  }>;
+  serviceTrendMap: Record<'3m' | '6m' | 'all', TrendData>;
   initialRecentLogs: Array<{ id: string | number; user: string; action: string; time: string; type: string }>;
   availableYears: number[];
   initialYear: number;
@@ -83,7 +85,7 @@ export default function DashboardAnalyticsPanel({
   const [trendStartMonth, setTrendStartMonth] = useState<number | null>(null);
   const [trendEndMonth, setTrendEndMonth] = useState<number | null>(null);
   const [trendLoading, setTrendLoading] = useState(false);
-  const [localTrendData, setLocalTrendData] = useState<any>(null);
+  const [localTrendData, setLocalTrendData] = useState<TrendData | null>(null);
   const [selectedService, setSelectedService] = useState<string>('all');
 
   const handleYearChange = async (year: number) => {
@@ -94,8 +96,8 @@ export default function DashboardAnalyticsPanel({
     setTrendLoading(true);
     try {
       const newData = await getDashboardTrendByRangeAction(year, 1, 12);
-      setLocalTrendData(newData);
-    } catch (err) {
+      setLocalTrendData(newData as TrendData);
+    } catch (err: unknown) {
       console.error('Failed to fetch dashboard trend for year:', err);
     } finally {
       setTrendLoading(false);
@@ -119,8 +121,8 @@ export default function DashboardAnalyticsPanel({
       setTrendLoading(true);
       try {
         const newData = await getDashboardTrendByRangeAction(selectedYear, targetStart, targetEnd);
-        setLocalTrendData(newData);
-      } catch (err) {
+        setLocalTrendData(newData as TrendData);
+      } catch (err: unknown) {
         console.error('Failed to fetch dashboard trend by range:', err);
       } finally {
         setTrendLoading(false);
@@ -452,7 +454,7 @@ export default function DashboardAnalyticsPanel({
                           try {
                             await deleteActivityAction(log.id.toString());
                             router.refresh();
-                          } catch (err) {
+                          } catch (err: unknown) {
                             console.error(err);
                             alert('Gagal menghapus log');
                           }

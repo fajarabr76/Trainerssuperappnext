@@ -4,6 +4,7 @@ import React from 'react';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart
 } from 'recharts';
+import { TrendDataset } from '../../lib/qa-types';
 
 export const TREND_COLORS = [
   '#A855F7', // Purple
@@ -85,7 +86,7 @@ export default function ParamTrendChart({
             }}
           />
           
-          {showParameters && data.datasets.map((ds: any, i: number) => {
+          {showParameters && data.datasets.map((ds: TrendDataset, i: number) => {
             if (ds.isTotal) return null;
             if (isFiltered && ds.label !== filterLabel) return null;
             if (!isFiltered && hiddenKeys.has(ds.label)) return null;

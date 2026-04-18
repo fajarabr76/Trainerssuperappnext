@@ -1,5 +1,11 @@
 'use server';
 
+export interface OpenRouterResponse {
+  success: boolean;
+  text?: string;
+  error?: string;
+}
+
 /**
  * Server Action to call OpenRouter API.
  * Designed to mirror the structure of generateGeminiContent for easy routing.
@@ -10,7 +16,7 @@ export async function generateOpenRouterContent(options: {
   contents: { role: string; parts: { text: string }[] }[];
   temperature?: number;
   responseMimeType?: string;
-}) {
+}): Promise<OpenRouterResponse> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   const modelId = options.model || 'z-ai/glm-4.5-air:free';
 
@@ -20,7 +26,7 @@ export async function generateOpenRouterContent(options: {
 
   try {
     // Map Gemini-style contents to OpenAI-style messages
-    const messages: any[] = [];
+    const messages: { role: string; content: string }[] = [];
 
     // Add system instruction if present
     let systemMsg = options.systemInstruction || "";

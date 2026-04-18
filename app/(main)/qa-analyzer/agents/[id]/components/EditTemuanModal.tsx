@@ -3,7 +3,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Loader2 } from 'lucide-react';
-import { QATemuan, EditFormState } from '../../../lib/qa-types';
+import { QATemuan, EditFormState, unwrapIndicator } from '../../../lib/qa-types';
 
 interface EditTemuanModalProps {
   isOpen: boolean;
@@ -46,7 +46,7 @@ export function EditTemuanModal({
             <div className="px-8 py-6 border-b border-border/50 flex items-center justify-between bg-foreground/[0.02]">
               <div>
                 <h3 className="text-xl font-black tracking-tight">Edit Temuan</h3>
-                <p className="text-xs text-foreground/50 mt-1 font-medium">{editingTemuan.qa_indicators?.name}</p>
+                <p className="text-xs text-foreground/50 mt-1 font-medium">{unwrapIndicator(editingTemuan.qa_indicators)?.name}</p>
               </div>
               <button 
                 onClick={() => !isSubmitting && onClose()} 

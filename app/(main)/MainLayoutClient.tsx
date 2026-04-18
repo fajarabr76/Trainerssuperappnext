@@ -10,6 +10,8 @@ import { MaintenanceModal } from '@/app/(main)/telefun/components/MaintenanceMod
 import { AccessDeniedModal } from '@/app/components/AccessDeniedModal';
 
 import { usePathname, useRouter } from 'next/navigation';
+import { User } from '@supabase/supabase-js';
+import { Profile } from '@/app/types/auth';
 
 function MainLayoutContent({ 
   user, 
@@ -17,9 +19,9 @@ function MainLayoutContent({
   profile: _profile,
   children 
 }: { 
-  user: any, 
+  user: User | null, 
   role: string, 
-  profile?: any,
+  profile?: Profile | null,
   children: React.ReactNode 
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -84,7 +86,14 @@ function MainLayoutContent({
   );
 }
 
-export default function MainLayoutClient(props: any) {
+interface MainLayoutClientProps {
+  user: User | null;
+  role: string;
+  profile?: Profile | null;
+  children: React.ReactNode;
+}
+
+export default function MainLayoutClient(props: MainLayoutClientProps) {
   return (
     <AccessDeniedProvider>
       <TelefunWarningProvider>

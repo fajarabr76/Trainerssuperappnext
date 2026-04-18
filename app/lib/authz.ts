@@ -1,5 +1,7 @@
 import { cache } from 'react';
 import { createClient } from '@/app/lib/supabase/server';
+import { User } from '@supabase/supabase-js';
+import { Profile } from '@/app/types/auth';
 
 export type AppRole =
   | 'agent'
@@ -19,8 +21,8 @@ export function normalizeRole(role?: string | null): AppRole {
 }
 
 export interface CurrentUserContext {
-  user: any | null;
-  profile: { role?: string | null; status?: string | null; full_name?: string | null } | null;
+  user: User | null;
+  profile: Profile | null;
   role: AppRole;
 }
 
@@ -36,13 +38,13 @@ export const getCurrentUserContext = cache(async (): Promise<CurrentUserContext>
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, status, full_name')
+    .select('id, email, role, status, is_deleted, full_name, avatar_url, created_at, updated_at')
     .eq('id', user.id)
     .single();
 
   return {
     user,
-    profile,
+    profile: profile as Profile,
     role: normalizeRole(profile?.role),
   };
 });

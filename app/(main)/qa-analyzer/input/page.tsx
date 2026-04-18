@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation';
 import QaInputClient from './QaInputClient';
 import { qaServiceServer } from '../services/qaService.server';
 import { getAllServiceWeightsAction } from '../actions';
-import { ServiceType, QAPeriod, EXCLUDED_FOLDERS } from '../lib/qa-types';
+import { ServiceType, QAPeriod, EXCLUDED_FOLDERS, Agent } from '../lib/qa-types';
+import { Profile } from '@/app/types/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,7 @@ export default async function QaInputPage({ searchParams }: PageProps) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, full_name')
+    .select('id, email, role, status, is_deleted, full_name, avatar_url, created_at, updated_at')
     .eq('id', user.id)
     .single();
 
@@ -51,7 +52,7 @@ export default async function QaInputPage({ searchParams }: PageProps) {
   const initialPeriods = allPeriods;
 
   // Selective pre-fetching based on params
-  let initialAgents: any[] = [];
+  let initialAgents: Agent[] = [];
   let initialAgent = null;
   let initialIndicators = [];
   let initialTemuan = [];
@@ -102,7 +103,7 @@ export default async function QaInputPage({ searchParams }: PageProps) {
     <QaInputClient 
       user={user} 
       role={role} 
-      profile={profile}
+      profile={profile as Profile}
       initialFolders={initialFolders}
       initialPeriods={initialPeriods}
       initialWeights={allWeights}

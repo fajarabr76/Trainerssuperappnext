@@ -2,6 +2,7 @@
 
 import { BarChart2, ShieldCheck, Edit2, Trash2, Loader2, ChevronRight, AlertCircle } from 'lucide-react';
 import type { QATemuan } from '../../../lib/qa-types';
+import { unwrapIndicator } from '../../../lib/qa-types';
 
 interface AgentTemuanTabProps {
   groupedTemuan: { urutan: number; no_tiket: string | null; items: QATemuan[] }[];
@@ -101,7 +102,8 @@ export default function AgentTemuanTab({
 
               <div className="divide-y divide-border/20 bg-card/10">
                 {group.items.map((t: QATemuan) => {
-                  const isCritical = t.qa_indicators?.category === 'critical';
+                  const indicator = unwrapIndicator(t.qa_indicators);
+                  const isCritical = indicator?.category === 'critical';
                   const isDeficit = t.nilai < 3;
                   const hasRekomendasi = !!t.sebaiknya && t.sebaiknya.trim().length > 0;
                   
@@ -120,7 +122,7 @@ export default function AgentTemuanTab({
                                 Nama Parameter
                               </span>
                             </div>
-                            <h4 className="text-lg sm:text-xl font-black tracking-tight text-foreground leading-tight">{t.qa_indicators?.name}</h4>
+                            <h4 className="text-lg sm:text-xl font-black tracking-tight text-foreground leading-tight">{indicator?.name}</h4>
                           </div>
                           
                           {role !== 'leader' && (

@@ -3,10 +3,12 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { createClient } from '@/app/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { User } from '@supabase/supabase-js';
+import { Profile, AuthState } from '@/app/types/auth';
 
-export function useAuth(requireRole?: string[]) {
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
+export function useAuth(requireRole?: string[]): AuthState {
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -48,7 +50,7 @@ export function useAuth(requireRole?: string[]) {
 
       const userRole = profile?.role || '';
       setUser(user);
-      setProfile(profile);
+      setProfile(profile as Profile);
       setRole(userRole);
       
       if (requireRoleRef.current && !requireRoleRef.current.map(r => r.toLowerCase()).includes(userRole.toLowerCase())) {

@@ -20,12 +20,13 @@ import {
   getPesertaByBatch
 } from '../actions';
 import { Loader2 } from 'lucide-react';
+import { Peserta } from '../lib/profiler-types';
 
 interface ProfilerLandingClientProps {
   initialYears: ProfilerYear[];
   initialFolders: ProfilerFolder[];
   initialCounts: Record<string, number>;
-  initialPesertaMap: Record<string, any[]>;
+  initialPesertaMap: Record<string, Peserta[]>;
   role?: string;
 }
 
@@ -38,7 +39,7 @@ function getDaysUntilBirthday(tglLahir: string): number {
   return Math.round((next.getTime() - today.getTime()) / 86400000);
 }
 
-function getUpcomingBirthdays(pesertaList: any[]): { nama: string; tglLahir: string; days: number; age: number }[] {
+function getUpcomingBirthdays(pesertaList: Peserta[]): { nama: string; tglLahir: string; days: number; age: number }[] {
   const today = new Date();
   return pesertaList
     .filter(p => p.tgl_lahir)
@@ -87,7 +88,7 @@ export default function ProfilerLandingClient({
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   
   const [counts, setCounts] = useState<Record<string, number>>(initialCounts);
-  const [pesertaMap, setPesertaMap] = useState<Record<string, any[]>>(initialPesertaMap);
+  const [pesertaMap, setPesertaMap] = useState<Record<string, Peserta[]>>(initialPesertaMap);
   
   // Modals
   const [showAddYear, setShowAddYear] = useState(false);
@@ -165,8 +166,8 @@ export default function ProfilerLandingClient({
       setYears(prev => [newYear, ...prev]);
       setSelectedYearId(newYear.id);
       setShowAddYear(false);
-    } catch (err: any) {
-      alert("Gagal tambah tahun: " + err.message);
+    } catch (err: unknown) {
+      alert("Gagal tambah tahun: " + (err as Error).message);
     }
   };
 
@@ -186,8 +187,8 @@ export default function ProfilerLandingClient({
       setPesertaMap(prev => ({ ...prev, [folder.name]: [] }));
       setNewFolderName('');
       setShowAddFolder(null);
-    } catch (err: any) {
-      alert("Gagal tambah folder: " + err.message);
+    } catch (err: unknown) {
+      alert("Gagal tambah folder: " + (err as Error).message);
     }
   };
 
@@ -214,8 +215,8 @@ export default function ProfilerLandingClient({
       });
       if (selectedBatch === oldName) setSelectedBatch(newName);
       setRenamingFolder(null);
-    } catch (err: any) {
-      alert("Gagal rename: " + err.message);
+    } catch (err: unknown) {
+      alert("Gagal rename: " + (err as Error).message);
     }
   };
 
@@ -231,8 +232,8 @@ export default function ProfilerLandingClient({
         setSelectedFolderId(null);
         setSelectedBatch('');
       }
-    } catch (err: any) {
-      alert("Gagal hapus: " + err.message);
+    } catch (err: unknown) {
+      alert("Gagal hapus: " + (err as Error).message);
     } finally {
       setDeleting(false);
       setConfirmDeleteFolder(null);
@@ -767,7 +768,8 @@ export default function ProfilerLandingClient({
   );
 }
 
-function ActionCard({ icon, iconBg, iconColor, title, desc, onClick, className }: any) {
+interface ActionCardProps { icon: React.ReactNode; iconBg: string; iconColor: string; title: string; desc: string; onClick?: () => void; className?: string; }
+function ActionCard({ icon, iconBg, iconColor, title, desc, onClick, className }: ActionCardProps) {
   return (
     <button onClick={onClick} className={`group flex flex-col gap-3 p-5 bg-card/40 backdrop-blur-sm border border-border/40 rounded-xl text-left transition-all hover:bg-card hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-0.5 relative overflow-hidden active:translate-y-0 ${className}`}>
       <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center transition-transform group-hover:scale-110 duration-500 flex-shrink-0`}>
@@ -785,7 +787,8 @@ function ActionCard({ icon, iconBg, iconColor, title, desc, onClick, className }
   );
 }
 
-function StatCard({ label, value, small = false }: any) {
+interface StatCardProps { label: string; value: string | number; small?: boolean; }
+function StatCard({ label, value, small = false }: StatCardProps) {
   return (
     <div className="bg-card/40 backdrop-blur-sm border border-border/40 rounded-xl p-4 flex flex-col justify-between shadow-sm hover:shadow-lg hover:shadow-primary/5 transition-all">
       <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-black">{label}</p>

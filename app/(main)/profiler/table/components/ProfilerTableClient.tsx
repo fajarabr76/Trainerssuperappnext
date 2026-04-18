@@ -52,8 +52,8 @@ const MoveFolderModal: React.FC<{
       await movePesertaToBatch(selectedIds, targetFolder);
       onMoved(selectedIds, targetFolder);
       onClose();
-    } catch (err: any) {
-      alert('Gagal memindahkan: ' + err.message);
+    } catch (err: unknown) {
+      alert('Gagal memindahkan: ' + (err as Error).message);
     } finally { 
       setMoving(false); 
     }
@@ -236,7 +236,7 @@ const EditModal: React.FC<{
     };
   }, []);
 
-  const set = (key: keyof Peserta, value: any) => setForm(prev => ({ ...prev, [key]: value }));
+  const set = <K extends keyof Peserta>(key: K, value: Peserta[K]) => setForm(prev => ({ ...prev, [key]: value }));
   const updateFrame = (next: Partial<PhotoFrame>) => {
     if (isReadOnly || !form.id) return;
     const normalized = normalizePhotoFrame({ ...photoFrame, ...next });
@@ -266,7 +266,7 @@ const EditModal: React.FC<{
       const url = await uploadFoto(file, form.id);
       await updatePeserta(form.id, { foto_url: url });
       setForm(prev => ({ ...prev, foto_url: url }));
-    } catch (err: any) { alert('Gagal upload foto: ' + err.message); }
+    } catch (err: unknown) { alert('Gagal upload foto: ' + (err as Error).message); }
     finally { setUploadingFoto(false); }
   };
 
@@ -277,7 +277,7 @@ const EditModal: React.FC<{
       await updatePeserta(form.id!, form);
       onSaved(form); 
       onClose();
-    } catch (err: any) { alert('Gagal simpan: ' + err.message); }
+    } catch (err: unknown) { alert('Gagal simpan: ' + (err as Error).message); }
     finally { setSaving(false); }
   };
 
@@ -437,10 +437,10 @@ const EditModal: React.FC<{
                     <h3 className="text-[11px] font-black text-muted-foreground uppercase tracking-widest px-1">Informasi Personal</h3>
                   </div>
                   <div className="grid grid-cols-2 gap-5">
-                    <div className="col-span-1"><label className={labelClass}>Gender</label><select className={inputClass} value={form.jenis_kelamin || ''} onChange={e => set('jenis_kelamin', e.target.value)}><option value="">Pilih</option><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option></select></div>
-                    <div className="col-span-1"><label className={labelClass}>Agama</label><select className={inputClass} value={form.agama || ''} onChange={e => set('agama', e.target.value)}><option value="">Pilih</option>{['Islam','Kristen','Katolik','Hindu','Buddha','Konghucu'].map(a => <option key={a} value={a}>{a}</option>)}</select></div>
+                    <div className="col-span-1"><label className={labelClass}>Gender</label><select className={inputClass} value={form.jenis_kelamin || ''} onChange={e => set('jenis_kelamin', e.target.value as any)}><option value="">Pilih</option><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option></select></div>
+                    <div className="col-span-1"><label className={labelClass}>Agama</label><select className={inputClass} value={form.agama || ''} onChange={e => set('agama', e.target.value as any)}><option value="">Pilih</option>{['Islam','Kristen','Katolik','Hindu','Buddha','Konghucu'].map(a => <option key={a} value={a}>{a}</option>)}</select></div>
                     <div className="col-span-2"><label className={labelClass}>Tanggal Lahir</label><input type="date" className={inputClass} value={form.tgl_lahir || ''} onChange={e => set('tgl_lahir', e.target.value)} /></div>
-                    <div className="col-span-2"><label className={labelClass}>Status Tempat Tinggal</label><select className={inputClass} value={form.status_tempat_tinggal || ''} onChange={e => set('status_tempat_tinggal', e.target.value)}><option value="">Pilih</option><option value="Milik Sendiri">Milik Sendiri</option><option value="Milik Orang Tua">Milik Orang Tua</option><option value="Kost/Sewa">Kost/Sewa</option><option value="Lainnya">Lainnya</option></select></div>
+                    <div className="col-span-2"><label className={labelClass}>Status Tempat Tinggal</label><select className={inputClass} value={form.status_tempat_tinggal || ''} onChange={e => set('status_tempat_tinggal', e.target.value as any)}><option value="">Pilih</option><option value="Milik Sendiri">Milik Sendiri</option><option value="Milik Orang Tua">Milik Orang Tua</option><option value="Kost/Sewa">Kost/Sewa</option><option value="Lainnya">Lainnya</option></select></div>
                   </div>
                 </div>
 
@@ -629,8 +629,8 @@ export default function ProfilerTableClient({
       setOrderChanged(false);
       setSortMode(false);
       setFeedback({ type: 'success', message: 'Urutan peserta berhasil disimpan.' });
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: `Gagal menyimpan urutan: ${err.message}` });
+    } catch (err: unknown) {
+      setFeedback({ type: 'error', message: `Gagal menyimpan urutan: ${(err as Error).message}` });
     }
     finally { setSavingOrder(false); }
   };

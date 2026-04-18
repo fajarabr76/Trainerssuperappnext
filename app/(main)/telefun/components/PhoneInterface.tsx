@@ -41,7 +41,7 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
   // Helper to get or create the UI AudioContext
   const getUiContext = () => {
     if (!uiAudioContextRef.current || uiAudioContextRef.current.state === 'closed') {
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
         uiAudioContextRef.current = new AudioContextClass();
     }
     // Resume if suspended (browser autoplay policy)
@@ -209,7 +209,7 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
             };
             session.onError = (e) => {
                 console.error("[Telefun] Session error:", e);
-                if (isActive) setConnectionState("Error: " + (e.message || "Network"));
+                if (isActive) setConnectionState("Error: " + ((e as Error).message || "Network"));
             };
             session.onAiSpeaking = (speaking) => {
                 // console.log("[Telefun] AI speaking state:", speaking); // Too noisy
@@ -225,9 +225,9 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
             
             console.log("[Telefun] Calling session.connect()");
             session.connect();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("[Telefun] Failed to initialize session:", err);
-            if (isActive) setConnectionState("Error: " + (err.message || "Init Failed"));
+            if (isActive) setConnectionState("Error: " + ((err as Error).message || "Init Failed"));
         }
     };
 
@@ -249,16 +249,16 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
 
   // Call Duration Timer
   useEffect(() => {
-    let timer: any;
+    let timer: NodeJS.Timeout | null = null;
     if (!isRinging && connectionState === 'Tersambung') {
         timer = setInterval(() => setCallDuration(prev => prev + 1), 1000);
     }
-    return () => clearInterval(timer);
+    return () => { if (timer) clearInterval(timer); };
   }, [isRinging, connectionState]);
 
   // Hold Timer Logic
   useEffect(() => {
-      let timer: any;
+      let timer: NodeJS.Timeout | null = null;
       if (isOnHold && holdTimer > 0) {
           timer = setInterval(() => {
               setHoldTimer(prev => prev - 1);
@@ -266,7 +266,7 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
       } else if (isOnHold && holdTimer <= 0) {
           // Timer finished
       }
-      return () => clearInterval(timer);
+      return () => { if (timer) clearInterval(timer); };
   }, [isOnHold, holdTimer]);
 
   const toggleHold = () => {

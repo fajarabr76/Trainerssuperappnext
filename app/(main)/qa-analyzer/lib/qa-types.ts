@@ -83,8 +83,25 @@ export interface QATemuan {
   ketidaksesuaian?: string | null;
   sebaiknya?: string | null;
   created_at?: string;
-  qa_indicators?: QAIndicator;
-  qa_periods?: QAPeriod;
+  tahun?: number;
+  qa_indicators?: QAIndicator | QAIndicator[];
+  qa_periods?: QAPeriod | QAPeriod[];
+  profiler_peserta?: Agent | Agent[];
+}
+
+export function unwrapIndicator(value: QAIndicator | QAIndicator[] | Partial<QAIndicator> | Partial<QAIndicator>[] | null | undefined): QAIndicator | Partial<QAIndicator> | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
+
+export function unwrapPeriod(value: QAPeriod | QAPeriod[] | Partial<QAPeriod> | Partial<QAPeriod>[] | null | undefined): QAPeriod | Partial<QAPeriod> | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
+
+export function unwrapAgent(value: Agent | Agent[] | Partial<Agent> | Partial<Agent>[] | null | undefined): Agent | Partial<Agent> | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
 }
 
 export interface QAScore {

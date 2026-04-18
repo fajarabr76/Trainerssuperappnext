@@ -12,6 +12,7 @@ import {
   GroupedTemuan,
   CoachingInsight,
   ScoreResult,
+  unwrapIndicator,
 } from '../../../lib/qa-types';
 import { User } from '@supabase/supabase-js';
 import {
@@ -147,12 +148,13 @@ export function useAgentDetail({
 
     const counts: Record<string, number> = {};
     target.forEach((item) => {
-      const name = item.qa_indicators?.name || 'Unknown';
+      const indicator = unwrapIndicator(item.qa_indicators);
+      const name = indicator?.name || 'Unknown';
       counts[name] = (counts[name] || 0) + 1;
     });
 
     const topParam = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-    const example = target.find((item) => item.qa_indicators?.name === topParam[0]);
+    const example = target.find((item) => unwrapIndicator(item.qa_indicators)?.name === topParam[0]);
 
     return {
       parameter: topParam[0],
@@ -440,10 +442,11 @@ export function useAgentDetail({
           [''], ['No. Tiket', 'Kategori', 'Parameter', 'Nilai', 'Keterangan', 'Ketidaksesuaian', 'Sebaiknya'],
         ];
         period.temuan.forEach((item) => {
+          const indicator = unwrapIndicator(item.qa_indicators);
           rows.push([
             item.no_tiket ?? '-',
-            item.qa_indicators?.category === 'critical' ? 'Critical' : 'Non-Critical',
-            item.qa_indicators?.name ?? '-',
+            indicator?.category === 'critical' ? 'Critical' : 'Non-Critical',
+            indicator?.name ?? '-',
             item.nilai,
             { 0: 'CRITICAL', 1: 'DEFICIT', 2: 'GOOD', 3: 'EXCELLENT' }[item.nilai] || '-',
             item.ketidaksesuaian ?? '-',

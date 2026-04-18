@@ -5,6 +5,10 @@ import { Search, Filter, Download, X, Clock, Eye, FileText } from "lucide-react"
 import { createClient } from '@/app/lib/supabase/client';
 import { useEffect, useState, useMemo } from "react";
 import PageHeroHeader from "@/app/components/PageHeroHeader";
+import { User } from "@supabase/supabase-js";
+import { Profile } from "@/app/types/auth";
+import { ChatMessage } from "@/app/types";
+import { EmailMessage, SessionConfig as PdktSessionConfig, EvaluationResult as PdktEvaluationResult } from "@/app/(main)/pdkt/types";
 
 // Types for unified history
 interface UnifiedHistory {
@@ -15,7 +19,7 @@ interface UnifiedHistory {
   created_at: string;
   duration_seconds: number;
   score: number | null;
-  history: any; // raw messages/emails/recording
+  history: ChatMessage[] | EmailMessage[] | string; // raw messages/emails/recording
   user_email?: string;
   user_role?: string;
 }
@@ -28,10 +32,10 @@ const TranscriptModal = ({ isOpen, onClose, result }: { isOpen: boolean, onClose
     const history = result.history;
     
     if (result.module === 'ketik') {
-      const messages = Array.isArray(history) ? history : [];
+      const messages = Array.isArray(history) ? (history as ChatMessage[]) : [];
       return (
         <div className="space-y-4 p-4 max-h-[60vh] overflow-y-auto bg-foreground/5 rounded-2xl">
-          {messages.map((msg: any, idx: number) => (
+          {messages.map((msg, idx) => (
             <div key={idx} className={`flex ${msg.sender === 'agent' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${
                 msg.sender === 'agent' ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-foreground'
@@ -53,10 +57,10 @@ const TranscriptModal = ({ isOpen, onClose, result }: { isOpen: boolean, onClose
     }
 
     if (result.module === 'pdkt') {
-      const emails = Array.isArray(history) ? history : (history?.emails || []);
+      const emails = Array.isArray(history) ? (history as EmailMessage[]) : [];
       return (
         <div className="space-y-6">
-          {emails.length > 0 ? emails.map((email: any, idx: number) => (
+          {emails.length > 0 ? emails.map((email, idx) => (
             <div key={idx} className="bg-card border border-border rounded-2xl p-6 shadow-sm">
                 <div className="flex justify-between items-center mb-4 pb-4 border-b border-border">
                     <div className="flex flex-col">
@@ -65,7 +69,7 @@ const TranscriptModal = ({ isOpen, onClose, result }: { isOpen: boolean, onClose
                     </div>
                 </div>
                 <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/80 whitespace-pre-wrap leading-relaxed">
-                    {email.body || email.content || JSON.stringify(email, null, 2)}
+                    {email.body || (email as any).content || JSON.stringify(email, null, 2)}
                 </div>
             </div>
           )) : (
@@ -141,7 +145,7 @@ const TranscriptModal = ({ isOpen, onClose, result }: { isOpen: boolean, onClose
   );
 };
 
-export default function MonitoringClient({ user: _user, role: _role, profile: _profile }: { user: any, role: string, profile: any }) {
+export default function MonitoringClient({ user: _user, role: _role, profile: _profile }: { user: User | null, role: string, profile: Profile | null }) {
   const supabase = useMemo(() => createClient(), []);
   const [results, setResults] = useState<UnifiedHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -183,9 +187,9 @@ export default function MonitoringClient({ user: _user, role: _role, profile: _p
 
         // Transform ketik_history
         (ketikRes.data || []).forEach(r => {
-          const messages = Array.isArray(r.messages) ? r.messages : [];
+          const messages = (Array.isArray(r.messages) ? r.messages : []) as ChatMessage[];
           let durationSeconds = 0;
-          const timestamps = messages.filter((m: any) => m.timestamp).map((m: any) => new Date(m.timestamp).getTime());
+          const timestamps = messages.filter((m) => m.timestamp).map((m) => new Date(m.timestamp).getTime());
           if (timestamps.length >= 2) {
             durationSeconds = Math.floor((Math.max(...timestamps) - Math.min(...timestamps)) / 1000);
           }
@@ -206,17 +210,17 @@ export default function MonitoringClient({ user: _user, role: _role, profile: _p
 
         // Transform pdkt_history
         (pdktRes.data || []).forEach(r => {
-          const config = r.config || {};
-          const evaluation = r.evaluation || {};
+          const config = (r.config || {}) as PdktSessionConfig;
+          const evaluation = (r.evaluation || {}) as PdktEvaluationResult;
           unified.push({
             id: r.id,
             user_id: r.user_id,
             module: 'pdkt',
-            scenario_title: config?.scenario?.title || config?.subject || 'Simulasi Email',
+            scenario_title: config?.scenarios?.[0]?.title || 'Simulasi Email',
             created_at: r.timestamp,
             duration_seconds: r.time_taken || 0,
             score: evaluation?.score ?? null,
-            history: r.emails || [],
+            history: (r.emails || []) as EmailMessage[],
             user_email: profilesMap[r.user_id]?.email,
             user_role: profilesMap[r.user_id]?.role,
           });
@@ -232,7 +236,7 @@ export default function MonitoringClient({ user: _user, role: _role, profile: _p
             created_at: r.date,
             duration_seconds: r.duration || 0,
             score: null,
-            history: r.recording_url,
+            history: r.recording_url || '',
             user_email: profilesMap[r.user_id]?.email,
             user_role: profilesMap[r.user_id]?.role,
           });
@@ -244,7 +248,7 @@ export default function MonitoringClient({ user: _user, role: _role, profile: _p
         if (isMounted) {
           setResults(unified);
         }
-      } catch (err) {
+      } catch (err: unknown) {
         console.error("Error fetching history:", err);
       } finally {
         if (isMounted) {

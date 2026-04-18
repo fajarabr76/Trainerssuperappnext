@@ -2,6 +2,7 @@ import { createClient } from '@/app/lib/supabase/server';
 import { unstable_cache } from 'next/cache';
 import { getCachedFolderNames, getCachedAvailableYears } from '@/lib/cache/user-cache';
 import { 
+  Agent,
   AgentDirectoryEntry,
   AgentPeriodSummary,
   QAPeriod, 
@@ -13,6 +14,7 @@ import {
   ServiceType,
   ServiceWeight,
   ScoringMode,
+  Category,
   DEFAULT_SERVICE_WEIGHTS,
   TIM_TO_DEFAULT_SERVICE,
   SharedContext,
@@ -23,10 +25,12 @@ import {
   CriticalVsNonCriticalData,
   ExportData,
   ExportPeriod,
-  isAgentExcluded
-} from '../lib/qa-types';
-
-import { createClient as createJSClient } from '@supabase/supabase-js';
+  isAgentExcluded,
+  unwrapIndicator,
+  unwrapPeriod,
+  unwrapAgent
+  } from '../lib/qa-types';
+import { createClient as createJSClient, SupabaseClient } from '@supabase/supabase-js';
 
 const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -55,7 +59,7 @@ function isMissingPhantomColumnError(error: { code?: string; message?: string } 
 }
 
 async function hasPhantomPaddingSupport(
-  client: any
+  client: SupabaseClient
 ): Promise<boolean> {
   if (phantomSupportCache !== null) return phantomSupportCache;
 
@@ -159,16 +163,6 @@ function encodeFolderIds(folderIds: string[]): string {
 
 function formatPeriodLabel(month: number, year: number) {
   return `${MONTHS_SHORT[month - 1]} ${String(year).slice(-2)}`;
-}
-
-function unwrapPeriod(
-  value: { month: number; year: number } | Array<{ month: number; year: number }> | null | undefined
-) {
-  if (Array.isArray(value)) {
-    return value[0] ?? null;
-  }
-
-  return value ?? null;
 }
 
 type CountableFindingLike = {
@@ -389,7 +383,7 @@ const cachedFetchAgentPeriodSummaries = unstable_cache(
       qa_periods?: { month: number; year: number } | Array<{ month: number; year: number }> | null;
     }>).map((item) => ({
       ...item,
-      qa_periods: unwrapPeriod(item.qa_periods),
+      qa_periods: unwrapPeriod(item.qa_periods) as QAPeriod,
     }));
 
     const periodsMap = new Map<string, AgentPeriodSummary>();
@@ -405,7 +399,7 @@ const cachedFetchAgentPeriodSummaries = unstable_cache(
 
     grouped.forEach((items, key) => {
       const sample = items[0];
-      const period = sample.qa_periods;
+      const period = sample.qa_periods as QAPeriod;
       if (!period) return;
 
       const serviceIndicators = indicators.filter((indicator) => indicator.service_type === sample.service_type);
@@ -584,7 +578,7 @@ export const qaServiceServer = {
 
     // 3b. Fetch all temuan WITHOUT join — service client (bypass RLS), period data attached manually below
     // PENTING: Menggunakan pagination manual (range) karena Supabase max_rows dibatasi 1000
-    let allTemuanData: any[] = [];
+    let allTemuanData: Partial<QATemuan>[] = [];
     let from = 0;
     const step = 1000;
     let finished = false;
@@ -600,7 +594,7 @@ export const qaServiceServer = {
       if (!data || data.length === 0) {
         finished = true;
       } else {
-        allTemuanData = [...allTemuanData, ...data];
+        allTemuanData = [...allTemuanData, ...(data as Partial<QATemuan>[])];
         if (data.length < step) {
           finished = true;
         } else {
@@ -612,38 +606,40 @@ export const qaServiceServer = {
     // 3c. Enrich temuan with period data (safe — no dependency on PostgREST join)
     const allTemuan = allTemuanData.map(t => ({
       ...t,
-      qa_periods: periodsMap.get(t.period_id) ?? null,
+      qa_periods: periodsMap.get(t.period_id || '') ?? null,
     }));
 
-    const agentDataMap = new Map<string, any>();
+    const agentDataMap = new Map<string, AgentDirectoryEntry>();
     agents.forEach(a => {
       agentDataMap.set(a.id, {
         ...a,
+        batch: a.batch_name || '',
         avgScore: null,
         trend: 'none',
         trendValue: null,
         atRisk: false
-      });
+      } as AgentDirectoryEntry);
     });
 
     function periodServiceKey(m: number, y: number, s: string) { return `${y}-${String(m).padStart(2, '0')}-${s}`; }
 
-    const temuanByAgent = new Map<string, any[]>();
+    const temuanByAgent = new Map<string, (typeof allTemuan)>();
     allTemuan.forEach(t => {
       if (!t.qa_periods) return; // skip only if period truly doesn't exist
-      if (!temuanByAgent.has(t.peserta_id)) temuanByAgent.set(t.peserta_id, []);
-      temuanByAgent.get(t.peserta_id)!.push(t);
+      if (!temuanByAgent.has(t.peserta_id!)) temuanByAgent.set(t.peserta_id!, []);
+      temuanByAgent.get(t.peserta_id!)!.push(t);
     });
 
     agentDataMap.forEach((agentObj, agentId) => {
       const agentTemuan = temuanByAgent.get(agentId) || [];
       if (agentTemuan.length === 0) return;
 
-      const pSvcMap = new Map<string, any[]>();
+      const pSvcMap = new Map<string, (typeof allTemuan)>();
       agentTemuan.forEach(t => {
         // Standardize service to lowercase
         const activeService = (t.service_type || TIM_TO_DEFAULT_SERVICE[agentObj.tim] || 'call').toLowerCase();
-        const psk = periodServiceKey(t.qa_periods.month, t.qa_periods.year, activeService);
+        const period = t.qa_periods as QAPeriod;
+        const psk = periodServiceKey(period.month, period.year, activeService);
         if (!pSvcMap.has(psk)) pSvcMap.set(psk, []);
         pSvcMap.get(psk)!.push(t);
       });
@@ -659,7 +655,7 @@ export const qaServiceServer = {
       // Latest Score
       const latestScore = calculateQAScoreFromTemuan(
         teamInds,
-        latestTemuan.map(t => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket, created_at: t.created_at, ketidaksesuaian: t.ketidaksesuaian, sebaiknya: t.sebaiknya })),
+        latestTemuan.map(t => ({ indicator_id: t.indicator_id!, nilai: t.nilai!, no_tiket: t.no_tiket, created_at: t.created_at, ketidaksesuaian: t.ketidaksesuaian, sebaiknya: t.sebaiknya })),
         serviceWeights[activeService as ServiceType] || DEFAULT_SERVICE_WEIGHTS[activeService as ServiceType]
       );
 
@@ -680,7 +676,7 @@ export const qaServiceServer = {
         
         const prevScore = calculateQAScoreFromTemuan(
           prevTeamInds,
-          prevTemuan.map(t => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket, created_at: t.created_at, ketidaksesuaian: t.ketidaksesuaian, sebaiknya: t.sebaiknya })),
+          prevTemuan.map(t => ({ indicator_id: t.indicator_id!, nilai: t.nilai!, no_tiket: t.no_tiket, created_at: t.created_at, ketidaksesuaian: t.ketidaksesuaian, sebaiknya: t.sebaiknya })),
           serviceWeights[prevActiveService as ServiceType] || DEFAULT_SERVICE_WEIGHTS[prevActiveService as ServiceType]
         );
         
@@ -736,7 +732,7 @@ export const qaServiceServer = {
       qa_periods?: { month: number; year: number } | Array<{ month: number; year: number }> | null;
     }>).map((item) => ({
       ...item,
-      qa_periods: unwrapPeriod(item.qa_periods),
+      qa_periods: unwrapPeriod(item.qa_periods) as QAPeriod,
     }));
 
     const grouped = new Map<string, typeof temuan>();
@@ -750,7 +746,7 @@ export const qaServiceServer = {
     const periods = [...grouped.values()]
       .map((items) => {
         const sample = items[0];
-        const period = sample.qa_periods!;
+        const period = sample.qa_periods as QAPeriod;
         const indicators = allIndicators.filter((indicator) => indicator.service_type === sample.service_type);
         const score = calculateQAScoreFromTemuan(
           indicators,
@@ -879,8 +875,8 @@ export const qaServiceServer = {
       .order('nama');
     if (error) throw error;
     const byBatch = (data ?? [])
-      .filter((a: any) => !isAgentExcluded(a.tim, a.batch_name, a.jabatan))
-      .map((a: any) => ({
+      .filter((a) => !isAgentExcluded(a.tim, a.batch_name, a.jabatan))
+      .map((a) => ({
         id: a.id,
         nama: a.nama,
         tim: a.tim,
@@ -906,8 +902,8 @@ export const qaServiceServer = {
 
     if (teamError) throw teamError;
     return (teamData ?? [])
-      .filter((a: any) => !isAgentExcluded(a.tim, a.batch_name, a.jabatan))
-      .map((a: any) => ({
+      .filter((a) => !isAgentExcluded(a.tim, a.batch_name, a.jabatan))
+      .map((a) => ({
         id: a.id,
         nama: a.nama,
         tim: a.tim,
@@ -963,9 +959,9 @@ export const qaServiceServer = {
     }
 
     // 2. Determine Audited Population
-    const agentTemuanMap: Record<string, any[]> = {};
-    const auditedAgentsList: any[] = [];
-    const seenAgents = new Set();
+    const agentTemuanMap: Record<string, { indicator_id: string; nilai: number; no_tiket: string | null; service_type: string }[]> = {};
+    const auditedAgentsList: { id: string; batch_name: string | null; tim: string | null }[] = [];
+    const seenAgents = new Set<string>();
 
     data.forEach(d => {
       if (!agentTemuanMap[d.peserta_id]) {
@@ -974,16 +970,17 @@ export const qaServiceServer = {
       agentTemuanMap[d.peserta_id].push({ 
         indicator_id: d.indicator_id, 
         nilai: d.nilai, 
-        no_tiket: d.no_tiket, 
+        no_tiket: d.no_tiket || null, 
         service_type: d.service_type 
       });
 
       if (!seenAgents.has(d.peserta_id)) {
         seenAgents.add(d.peserta_id);
+        const p = unwrapAgent(d.profiler_peserta) as Agent;
         auditedAgentsList.push({
           id: d.peserta_id,
-          batch_name: d.profiler_peserta?.batch_name,
-          tim: d.profiler_peserta?.tim
+          batch_name: p?.batch_name || null,
+          tim: p?.tim || null
         });
       }
     });
@@ -1076,7 +1073,7 @@ export const qaServiceServer = {
       allIndicators = context?.indicators || (await this.getIndicators()) as QAIndicator[];
     }
 
-    const temuanByPeriod = (temuan || []).reduce((acc: any, t: any) => {
+    const temuanByPeriod = (temuan || []).reduce((acc: Record<string, typeof temuan>, t) => {
       if (!acc[t.period_id]) acc[t.period_id] = [];
       acc[t.period_id].push(t);
       return acc;
@@ -1088,7 +1085,7 @@ export const qaServiceServer = {
 
     return sortedPeriods.map(p => {
       const pTemuan = temuanByPeriod[p.id] || [];
-      const auditedAgentsInPeriod = new Set(pTemuan.map((t: any) => t.peserta_id));
+      const auditedAgentsInPeriod = new Set<string>(pTemuan.map((t) => t.peserta_id));
       const totalAudited = auditedAgentsInPeriod.size;
       let value = 0;
 
@@ -1103,7 +1100,7 @@ export const qaServiceServer = {
         if (totalAudited > 0) {
           let zeroErrorCount = 0;
           auditedAgentsInPeriod.forEach(agentId => {
-            const hasDefect = pTemuan.some((t: any) => t.peserta_id === agentId && t.nilai < 3);
+            const hasDefect = pTemuan.some((t) => t.peserta_id === agentId && t.nilai < 3);
             if (!hasDefect) zeroErrorCount++;
           });
           value = (zeroErrorCount / totalAudited) * 100;
@@ -1113,10 +1110,10 @@ export const qaServiceServer = {
         if (totalAudited > 0) {
           let passCount = 0;
           auditedAgentsInPeriod.forEach(agentId => {
-            const agentTemuans = pTemuan.filter((t: any) => t.peserta_id === agentId);
+            const agentTemuans = pTemuan.filter((t) => t.peserta_id === agentId);
             const result = calculateQAScoreFromTemuan(
               teamInds,
-              agentTemuans.map((t: any) => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket })),
+              agentTemuans.map((t) => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket })),
               activeWeight
             );
             if (result.finalScore >= 95) passCount++;
@@ -1163,13 +1160,13 @@ export const qaServiceServer = {
     const { data: temuan } = await query;
     if (!temuan) return { labels, datasets: [] };
 
-    const findings = filterCountableFindings(temuan as any[]);
+    const findings = filterCountableFindings(temuan as unknown as QATemuan[]);
 
     const counts: Record<string, Record<string, number>> = {};
     const totalByPeriod: Record<string, number> = {};
 
-    findings.forEach((t: any) => {
-      const pName = t.qa_indicators?.name || 'Unknown';
+    findings.forEach((t) => {
+      const pName = unwrapIndicator(t.qa_indicators)?.name || 'Unknown';
       const pid = t.period_id;
       if (!counts[pName]) counts[pName] = {};
       counts[pName][pid] = (counts[pName][pid] || 0) + 1;
@@ -1240,11 +1237,11 @@ export const qaServiceServer = {
     const { data, error } = await query;
     if (error || !data) return [];
 
-    const agentTemuanMap: Record<string, any[]> = {};
-    const agentInfoMap: Record<string, any> = {};
+    const agentTemuanMap: Record<string, { indicator_id: string; nilai: number; no_tiket: string | null; ketidaksesuaian?: string | null; sebaiknya?: string | null; is_phantom_padding: boolean }[]> = {};
+    const agentInfoMap: Record<string, { id: string; nama: string; batch_name: string; tim: string; jabatan: string }> = {};
 
     data.forEach(d => {
-      const p = d.profiler_peserta as any;
+      const p = unwrapAgent(d.profiler_peserta) as Agent;
       if (!p) return;
       if (!agentTemuanMap[p.id]) {
         agentTemuanMap[p.id] = [];
@@ -1253,10 +1250,10 @@ export const qaServiceServer = {
       agentTemuanMap[p.id].push({
         indicator_id: d.indicator_id,
         nilai: d.nilai,
-        no_tiket: d.no_tiket,
+        no_tiket: d.no_tiket || null,
         ketidaksesuaian: d.ketidaksesuaian,
         sebaiknya: d.sebaiknya,
-        is_phantom_padding: hasPhantomSupport ? (d as any).is_phantom_padding === true : false,
+        is_phantom_padding: hasPhantomSupport ? (d as unknown as QATemuan).is_phantom_padding === true : false,
       });
     });
 
@@ -1268,7 +1265,7 @@ export const qaServiceServer = {
       const info = agentInfoMap[id];
       const temuanList = agentTemuanMap[id];
       const result = calculateQAScoreFromTemuan(serviceInds, temuanList, activeWeight);
-      const defects = countCountableFindings(temuanList.filter((t: any) => !t.is_phantom_padding));
+      const defects = countCountableFindings(temuanList.filter((t) => !t.is_phantom_padding));
       const hasCritical = temuanList.some(t => {
         if (t.is_phantom_padding) return false;
         const ind = serviceInds.find(i => i.id === t.indicator_id);
@@ -1305,11 +1302,11 @@ export const qaServiceServer = {
     const { data, error } = await query;
     if (error || !data) return [];
 
-    const agentTemuanMap: Record<string, any[]> = {};
-    const agentInfoMap: Record<string, any> = {};
+    const agentTemuanMap: Record<string, { indicator_id: string; nilai: number; no_tiket: string | null; ketidaksesuaian?: string | null; sebaiknya?: string | null; is_phantom_padding: boolean }[]> = {};
+    const agentInfoMap: Record<string, { id: string; nama: string; batch_name: string; tim: string; jabatan: string }> = {};
 
     data.forEach(d => {
-      const p = d.profiler_peserta as any;
+      const p = unwrapAgent(d.profiler_peserta) as Agent;
       if (!p) return;
       if (!agentTemuanMap[p.id]) {
         agentTemuanMap[p.id] = [];
@@ -1318,10 +1315,10 @@ export const qaServiceServer = {
       agentTemuanMap[p.id].push({
         indicator_id: d.indicator_id,
         nilai: d.nilai,
-        no_tiket: d.no_tiket,
+        no_tiket: d.no_tiket || null,
         ketidaksesuaian: d.ketidaksesuaian,
         sebaiknya: d.sebaiknya,
-        is_phantom_padding: hasPhantomSupport ? (d as any).is_phantom_padding === true : false,
+        is_phantom_padding: hasPhantomSupport ? (d as unknown as QATemuan).is_phantom_padding === true : false,
       });
     });
 
@@ -1333,7 +1330,7 @@ export const qaServiceServer = {
       const info = agentInfoMap[id];
       const temuanList = agentTemuanMap[id];
       const result = calculateQAScoreFromTemuan(serviceInds, temuanList, activeWeight);
-      const defects = countCountableFindings(temuanList.filter((t: any) => !t.is_phantom_padding));
+      const defects = countCountableFindings(temuanList.filter((t) => !t.is_phantom_padding));
       const hasCritical = temuanList.some(t => {
         if (t.is_phantom_padding) return false;
         const ind = serviceInds.find(i => i.id === t.indicator_id);
@@ -1369,7 +1366,7 @@ export const qaServiceServer = {
 
     data.forEach(d => {
       if (!isCountableFinding(d)) return;
-      const ind = d.qa_indicators as any;
+      const ind = unwrapIndicator(d.qa_indicators) as QAIndicator;
       if (!ind) return;
       const id = ind.id;
       if (!paramCounts[id]) paramCounts[id] = { count: 0, name: ind.name.trim(), category: ind.category };
@@ -1421,7 +1418,13 @@ export const qaServiceServer = {
       activeServices: string[];
       serviceSummary: Record<string, { totalDefects: number; auditedAgents: number }>;
       totalSummary: { totalDefects: number; auditedAgents: number; activeServiceCount: number };
-      periodStats: any[];
+      periodStats: {
+        id: string;
+        label: string;
+        totalDefects: number;
+        auditedAgents: number;
+        serviceStats: Record<string, { totalDefects: number; auditedAgents: number }>;
+      }[];
     };
   },
 
@@ -1465,12 +1468,12 @@ export const qaServiceServer = {
     const serviceInds = allIndicators.filter(i => i.service_type === serviceType);
 
     const currentServiceData = data.filter(d => d.service_type === serviceType);
-    const serviceFindings = filterCountableFindings(currentServiceData);
+    const serviceFindings = filterCountableFindings(currentServiceData as QATemuan[]);
 
     // ── 1. Calculate Summary ──
-    const agentTemuanMap: Record<string, any[]> = {};
-    const auditedAgentsList: any[] = [];
-    const seenAgents = new Set();
+    const agentTemuanMap: Record<string, { indicator_id: string; nilai: number; no_tiket: string | null; ketidaksesuaian?: string | null; sebaiknya?: string | null }[]> = {};
+    const auditedAgentsList: { id: string; batch_name: string | null; tim: string | null; jabatan: string | null }[] = [];
+    const seenAgents = new Set<string>();
     
     currentServiceData.forEach(d => {
       if (!agentTemuanMap[d.peserta_id]) agentTemuanMap[d.peserta_id] = [];
@@ -1484,11 +1487,12 @@ export const qaServiceServer = {
 
       if (!seenAgents.has(d.peserta_id)) {
         seenAgents.add(d.peserta_id);
+        const p = unwrapAgent(d.profiler_peserta) as Agent;
         auditedAgentsList.push({ 
           id: d.peserta_id, 
-          batch_name: d.profiler_peserta?.batch_name, 
-          tim: d.profiler_peserta?.tim,
-          jabatan: d.profiler_peserta?.jabatan
+          batch_name: p?.batch_name || null, 
+          tim: p?.tim || null,
+          jabatan: p?.jabatan || null
         });
       }
     });
@@ -1517,7 +1521,7 @@ export const qaServiceServer = {
     // ── 2. Calculate Pareto ──
     const paramCounts: Record<string, { count: number, name: string, category: string }> = {};
     serviceFindings.forEach(d => {
-      const ind = (d.qa_indicators as any);
+      const ind = unwrapIndicator(d.qa_indicators) as QAIndicator;
       if (!ind) return;
       if (!paramCounts[ind.id]) paramCounts[ind.id] = { count: 0, name: ind.name.trim(), category: ind.category };
       paramCounts[ind.id].count++;
@@ -1525,7 +1529,7 @@ export const qaServiceServer = {
 
     let cumulativeCount = 0;
     const paretoData: ParetoData[] = Object.entries(paramCounts)
-      .map(([_id, info]) => ({ name: info.name, fullName: info.name, count: info.count, category: info.category as any, cumulative: 0 }))
+      .map(([_id, info]) => ({ name: info.name, fullName: info.name, count: info.count, category: info.category as 'critical' | 'non_critical', cumulative: 0 }))
       .sort((a, b) => b.count - a.count || a.fullName.localeCompare(b.fullName))
       .map(item => {
         cumulativeCount += item.count;
@@ -1541,7 +1545,7 @@ export const qaServiceServer = {
     data.forEach(d => {
       const sType = d.service_type || 'unknown';
       activeServicesSet.add(sType);
-      if (!serviceAgentsMap[sType]) serviceAgentsMap[sType] = new Set();
+      if (!serviceAgentsMap[sType]) serviceAgentsMap[sType] = new Set<string>();
       serviceAgentsMap[sType].add(d.peserta_id);
 
       if (!isCountableFinding(d)) return;
@@ -1567,7 +1571,8 @@ export const qaServiceServer = {
     let critical = 0;
     let nonCritical = 0;
     serviceFindings.forEach(d => {
-      if ((d.qa_indicators as any)?.category === 'critical') critical++;
+      const ind = unwrapIndicator(d.qa_indicators) as QAIndicator;
+      if (ind?.category === 'critical') critical++;
       else nonCritical++;
     });
     const donutData = { critical, nonCritical, total: critical + nonCritical };
@@ -1579,12 +1584,14 @@ export const qaServiceServer = {
         const temuans = agentTemuanMap[agent.id] || [];
         const res = calculateQAScoreFromTemuan(serviceInds, temuans);
         const agentDefects = countCountableFindings(temuans);
+        const agentRow = data.find(d => d.peserta_id === agent.id);
+        const p = unwrapAgent(agentRow?.profiler_peserta) as Agent;
         return { 
           agentId: agent.id, 
-          nama: (data.find(d => d.peserta_id === agent.id)?.profiler_peserta as any)?.nama, 
-          batch: agent.batch_name, 
-          tim: agent.tim,
-          jabatan: agent.jabatan,
+          nama: p?.nama || '', 
+          batch: agent.batch_name || '', 
+          tim: agent.tim || '',
+          jabatan: agent.jabatan || '',
           defects: agentDefects, 
           score: res.finalScore, 
           hasCritical: temuans.some(t => {
@@ -1830,7 +1837,7 @@ export const qaServiceServer = {
 
     temuan.forEach(t => {
       if (!isCountableFinding(t)) return;
-      const pName = (t.qa_indicators as any)?.name || 'Unknown';
+      const pName = (unwrapIndicator(t.qa_indicators) as QAIndicator)?.name || 'Unknown';
       if (!paramCounts[pName]) paramCounts[pName] = {};
       paramCounts[pName][t.period_id] = (paramCounts[pName][t.period_id] || 0) + 1;
       totalFindingsByPeriod[t.period_id] = (totalFindingsByPeriod[t.period_id] || 0) + 1;
@@ -1880,7 +1887,7 @@ export const qaServiceServer = {
     if (pIds.length === 0) return { sparklines: {}, paramTrend: { labels: [], datasets: [] } };
 
     // 2. Fetch findings with PAGINATION and STABLE ORDERING
-    let allTemuan: any[] = [];
+    let allTemuan: QATemuan[] = [];
     let from = 0;
     const PAGE_SIZE = 1000;
     let hasMore = true;
@@ -1897,13 +1904,13 @@ export const qaServiceServer = {
       if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
       if (hasPhantomSupport) query = query.eq('is_phantom_padding', false);
 
-      const { data, error } = await query;
+      const { data, error } = await (query as any);
       if (error) throw error;
 
       if (!data || data.length === 0) {
         hasMore = false;
       } else {
-        allTemuan = [...allTemuan, ...data];
+        allTemuan = [...allTemuan, ...(data as QATemuan[])];
         hasMore = data.length === PAGE_SIZE;
         from += PAGE_SIZE;
       }
@@ -1947,7 +1954,7 @@ export const qaServiceServer = {
 
     temuan.forEach(t => {
       if (!isCountableFinding(t)) return;
-      const pName = (t.qa_indicators as any)?.name || 'Unknown';
+      const pName = (unwrapIndicator(t.qa_indicators) as QAIndicator)?.name || 'Unknown';
       if (!paramCounts[pName]) paramCounts[pName] = {};
       paramCounts[pName][t.period_id] = (paramCounts[pName][t.period_id] || 0) + 1;
       totalFindingsByPeriod[t.period_id] = (totalFindingsByPeriod[t.period_id] || 0) + 1;
@@ -1995,7 +2002,7 @@ export const qaServiceServer = {
     if (pIds.length === 0) return null;
 
     // 2. Fetch all findings in range
-    let allTemuan: any[] = [];
+    let allTemuan: Partial<QATemuan>[] = [];
     let from = 0;
     const PAGE_SIZE = 1000;
     let hasMore = true;
@@ -2017,7 +2024,7 @@ export const qaServiceServer = {
       if (!data || data.length === 0) {
         hasMore = false;
       } else {
-        allTemuan = [...allTemuan, ...data];
+        allTemuan = [...allTemuan, ...(data as Partial<QATemuan>[])];
         hasMore = data.length === PAGE_SIZE;
         from += PAGE_SIZE;
       }
@@ -2028,30 +2035,32 @@ export const qaServiceServer = {
     const serviceInds = allIndicators.filter(i => i.service_type === serviceType);
 
     const currentServiceData = data.filter(d => d.service_type === serviceType);
-    const serviceFindings = filterCountableFindings(currentServiceData);
+    const serviceFindings = filterCountableFindings(currentServiceData as QATemuan[]);
 
     // ── 1. Calculate Summary ──
-    const agentTemuanMap: Record<string, any[]> = {};
-    const auditedAgentsList: any[] = [];
-    const seenAgents = new Set();
+    const agentTemuanMap: Record<string, { indicator_id: string; nilai: number; no_tiket: string | null; ketidaksesuaian?: string | null; sebaiknya?: string | null }[]> = {};
+    const auditedAgentsList: { id: string; batch_name: string | null; tim: string | null; jabatan: string | null }[] = [];
+    const seenAgents = new Set<string>();
     
     currentServiceData.forEach(d => {
+      if (!d.peserta_id) return;
       if (!agentTemuanMap[d.peserta_id]) agentTemuanMap[d.peserta_id] = [];
       agentTemuanMap[d.peserta_id].push({
-        indicator_id: d.indicator_id,
-        nilai: d.nilai,
-        no_tiket: d.no_tiket,
+        indicator_id: d.indicator_id || '',
+        nilai: d.nilai || 0,
+        no_tiket: d.no_tiket || null,
         ketidaksesuaian: d.ketidaksesuaian,
         sebaiknya: d.sebaiknya,
       });
 
       if (!seenAgents.has(d.peserta_id)) {
         seenAgents.add(d.peserta_id);
+        const p = d.profiler_peserta as unknown as { id: string; batch_name: string; tim: string; jabatan: string };
         auditedAgentsList.push({ 
           id: d.peserta_id, 
-          batch_name: d.profiler_peserta?.batch_name, 
-          tim: d.profiler_peserta?.tim,
-          jabatan: d.profiler_peserta?.jabatan
+          batch_name: p?.batch_name || null, 
+          tim: p?.tim || null,
+          jabatan: p?.jabatan || null
         });
       }
     });
@@ -2078,9 +2087,9 @@ export const qaServiceServer = {
     };
 
     // ── 2. Calculate Pareto ──
-    const paramCounts: Record<string, { count: number, name: string, category: string }> = {};
+    const paramCounts: Record<string, { count: number, name: string, category: Category }> = {};
     serviceFindings.forEach(d => {
-      const ind = (d.qa_indicators as any);
+      const ind = (d.qa_indicators as unknown as QAIndicator);
       if (!ind) return;
       if (!paramCounts[ind.id]) paramCounts[ind.id] = { count: 0, name: ind.name.trim(), category: ind.category };
       paramCounts[ind.id].count++;
@@ -2088,7 +2097,13 @@ export const qaServiceServer = {
 
     let cumulativeCount = 0;
     const paretoData: ParetoData[] = Object.entries(paramCounts)
-      .map(([_id, info]) => ({ name: info.name, fullName: info.name, count: info.count, category: info.category as any, cumulative: 0 }))
+      .map(([_id, info]) => ({ 
+        name: info.name, 
+        fullName: info.name, 
+        count: info.count, 
+        category: info.category as 'critical' | 'non_critical', 
+        cumulative: 0 
+      }))
       .sort((a, b) => b.count - a.count || a.fullName.localeCompare(b.fullName))
       .map(item => {
         cumulativeCount += item.count;
@@ -2102,8 +2117,8 @@ export const qaServiceServer = {
 
     data.forEach(d => {
       const sType = d.service_type || 'unknown';
-      if (!serviceAgentsMap[sType]) serviceAgentsMap[sType] = new Set();
-      serviceAgentsMap[sType].add(d.peserta_id);
+      if (!serviceAgentsMap[sType]) serviceAgentsMap[sType] = new Set<string>();
+      if (d.peserta_id) serviceAgentsMap[sType].add(d.peserta_id);
 
       if (!isCountableFinding(d)) return;
       if (!serviceSummary[sType]) serviceSummary[sType] = { totalDefects: 0, auditedAgents: 0 };
@@ -2126,7 +2141,7 @@ export const qaServiceServer = {
     let critical = 0;
     let nonCritical = 0;
     serviceFindings.forEach(d => {
-      if ((d.qa_indicators as any)?.category === 'critical') critical++;
+      if ((d.qa_indicators as unknown as QAIndicator)?.category === 'critical') critical++;
       else nonCritical++;
     });
     const donutData = { critical, nonCritical, total: critical + nonCritical };
@@ -2137,12 +2152,14 @@ export const qaServiceServer = {
         const temuans = agentTemuanMap[agent.id] || [];
         const res = calculateQAScoreFromTemuan(serviceInds, temuans);
         const agentDefects = temuans.length;
+        const agentRow = data.find(d => d.peserta_id === agent.id);
+        const p = agentRow?.profiler_peserta as unknown as { nama: string };
         return { 
           agentId: agent.id, 
-          nama: (data.find(d => d.peserta_id === agent.id)?.profiler_peserta as any)?.nama, 
-          batch: agent.batch_name, 
-          tim: agent.tim,
-          jabatan: agent.jabatan,
+          nama: p?.nama || '', 
+          batch: agent.batch_name || '', 
+          tim: agent.tim || '',
+          jabatan: agent.jabatan || '',
           defects: agentDefects, 
           score: res.finalScore, 
           hasCritical: temuans.some(t => {
@@ -2182,13 +2199,13 @@ export const qaServiceServer = {
 
     if (!temuanRaw) return { labels, datasets: [] };
 
-    const temuan = filterCountableFindings(temuanRaw as any[]);
+    const temuan = filterCountableFindings(temuanRaw as unknown as QATemuan[]);
 
     const counts: Record<string, Record<string, number>> = {};
     const totalByPeriod: Record<string, number> = {};
 
-    temuan.forEach((t: any) => {
-      const pName = t.qa_indicators?.name || 'Unknown';
+    temuan.forEach((t) => {
+      const pName = (t.qa_indicators as unknown as { name: string })?.name || 'Unknown';
       const pid = t.period_id;
       if (!counts[pName]) counts[pName] = {};
       counts[pName][pid] = (counts[pName][pid] || 0) + 1;
@@ -2217,17 +2234,19 @@ export const qaServiceServer = {
 
     const periodsMap = new Map<string, QATemuan[]>();
     (temuan as QATemuan[]).forEach(t => {
-      if (!t.qa_periods) return;
-      const sType = t.service_type || t.qa_indicators?.service_type || 'unknown';
-      const pk = `${t.qa_periods.year}-${String(t.qa_periods.month).padStart(2, '0')}-${sType}`;
+      const p = unwrapPeriod(t.qa_periods) as QAPeriod;
+      if (!p) return;
+      const ind = unwrapIndicator(t.qa_indicators) as QAIndicator;
+      const sType = t.service_type || ind?.service_type || 'unknown';
+      const pk = `${p.year}-${String(p.month).padStart(2, '0')}-${sType}`;
       if (!periodsMap.has(pk)) periodsMap.set(pk, []);
-      periodsMap.get(pk)!.push({ ...t, service_type: sType } as QATemuan);
+      periodsMap.get(pk)!.push({ ...t, service_type: sType as ServiceType } as QATemuan);
     });
 
     const periods: ExportPeriod[] = [...periodsMap.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([_pk, pTemuan]) => {
-        const p = pTemuan[0].qa_periods!;
+        const p = unwrapPeriod(pTemuan[0].qa_periods) as QAPeriod;
         const teamInds = allIndicators.filter(i => i.service_type === pTemuan[0]?.service_type);
         const scoreResult = calculateQAScoreFromTemuan(
           teamInds,
@@ -2253,15 +2272,15 @@ export const qaServiceServer = {
     const limitMap = { '3m': 3, '6m': 6, 'all': 12 };
     const limit = limitMap[timeframe] || 3;
     
-    let periods: any[] = [];
+    let periods: QAPeriod[] = [];
     if (context?.periods) {
       periods = [...context.periods].slice(0, limit);
     } else {
       const { data } = await supabase
-        .from('qa_periods').select('id')
+        .from('qa_periods').select('id, month, year')
         .order('year', { ascending: false }).order('month', { ascending: false })
         .limit(limit);
-      periods = data || [];
+      periods = (data || []) as QAPeriod[];
     }
     
     if (periods.length === 0) return 0;
@@ -2280,15 +2299,15 @@ export const qaServiceServer = {
     const limitMap = { '3m': 3, '6m': 6, 'all': 12 };
     const limit = limitMap[timeframe] || 3;
 
-    let periods: any[] = [];
+    let periods: QAPeriod[] = [];
     if (context?.periods) {
       periods = [...context.periods].slice(0, limit);
     } else {
       const { data } = await supabase
-        .from('qa_periods').select('id')
+        .from('qa_periods').select('id, month, year')
         .order('year', { ascending: false }).order('month', { ascending: false })
         .limit(limit);
-      periods = data || [];
+      periods = (data || []) as QAPeriod[];
     }
     
     if (periods.length === 0) return 0;
@@ -2331,7 +2350,7 @@ export const qaServiceServer = {
     
     // Summary by all services
     const totalAuditedAgentsSet = new Set(temuan.map(t => t.peserta_id));
-    const totalDefectsCount = countCountableFindings(temuan);
+    const totalDefectsCount = countCountableFindings(temuan as QATemuan[]);
 
     temuan.forEach(t => {
       const sType = t.service_type || 'unknown';
@@ -2360,7 +2379,7 @@ export const qaServiceServer = {
     const serviceAgentsMap: Record<string, Set<string>> = {};
     temuan.forEach(t => {
       const sType = t.service_type || 'unknown';
-      if (!serviceAgentsMap[sType]) serviceAgentsMap[sType] = new Set();
+      if (!serviceAgentsMap[sType]) serviceAgentsMap[sType] = new Set<string>();
       serviceAgentsMap[sType].add(t.peserta_id);
     });
 
@@ -2374,12 +2393,12 @@ export const qaServiceServer = {
       const svcStats: Record<string, { totalDefects: number, auditedAgents: number }> = {};
       
       const pAgents = new Set(pTemuan.map(t => t.peserta_id));
-      const pDefects = countCountableFindings(pTemuan);
+      const pDefects = countCountableFindings(pTemuan as QATemuan[]);
 
       activeServicesSet.forEach(svc => {
         const sTemuan = pTemuan.filter(t => t.service_type === svc);
         svcStats[svc] = {
-          totalDefects: countCountableFindings(sTemuan),
+          totalDefects: countCountableFindings(sTemuan as QATemuan[]),
           auditedAgents: new Set(sTemuan.map(t => t.peserta_id)).size
         };
       });
@@ -2409,7 +2428,7 @@ export const qaServiceServer = {
     };
   },
 
-  calculateTopParameters(temuan: any[]) {
+  calculateTopParameters(temuan: Partial<QATemuan>[]) {
     if (!temuan || temuan.length === 0) return {};
     
     const countsPerService: Record<string, Record<string, { count: number, name: string }>> = {};
@@ -2417,7 +2436,7 @@ export const qaServiceServer = {
     temuan.forEach(t => {
       if (!isCountableFinding(t)) return;
       const id = t.indicator_id;
-      const name = t.qa_indicators?.name || 'Unknown';
+      const name = (t.qa_indicators as unknown as { name: string })?.name || 'Unknown';
       const service = t.service_type || 'unknown';
       if (!id) return;
       
@@ -2463,7 +2482,7 @@ export const qaServiceServer = {
     const serviceSummary: Record<string, { totalDefects: number, auditedAgents: number }> = {};
     
     const totalAuditedAgentsSet = new Set(temuan.map(t => t.peserta_id));
-    const totalDefectsCount = countCountableFindings(temuan);
+    const totalDefectsCount = countCountableFindings(temuan as QATemuan[]);
 
     temuan.forEach(t => {
       const sType = t.service_type || 'unknown';
@@ -2491,7 +2510,7 @@ export const qaServiceServer = {
     const serviceAgentsMap: Record<string, Set<string>> = {};
     temuan.forEach(t => {
       const sType = t.service_type || 'unknown';
-      if (!serviceAgentsMap[sType]) serviceAgentsMap[sType] = new Set();
+      if (!serviceAgentsMap[sType]) serviceAgentsMap[sType] = new Set<string>();
       serviceAgentsMap[sType].add(t.peserta_id);
     });
 
@@ -2504,12 +2523,12 @@ export const qaServiceServer = {
       const svcStats: Record<string, { totalDefects: number, auditedAgents: number }> = {};
       
       const pAgents = new Set(pTemuan.map(t => t.peserta_id));
-      const pDefects = countCountableFindings(pTemuan);
+      const pDefects = countCountableFindings(pTemuan as QATemuan[]);
 
       activeServicesSet.forEach(svc => {
         const sTemuan = pTemuan.filter(t => t.service_type === svc);
         svcStats[svc] = {
-          totalDefects: countCountableFindings(sTemuan),
+          totalDefects: countCountableFindings(sTemuan as QATemuan[]),
           auditedAgents: new Set(sTemuan.map(t => t.peserta_id)).size
         };
       });
@@ -2539,20 +2558,32 @@ export const qaServiceServer = {
     };
   },
 
-  sliceTrendData(data: any, months: number) {
+  sliceTrendData(data: { 
+    labels: string[]; 
+    totalData: number[]; 
+    serviceData: Record<string, number[]>; 
+    activeServices: string[]; 
+    serviceSummary: Record<string, { totalDefects: number; auditedAgents: number }>; 
+    totalSummary: { totalDefects: number; auditedAgents: number; activeServiceCount: number }; 
+    periodStats: Array<{ id: string; label: string; totalDefects: number; auditedAgents: number; serviceStats: Record<string, { totalDefects: number; auditedAgents: number }> }>
+  }, months: number) {
     const sliceIdx = Math.max(0, data.labels.length - months);
     const slicedLabels = data.labels.slice(sliceIdx);
     const slicedTotalData = data.totalData.slice(sliceIdx);
     const slicedPeriodStats = data.periodStats.slice(sliceIdx);
     
     const slicedServiceData: Record<string, number[]> = {};
-    Object.entries(data.serviceData).forEach(([svc, arr]: [string, any]) => {
+    Object.entries(data.serviceData).forEach(([svc, arr]) => {
       slicedServiceData[svc] = arr.slice(sliceIdx);
     });
 
     // Re-aggregate summaries based on sliced data
     // For Audited Agents, we take the value from the LATEST month in the slice (as per user condition)
-    const latestStat = slicedPeriodStats[slicedPeriodStats.length - 1] || { totalDefects: 0, auditedAgents: 0, serviceStats: {} };
+    const latestStat = slicedPeriodStats[slicedPeriodStats.length - 1] || { 
+      totalDefects: 0, 
+      auditedAgents: 0, 
+      serviceStats: {} as Record<string, { totalDefects: number; auditedAgents: number }> 
+    };
     
     const totalDefects = slicedTotalData.reduce((a: number, b: number) => a + b, 0);
     
@@ -2607,7 +2638,7 @@ export const qaServiceServer = {
     const pIds = sortedPeriods.map((p) => p.id);
     if (pIds.length === 0) return [];
 
-    let allTemuan: any[] = [];
+    let allTemuan: Partial<QATemuan>[] = [];
     let from = 0;
     const PAGE_SIZE = 1000;
     let hasMore = true;
@@ -2632,7 +2663,7 @@ export const qaServiceServer = {
       if (!data || data.length === 0) {
         hasMore = false;
       } else {
-        allTemuan = [...allTemuan, ...data];
+        allTemuan = [...allTemuan, ...(data as Partial<QATemuan>[])];
         hasMore = data.length === PAGE_SIZE;
         from += PAGE_SIZE;
       }
@@ -2640,11 +2671,11 @@ export const qaServiceServer = {
 
     return allTemuan.map((d) => ({
       no_tiket: d.no_tiket ?? null,
-      nilai: d.nilai,
+      nilai: d.nilai || 0,
       ketidaksesuaian: d.ketidaksesuaian ?? null,
       sebaiknya: d.sebaiknya ?? null,
-      parameter: ((d.qa_indicators as any)?.name || '').trim() || '—',
-      agen: ((d.profiler_peserta as any)?.nama || '').trim() || '—',
+      parameter: ((d.qa_indicators as unknown as { name: string })?.name || '').trim() || '—',
+      agen: ((d.profiler_peserta as unknown as { nama: string })?.nama || '').trim() || '—',
     }));
   },
 
@@ -2667,7 +2698,7 @@ export const qaServiceServer = {
     if (!periods?.length) return [];
 
     const pIds = periods.map((p) => p.id);
-    let all: any[] = [];
+    let all: Partial<QATemuan>[] = [];
     let from = 0;
     const PAGE = 1000;
     let hasMore = true;
@@ -2687,7 +2718,7 @@ export const qaServiceServer = {
       if (error) throw error;
       if (!data?.length) hasMore = false;
       else {
-        all = [...all, ...data];
+        all = [...all, ...(data as Partial<QATemuan>[])];
         hasMore = data.length === PAGE;
         from += PAGE;
       }
@@ -2711,7 +2742,7 @@ export const qaServiceServer = {
         if (!inds.length) return;
         const sw =
           serviceWeights[svc as ServiceType] ?? DEFAULT_SERVICE_WEIGHTS[svc as ServiceType];
-        const sc = calculateQAScoreFromTemuan(inds, list, sw).finalScore;
+        const sc = calculateQAScoreFromTemuan(inds, list as QATemuan[], sw).finalScore;
         const weight = list.length;
         sum += sc * weight;
         w += weight;
@@ -2719,7 +2750,7 @@ export const qaServiceServer = {
       return {
         label: `${MONTHS_SHORT[p.month - 1]} ${p.year}`,
         score: w > 0 ? Number((sum / w).toFixed(1)) : 100,
-        findings: countCountableFindings(pTemuan),
+        findings: countCountableFindings(pTemuan as QATemuan[]),
       };
     });
   },
@@ -2727,9 +2758,9 @@ export const qaServiceServer = {
   /**
    * Helper private method to fetch QA findings with pagination to bypass Supabase 1000-row limit
    */
-  async fetchPaginatedTrendData(supabase: any, pIds: string[], year?: number) {
+  async fetchPaginatedTrendData(supabase: SupabaseClient, pIds: string[], year?: number) {
     const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
-    let allData: any[] = [];
+    let allData: Partial<QATemuan>[] = [];
     let from = 0;
     const step = 1000;
     let hasMore = true;
@@ -2756,7 +2787,7 @@ export const qaServiceServer = {
       if (!data || data.length === 0) {
         hasMore = false;
       } else {
-        allData = [...allData, ...data];
+        allData = [...allData, ...(data as Partial<QATemuan>[])];
         hasMore = data.length === step;
         from += step;
       }

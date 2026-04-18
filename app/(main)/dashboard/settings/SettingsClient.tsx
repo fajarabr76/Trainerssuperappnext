@@ -3,17 +3,19 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from "motion/react";
 import { 
-  User, Shield, Palette, Lock,
+  User as UserIcon, Shield, Palette, Lock,
   Settings, Mail, BadgeCheck,
   Save, KeyRound, Eye, EyeOff, CheckCircle2,
   AlertCircle, Loader2
 } from "lucide-react";
 import { createClient } from '@/app/lib/supabase/client';
 import PageHeroHeader from "@/app/components/PageHeroHeader";
+import { User } from "@supabase/supabase-js";
+import { Profile } from "@/app/types/auth";
 
 interface SettingsClientProps {
-  user: any;
-  profile: any;
+  user: User | null;
+  profile: Profile | null;
 }
 
 type Category = 'profile' | 'security' | 'appearance' | 'about';
@@ -22,7 +24,7 @@ export default function SettingsClient({ user, profile: initialProfile }: Settin
   const supabase = useMemo(() => createClient(), []);
   
   const [activeCategory, setActiveCategory] = useState<Category>('profile');
-  const [profile, setProfile] = useState(initialProfile);
+  const [profile, setProfile] = useState<Profile | null>(initialProfile);
   const [fullName, setFullName] = useState(profile?.full_name || '');
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -33,7 +35,7 @@ export default function SettingsClient({ user, profile: initialProfile }: Settin
   const [showPasswords, setShowPasswords] = useState(false);
 
   const categories = [
-    { id: 'profile', icon: User, label: 'Informasi Pribadi', description: 'Nama & Detail Kontak' },
+    { id: 'profile', icon: UserIcon, label: 'Informasi Pribadi', description: 'Nama & Detail Kontak' },
     { id: 'security', icon: Shield, label: 'Keamanan', description: 'Kata Sandi & Akses' },
     { id: 'appearance', icon: Palette, label: 'Tampilan', description: 'Tema & Estetika' },
     { id: 'about', icon: AlertCircle, label: 'Tentang', description: 'Informasi Sistem' },
@@ -181,7 +183,7 @@ export default function SettingsClient({ user, profile: initialProfile }: Settin
                           <div className="space-y-2">
                             <label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Nama Lengkap</label>
                             <div className="relative group">
-                              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                              <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                               <input 
                                 type="text" 
                                 value={fullName} 

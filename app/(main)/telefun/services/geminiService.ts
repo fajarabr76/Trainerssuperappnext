@@ -15,7 +15,7 @@ const _STABLE_VOICE_MAP = {
  */
 export class LiveSession {
   private config: SessionConfig;
-  private session: any = null;
+  private session: { sendRealtimeInput: (params: { media: { mimeType: string, data: string } }) => void; close: () => void } | null = null;
   private inputAudioContext: AudioContext | null = null;
   private outputAudioContext: AudioContext | null = null;
   private inputSource: MediaStreamAudioSourceNode | null = null;
@@ -32,7 +32,7 @@ export class LiveSession {
 
   public onConnect?: () => void;
   public onDisconnect?: () => void;
-  public onError?: (error: any) => void;
+  public onError?: (error: Error | unknown) => void;
   public onStatusChange?: (status: string) => void;
   public onAiSpeaking?: (isSpeaking: boolean) => void;
   public onVolumeChange?: (level: number) => void;
@@ -73,7 +73,7 @@ export class LiveSession {
     try {
       this.onStatusChange?.(currentStep);
       
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
 
       currentStep = "Meminta izin mikrofon...";
       this.onStatusChange?.(currentStep);
@@ -87,14 +87,15 @@ export class LiveSession {
             channelCount: 1,
           }
         });
-      } catch (mediaErr: any) {
+      } catch (mediaErr: unknown) {
         console.error("[Telefun] Media error:", mediaErr);
-        if (mediaErr.name === 'NotAllowedError' || mediaErr.name === 'PermissionDeniedError') {
+        const err = mediaErr as Error;
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
           throw new Error("Izin Mikrofon Ditolak. Harap izinkan akses mikrofon di browser untuk memulai simulasi.");
-        } else if (mediaErr.name === 'NotFoundError' || mediaErr.name === 'DevicesNotFoundError') {
+        } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
           throw new Error("Mikrofon tidak ditemukan. Pastikan perangkat input terhubung.");
         } else {
-          throw new Error(`Gagal mengakses mikrofon: ${mediaErr.message || "Unknown error"}`);
+          throw new Error(`Gagal mengakses mikrofon: ${err.message || "Unknown error"}`);
         }
       }
 
@@ -170,9 +171,9 @@ export class LiveSession {
         "Telefun Live dinonaktifkan sementara sampai proxy server-side untuk Gemini Live selesai dihardening."
       );
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[Telefun] Connection setup failed:", err);
-      this.onStatusChange?.(`Gagal: ${err.message || "Koneksi Terputus"}`);
+      this.onStatusChange?.(`Gagal: ${(err as Error).message || "Koneksi Terputus"}`);
       this.onError?.(err);
       this.disconnect();
     }
@@ -371,7 +372,7 @@ export class LiveSession {
     this.onDisconnect?.();
   }
 
-  private createPcmBlob(data: Float32Array): any {
+  private createPcmBlob(data: Float32Array): { mimeType: string, data: string } {
     const l = data.length;
     const int16 = new Int16Array(l);
     for (let i = 0; i < l; i++) {
@@ -504,15 +505,15 @@ export const generateConsumerVoice = async (
     const response = await generateGeminiContent({
       model: "gemini-2.5-flash-preview-tts",
       contents: [{ parts: [{ text: prompt }] }],
-      responseModalities: ["AUDIO"] as any, // Modality.AUDIO
+      responseModalities: ["AUDIO"] as unknown as string[], // Modality.AUDIO
       speechConfig: {
         voiceConfig: {
           prebuiltVoiceConfig: { voiceName },
         },
-      } as any,
+      } as unknown as Record<string, unknown>,
     });
 
-    return (response as any).audioData; // Need to update Server Action to return audio data
+    return (response as { audioData?: string }).audioData; // Need to update Server Action to return audio data
   } catch (error) {
     console.error("[Telefun] Voice generation error:", error);
     return undefined;

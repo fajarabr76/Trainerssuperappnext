@@ -5,7 +5,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 import {
   X, Check, ChevronRight,
-  FolderOpen, User, CalendarDays, Plus, Trash2,
+  FolderOpen, User as UserIcon, CalendarDays, Plus, Trash2,
   Pencil, Upload, Download, FileSpreadsheet,
   Menu, Sun, Moon
 } from 'lucide-react';
@@ -14,12 +14,16 @@ import ExcelJS from 'exceljs';
 
 import { useTheme } from 'next-themes';
 import { createClient } from '@/app/lib/supabase/client';
+import { User } from '@supabase/supabase-js';
+import { Profile } from '@/app/types/auth';
 import { 
   calculateQAScoreFromTemuan, 
   scoreColor, 
   scoreLabel, 
   scoreBg,
-  NILAI_LABELS 
+  NILAI_LABELS,
+  Agent,
+  unwrapIndicator,
 } from '../lib/qa-types';
 import type { QAIndicator, QAPeriod, QATemuan, ServiceType, ServiceWeight } from '../lib/qa-types';
 import { TIM_TO_DEFAULT_SERVICE, SERVICE_LABELS, DEFAULT_SERVICE_WEIGHTS } from '../lib/qa-types';
@@ -36,7 +40,6 @@ const supabase = createClient();
 
 const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 type Step = 'folder' | 'agent' | 'period' | 'list';
-interface Agent { id: string; nama: string; tim: string; batch: string; jabatan: string; }
 
 const NILAI_OPTIONS = [
   { v: 0, sub: 'Sangat Tidak Sesuai', active: 'bg-red-500 text-white border-transparent',    inactive: 'bg-gray-50 dark:bg-white/[0.04] border-gray-200 dark:border-white/10 text-gray-400 dark:text-gray-500' },
@@ -293,12 +296,12 @@ function parseExcel(file: File, indicators: QAIndicator[]): Promise<ImportRow[]>
         const wb   = XLSX.read(data, { type: 'array' });
         const sheetName = wb.SheetNames.find((n: string) => n === 'Input Temuan') ?? wb.SheetNames[0];
         const ws   = wb.Sheets[sheetName];
-        const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+        const rows: unknown[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
         const paramMap = new Map(indicators.map(i => [i.name.toLowerCase().trim(), i]));
         const result: ImportRow[] = [];
         for (let i = 1; i < rows.length; i++) {
           const row = rows[i];
-          if (!row || row.every((c: any) => c === '' || c === null || c === undefined)) continue;
+          if (!row || row.every((c: unknown) => c === '' || c === null || c === undefined)) continue;
           const no_tiket       = String(row[0] ?? '').trim();
           const paramName      = String(row[1] ?? '').trim();
           const nilaiRaw       = row[2];
@@ -320,7 +323,7 @@ function parseExcel(file: File, indicators: QAIndicator[]): Promise<ImportRow[]>
           result.push({ rowNum: i + 1, no_tiket, paramName, indicator_id, nilai, ketidaksesuaian, sebaiknya, errors });
         }
         resolve(result);
-      } catch (err: any) { reject(new Error('Gagal membaca file: ' + err.message)); }
+      } catch (err: unknown) { reject(new Error('Gagal membaca file: ' + (err as Error).message)); }
     };
     reader.onerror = () => reject(new Error('Gagal membaca file'));
     reader.readAsArrayBuffer(file);
@@ -328,13 +331,13 @@ function parseExcel(file: File, indicators: QAIndicator[]): Promise<ImportRow[]>
 }
 
 interface QaInputClientProps {
-  user: any;
+  user: User | null;
   role: string;
-  profile: any;
+  profile: Profile | null;
   initialFolders: string[];
   initialPeriods: QAPeriod[];
-  initialAgents?: any[];
-  initialAgent?: any;
+  initialAgents?: Agent[];
+  initialAgent?: Agent;
   initialIndicators?: QAIndicator[];
   initialTemuan?: QATemuan[];
   initialStep?: Step;
@@ -425,7 +428,7 @@ export default function QaInputClient({
       const agentList = await getAgentsByFolderAction(folder);
       setAgents(agentList);
       setStep('agent');
-    } catch (err: any) { setErrorMsg(err.message); } finally { setLoading(false); }
+    } catch (err: unknown) { setErrorMsg((err as Error).message); } finally { setLoading(false); }
   };
 
 
@@ -480,8 +483,8 @@ export default function QaInputClient({
         }
         if (error) throw error;
         setTemuan(found || []);
-      } catch (err: any) { 
-        setErrorMsg(err.message); 
+      } catch (err: unknown) { 
+        setErrorMsg((err as Error).message); 
       } finally { 
         setLoading(false); 
       }
@@ -510,7 +513,7 @@ export default function QaInputClient({
       setTemuan(found || []); 
       setStep('list'); 
     }
-    catch (err: any) { setErrorMsg(err.message); } finally { setLoading(false); }
+    catch (err: unknown) { setErrorMsg((err as Error).message); } finally { setLoading(false); }
   };
 
   const updateEntry = (uid: string, patch: Partial<ParamEntry>) =>
@@ -543,7 +546,7 @@ export default function QaInputClient({
       resetForm();
       setSuccessMsg(`${(created as QATemuan[]).length} temuan berhasil disimpan!`);
       setTimeout(() => setSuccessMsg(null), 3000);
-    } catch (err: any) { setErrorMsg(err.message); } finally { setSaving(false); }
+    } catch (err: unknown) { setErrorMsg((err as Error).message); } finally { setSaving(false); }
   };
 
   const startEdit = (t: QATemuan) => {
@@ -559,13 +562,13 @@ export default function QaInputClient({
       setTemuan(prev => prev.map(t => t.id === id ? updated : t));
       setEditingId(null);
       setSuccessMsg('Temuan berhasil diperbarui!'); setTimeout(() => setSuccessMsg(null), 3000);
-    } catch (err: any) { setErrorMsg(err.message); } finally { setSavingEdit(false); }
+    } catch (err: unknown) { setErrorMsg((err as Error).message); } finally { setSavingEdit(false); }
   };
 
   const handleDelete = async (id: string) => {
     if (deletingId !== id) { setDeletingId(id); setEditingId(null); return; }
     try { await deleteTemuanAction(id); setTemuan(prev => prev.filter(t => t.id !== id)); setDeletingId(null); }
-    catch (err: any) { setErrorMsg(err.message); setDeletingId(null); }
+    catch (err: unknown) { setErrorMsg((err as Error).message); setDeletingId(null); }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -573,7 +576,7 @@ export default function QaInputClient({
     if (!file) return;
     setImportFile(file); setParsing(true); setImportRows([]);
     try { const rows = await parseExcel(file, indicators); setImportRows(rows); setImportTab('upload'); }
-    catch (err: any) { setErrorMsg(err.message); } finally { setParsing(false); }
+    catch (err: unknown) { setErrorMsg((err as Error).message); } finally { setParsing(false); }
   };
 
   const validImportRows   = importRows.filter(r => r.errors.length === 0);
@@ -598,7 +601,7 @@ export default function QaInputClient({
       setShowImport(false); setImportRows([]); setImportFile(null);
       setSuccessMsg(`${(created as QATemuan[]).length} temuan berhasil diimport!`);
       setTimeout(() => setSuccessMsg(null), 4000);
-    } catch (err: any) { setErrorMsg(err.message); } finally { setImporting(false); }
+    } catch (err: unknown) { setErrorMsg((err as Error).message); } finally { setImporting(false); }
   };
 
   const handlePerfectScore = async () => {
@@ -609,8 +612,8 @@ export default function QaInputClient({
       await createPerfectScoreSessionAction(selectedAgent.id, selectedPeriod.id, selectedService as ServiceType);
       setSuccessMsg('Sesi Tanpa Temuan berhasil ditambahkan (phantom padding 5 sesi).');
       setTimeout(() => setSuccessMsg(null), 3000);
-    } catch (err: any) {
-      setErrorMsg(err.message);
+    } catch (err: unknown) {
+      setErrorMsg((err as Error).message);
     } finally {
       setSaving(false);
     }
@@ -724,7 +727,7 @@ export default function QaInputClient({
 
             {!loading && step === 'agent' && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2"><User className="w-5 h-5 text-primary"/><h2 className="text-lg font-bold">Pilih Agent</h2></div>
+                <div className="flex items-center gap-2"><UserIcon className="w-5 h-5 text-primary"/><h2 className="text-lg font-bold">Pilih Agent</h2></div>
                 <div className="grid gap-2">
                   {agents.map(agent => (
                     <button key={agent.id} onClick={() => handleSelectAgent(agent)} className="flex items-center gap-4 px-5 py-4 bg-card border border-border hover:border-primary/40 rounded-2xl text-left transition-all group">
@@ -930,7 +933,7 @@ export default function QaInputClient({
                       </div>
                       <div className="divide-y divide-border">
                         {group.items.map((t, _iIdx) => {
-                          const ind = t.qa_indicators;
+                          const ind = unwrapIndicator(t.qa_indicators);
                           const isCritical = ind?.category === 'critical';
                           const isEditing  = editingId === t.id;
                           return (

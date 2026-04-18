@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { ThemeToggle } from '@/app/components/ThemeToggle';
 import { useTelefunWarning } from '@/app/context/TelefunWarningContext';
 import { APP_MODULES, isRoleAllowed, normalizeRoleLabel } from '@/app/lib/app-config';
+import { User } from '@supabase/supabase-js';
+import { Profile } from '@/app/types/auth';
 
 const DashboardAnalyticsPanel = dynamic(() => import('./DashboardAnalyticsPanel'), {
   ssr: false,
@@ -22,9 +24,9 @@ const DashboardAnalyticsPanel = dynamic(() => import('./DashboardAnalyticsPanel'
 });
 
 interface DashboardClientProps {
-  user: any;
+  user: User | null;
   role: string;
-  profile: any;
+  profile: Profile | null;
   serviceTrendMap: Record<'3m' | '6m' | 'all', {
     labels: string[];
     totalData: number[];
