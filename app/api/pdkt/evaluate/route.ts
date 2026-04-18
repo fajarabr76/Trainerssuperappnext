@@ -74,7 +74,8 @@ export async function POST(request: Request) {
       throw new Error('Riwayat email tidak lengkap untuk evaluasi.');
     }
 
-    const evaluation = await evaluateAgentResponse(lastAgentEmail.body, lastConsumerEmail.body);
+    const modelId = claimedRow.config?.model;
+    const evaluation = await evaluateAgentResponse(lastAgentEmail.body, lastConsumerEmail.body, modelId);
     const completedAt = new Date().toISOString();
 
     const { error: updateError } = await admin

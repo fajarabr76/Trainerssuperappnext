@@ -15,7 +15,7 @@ interface EditTemuanModalProps {
   onSave: () => Promise<void>;
 }
 
-export function EditTemuanModal({
+export default function EditTemuanModal({
   isOpen,
   onClose,
   editingTemuan,

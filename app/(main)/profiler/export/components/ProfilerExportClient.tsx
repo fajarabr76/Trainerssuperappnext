@@ -6,7 +6,6 @@ import {
   FileSpreadsheet, FileText, Presentation, FileDown,
   Download, ChevronDown, Folder, Check, Loader2
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
 import {
   Peserta, ProfilerYear, ProfilerFolder, labelTim, labelJabatan,
   hitungMasaDinas, hitungUsia, formatTanggal
@@ -81,9 +80,10 @@ export default function ProfilerExportClient({
       'Catatan Tambahan': p.catatan_tambahan || '', 'Keterangan': p.keterangan || '',
     }));
 
-  const downloadExcel = () => {
+  const downloadExcel = async () => {
     setGenerating('excel');
     try {
+      const XLSX = await import('xlsx');
       const ws = XLSX.utils.json_to_sheet(buildRows(peserta));
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Peserta');
@@ -91,9 +91,10 @@ export default function ProfilerExportClient({
     } finally { setGenerating(null); }
   };
 
-  const downloadCSV = () => {
+  const downloadCSV = async () => {
     setGenerating('csv');
     try {
+      const XLSX = await import('xlsx');
       const ws  = XLSX.utils.json_to_sheet(buildRows(peserta));
       const csv = XLSX.utils.sheet_to_csv(ws);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

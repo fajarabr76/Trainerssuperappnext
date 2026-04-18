@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Download, MinusCircle, Loader2, FileUp } from 'lucide-react';
-import * as XLSX from 'xlsx';
 import { Peserta, DEFAULT_TIMS } from '../../lib/profiler-types';
 import { ExcelTemplateService } from '../../components/ExcelTemplateService';
 import { bulkCreatePeserta, createPeserta, getPesertaByBatch } from '../../actions';
@@ -76,6 +75,7 @@ export default function ProfilerImportClient({
     setDone(false);
 
     try {
+      const XLSX = await import('xlsx');
       const buffer = await file.arrayBuffer();
       const wb = XLSX.read(buffer, { type: 'array', cellDates: true });
       const ws = wb.Sheets[wb.SheetNames[0]];

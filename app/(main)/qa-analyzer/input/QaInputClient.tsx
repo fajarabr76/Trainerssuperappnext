@@ -7,12 +7,11 @@ import {
   X, Check, ChevronRight,
   FolderOpen, User as UserIcon, CalendarDays, Plus, Trash2,
   Pencil, Upload, Download, FileSpreadsheet,
-  Menu, Sun, Moon
+  Menu, Sun, Moon, Loader2
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
-import ExcelJS from 'exceljs';
 
 import { useTheme } from 'next-themes';
+import type ExcelJS from 'exceljs';
 import { createClient } from '@/app/lib/supabase/client';
 import { User } from '@supabase/supabase-js';
 import { Profile } from '@/app/types/auth';
@@ -179,6 +178,7 @@ function IndicatorDropdown({ value, indicators, open, onToggle, onSelect, scorin
 
 // ── Excel template generator ───────────────────────────────────────────────────
 async function generateTemplate(indicators: QAIndicator[], agentName: string, periodLabel: string, activeWeight: ServiceWeight) {
+  const ExcelJS = (await import('exceljs')).default;
   const wb = new ExcelJS.Workbook();
   wb.creator = 'SIDAK';
   wb.created = new Date();
@@ -287,7 +287,8 @@ async function generateTemplate(indicators: QAIndicator[], agentName: string, pe
 }
 
 // ── Parse uploaded Excel ───────────────────────────────────────────────────────
-function parseExcel(file: File, indicators: QAIndicator[]): Promise<ImportRow[]> {
+async function parseExcel(file: File, indicators: QAIndicator[]): Promise<ImportRow[]> {
+  const XLSX = await import('xlsx');
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -395,6 +396,7 @@ export default function QaInputClient({
   const [importFile, setImportFile]   = useState<File | null>(null);
   const [importing, setImporting]     = useState(false);
   const [parsing, setParsing]         = useState(false);
+  const [generatingTemplate, setGeneratingTemplate] = useState(false);
 
   const [saving, setSaving]         = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -571,6 +573,18 @@ export default function QaInputClient({
     catch (err: unknown) { setErrorMsg((err as Error).message); setDeletingId(null); }
   };
 
+  const handleDownloadTemplate = async () => {
+    setGeneratingTemplate(true);
+    try {
+      await generateTemplate(indicators, selectedAgent?.nama ?? 'Agent', periodLabel, activeWeight);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg('Gagal membuat template Excel.');
+    } finally {
+      setGeneratingTemplate(false);
+    }
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -652,29 +666,29 @@ export default function QaInputClient({
   return (
     <>
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden bg-background">
-        <header className="h-16 flex items-center justify-between px-4 lg:px-8 bg-card/50 backdrop-blur-xl border-b border-border sticky top-0 z-30">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2 rounded-lg hover:bg-foreground/5 text-muted-foreground">
+        <header className="h-16 flex items-center justify-between px-4 lg:px-10 bg-background/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-30">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2 -ml-2 rounded-xl hover:bg-foreground/5 text-muted-foreground transition-colors">
               <Menu className="w-5 h-5" />
             </button>
-            <h1 className="text-lg font-bold text-foreground">Input Temuan SIDAK</h1>
+            <h1 className="text-base md:text-lg font-black text-foreground tracking-tight">Input Temuan SIDAK</h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             {mounted && (
-              <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-2 rounded-full hover:bg-foreground/5 text-muted-foreground transition-colors">
+              <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="p-2 rounded-xl hover:bg-foreground/5 text-muted-foreground transition-all">
                 {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </button>
             )}
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-          <div className="max-w-2xl mx-auto space-y-6">
-            <div className="flex items-center gap-1.5 text-xs flex-wrap">
-              <button onClick={() => resetToStep('folder')} className={`font-semibold ${step === 'folder' ? 'text-primary' : 'text-primary/60'}`}>Folder</button>
-              {selectedFolder && (<><ChevronRight className="w-3 h-3 text-muted-foreground" /><button onClick={() => resetToStep('agent')} className={`font-semibold ${step === 'agent' ? 'text-primary' : 'text-primary/60'}`}>{selectedFolder}</button></>)}
-              {selectedAgent  && (<><ChevronRight className="w-3 h-3 text-muted-foreground" /><button onClick={() => resetToStep('period')} className={`font-semibold ${step === 'period' ? 'text-primary' : 'text-primary/60'}`}>{selectedAgent.nama}</button></>)}
-              {selectedPeriod && (<><ChevronRight className="w-3 h-3 text-muted-foreground" /><span className="font-semibold text-primary">{MONTHS[selectedPeriod.month - 1]} {selectedPeriod.year}</span></>)}
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10 custom-scrollbar">
+          <div className="max-w-3xl mx-auto space-y-8">
+            <div className="flex items-center gap-1.5 text-[10px] md:text-xs font-black uppercase tracking-widest text-muted-foreground overflow-x-auto pb-2 scrollbar-none whitespace-nowrap">
+              <button onClick={() => resetToStep('folder')} className={`transition-colors hover:text-primary ${step === 'folder' ? 'text-primary' : ''}`}>Folder</button>
+              {selectedFolder && (<><ChevronRight className="w-3 h-3 opacity-30" /><button onClick={() => resetToStep('agent')} className={`transition-colors hover:text-primary ${step === 'agent' ? 'text-primary' : ''}`}>{selectedFolder}</button></>)}
+              {selectedAgent  && (<><ChevronRight className="w-3 h-3 opacity-30" /><button onClick={() => resetToStep('period')} className={`transition-colors hover:text-primary ${step === 'period' ? 'text-primary' : ''}`}>{selectedAgent.nama}</button></>)}
+              {selectedPeriod && (<><ChevronRight className="w-3 h-3 opacity-30" /><span className="text-primary">{MONTHS[selectedPeriod.month - 1]} {selectedPeriod.year}</span></>)}
             </div>
 
             {errorMsg && (
@@ -867,7 +881,14 @@ export default function QaInputClient({
                       {importTab === 'download' ? (
                         <div className="space-y-4">
                           <div className="bg-blue-500/10 rounded-2xl p-4 border border-blue-500/20"><p className="text-xs font-bold text-blue-500 mb-2">Cara menggunakan template</p><ul className="space-y-1.5 text-xs text-muted-foreground"><li className="flex items-start gap-2"><span className="font-black mt-0.5">·</span>Sheet <strong>Input Temuan</strong>: isi no. tiket, pilih parameter, isi nilai 0–3</li><li className="flex items-start gap-2"><span className="font-black mt-0.5">·</span>Parameter dengan nilai 3 (Sesuai) tidak perlu diisi</li></ul></div>
-                          <button onClick={() => generateTemplate(indicators, selectedAgent?.nama ?? 'Agent', periodLabel, activeWeight)} className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg shadow-primary/20"><Download className="w-5 h-5"/>Download Template</button>
+                          <button 
+                            onClick={handleDownloadTemplate} 
+                            disabled={generatingTemplate}
+                            className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg shadow-primary/20 disabled:opacity-50"
+                          >
+                            {generatingTemplate ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5"/>}
+                            {generatingTemplate ? 'Menyiapkan...' : 'Download Template'}
+                          </button>
                         </div>
                       ) : (
                         <div className="space-y-4">

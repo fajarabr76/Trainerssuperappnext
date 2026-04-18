@@ -19,11 +19,23 @@ import {
 import type { Agent, AgentDetailData } from '../../lib/qa-types';
 import { useAgentDetail } from './hooks/useAgentDetail';
 
-// Components
+import nextDynamic from 'next/dynamic';
+
+const AgentTrendTab = nextDynamic(() => import('./components/AgentTrendTab'), {
+  loading: () => <TabSkeleton />,
+  ssr: false,
+});
+
+const AgentTemuanTab = nextDynamic(() => import('./components/AgentTemuanTab'), {
+  loading: () => <TabSkeleton />,
+  ssr: false,
+});
+
+const EditTemuanModal = nextDynamic(() => import('./components/EditTemuanModal'), {
+  ssr: false,
+});
+
 import { YearSelector } from '../../dashboard/components/YearSelector';
-import AgentTrendTab from './components/AgentTrendTab';
-import AgentTemuanTab from './components/AgentTemuanTab';
-import { EditTemuanModal } from './components/EditTemuanModal';
 import QaStatePanel from '../../components/QaStatePanel';
 
 function TabSkeleton() {
@@ -347,8 +359,8 @@ export default function QaAgentDetailClient({
                       {selectedScore && selectedPeriod && (
                         <div className="space-y-8">
                           {/* Score Card */}
-                          <div className="bg-card/40 backdrop-blur-sm rounded-[2.5rem] border border-border/50 p-10 relative overflow-hidden group shadow-2xl shadow-primary/5">
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full -mr-32 -mt-32 blur-[100px] group-hover:bg-primary/20 transition-all duration-1000" />
+                          <div className="bg-card/40 backdrop-blur-sm rounded-[2rem] md:rounded-[2.5rem] border border-border/50 p-6 md:p-10 relative overflow-hidden group shadow-xl md:shadow-2xl shadow-primary/5">
+                            <div className="absolute top-0 right-0 w-48 h-48 md:w-64 md:h-64 bg-primary/10 rounded-full -mr-24 -mt-24 md:-mr-32 md:-mt-32 blur-[50px] md:blur-[100px] group-hover:bg-primary/20 transition-all duration-1000" />
                             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-10 relative z-10">
                               <div>
                                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mb-4">
@@ -426,9 +438,9 @@ export default function QaAgentDetailClient({
                                 initial={{ opacity: 0, y: 30 }} 
                                 animate={{ opacity: 1, y: 0 }} 
                                 exit={{ opacity: 0, y: -30 }}
-                                className="group relative bg-indigo-600 rounded-[2.5rem] p-10 text-white overflow-hidden shadow-2xl shadow-indigo-600/30"
+                                className="group relative bg-indigo-600 rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 text-white overflow-hidden shadow-xl md:shadow-2xl shadow-indigo-600/30"
                               >
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-[100px]" />
+                                <div className="absolute top-0 right-0 w-48 h-48 md:w-64 md:h-64 bg-white/10 rounded-full -mr-24 -mt-24 md:-mr-32 md:-mt-32 blur-[50px] md:blur-[100px]" />
                                 <div className="absolute -right-8 -bottom-8 opacity-[0.05] rotate-12"><Zap className="w-64 h-64" /></div>
                                 
                                 <div className="flex items-center gap-4 mb-8">

@@ -103,10 +103,9 @@ export default function AgentDirectoryClient({
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: Math.min(i, 8) * 0.02, duration: 0.28 }}
                 onClick={() => router.push(`/qa-analyzer/agents/${agent.id}`)}
-                className="group relative bg-card/40 backdrop-blur-sm border border-border/50 rounded-[2rem] p-6 hover:shadow-3xl hover:shadow-primary/10 hover:border-primary/30 transition-all duration-500 cursor-pointer overflow-hidden"
+                className="group relative bg-card/40 backdrop-blur-sm border border-border/50 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-6 hover:shadow-2xl md:hover:shadow-3xl hover:shadow-primary/10 hover:border-primary/30 transition-all duration-500 cursor-pointer overflow-hidden"
               >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-primary/20 transition-all duration-700"/>
-                
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl md:blur-3xl -mr-16 -mt-16 group-hover:bg-primary/20 transition-all duration-700"/>
                 <div className="flex items-start justify-between mb-8 relative z-10">
                   <div className="w-16 h-16 rounded-2xl bg-foreground/5 p-0.5 border border-border/50 group-hover:border-primary/30 transition-all duration-500 overflow-hidden shadow-inner flex items-center justify-center">
                       {agent.foto_url ? (

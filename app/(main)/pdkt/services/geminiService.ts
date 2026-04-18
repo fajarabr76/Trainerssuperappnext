@@ -249,7 +249,13 @@ export const initializeEmailSession = async (
 };
 
 // ── Evaluate Agent Response ──────────────────────────────────
-export const evaluateAgentResponse = async (agentReplyBody: string, consumerContext: string): Promise<EvaluationResult> => {
+export const evaluateAgentResponse = async (
+  agentReplyBody: string, 
+  consumerContext: string,
+  modelId?: string
+): Promise<EvaluationResult> => {
+  const normalizedModel = normalizeModelId(modelId || "gemini-3.1-flash-lite-preview");
+  
   const evaluationPrompt = `
     Anda sekarang bertindak sebagai EDITOR BAHASA & SUPERVISOR CONTACT CENTER OJK.
     
@@ -286,30 +292,58 @@ export const evaluateAgentResponse = async (agentReplyBody: string, consumerCont
     }
   `;
 
-  try {
-    const response = await generateGeminiContent({
-      model: "gemini-3.1-flash-lite-preview",
-      contents: [{ role: 'user', parts: [{ text: evaluationPrompt }] }],
-      responseMimeType: "application/json"
-    });
+  let lastError: any;
+  const MAX_RETRIES = 3;
 
-    if (!response.success) throw new Error(response.error);
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const response = await callAI({
+        model: normalizedModel,
+        prompt: evaluationPrompt,
+        systemInstruction: "Anda adalah supervisor QA yang memberikan penilaian objektif dalam format JSON.",
+        responseMimeType: "application/json",
+        temperature: 0.2 // Lower temperature for more consistent evaluation
+      });
 
-    const evalText = response.text || "{}";
-    const result = parseJsonFromModelText(evalText);
+      if (!response.success) {
+        throw new Error(response.error || "Gagal mendapatkan respons dari AI.");
+      }
 
-    return {
-      score: result.score || 0,
-      typos: result.typos || [],
-      clarityIssues: result.clarityIssues || [],
-      contentGaps: result.contentGaps || [],
-      feedback: result.feedback || "Tidak ada masukan."
-    };
+      const evalText = response.text || "{}";
+      const result = parseJsonFromModelText(evalText);
 
-  } catch (error) {
-    console.error("[PDKT] Error evaluating via Server Action:", error);
-    throw error;
+      return {
+        score: result.score ?? 0,
+        typos: result.typos || [],
+        clarityIssues: result.clarityIssues || [],
+        contentGaps: result.contentGaps || [],
+        feedback: result.feedback || "Tidak ada masukan."
+      };
+
+    } catch (error) {
+      lastError = error;
+      console.warn(`[PDKT Evaluate] Attempt ${attempt} failed:`, error);
+      
+      // Only retry on potential transient errors
+      const isTransient = attempt < MAX_RETRIES && (
+        error instanceof Error && (
+          error.message.includes('429') || 
+          error.message.includes('500') || 
+          error.message.includes('503') || 
+          error.message.includes('timeout') ||
+          error.message.includes('fetch failed')
+        )
+      );
+
+      if (!isTransient) break;
+      
+      // Exponential backoff: 1s, 2s
+      await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+    }
   }
+
+  console.error("[PDKT] Error evaluating via Server Action after retries:", lastError);
+  throw lastError;
 };
 
 export const replyToEmail = async (_agentReplyBody: string): Promise<EmailMessage> => {

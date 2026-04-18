@@ -140,7 +140,7 @@ export default function QaDashboardClient({
           </div>
         </div>
 
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1200px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none opacity-50" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1200px] h-[300px] md:h-[500px] bg-primary/5 rounded-full blur-[60px] md:blur-[120px] pointer-events-none opacity-40 md:opacity-50" />
         
         <div className="p-8 lg:p-12 w-full max-w-[1600px] mx-auto relative z-10">
           <header className="mb-12">

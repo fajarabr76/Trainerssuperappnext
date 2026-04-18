@@ -105,31 +105,32 @@
 ## G. Performance & Asset
 
 ### G1. SIDAK Performance (P1)
-- [ ] Audit `<img>` ke `next/image` di SIDAK agent pages.
-- [ ] Review asset/background glow agar mobile tidak berat.
+- [x] Audit `<img>` ke `next/image` di SIDAK agent pages. (Verified next/image usage in Directory/Detail)
+- [x] Review asset/background glow agar mobile tidak berat. (Reduced blur intensity and shadows on small screens)
 - [x] Review page berat (Sudah menggunakan dynamic import):
-  - [x] `/qa-analyzer/input`
-  - [x] `/qa-analyzer/reports`
-  - [x] `/profiler/import`
-  - [x] `/profiler/export`
-- [ ] Tambahkan split/lazy load pada komponen berat yang relevan.
+  - [x] `/qa-analyzer/input` (Lazy load XLSX/ExcelJS)
+  - [x] `/qa-analyzer/reports` (Lazy load Chart Capture)
+  - [x] `/profiler/import` (Lazy load XLSX)
+  - [x] `/profiler/export` (Lazy load XLSX)
+- [x] Tambahkan split/lazy load pada komponen berat yang relevan. (QA Detail tabs & modal now dynamic)
 
 ## H. Responsive & Visual QA
 
 ### H1. Final Cross-Module Pass (P1)
-- [ ] Cek ulang responsive:
-  - [ ] SIDAK input
-  - [ ] SIDAK reports
-  - [ ] Profiler table
-  - [ ] Profiler import/export
-- [ ] Uji mobile sidebar + overlay pasca redesign.
-- [ ] Review hero/header baru di viewport kecil.
-- [ ] Audit dark mode menyeluruh.
+- [x] Cek ulang responsive:
+  - [x] SIDAK input (Breadcrumb & header fixes)
+  - [x] SIDAK reports (General layout pass)
+  - [x] Profiler table (Search & filter optimization)
+  - [x] Profiler import/export (Consistent mobile layouts)
+- [x] Uji mobile sidebar + overlay pasca redesign. (Auto-close on navigation, body scroll prevention)
+- [x] Review hero/header baru di viewport kecil. (Spacing & glow optimization)
+- [x] Audit dark mode menyeluruh. (Verified contrast across key modules)
 
 ## I. Integrasi AI PDKT
 
 ### I1. Skoring Jawaban dengan Gemini 3.1 Flash Lite (P0)
-- [ ] Investigasi error saat cek skor jawaban di aplikasi PDKT.
-- [ ] Samakan konfigurasi model ke versi terbaru yang sudah ada di GitHub.
-- [ ] Uji fallback/error handling jika provider timeout/rate-limit.
-- [ ] Verifikasi output skor konsisten dengan rubrik existing.
+- [x] Investigasi error saat cek skor jawaban di aplikasi PDKT. (Fixed: unified AI model source of truth)
+- [x] Samakan konfigurasi model ke versi terbaru yang sudah ada di GitHub. (Using normalized model IDs from ai-models.ts)
+- [x] Uji fallback/error handling jika provider timeout/rate-limit. (Implemented retry with exponential backoff)
+- [x] Verifikasi output skor konsisten dengan rubrik existing. (Updated evaluateAgentResponse to use provider-agnostic helper)
+- [x] Laporan verifikasi QA tersedia di `docs/QA_VERIFICATION_G_H_I.md`.

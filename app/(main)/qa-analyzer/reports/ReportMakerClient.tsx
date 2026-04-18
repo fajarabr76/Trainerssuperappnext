@@ -10,7 +10,7 @@ import type { ParetoData, CriticalVsNonCriticalData } from '../lib/qa-types';
 import type { ReportAiModelOption } from './lib/report-models';
 import { modelProviderLabel } from './lib/report-models';
 import QaStatePanel from '../components/QaStatePanel';
-import ReportChartCapture, { type ReportChartCaptureHandle } from './components/ReportChartCapture';
+import nextDynamic from 'next/dynamic';
 import {
   checkReportRateLimitAction,
   preflightServiceReportChartsAction,
@@ -19,6 +19,11 @@ import {
   markReportDownloadedAction,
 } from './actions/report-actions';
 import { ReportWarningModal } from './components/ReportWarningModal';
+import { type ReportChartCaptureHandle } from './components/ReportChartCapture';
+
+const ReportChartCapture = nextDynamic(() => import('./components/ReportChartCapture'), {
+  ssr: false,
+});
 
 const SERVICE_TYPES = Object.keys(SERVICE_LABELS) as ServiceType[];
 

@@ -72,7 +72,22 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
   useEffect(() => {
     setMounted(true);
     if (pathname?.startsWith('/qa-analyzer')) setIsQaExpanded(true);
-  }, [pathname]);
+    
+    // Close mobile menu on route change
+    if (isMobileMenuOpen && setIsMobileMenuOpen) {
+      setIsMobileMenuOpen(false);
+    }
+  }, [pathname, isMobileMenuOpen, setIsMobileMenuOpen]);
+
+  // Prevent background scroll when mobile sidebar is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isMobileMenuOpen]);
 
   const navItemClass = (active: boolean) =>
     `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-300 ${
@@ -81,14 +96,23 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
 
   return (
     <>
-      {isMobileMenuOpen && setIsMobileMenuOpen && (
-        <div className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden" onClick={() => setIsMobileMenuOpen(false)} />
-      )}
+      {/* Mobile Overlay (Higher Z-Index) */}
+      <AnimatePresence>
+        {isMobileMenuOpen && setIsMobileMenuOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm lg:hidden" 
+            onClick={() => setIsMobileMenuOpen(false)} 
+          />
+        )}
+      </AnimatePresence>
 
       <aside
         onMouseEnter={() => isSidebarCollapsed && setIsSidebarHovered(true)}
         onMouseLeave={() => setIsSidebarHovered(false)}
-        className={`${effectiveIsCollapsed ? 'w-20' : 'w-76'} relative z-50 shrink-0 border-r border-border/40 bg-card/55 backdrop-blur-2xl transition-all duration-500 ease-in-out lg:z-20 ${isMobileMenuOpen ? 'fixed inset-y-0 left-0 flex translate-x-0' : 'fixed inset-y-0 left-0 hidden -translate-x-full lg:static lg:flex lg:translate-x-0'}`}
+        className={`${effectiveIsCollapsed ? 'w-20' : 'w-76'} relative z-50 shrink-0 border-r border-border/40 bg-card/55 backdrop-blur-2xl transition-all duration-500 ease-in-out lg:z-20 ${isMobileMenuOpen ? 'fixed inset-y-0 left-0 flex translate-x-0 z-[70]' : 'fixed inset-y-0 left-0 hidden -translate-x-full lg:static lg:flex lg:translate-x-0'}`}
       >
         <div className="flex flex-1 flex-col overflow-hidden p-6">
           <div className={`mb-8 flex items-center overflow-hidden ${effectiveIsCollapsed ? 'justify-center' : 'justify-between'}`}>

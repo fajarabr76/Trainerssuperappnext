@@ -889,8 +889,25 @@ export default function ProfilerTableClient({
         </div>
 
         {/* ── Search & Filter ── */}
-        <div className="flex flex-col md:flex-row gap-4">
-          {/* ... (existing search/filter code) ... */}
+        <div className="flex flex-col md:flex-row gap-4 items-stretch">
+          <div className="relative flex-1 group">
+            <Inbox className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+            <input
+              type="text"
+              placeholder="Cari nama, NIP, atau email..."
+              className="w-full pl-11 pr-4 py-3 bg-card border border-border/40 rounded-2xl text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-muted rounded-lg transition-colors"
+              >
+                <X className="w-3.5 h-3.5 text-muted-foreground" />
+              </button>
+            )}
+          </div>
         </div>
 
         {feedback && (
