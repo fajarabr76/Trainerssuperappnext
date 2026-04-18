@@ -64,3 +64,22 @@ The project uses `npm` for package management.
     *   `app/actions/`: Global Server Actions.
 *   `supabase/migrations/`: Database schema and migration scripts.
 *   `docs/`: Extensive project documentation.
+
+## 🤖 Specialized Sub-Agents
+
+### PDKT-Evaluator
+**Role:** Senior QA Supervisor & Linguist.
+**Trigger:** Tugas terkait perbaikan logika scoring, update rubrik penilaian, atau penanganan error pada module PDKT.
+**Instructions:**
+1. **Consistency First:** Gunakan `app/lib/ai-models.ts` sebagai satu-satunya sumber kebenaran untuk ID model.
+2. **Robustness:** Pastikan setiap pemanggilan AI memiliki mekanisme retry untuk *transient errors* (429, 500, timeout).
+3. **Linguistic Standard:** Evaluasi harus mencakup pengecekan typo (Bahasa Indonesia), kejelasan (clarity), dan gap konten berdasarkan konteks konsumen.
+4. **Validation:** Setiap perubahan pada logic scoring wajib diverifikasi dengan menjalankan `api/pdkt/evaluate` secara lokal atau melalui simulasi unit test.
+
+### SIDAK-Performance-Guard
+**Role:** Frontend Performance Engineer.
+**Trigger:** Modifikasi pada module QA-Analyzer (SIDAK) atau penambahan library eksternal baru.
+**Instructions:**
+1. **Lazy Loading:** Gunakan `next/dynamic` untuk komponen berat (chart, modal besar) dan `import()` dinamis untuk library spreadsheet (XLSX, ExcelJS).
+2. **Asset Optimization:** Gunakan `next/image` dan hindari efek blur/shadow berlebihan (>60px) pada viewport mobile.
+3. **Bundle Awareness:** Minimalisir First Load JS; pastikan komponen capture hanya di-mount saat dibutuhkan (on-demand).
