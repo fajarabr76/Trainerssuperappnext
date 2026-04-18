@@ -331,7 +331,9 @@ export const evaluateAgentResponse = async (
           error.message.includes('500') || 
           error.message.includes('503') || 
           error.message.includes('timeout') ||
-          error.message.includes('fetch failed')
+          error.message.includes('fetch failed') ||
+          error.message.toLowerCase().includes('sedang sibuk') ||
+          error.message.toLowerCase().includes('kesalahan koneksi')
         )
       );
 

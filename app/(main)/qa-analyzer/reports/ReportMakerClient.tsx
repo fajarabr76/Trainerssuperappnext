@@ -485,12 +485,14 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
         </div>
       </div>
 
-      <ReportChartCapture
-        ref={captureRef}
-        paretoData={chartData.paretoData}
-        donutData={chartData.donutData}
-        trendPoints={chartData.trendPoints}
-      />
+      {loading && (
+        <ReportChartCapture
+          ref={captureRef}
+          paretoData={chartData.paretoData}
+          donutData={chartData.donutData}
+          trendPoints={chartData.trendPoints}
+        />
+      )}
 
       <ReportWarningModal 
         isOpen={showWarning} 
