@@ -143,7 +143,7 @@ const getSystemInstruction = (config: SessionConfig, hasCustomImages: boolean) =
   `;
 };
 
-export type InitializeEmailSessionResult =
+type InitializeEmailSessionResult =
   | { success: true; message: EmailMessage }
   | { success: false; error: string };
 

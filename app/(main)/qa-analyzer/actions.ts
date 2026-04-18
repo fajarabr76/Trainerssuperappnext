@@ -233,56 +233,6 @@ export async function deleteIndicatorAction(id: string) {
   revalidateTag('indicators');
 }
 
-export async function createTemuanAction(
-  peserta_id: string,
-  period_id: string,
-  temuan: {
-    indicator_id: string;
-    no_tiket?: string;
-    nilai: number;
-    ketidaksesuaian?: string;
-    sebaiknya?: string;
-    service_type: ServiceType;
-  }
-) {
-  const { createClient } = await import('@/app/lib/supabase/server');
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Tidak terautentikasi');
-
-  // RBAC Check for mutation
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
-  if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
-    throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
-  }
-
-  const { data, error } = await supabase
-    .from('qa_temuan')
-    .insert({ peserta_id, period_id, ...temuan })
-    .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
-    .single();
-  if (error) throw error;
-  
-  // Log Activity
-  await supabase.from('activity_logs').insert({
-    user_id: user.id,
-    user_name: user.email,
-    action: `Input Temuan SIDAK untuk Peserta ID: ${peserta_id}`,
-    module: 'SIDAK',
-    type: 'add'
-  });
-
-  revalidateQaTemuanCaches(peserta_id);
-  return data;
-}
-
 export async function createTemuanBatchAction(
   peserta_id: string,
   period_id: string,
@@ -521,89 +471,9 @@ export async function createPerfectScoreSessionAction(
   return data ?? [];
 }
 
-export async function getDashboardDataAction(service: string, folderIds: string[], year: number, startMonth: number, endMonth: number): Promise<DashboardData> {
-  const { qaServiceServer } = await import('./services/qaService.server');
-  const { profilerServiceServer } = await import('../profiler/services/profilerService.server');
-  
-  // Re-fetch context and common metadata
-  const [periods, indicators, availableYears, foldersData] = await Promise.all([
-    qaServiceServer.getPeriods(),
-    qaServiceServer.getIndicators(service),
-    qaServiceServer.getAvailableYears(),
-   profilerServiceServer.getFolders()
-  ]);
-  
-  const context = { periods, indicators };
-
-   const [periodData, trendData] = await Promise.all([
-     qaServiceServer.getDashboardRangeData(service, folderIds, context, year, startMonth, endMonth),
-     qaServiceServer.getDashboardRangeTrendData(service, folderIds, context, year, startMonth, endMonth)
-   ]);
-   
-   if (!periodData || !trendData) {
-     throw new Error('Gagal mengambil data dashboard.');
-   }
- 
-   return {
-     periods,
-     availableYears,
-     currentYear: year,
-     folders: foldersData
-        .map((f: any) => ({
-          id: typeof f === 'string' ? f : f.name,
-          name: typeof f === 'string' ? f : f.name
-        }))
-        .filter((f: any) => !EXCLUDED_FOLDERS.some(ef => ef.toLowerCase() === f.name.toLowerCase())),
-     summary: periodData.summary,
-     serviceData: periodData.serviceData,
-     topAgents: periodData.topAgents,
-     paretoData: periodData.paretoData,
-     donutData: periodData.donutData,
-     paramTrend: trendData.paramTrend,
-     sparklines: trendData.sparklines
-   };
-}
-
-export async function getTrendByRangeAction(
-  service: string,
-  folderIds: string[],
-  year: number,
-  startMonth: number,
-  endMonth: number
-) {
-  const { qaServiceServer } = await import('./services/qaService.server');
-  
-  // Re-fetch context for accuracy and cache consistency
-  const [periods, indicators] = await Promise.all([
-    qaServiceServer.getPeriods(),
-    qaServiceServer.getIndicators(service)
-  ]);
-  
-  const context = { periods, indicators };
-  
-  return await qaServiceServer.getDashboardRangeTrendData(
-    service, 
-    folderIds, 
-    context, 
-    year, 
-    startMonth, 
-    endMonth
-  );
-}
-
-export async function getAvailableYearsAction() {
-  const { qaServiceServer } = await import('./services/qaService.server');
-  return await qaServiceServer.getAvailableYears();
-}
-
 export async function getAgentPeriodsAction(agentId: string, year: number) {
   const { qaServiceServer } = await import('./services/qaService.server');
   return await qaServiceServer.getAgentPeriodSummaries(agentId, year);
-}
-
-export async function getAgentTemuanAction(agentId: string, year: number, page: number) {
-  const { qaServiceServer } = await import('./services/qaService.server');
-  return await qaServiceServer.getAgentWithTemuan(agentId, year, page);
 }
 
 export async function getAgentTemuanPageAction(

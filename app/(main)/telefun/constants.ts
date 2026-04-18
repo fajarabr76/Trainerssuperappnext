@@ -88,14 +88,4 @@ export const AI_MODELS = [
   { id: 'gemini-2.5-flash-native-audio-preview-12-2025', name: 'Gemini 2.5 Flash Audio', description: 'Model audio native dengan latensi rendah.' },
 ];
 
-export const DUMMY_CITIES = [
-  'Jakarta', 'Surabaya', 'Bandung', 'Medan', 'Semarang', 'Makassar', 'Palembang', 'Tangerang', 'Depok', 'Bekasi'
-];
 
-export const DUMMY_MALE_NAMES = [
-  'Budi', 'Agus', 'Eko', 'Dedi', 'Hendra', 'Iwan', 'Joko', 'Rudi', 'Yudi', 'Adi'
-];
-
-export const DUMMY_FEMALE_NAMES = [
-  'Siti', 'Ani', 'Dewi', 'Rina', 'Sri', 'Wati', 'Yanti', 'Lina', 'Nur', 'Eka'
-];

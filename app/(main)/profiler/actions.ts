@@ -117,21 +117,7 @@ export async function createFolder(name: string, yearId: string | null = null, p
   return data;
 }
 
-export async function updateFolder(id: string, patch: { name?: string; year_id?: string; parent_id?: string }) {
-  const _user = await validateRole();
-  const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from('profiler_folders')
-    .update(patch)
-    .eq('id', id)
-    .select()
-    .single();
-  if (error) throw error;
-  invalidateFoldersCache();
-  revalidatePath('/profiler');
-  return data;
-}
 
 export async function renameBatch(oldName: string, newName: string) {
   await validateRole();
@@ -402,15 +388,7 @@ export async function getGlobalPesertaPool(excludeBatch: string) {
   return data || [];
 }
 
-export async function getTimList() {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('profiler_tim_list')
-    .select('nama')
-    .order('created_at');
-  if (error) throw error;
-  return (data || []).map(d => d.nama);
-}
+
 
 export async function addTim(nama: string) {
   await validateRole();

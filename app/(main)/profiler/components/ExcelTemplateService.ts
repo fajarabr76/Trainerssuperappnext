@@ -1,6 +1,6 @@
 'use client';
 
-import { labelJabatan } from '../services/profilerService';
+import { labelJabatan } from '../lib/profiler-types';
 
 export const ExcelTemplateService = {
   generateTemplate: async (batchName: string, timList: string[]) => {

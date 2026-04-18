@@ -420,7 +420,7 @@ export default function QaInputClient({
       const agent = agents.find(a => a.id === ap);
       if (agent) setSelectedAgent(agent);
     }
-  }, [searchParams, agents]);
+  }, [searchParams, agents, selectedAgent]);
 
   const handleSelectFolder = async (folder: string) => {
     setSelectedFolder(folder); setSelectedAgent(null); setSelectedPeriod(null); setTemuan([]); setLoading(true);

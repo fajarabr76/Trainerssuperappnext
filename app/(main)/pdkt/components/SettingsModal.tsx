@@ -75,7 +75,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
         setEditingConsumerId(null);
         setIsAddingConsumer(false);
     }
-  }, [isOpen, settings]);
+  }, [isOpen, settings, defaultModelId]);
 
   if (!isOpen) return null;
 

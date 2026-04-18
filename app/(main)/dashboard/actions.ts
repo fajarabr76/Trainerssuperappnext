@@ -10,6 +10,4 @@ export async function getDashboardTrendByRangeAction(
   return await qaServiceServer.getServiceTrendForDashboardByRange(year, startMonth, endMonth);
 }
 
-export async function getAvailableYearsAction() {
-  return await qaServiceServer.getAvailableYears();
-}
+

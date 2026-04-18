@@ -2,8 +2,19 @@ import React from 'react';
 import { Metadata } from 'next';
 import { createClient } from '@/app/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { profilerServiceServer } from '../services/profilerService.server';
-import ProfilerImportClient from './components/ProfilerImportClient';
+
+const ProfilerImportClient = dynamic(() => import('./components/ProfilerImportClient'), {
+  loading: () => (
+    <div className="flex h-screen items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="text-sm font-medium text-muted-foreground">Memuat alat impor...</p>
+      </div>
+    </div>
+  )
+});
 
 export const metadata: Metadata = {
   title: 'Import Profiler | Trainers SuperApp',

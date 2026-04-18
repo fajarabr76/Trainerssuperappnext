@@ -1,6 +1,6 @@
 import { Scenario, ConsumerType, ConsumerDifficulty } from '@/app/types';
 
-export const mergeWithDefaults = <T extends { id: string; isCustom?: boolean; description?: string }>(
+const mergeWithDefaults = <T extends { id: string; isCustom?: boolean; description?: string }>(
   stored: T[],
   defaults: T[]
 ): T[] => {

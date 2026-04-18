@@ -300,7 +300,7 @@ export interface TrendPoint {
 }
 
 // ── Constants ─────────────────────────────────────────────────
-export const MAX_SAMPLING = 5;
+const MAX_SAMPLING = 5;
 
 export const NILAI_LABELS: Record<number, string> = {
   0: 'Sangat Tidak Sesuai',

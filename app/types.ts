@@ -1,8 +1,7 @@
 export enum ConsumerDifficulty {
   Easy = 'Mudah',
   Medium = 'Sedang',
-  Hard = 'Sulit',
-  Random = 'Random'
+  Hard = 'Sulit'
 }
 
 export interface Identity {

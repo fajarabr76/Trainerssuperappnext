@@ -1,9 +1,20 @@
 import { createClient } from '@/app/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import ReportMakerClient from './ReportMakerClient';
+import nextDynamic from 'next/dynamic';
 import { getReportAiModelOptions } from './lib/report-models';
 import { qaServiceServer } from '../services/qaService.server';
 import { EXCLUDED_FOLDERS } from '../lib/qa-types';
+
+const ReportMakerClient = nextDynamic(() => import('./ReportMakerClient'), {
+  loading: () => (
+    <div className="flex h-screen items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="text-sm font-medium text-muted-foreground">Memuat Report Maker...</p>
+      </div>
+    </div>
+  )
+});
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;

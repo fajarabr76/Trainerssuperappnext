@@ -36,7 +36,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   const [editingConsumerId, setEditingConsumerId] = useState<string | null>(null);
   const [newConsumerName, setNewConsumerName] = useState('');
   const [newConsumerDesc, setNewConsumerDesc] = useState('');
-  const [newConsumerDifficulty, setNewConsumerDifficulty] = useState<ConsumerDifficulty>(ConsumerDifficulty.Random);
+  const [newConsumerDifficulty, setNewConsumerDifficulty] = useState<ConsumerDifficulty>(ConsumerDifficulty.Medium);
 
   // Identity Form State
   const handleIdentityChange = (field: string, value: string) => {
@@ -61,7 +61,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
       setEditingScenarioId(null);
       setEditingConsumerId(null);
     }
-  }, [isOpen, settings]);
+  }, [isOpen, settings, defaultModelId]);
 
   const handleClose = () => {
     onClose();
@@ -220,7 +220,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     setEditingConsumerId(null);
     setNewConsumerName('');
     setNewConsumerDesc('');
-    setNewConsumerDifficulty(ConsumerDifficulty.Random);
+    setNewConsumerDifficulty(ConsumerDifficulty.Medium);
   };
 
   const handleAddConsumerClick = () => {
@@ -768,7 +768,6 @@ Akhir:
                                     <option value={ConsumerDifficulty.Easy}>Mudah</option>
                                     <option value={ConsumerDifficulty.Medium}>Sedang</option>
                                     <option value={ConsumerDifficulty.Hard}>Sulit</option>
-                                    <option value={ConsumerDifficulty.Random}>Random</option>
                                 </select>
                                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
                                   <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
