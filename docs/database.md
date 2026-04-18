@@ -27,7 +27,7 @@ Menyimpan data profil user yang terintegrasi dengan `auth.users`.
 - `created_at` (Timestamptz): Timestamp pendaftaran akun.
 - `is_deleted` (Boolean): Flag untuk soft delete akun.
 
-**Penting:** Tabel ini **TIDAK** memiliki kolom `avatar_url` atau `updated_at`. Seluruh kueri ke tabel ini wajib menggunakan konstanta `PROFILE_FIELDS` dari `app/lib/authz.ts` untuk mencegah *query failure* akibat kolom yang tidak ada.
+**Penting:** Tabel ini **TIDAK** memiliki kolom `avatar_url` atau `updated_at`. Gunakan konstanta `PROFILE_FIELDS` dari `app/lib/authz.ts` untuk canonical auth profile read. Untuk kueri feature-specific, pilih subset kolom yang memang diperlukan, tetapi tetap batasi hanya pada field yang benar-benar ada di skema ini agar tidak terjadi *query failure*.
 
 ### 2. `public.results`
 Menyimpan hasil simulasi dari modul Ketik, PDKT, dan Telefun.

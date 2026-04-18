@@ -42,7 +42,7 @@ The project uses `npm` for package management.
 ### Code Quality Commands
 *   **Linting:** `npm run lint`
 *   **Fix Lint Errors:** `npm run lint:fix`
-*   **Type Checking:** `npm run type-check` (runs `tsc --noEmit`)
+*   **Type Checking:** `npm run type-check` (runs `next build --no-lint` to validate compile, type checks, and route build behavior)
 
 ## 💻 Development Conventions
 
@@ -88,6 +88,7 @@ The project uses `npm` for package management.
 **Role:** Security & Auth Architect.
 **Trigger:** Perubahan pada `app/lib/authz.ts`, `middleware.ts`, atau kueri ke tabel `profiles`.
 **Instructions:**
-1. **Strict Select:** Selalu gunakan `PROFILE_FIELDS` dari `app/lib/authz.ts` saat melakukan kueri `select` ke tabel `profiles`. Jangan menambahkan kolom manual tanpa memverifikasi skema database.
+1. **Strict Select:** Gunakan `PROFILE_FIELDS` dari `app/lib/authz.ts` untuk canonical auth profile read di auth guard, middleware, atau alur lain yang membutuhkan kontrak profil penuh. Untuk kueri feature-specific, pilih kolom minimum yang dibutuhkan, tetapi jangan menambahkan kolom di luar skema database yang terdokumentasi.
 2. **Explicit Recovery:** Pastikan setiap kegagalan pembacaan profil (`profile is null` atau `error`) memicu `signOut()` dan redirect ke `/?auth=login&message=profile-unavailable`.
 3. **Type Sync:** Jaga sinkronisasi antara interface `Profile` di `app/types/auth.ts` dengan skema database asli. Jangan biarkan field "asumsi" (seperti `avatar_url`) masuk ke tipe data utama.
+4. **Refactor Checklist:** Jika mengubah auth flow atau skema `profiles`, sinkronkan `PROFILE_FIELDS`, tipe `Profile`, `docs/database.md`, `docs/auth-rbac.md`, lalu verifikasi dengan `npm run lint`, `npm run type-check`, serta smoke test login untuk state `approved`, `pending`, `rejected`, dan `profile-unavailable`.
