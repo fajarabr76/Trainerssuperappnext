@@ -325,7 +325,7 @@ export default function SettingsClient({ user, profile: initialProfile }: Settin
   );
 }
 
-function X(props: any) {
+function X(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}

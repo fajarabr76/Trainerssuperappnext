@@ -22,7 +22,7 @@ export default function ParamTrendChart({
   hiddenKeys = new Set<string>(),
   hideTotal = false
 }: { 
-  data: { labels: string[], datasets: any[] }, 
+  data: { labels: string[], datasets: TrendDataset[] }, 
   showParameters?: boolean,
   filterLabel?: string,
   hiddenKeys?: Set<string>,
@@ -39,7 +39,7 @@ export default function ParamTrendChart({
   // FIX: Gunakan dataset_{index} sebagai key (bukan ds.label) untuk menghindari
   // Recharts dot-notation bug pada label yang mengandung titik (e.g. "1.1 Greeting")
   const chartData = data.labels.map((label, i) => {
-    const point: any = { name: label };
+    const point: Record<string, number | string> = { name: label };
     data.datasets.forEach((ds, dsIndex) => {
       point[`dataset_${dsIndex}`] = ds.data[i];
     });
@@ -111,7 +111,7 @@ export default function ParamTrendChart({
             );
           })}
           
-          {data.datasets.map((ds: any, i: number) => {
+          {data.datasets.map((ds: TrendDataset, i: number) => {
             if (!ds.isTotal) return null;
             if (hideTotal) return null;
             if (isFiltered && ds.label !== filterLabel) return null;

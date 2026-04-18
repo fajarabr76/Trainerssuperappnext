@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { User } from '@supabase/supabase-js';
 import { Plus, Trash2, CalendarDays, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { QAPeriod } from '../lib/qa-types';
@@ -17,7 +18,7 @@ const currentYear = new Date().getFullYear();
 const YEAR_OPTIONS = [currentYear - 1, currentYear, currentYear + 1];
 
 interface QaPeriodsClientProps {
-  user: any;
+  user: User;
   role: string;
   initialPeriods: QAPeriod[];
 }
@@ -41,8 +42,8 @@ export default function QaPeriodsClient({ role, initialPeriods }: QaPeriodsClien
       const created = await createPeriodAction(selectedMonth, selectedYear);
       setPeriods(prev => [created, ...prev]);
       setShowForm(false);
-    } catch (err: any) {
-      setErrorMsg(err.message);
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);
     }
@@ -56,8 +57,8 @@ export default function QaPeriodsClient({ role, initialPeriods }: QaPeriodsClien
       await deletePeriodAction(confirmDelete.id);
       setPeriods(prev => prev.filter(p => p.id !== confirmDelete.id));
       setConfirmDelete(null);
-    } catch (err: any) {
-      setErrorMsg(err.message);
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : String(err));
       setConfirmDelete(null);
     } finally {
       setDeleting(false);

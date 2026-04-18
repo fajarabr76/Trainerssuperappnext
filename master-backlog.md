@@ -121,22 +121,23 @@ Owner default: Product + Engineering
 ## F. Technical Debt
 
 ### F1. Lint & Type Hygiene (P1)
-- [x] Turunkan warning lint global.
+- [x] Turunkan warning lint global. (Semua warning tersisa di SessionTimeoutContext, profiler/actions, dan qa-analyzer/actions sudah bersih 100%)
 - [x] Bersihkan `unused imports`.
 - [x] Bersihkan `unused vars`.
-- [x] Bersihkan `missing exhaustive-deps` (sisa 4 intentional).
+- [x] Bersihkan `missing exhaustive-deps`.
 - [x] Bersihkan `unused expressions`.
 
 ### F2. Type Safety (P1)
 - [x] Kurangi `any` di area prioritas:
-  - [x] auth/layout
-  - [x] dashboard/monitoring/users/settings
-  - [x] shared services
-  - [x] module config/shared UI
+  - [x] auth/layout & SessionTimeoutContext (Ditambahkan User type dari Supabase)
+  - [x] dashboard/monitoring/users/settings (MonitoringClient, SettingsClient, API pdkt/evaluate)
+  - [x] shared services (gemini.ts - bersih dari any)
+  - [x] module config/shared UI (QaSettingsClient, QaPeriodsClient, QaDashboardClient, ParamTrendChart, AgentDirectoryClient, Sidebar, TelefunPage)
+  - [x] QA Server Actions (qa-analyzer/actions.ts - map indicators typed)
 
 ### F3. Code Health (P2)
 - [ ] Audit hook/effect rapuh.
-- [ ] Rapikan dynamic import/interoperability di export/reporting.
+- [x] Rapikan dynamic import/interoperability di export/reporting. (Ditambahkan dynamic import untuk ProfilerExportClient, ReportMakerClient, QaInputClient, ProfilerImportClient)
 - [ ] Audit dead code/shared abstraction yang belum terpakai.
 
 ## G. Performance & Asset
@@ -145,10 +146,11 @@ Owner default: Product + Engineering
 - [ ] Audit `<img>` ke `next/image` di SIDAK agent pages.
 - [ ] Review asset/background glow agar mobile tidak berat.
 - [ ] Review page berat:
-  - [ ] `/qa-analyzer/input`
-  - [ ] `/qa-analyzer/reports`
-  - [ ] `/profiler/import`
-  - [ ] area export/profiler lain bila perlu
+  - [x] `/qa-analyzer/input` (Sekarang menggunakan dynamic import)
+  - [x] `/qa-analyzer/reports` (Sekarang menggunakan dynamic import)
+  - [x] `/profiler/import` (Sekarang menggunakan dynamic import)
+  - [x] `/profiler/export` (Sekarang menggunakan dynamic import)
+- [ ] Tambahkan split/lazy load pada komponen berat yang relevan.
 - [ ] Tambahkan split/lazy load pada komponen berat yang relevan.
 
 ## H. Responsive & Visual QA

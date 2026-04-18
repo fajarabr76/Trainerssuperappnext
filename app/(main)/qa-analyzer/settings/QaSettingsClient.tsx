@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { User } from '@supabase/supabase-js';
 import {
   Settings, Plus, Trash2, Info,
   Pencil, Check, ArrowLeftRight, AlertTriangle, Menu
@@ -35,7 +36,7 @@ interface EditState {
 }
 
 interface QaSettingsClientProps {
-  user: any;
+  user: User;
   role: string;
   initialIndicators: QAIndicator[];
   initialWeights: Record<ServiceType, ServiceWeight>;
@@ -129,8 +130,8 @@ export default function QaSettingsClient({ initialIndicators, initialWeights }: 
       setNewHasNa(false);
       setShowForm(false);
       flash('Parameter berhasil ditambahkan!');
-    } catch (err: any) {
-      setErrorMsg(err.message);
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);
     }
@@ -146,8 +147,8 @@ export default function QaSettingsClient({ initialIndicators, initialWeights }: 
       setWeights(prev => ({ ...prev, [activeTeam]: updated }));
       setEditingWeight(false);
       flash('Bobot kontribusi berhasil diperbarui!');
-    } catch (err: any) {
-      setErrorMsg(err.message);
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : String(err));
     } finally {
       setSavingWeight(false);
     }
@@ -201,8 +202,8 @@ export default function QaSettingsClient({ initialIndicators, initialWeights }: 
       flash(categoryChanged
         ? `Parameter dipindahkan ke ${CAT_LABEL[editState.category]}!`
         : 'Parameter berhasil diperbarui!');
-    } catch (err: any) {
-      setErrorMsg(err.message);
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : String(err));
     } finally {
       setSavingEdit(false);
     }
@@ -217,8 +218,8 @@ export default function QaSettingsClient({ initialIndicators, initialWeights }: 
       setIndicators(prev => prev.filter(i => i.id !== confirmDelete.id));
       setConfirmDelete(null);
       flash('Parameter dihapus.');
-    } catch (err: any) {
-      setErrorMsg(err.message);
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : String(err));
       setConfirmDelete(null);
     } finally {
       setDeleting(false);

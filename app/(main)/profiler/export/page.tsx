@@ -1,9 +1,20 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Metadata } from 'next';
 import { createClient } from '@/app/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { profilerServiceServer } from '../services/profilerService.server';
-import ProfilerExportClient from './components/ProfilerExportClient';
+import dynamic from 'next/dynamic';
+import { Loader2 } from 'lucide-react';
+
+const ProfilerExportClient = dynamic(() => import('./components/ProfilerExportClient'), {
+  loading: () => (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+      <Loader2 className="w-10 h-10 animate-spin text-primary opacity-50" />
+      <p className="text-muted-foreground animate-pulse font-medium">Memuat fitur ekspor data...</p>
+    </div>
+  ),
+  ssr: false,
+});
 
 export const metadata: Metadata = {
   title: 'Download Profiler | Trainers SuperApp',
@@ -53,11 +64,13 @@ export default async function ProfilerExportPage({
   }
 
   return (
-    <ProfilerExportClient
-      initialPeserta={peserta}
-      initialYears={years}
-      initialFolders={folders}
-      batchName={batchName}
-    />
+    <Suspense fallback={null}>
+      <ProfilerExportClient
+        initialPeserta={peserta}
+        initialYears={years}
+        initialFolders={folders}
+        batchName={batchName}
+      />
+    </Suspense>
   );
 }

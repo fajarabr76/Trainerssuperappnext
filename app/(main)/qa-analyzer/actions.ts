@@ -3,7 +3,7 @@
 import { createClient } from '@/app/lib/supabase/server';
 import {
   ServiceType, Category, ScoringMode, ServiceWeight, DEFAULT_SERVICE_WEIGHTS,
-  DashboardData, TopAgentData, ExportData, EXCLUDED_FOLDERS
+  TopAgentData, ExportData
 } from './lib/qa-types';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import {
@@ -434,7 +434,7 @@ export async function createPerfectScoreSessionAction(
   const phantomBatchId = crypto.randomUUID();
   const PADDING_COUNT = 5;
   const insertData = Array.from({ length: PADDING_COUNT }).flatMap((_, sessionIdx) =>
-    inds.map((ind: any) => ({
+    inds.map((ind: { id: string }) => ({
       peserta_id,
       period_id,
       indicator_id: ind.id,

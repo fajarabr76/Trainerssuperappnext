@@ -49,3 +49,6 @@ add_qa_temuan_indexes.sql
 qa_temuan_rls_update.sql
 supabase-profiler-schema.sql
 supabase_rbac_setup.sql
+
+# Local Codex plugin config
+.codex-plugin/.mcp.json

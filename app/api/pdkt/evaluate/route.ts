@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/app/lib/supabase/server';
 import { createAdminClient } from '@/app/lib/supabase/admin';
 import { evaluateAgentResponse } from '@/app/(main)/pdkt/services/geminiService';
+import { EmailMessage } from '@/app/(main)/pdkt/types';
 
 export async function POST(request: Request) {
   let historyId: string | null = null;
@@ -65,9 +66,9 @@ export async function POST(request: Request) {
       });
     }
 
-    const emails = Array.isArray(claimedRow.emails) ? claimedRow.emails : [];
-    const lastConsumerEmail = [...emails].reverse().find((email: any) => !email?.isAgent);
-    const lastAgentEmail = [...emails].reverse().find((email: any) => email?.isAgent);
+    const emails = Array.isArray(claimedRow.emails) ? (claimedRow.emails as unknown as EmailMessage[]) : [];
+    const lastConsumerEmail = [...emails].reverse().find((email) => !email?.isAgent);
+    const lastAgentEmail = [...emails].reverse().find((email) => email?.isAgent);
 
     if (!lastConsumerEmail?.body || !lastAgentEmail?.body) {
       throw new Error('Riwayat email tidak lengkap untuk evaluasi.');

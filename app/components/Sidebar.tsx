@@ -21,9 +21,10 @@ import { useTelefunWarning } from '@/app/context/TelefunWarningContext';
 import { useAccessDenied } from '@/app/context/AccessDeniedContext';
 import { useSessionTimeout } from '@/app/context/SessionTimeoutContext';
 import { APP_MODULES, isRoleAllowed, normalizeRoleLabel } from '@/app/lib/app-config';
+import { User } from '@supabase/supabase-js';
 
 interface SidebarProps {
-  user?: any;
+  user?: User | null;
   role?: string;
   isMobileMenuOpen?: boolean;
   setIsMobileMenuOpen?: (isOpen: boolean) => void;

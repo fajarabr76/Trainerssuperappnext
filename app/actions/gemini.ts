@@ -37,52 +37,52 @@ export async function generateGeminiContent(options: {
         responseMimeType: options.responseMimeType,
         responseSchema: options.responseSchema,
         temperature: options.temperature ?? 0.7,
-        responseModalities: options.responseModalities as any,
+        responseModalities: options.responseModalities as string[],
         speechConfig: options.speechConfig,
-      }
-    });
+        }
+        });
+        let response;
+        try {
+        response = await ai.models.generateContent(buildRequest(true));
+        } catch (firstError: unknown) {
+        const err = firstError as { message?: string };
+        const isDeveloperInstructionUnsupported =
+        typeof err?.message === 'string' &&
+        err.message.includes('Developer instruction is not enabled');
 
-    let response;
-    try {
-      response = await ai.models.generateContent(buildRequest(true));
-    } catch (firstError: any) {
-      const isDeveloperInstructionUnsupported =
-        typeof firstError?.message === 'string' &&
-        firstError.message.includes('Developer instruction is not enabled');
-
-      if (!isDeveloperInstructionUnsupported || !options.systemInstruction) {
+        if (!isDeveloperInstructionUnsupported || !options.systemInstruction) {
         throw firstError;
-      }
+        }
 
-      console.warn(
+        console.warn(
         `[Gemini Action] Model "${modelName}" does not support developer instruction. Retrying without systemInstruction.`
-      );
-      response = await ai.models.generateContent(buildRequest(false));
-    }
+        );
+        response = await ai.models.generateContent(buildRequest(false));
+        }
 
-    let audioData: string | undefined;
-    if (response.candidates?.[0]?.content?.parts) {
-      for (const part of response.candidates[0].content.parts) {
+        let audioData: string | undefined;
+        if (response.candidates?.[0]?.content?.parts) {
+        for (const part of response.candidates[0].content.parts) {
         if (part.inlineData) {
           audioData = part.inlineData.data;
           break;
         }
-      }
-    }
+        }
+        }
 
-    return { 
-      success: true,
-      text: response.text,
-      audioData
-    };
-  } catch (error: any) {
-    console.error("Gemini Server Action Error:", error);
-    return { 
-      success: false, 
-      error: error.message || "Failed to generate content" 
-    };
-  }
-}
+        return {
+        success: true,
+        text: response.text(),
+        audioData
+        };
+        } catch (error: unknown) {
+        console.error("[Gemini Action] Error generating content:", error);
+        return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+        };
+        }
+        }
 
 function injectSystemInstructionIntoContents(contents: Content[], systemInstruction?: string): Content[] {
   if (!systemInstruction) return contents;

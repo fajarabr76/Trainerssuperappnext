@@ -5,6 +5,7 @@ import { qaServiceServer } from '../services/qaService.server';
 import { profilerServiceServer } from '../../profiler/services/profilerService.server';
 import { getRankingAgenAction } from '../actions';
 import { SERVICE_LABELS, ServiceType, EXCLUDED_FOLDERS } from '../lib/qa-types';
+import { ProfilerFolder } from '../../profiler/lib/profiler-types';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,11 +42,11 @@ export default async function RankingAgenPage({
   ]);
 
   const folders = foldersData
-    .map((f: any) => ({
-      id: typeof f === 'string' ? f : f.name,
-      name: typeof f === 'string' ? f : f.name
+    .map((f: ProfilerFolder) => ({
+      id: f.name,
+      name: f.name
     }))
-    .filter((f: any) => !EXCLUDED_FOLDERS.some(ef => ef.toLowerCase() === f.name.toLowerCase()));
+    .filter((f) => !EXCLUDED_FOLDERS.some(ef => ef.toLowerCase() === f.name.toLowerCase()));
 
   const serviceTypes = Object.keys(SERVICE_LABELS) as ServiceType[];
   const defaultServiceType = (searchParams?.service as ServiceType) || serviceTypes[0] || 'call';

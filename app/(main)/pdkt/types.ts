@@ -59,6 +59,7 @@ export interface EmailMessage {
   to: string;
   subject: string;
   body: string;
+  content?: string;
   timestamp: Date;
   isAgent: boolean;
   attachments?: string[];

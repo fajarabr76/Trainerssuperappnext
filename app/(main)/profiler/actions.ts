@@ -250,7 +250,7 @@ export async function copyPesertaToFolder(pesertaIds: string[], targetBatch: str
     // Removed ownership check for shared model
 
     const newPeserta = sources.map(s => {
-      const { id, created_at, updated_at, ...rest } = s;
+      const { id: _id, created_at: _created_at, updated_at: _updated_at, ...rest } = s;
       return {
         ...rest,
         batch_name: targetBatch,

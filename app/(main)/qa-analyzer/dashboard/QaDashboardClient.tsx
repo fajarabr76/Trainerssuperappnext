@@ -56,8 +56,8 @@ export default function QaDashboardClient({
   // Trend local state for hiding/showing parameters only
   const [hiddenParams, setHiddenParams] = useState<Set<string>>(() => {
     const labels = initialData.paramTrend?.datasets
-      .filter((ds: any) => !ds.isTotal && ds.label)
-      .map((ds: any) => ds.label as string) || [];
+      .filter((ds: TrendDataset) => !ds.isTotal && ds.label)
+      .map((ds: TrendDataset) => ds.label as string) || [];
     return new Set(labels);
   });
 
@@ -288,7 +288,7 @@ export default function QaDashboardClient({
                   ) : displayData.paramTrend && (
                     <>
                       <div className="flex flex-wrap gap-2 mb-3">
-                        {displayData.paramTrend.datasets.map((ds: any, i: number) => {
+                        {displayData.paramTrend.datasets.map((ds: TrendDataset, i: number) => {
                           if (ds.isTotal) return null;
                           const color = TREND_COLORS[i % TREND_COLORS.length];
                           const isHidden = hiddenParams.has(ds.label);

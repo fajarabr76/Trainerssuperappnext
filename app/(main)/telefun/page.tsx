@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { SettingsModal } from './components/SettingsModal';
 import { HistoryModal } from './components/HistoryModal';
 import { PhoneInterface } from './components/PhoneInterface';
-import { AppSettings } from './types';
+import { AppSettings, Scenario } from './types';
 import { Settings, PhoneCall, History, Play } from 'lucide-react';
 import { loadTelefunSettings, saveTelefunSettings, defaultTelefunSettings } from './services/settingService';
 import { createClient } from '@/app/lib/supabase/client';
@@ -28,7 +28,7 @@ export default function TelefunPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isMaintenanceOpen] = useState(true);
-  const [selectedScenario, setSelectedScenario] = useState<any>(null);
+  const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Load Settings
@@ -57,7 +57,7 @@ export default function TelefunPage() {
     await saveTelefunSettings(newSettings);
   };
 
-  const startCall = (scenario?: any) => {
+  const startCall = (scenario?: Scenario) => {
     const activeScenarios = settings.scenarios.filter(s => s.isActive);
     const finalScenario = scenario || activeScenarios[Math.floor(Math.random() * activeScenarios.length)];
     setSelectedScenario(finalScenario);

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { 
@@ -13,7 +14,7 @@ import type { AgentDirectoryEntry } from "../../lib/qa-types";
 import QaStatePanel from '../../components/QaStatePanel';
 
 interface AgentDirectoryClientProps {
-  user: any;
+  user: User | null;
   role: string;
   initialAgents: AgentDirectoryEntry[];
   initialBatches: string[];

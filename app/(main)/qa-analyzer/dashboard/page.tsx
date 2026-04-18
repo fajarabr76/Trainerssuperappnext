@@ -76,11 +76,11 @@ export default async function QaDashboardPage({
     availableYears,
     currentYear: yearParam,
     folders: foldersData
-      .map((f: any) => ({
-        id: typeof f === 'string' ? f : f.name,
-        name: typeof f === 'string' ? f : f.name
+      .map((f: string) => ({
+        id: f,
+        name: f
       }))
-      .filter((f: any) => !EXCLUDED_FOLDERS.some(ef => ef.toLowerCase() === f.name.toLowerCase())),
+      .filter((f) => !EXCLUDED_FOLDERS.some(ef => ef.toLowerCase() === f.name.toLowerCase())),
     summary: periodData.summary,
     serviceData: periodData.serviceData,
     topAgents: periodData.topAgents,

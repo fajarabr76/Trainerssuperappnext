@@ -69,7 +69,7 @@ const TranscriptModal = ({ isOpen, onClose, result }: { isOpen: boolean, onClose
                     </div>
                 </div>
                 <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/80 whitespace-pre-wrap leading-relaxed">
-                    {email.body || (email as any).content || JSON.stringify(email, null, 2)}
+                    {email.body || email.content || JSON.stringify(email, null, 2)}
                 </div>
             </div>
           )) : (

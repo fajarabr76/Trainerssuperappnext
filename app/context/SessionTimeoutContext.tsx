@@ -6,6 +6,8 @@ import { createClient } from '@/app/lib/supabase/client';
 import { useIdleTimeout } from '@/app/lib/hooks/useIdleTimeout';
 import IdleWarningModal from '@/app/components/IdleWarningModal';
 
+import { User } from '@supabase/supabase-js';
+
 import { 
   AUTH_SESSION_TIMEOUT, 
   AUTH_GRACE_PERIOD_SEC, 
@@ -23,7 +25,7 @@ export const SessionTimeoutProvider: React.FC<{ children: React.ReactNode }> = (
   const supabase = createClient();
   const [showWarning, setShowWarning] = useState(false);
   const [countdown, setCountdown] = useState(AUTH_GRACE_PERIOD_SEC);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const { isIdle, resetTimer } = useIdleTimeout(AUTH_SESSION_TIMEOUT);
@@ -109,7 +111,7 @@ export const SessionTimeoutProvider: React.FC<{ children: React.ReactNode }> = (
         clearInterval(countdownIntervalRef.current);
       }
     };
-  }, [showWarning, signOut]);
+  }, [showWarning, signOut, countdown]);
 
   // Enforce Max Session Lifetime (8 Hours)
   useEffect(() => {
