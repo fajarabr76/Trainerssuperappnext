@@ -11,9 +11,7 @@ export interface Profile {
   status: ProfileStatus;
   is_deleted: boolean;
   full_name?: string | null;
-  avatar_url?: string | null;
   created_at?: string;
-  updated_at?: string;
 }
 
 export interface AuthState {

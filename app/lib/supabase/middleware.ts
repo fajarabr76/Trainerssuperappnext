@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { normalizeRole } from '@/app/lib/authz';
+import { normalizeRole, PROFILE_FIELDS } from '@/app/lib/authz';
 
 export async function updateSession(request: NextRequest) {
   // Guard: if env vars aren't available, pass through instead of crashing
@@ -66,12 +66,16 @@ export async function updateSession(request: NextRequest) {
       // Hanya terapkan gate jika status profile memang terbaca jelas.
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('status, role, is_deleted')
+        .select(PROFILE_FIELDS)
         .eq('id', user.id)
         .maybeSingle();
 
-      if (profileError) {
-        console.warn('[middleware] Failed to read profile during auth check:', profileError.message);
+      if (profileError || !profile) {
+        console.warn('[middleware] Failed to read profile during auth check:', profileError?.message);
+        const url = new URL('/', request.url);
+        url.searchParams.set('auth', 'login');
+        url.searchParams.set('message', 'profile-unavailable');
+        return NextResponse.redirect(url);
       }
 
       const profileStatus = profile?.status?.toLowerCase();

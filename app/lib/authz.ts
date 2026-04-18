@@ -27,6 +27,8 @@ export interface CurrentUserContext {
   role: AppRole;
 }
 
+export const PROFILE_FIELDS = 'id, email, role, status, is_deleted, full_name, created_at';
+
 export const getCurrentUserContext = cache(async (): Promise<CurrentUserContext> => {
   const supabase = await createClient();
   const {
@@ -37,11 +39,16 @@ export const getCurrentUserContext = cache(async (): Promise<CurrentUserContext>
     return { user: null, profile: null, role: '' as AppRole };
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('id, email, role, status, is_deleted, full_name, avatar_url, created_at, updated_at')
+    .select(PROFILE_FIELDS)
     .eq('id', user.id)
     .single();
+
+  if (profileError || !profile) {
+    console.error('[authz] Failed to read profile for user:', user.id, profileError?.message);
+    return { user, profile: null, role: '' as AppRole };
+  }
 
   return {
     user,
@@ -74,7 +81,13 @@ export async function requirePageAccess(options?: {
     redirect('/?auth=login');
   }
 
-  // 2. Terminal account states (deleted, rejected)
+  // 2. Profile check for authenticated users
+  if (!profile) {
+    console.warn('[authz] Auth user exists but profile is null. Redirecting to login with error.');
+    redirect('/?auth=login&message=profile-unavailable');
+  }
+
+  // 3. Terminal account states (deleted, rejected)
   const status = profile?.status?.toLowerCase();
   if (profile?.is_deleted) {
     redirect('/?auth=login&message=deleted');
@@ -83,12 +96,12 @@ export async function requirePageAccess(options?: {
     redirect('/?auth=login&message=rejected');
   }
 
-  // 3. Pending flow
+  // 4. Pending flow
   if (status === 'pending' && !options?.allowPending) {
     redirect('/waiting-approval');
   }
 
-  // 4. Role authorization flow
+  // 5. Role authorization flow
   if (options?.allowedRoles && options.allowedRoles.length > 0) {
     const isAllowed = options.allowedRoles.map(normalizeRole).includes(role);
     if (!isAllowed) {

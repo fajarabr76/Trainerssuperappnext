@@ -29,6 +29,9 @@ function AuthContent() {
     if (msg === 'deleted') {
       return { type: 'error' as const, text: 'Akun Anda telah dinonaktifkan.' };
     }
+    if (msg === 'profile-unavailable') {
+      return { type: 'error' as const, text: 'Data profil akun tidak ditemukan atau gagal diverifikasi. Silakan hubungi admin.' };
+    }
     return undefined;
   }, [searchParams]);
 
