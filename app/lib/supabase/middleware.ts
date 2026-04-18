@@ -72,6 +72,7 @@ export async function updateSession(request: NextRequest) {
 
       if (profileError || !profile) {
         console.warn('[middleware] Failed to read profile during auth check:', profileError?.message);
+        await supabase.auth.signOut();
         const url = new URL('/', request.url);
         url.searchParams.set('auth', 'login');
         url.searchParams.set('message', 'profile-unavailable');

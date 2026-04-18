@@ -84,9 +84,10 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', init
       .eq('id', userId)
       .maybeSingle();
 
-    if (profileError) {
-      console.warn('[AuthModal] Failed to read profile after login:', profileError.message);
-      return '/dashboard';
+    if (profileError || !profile) {
+      console.warn('[AuthModal] Failed to read profile after login:', profileError?.message);
+      await supabase.auth.signOut();
+      throw new Error('Data akun tidak ditemukan atau gagal diverifikasi. Silakan hubungi admin.');
     }
 
     const profileStatus = profile?.status?.toLowerCase();
