@@ -183,7 +183,7 @@ export async function generateReportAction(
   | { ok: false; error: string }
 > {
   const started = Date.now();
-  const { supabase, user, profile } = await requireReportUser();
+  const { supabase, user } = await requireReportUser();
   const admin = createAdminClient();
   const limit = getReportMaxPerDay();
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();

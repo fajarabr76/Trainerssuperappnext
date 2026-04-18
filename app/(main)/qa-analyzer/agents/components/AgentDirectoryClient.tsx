@@ -20,8 +20,6 @@ interface AgentDirectoryClientProps {
 }
 
 export default function AgentDirectoryClient({ 
-  user, 
-  role, 
   initialAgents,
   initialBatches
 }: AgentDirectoryClientProps) {

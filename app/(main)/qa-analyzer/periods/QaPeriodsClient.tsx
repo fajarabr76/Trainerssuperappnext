@@ -22,7 +22,7 @@ interface QaPeriodsClientProps {
   initialPeriods: QAPeriod[];
 }
 
-export default function QaPeriodsClient({ user, role, initialPeriods }: QaPeriodsClientProps) {
+export default function QaPeriodsClient({ role, initialPeriods }: QaPeriodsClientProps) {
   const router = useRouter();
   const [periods, setPeriods] = useState<QAPeriod[]>(initialPeriods);
   const [showForm, setShowForm] = useState(false);

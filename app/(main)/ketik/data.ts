@@ -1,4 +1,4 @@
-import { AppSettings, ConsumerDifficulty } from '@/app/types';
+import { AppSettings } from '@/app/types';
 import { DEFAULT_SCENARIOS, DEFAULT_CONSUMER_TYPES } from './constants';
 
 export const defaultSettings: AppSettings = {

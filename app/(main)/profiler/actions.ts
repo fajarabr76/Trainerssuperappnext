@@ -118,7 +118,7 @@ export async function createFolder(name: string, yearId: string | null = null, p
 }
 
 export async function updateFolder(id: string, patch: { name?: string; year_id?: string; parent_id?: string }) {
-  const user = await validateRole();
+  const _user = await validateRole();
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -227,7 +227,7 @@ export async function duplicateFolder(folderId: string, targetYearId: string) {
   // 5. Copy participants
   if (participants && participants.length > 0) {
     const newParticipants = participants.map(p => {
-      const { id, created_at, updated_at, ...rest } = p;
+      const { _id, _created_at, _updated_at, ...rest } = p;
       return {
         ...rest,
         batch_name: newName,
@@ -298,7 +298,7 @@ export async function getOriginalPeserta(id: string) {
 }
 
 export async function updatePeserta(id: string, data: Partial<Peserta>, path?: string) {
-  const user = await validateRole();
+  const _user = await validateRole();
   const supabase = await createClient();
   const { error } = await supabase
     .from('profiler_peserta')

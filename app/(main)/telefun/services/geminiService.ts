@@ -3,9 +3,9 @@ import { generateGeminiContent } from '@/app/actions/gemini';
 import { SessionConfig, Scenario } from "../types";
 import { createClient } from "@/app/lib/supabase/client";
 
-const supabase = createClient();
+const _supabase = createClient();
 
-const STABLE_VOICE_MAP = {
+const _STABLE_VOICE_MAP = {
   male: 'Fenrir',
   female: 'Kore'
 };
@@ -224,7 +224,7 @@ export class LiveSession {
     const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
     try {
       this.analyser.getByteFrequencyData(dataArray);
-    } catch (e) {
+    } catch (_e) {
       return;
     }
 
@@ -318,7 +318,7 @@ export class LiveSession {
 
   private stopAllAudio() {
     this.activeSources.forEach(source => {
-      try { source.stop(); } catch (e) {}
+      try { source.stop(); } catch (_e) {}
     });
     this.activeSources.clear();
     if (this.outputAudioContext) {
@@ -349,11 +349,11 @@ export class LiveSession {
       this.stream.getTracks().forEach(track => track.stop());
     }
 
-    if (this.processor) { try { this.processor.disconnect(); } catch (e) {} }
-    if (this.analyser) { try { this.analyser.disconnect(); } catch (e) {} }
-    if (this.inputSource) { try { this.inputSource.disconnect(); } catch (e) {} }
-    if (this.micSourceForRecording) { try { this.micSourceForRecording.disconnect(); } catch (e) {} }
-    if (this.recordingDestination) { try { this.recordingDestination.disconnect(); } catch (e) {} }
+    if (this.processor) { try { this.processor.disconnect(); } catch (_e) {} }
+    if (this.analyser) { try { this.analyser.disconnect(); } catch (_e) {} }
+    if (this.inputSource) { try { this.inputSource.disconnect(); } catch (_e) {} }
+    if (this.micSourceForRecording) { try { this.micSourceForRecording.disconnect(); } catch (_e) {} }
+    if (this.recordingDestination) { try { this.recordingDestination.disconnect(); } catch (_e) {} }
 
     const closeContext = async (ctx: AudioContext | null) => {
       if (ctx && ctx.state !== 'closed') {

@@ -2,10 +2,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { AppSettings, Scenario, ConsumerType, Identity, ConsumerDifficulty } from '../types';
+import { AppSettings, Scenario, ConsumerType, ConsumerDifficulty } from '../types';
 import { DEFAULT_SCENARIOS, DEFAULT_CONSUMER_TYPES } from '../constants';
 import { AI_MODELS, normalizeModelId } from '@/app/lib/ai-models';
-import { X, Plus, Check, Edit2, Trash2, Image as ImageIcon, User, Settings, FileText, Users, Clock, Save } from 'lucide-react';
+import { X, Plus, Check, Edit2, Trash2, Image as ImageIcon, User, Settings, FileText, Users, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface SettingsModalProps {
@@ -88,7 +88,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     }));
   };
 
-  const handleToggleAllScenarios = (checked: boolean) => {
+  const _handleToggleAllScenarios = (checked: boolean) => {
     setLocalSettings(prev => ({
       ...prev,
       scenarios: prev.scenarios.map(s => ({ ...s, isActive: checked }))

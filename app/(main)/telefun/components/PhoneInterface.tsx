@@ -94,7 +94,7 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
                 osc1.disconnect();
                 osc2.disconnect();
                 gain.disconnect();
-            } catch(e) {}
+            } catch(_e) {}
         }, 2600);
 
         return new Promise(resolve => setTimeout(resolve, 2500));
@@ -156,11 +156,11 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
           try { 
               osc.stop(); 
               osc.disconnect(); 
-          } catch(e){}
+          } catch(_e){}
       });
       holdMusicOscillators.current = [];
       if (holdMusicGain.current) {
-          try { holdMusicGain.current.disconnect(); } catch(e){}
+          try { holdMusicGain.current.disconnect(); } catch(_e){}
           holdMusicGain.current = null;
       }
       // Note: We DO NOT close uiAudioContextRef here, we reuse it.
@@ -302,7 +302,7 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
         try { 
             uiAudioContextRef.current.close(); 
             uiAudioContextRef.current = null;
-        } catch(e){}
+        } catch(_e){}
     }
     sessionRef.current?.disconnect();
     onEndSession(reason);

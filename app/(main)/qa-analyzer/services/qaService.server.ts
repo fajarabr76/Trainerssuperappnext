@@ -14,7 +14,6 @@ import {
   ServiceWeight,
   ScoringMode,
   DEFAULT_SERVICE_WEIGHTS,
-  Category,
   TIM_TO_DEFAULT_SERVICE,
   SharedContext,
   SERVICE_LABELS,
@@ -300,7 +299,7 @@ const cachedFetchDashboardRangeTrend = unstable_cache(
   { revalidate: 300, tags: [QA_DASHBOARD_RANGE_TAG] }
 );
 
-const cachedFetchAgentDirectorySummary = unstable_cache(
+const _cachedFetchAgentDirectorySummary = unstable_cache(
   async (year: number): Promise<AgentDirectoryEntry[] | null> => {
     const serviceSupabase = getServiceSupabase();
     if (!serviceSupabase) return null;
@@ -1189,7 +1188,7 @@ export const qaServiceServer = {
     return { labels, datasets };
   },
 
-  async getServiceComparison(periodId: string, folderIds: string[] = [], context?: SharedContext): Promise<ServiceComparisonData[]> {
+  async getServiceComparison(periodId: string, folderIds: string[] = [], _context?: SharedContext): Promise<ServiceComparisonData[]> {
     const supabase = await createClient();
     const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     const pIds = await this.resolvePeriodIds(periodId);
@@ -1348,7 +1347,7 @@ export const qaServiceServer = {
     return agentStats.sort((a, b) => b.defects - a.defects);
   },
 
-  async getParetoData(periodId: string, serviceType: string, folderIds: string[] = [], context?: SharedContext): Promise<ParetoData[]> {
+  async getParetoData(periodId: string, serviceType: string, folderIds: string[] = [], _context?: SharedContext): Promise<ParetoData[]> {
     const supabase = await createClient();
     const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     const pIds = await this.resolvePeriodIds(periodId);
@@ -1380,7 +1379,7 @@ export const qaServiceServer = {
 
     let cumulativeCount = 0;
     return Object.entries(paramCounts)
-      .map(([id, info]) => ({
+      .map(([_id, info]) => ({
         name: info.name.trim(),
         fullName: info.name.trim(),
         count: info.count,
@@ -1526,7 +1525,7 @@ export const qaServiceServer = {
 
     let cumulativeCount = 0;
     const paretoData: ParetoData[] = Object.entries(paramCounts)
-      .map(([id, info]) => ({ name: info.name, fullName: info.name, count: info.count, category: info.category as any, cumulative: 0 }))
+      .map(([_id, info]) => ({ name: info.name, fullName: info.name, count: info.count, category: info.category as any, cumulative: 0 }))
       .sort((a, b) => b.count - a.count || a.fullName.localeCompare(b.fullName))
       .map(item => {
         cumulativeCount += item.count;
@@ -1598,7 +1597,7 @@ export const qaServiceServer = {
       .sort((a, b) => b.defects - a.defects)
       .slice(0, 5);
 
-    const topAgents = agentStats;
+    const _topAgents = agentStats;
 
     return { summary, serviceData, paretoData, donutData, topAgents: agentStats };
   },
@@ -1763,7 +1762,7 @@ export const qaServiceServer = {
     serviceType: string, 
     folderIds: string[] = [], 
     context?: SharedContext, 
-    year?: number
+    _year?: number
   ) {
     const supabase = await createClient();
     const limitMap = { '3m': 3, '6m': 6, 'all': 24 };
@@ -2089,7 +2088,7 @@ export const qaServiceServer = {
 
     let cumulativeCount = 0;
     const paretoData: ParetoData[] = Object.entries(paramCounts)
-      .map(([id, info]) => ({ name: info.name, fullName: info.name, count: info.count, category: info.category as any, cumulative: 0 }))
+      .map(([_id, info]) => ({ name: info.name, fullName: info.name, count: info.count, category: info.category as any, cumulative: 0 }))
       .sort((a, b) => b.count - a.count || a.fullName.localeCompare(b.fullName))
       .map(item => {
         cumulativeCount += item.count;
@@ -2227,7 +2226,7 @@ export const qaServiceServer = {
 
     const periods: ExportPeriod[] = [...periodsMap.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([pk, pTemuan]) => {
+      .map(([_pk, pTemuan]) => {
         const p = pTemuan[0].qa_periods!;
         const teamInds = allIndicators.filter(i => i.service_type === pTemuan[0]?.service_type);
         const scoreResult = calculateQAScoreFromTemuan(
@@ -2751,6 +2750,8 @@ export const qaServiceServer = {
       }
 
       const { data, error } = await query;
+      
+      if (error) throw error;
       
       if (!data || data.length === 0) {
         hasMore = false;

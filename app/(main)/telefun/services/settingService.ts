@@ -1,6 +1,6 @@
 import { createClient } from '@/app/lib/supabase/client';
 import { AppSettings } from '../types';
-import { DEFAULT_SCENARIOS, DEFAULT_CONSUMER_TYPES, AI_MODELS } from '../constants';
+import { DEFAULT_SCENARIOS, DEFAULT_CONSUMER_TYPES } from '../constants';
 
 const supabase = createClient();
 const LOCAL_STORAGE_KEY = 'telefun_app_settings_v1';

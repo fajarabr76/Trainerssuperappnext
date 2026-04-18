@@ -162,7 +162,7 @@ export const profilerService = {
     }
 
     // 4. Create folder
-    const { data: newFolder, error: nfErr } = await supabase
+    const { data: _newFolder, error: nfErr } = await supabase
       .from('profiler_folders')
       .insert({
         name: newName,
@@ -213,7 +213,7 @@ export const profilerService = {
 
     if (sources && sources.length > 0) {
       const newPeserta = sources.map(s => {
-        const { id, created_at, updated_at, ...rest } = s;
+        const { _id, _created_at, _updated_at, ...rest } = s;
         return {
           ...rest,
           batch_name: targetBatch,

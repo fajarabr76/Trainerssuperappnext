@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
-import { Send, LogOut, Phone, X, Check, CheckCheck, Sparkles, Lock, ArrowLeft, Download, Image as ImageIcon } from 'lucide-react';
+import { Send, Phone, X, Check, CheckCheck, Sparkles, Lock, ArrowLeft, Download } from 'lucide-react';
 import { ChatMessage, SessionConfig, Scenario } from '@/app/types';
 import { generateConsumerResponse } from '../services/geminiService';
 
@@ -129,7 +129,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isTimedOut, setIsTimedOut] = useState(false);
-  const [isSessionEnded, setIsSessionEnded] = useState(false);
+  const [isSessionEnded, _setIsSessionEnded] = useState(false);
   const [timeLeft, setTimeLeft] = useState(config.simulationDuration * 60);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -529,7 +529,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       {/* 2. Messages Area */}
       <div className="module-clean-stage flex-1 overflow-y-auto z-10 scroll-smooth custom-scrollbar flex flex-col p-4 space-y-2">
         <AnimatePresence initial={false}>
-            {messages.map((msg, index) => {
+            {messages.map((msg, _index) => {
                if (msg.sender === 'system') {
                   const hasImageTag = /\[SEND_IMAGE\s*:\s*\d+\]/i.test(msg.text);
                   const systemTextWithoutTag = msg.text

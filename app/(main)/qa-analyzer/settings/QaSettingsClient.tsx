@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Settings, Plus, Trash2, Info,
@@ -11,7 +11,7 @@ import {
   createIndicatorAction, updateIndicatorAction, deleteIndicatorAction,
   updateServiceWeightAction
 } from '../actions';
-import type { QAIndicator, ServiceType, Category, ScoringMode, ServiceWeight } from '../lib/qa-types';
+import type { QAIndicator, ServiceType, Category, ServiceWeight } from '../lib/qa-types';
 import { SERVICE_LABELS } from '../lib/qa-types';
 import QaStatePanel from '../components/QaStatePanel';
 
@@ -42,13 +42,11 @@ interface QaSettingsClientProps {
   initialWeights: Record<ServiceType, ServiceWeight>;
 }
 
-export default function QaSettingsClient({ user, role, initialIndicators, initialWeights }: QaSettingsClientProps) {
-  const router = useRouter();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+export default function QaSettingsClient({ initialIndicators, initialWeights }: QaSettingsClientProps) {
+  const [, setIsMobileMenuOpen] = useState(false);
   const [activeTeam, setActiveTeam] = useState<ServiceType>('call');
   const [indicators, setIndicators] = useState<QAIndicator[]>(initialIndicators);
   const [weights, setWeights] = useState(initialWeights);
-  const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -90,8 +88,6 @@ export default function QaSettingsClient({ user, role, initialIndicators, initia
   const crValid  = Math.abs(crTotal - 1) < 0.01;
   const allTotal = ncTotal + crTotal;
   const allValid = Math.abs(allTotal - 1) < 0.01;
-
-  const isBobotsValid = isWeighted ? (ncValid && crValid) : allValid;
 
   const flash = (msg: string) => {
     setSuccessMsg(msg);

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search, X, UserPlus, UserCheck, Loader2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { Peserta } from '../services/profilerService';
 import { getGlobalPesertaPool, copyPesertaToFolder } from '../actions';
 

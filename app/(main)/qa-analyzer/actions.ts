@@ -3,7 +3,7 @@
 import { createClient } from '@/app/lib/supabase/server';
 import {
   ServiceType, Category, ScoringMode, ServiceWeight, DEFAULT_SERVICE_WEIGHTS,
-  DashboardData, TrendPoint, TopAgentData, ExportData, EXCLUDED_FOLDERS
+  DashboardData, TopAgentData, ExportData, EXCLUDED_FOLDERS
 } from './lib/qa-types';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import {

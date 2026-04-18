@@ -2,17 +2,16 @@
 
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { motion } from 'motion/react';
+
 import {
-  ClipboardList, X, Check, ChevronRight,
-  FolderOpen, User, CalendarDays, Plus, Trash2, FileText,
-  Pencil, Upload, Download, FileSpreadsheet, AlertTriangle,
-  LayoutDashboard, Users, Activity, Menu, Sun, Moon,
-  MessageSquare, Mail, Phone, BarChart3, Settings, LogOut
+  X, Check, ChevronRight,
+  FolderOpen, User, CalendarDays, Plus, Trash2,
+  Pencil, Upload, Download, FileSpreadsheet,
+  Menu, Sun, Moon
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
-import Link from 'next/link';
+
 import { useTheme } from 'next-themes';
 import { createClient } from '@/app/lib/supabase/client';
 import { 
@@ -25,7 +24,6 @@ import {
 import type { QAIndicator, QAPeriod, QATemuan, ServiceType, ServiceWeight } from '../lib/qa-types';
 import { TIM_TO_DEFAULT_SERVICE, SERVICE_LABELS, DEFAULT_SERVICE_WEIGHTS } from '../lib/qa-types';
 import { 
-  createTemuanAction, 
   createTemuanBatchAction, 
   updateTemuanAction, 
   deleteTemuanAction,
@@ -348,7 +346,7 @@ interface QaInputClientProps {
 }
 
 export default function QaInputClient({ 
-  user, role, profile, 
+  role, 
   initialFolders, initialPeriods, 
   initialAgents, initialAgent, initialIndicators, initialTemuan,
   initialStep = 'folder',
@@ -360,13 +358,13 @@ export default function QaInputClient({
 }: QaInputClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const pathname = usePathname();
+  const _pathname = usePathname();
   const { theme, setTheme } = useTheme();
 
   const [step, setStep]         = useState<Step>(initialStep);
-  const [folders, setFolders]   = useState<string[]>(initialFolders);
+  const [folders, _setFolders]   = useState<string[]>(initialFolders);
   const [agents, setAgents]     = useState<Agent[]>(initialAgents ?? []);
-  const [periods, setPeriods]   = useState<QAPeriod[]>(initialPeriods);
+  const [periods, _setPeriods]   = useState<QAPeriod[]>(initialPeriods);
   const [indicators, setIndicators] = useState<QAIndicator[]>(initialIndicators ?? []);
   const [temuan, setTemuan]     = useState<QATemuan[]>(initialTemuan ?? []);
 
@@ -375,7 +373,7 @@ export default function QaInputClient({
   const [selectedPeriod, setSelectedPeriod] = useState<QAPeriod | null>(initialPeriod ?? null);
   const [selectedService, setSelectedService] = useState<ServiceType>(initialService ?? 'call');
   const [selectedTeam, setSelectedTeam] = useState<string>(initialTeam ?? '');
-  const [weights, setWeights] = useState<Record<ServiceType, ServiceWeight>>(initialWeights ?? DEFAULT_SERVICE_WEIGHTS);
+  const [weights, _setWeights] = useState<Record<ServiceType, ServiceWeight>>(initialWeights ?? DEFAULT_SERVICE_WEIGHTS);
 
   const activeWeight = weights[selectedService];
 
@@ -402,12 +400,12 @@ export default function QaInputClient({
   const [errorMsg, setErrorMsg]     = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [_isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
 
-  const handleLogout = async () => {
+  const _handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/?auth=login');
     router.refresh();
@@ -931,7 +929,7 @@ export default function QaInputClient({
                         <span className="text-[10px] text-muted-foreground ml-auto font-bold uppercase tracking-wider">{group.items.length} temuan</span>
                       </div>
                       <div className="divide-y divide-border">
-                        {group.items.map((t, iIdx) => {
+                        {group.items.map((t, _iIdx) => {
                           const ind = t.qa_indicators;
                           const isCritical = ind?.category === 'critical';
                           const isEditing  = editingId === t.id;

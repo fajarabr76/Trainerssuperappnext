@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Trash2, Calendar, Phone, Clock, Download, History as HistoryIcon } from 'lucide-react';
+import { X, Trash2, Phone, Clock, Download, History as HistoryIcon } from 'lucide-react';
 
 interface CallRecord {
   id: string;

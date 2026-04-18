@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Plus, X, Save, Trash2, Upload,
   Loader2, FolderInput, Check, GripVertical, ArrowUpDown,
-  Download, ChevronDown, Activity, Search, FilterX, Users, AlertCircle,
+  Download, ChevronDown, Activity, FilterX,
   Inbox,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -31,7 +31,7 @@ import {
 
 const inputClass = "w-full px-4 py-3 rounded-xl border border-border/40 bg-background text-sm text-foreground placeholder-foreground/20 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background";
 const labelClass = "block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2 px-1";
-const sectionClass = "bg-card border border-border/40 rounded-[2rem] p-6 space-y-6 shadow-sm";
+const _sectionClass = "bg-card border border-border/40 rounded-[2rem] p-6 space-y-6 shadow-sm";
 
 // ── Move Folder Modal ─────────────────────────────────────────
 const MoveFolderModal: React.FC<{
@@ -539,7 +539,7 @@ export default function ProfilerTableClient({
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
-  const [photoFrameTick, setPhotoFrameTick] = useState(0);
+  const [_photoFrameTick, setPhotoFrameTick] = useState(0);
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent | TouchEvent) => {
@@ -654,7 +654,7 @@ export default function ProfilerTableClient({
   const toggleSelectMode = () => { setSelectMode(v => !v); setSelectedIds(new Set()); };
   const toggleSelect = (id: string) => setSelectedIds(prev => { 
     const n = new Set(prev); 
-    n.has(id) ? n.delete(id) : n.add(id); 
+    if (n.has(id)) { n.delete(id); } else { n.add(id); }
     return n; 
   });
   
@@ -682,7 +682,7 @@ export default function ProfilerTableClient({
     .map(selectableId)
     .filter((id): id is string => Boolean(id));
 
-  const toggleSelectAll = () => {
+  const _toggleSelectAll = () => {
     const selectedInFiltered = filteredSelectableIds.filter((id) => selectedIds.has(id)).length;
     if (selectedInFiltered === filteredSelectableIds.length) {
       setSelectedIds((prev) => {
@@ -706,7 +706,7 @@ export default function ProfilerTableClient({
   }, [peserta]);
 
   const selectedInFilteredCount = filteredSelectableIds.filter((id) => selectedIds.has(id)).length;
-  const allFilteredSelected = filteredSelectableIds.length > 0 && selectedInFilteredCount === filteredSelectableIds.length;
+  const _allFilteredSelected = filteredSelectableIds.length > 0 && selectedInFilteredCount === filteredSelectableIds.length;
   const displayList = sortMode ? peserta : filtered;
   const hasActiveFilters = filterTim !== 'all' || query.length > 0;
 

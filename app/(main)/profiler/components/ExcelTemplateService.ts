@@ -1,6 +1,6 @@
 'use client';
 
-import { Peserta, labelJabatan } from '../services/profilerService';
+import { labelJabatan } from '../services/profilerService';
 
 export const ExcelTemplateService = {
   generateTemplate: async (batchName: string, timList: string[]) => {
@@ -45,7 +45,7 @@ export const ExcelTemplateService = {
     
     // Styling Header
     sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    sheet.getRow(1).eachCell((cell, colNumber) => {
+    sheet.getRow(1).eachCell((cell, _colNumber) => {
       const headerText = cell.value as string;
       const isRequired = headerText.includes('*');
       cell.fill = {

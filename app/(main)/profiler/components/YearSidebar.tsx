@@ -2,8 +2,8 @@
 
 import { ProfilerYear, ProfilerFolder } from '../services/profilerService';
 import { 
-  Plus, ChevronRight, ChevronDown, Folder, 
-  FolderOpen, Pencil, Trash2, Copy, MoreVertical 
+  Plus, ChevronRight, Folder, 
+  Pencil, Trash2, Copy 
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';

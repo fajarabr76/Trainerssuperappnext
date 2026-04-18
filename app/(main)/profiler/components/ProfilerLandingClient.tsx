@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Plus, Upload, Table2, SlidersHorizontal, Download,
-  FolderOpen, Trash2, ChevronLeft, Cake,
+  Trash2, ChevronLeft, Cake,
   Settings2, UserPlus, Moon, Sun, PieChart, CalendarDays, Users, Layers
 } from 'lucide-react';
 import { ProfilerYear, ProfilerFolder } from '../services/profilerService';

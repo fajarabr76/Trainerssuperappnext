@@ -8,20 +8,14 @@ import {
   Send, 
   Reply, 
   ArrowLeft,
-  User,
   Clock,
   Info,
-  ShieldAlert,
   CheckCircle2,
   AlertCircle,
   Loader2,
   X,
   Paperclip,
-  Search,
-  Star,
-  Archive,
-  Trash2,
-  MoreVertical
+  Search
 } from 'lucide-react';
 import { EmailMessage, SessionConfig, EvaluationResult, EvaluationStatus } from '../types';
 

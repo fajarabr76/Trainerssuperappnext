@@ -45,8 +45,6 @@ function toScoreResult(period: AgentPeriodSummary): ScoreResult {
 
 export function useAgentDetail({
   agentId,
-  user,
-  role,
   initialAgent,
   initialData,
 }: UseAgentDetailProps) {
@@ -82,7 +80,7 @@ export function useAgentDetail({
   const personalTrend = data.personalTrend;
   const periodSummaries = data.periodSummaries;
 
-  const scoreHistory = useMemo(() => periodSummaries.map(toScoreResult), [periodSummaries]);
+  const _scoreHistory = useMemo(() => periodSummaries.map(toScoreResult), [periodSummaries]);
 
   const sortedPeriods = useMemo(() => {
     return periodSummaries.map((period) => ({

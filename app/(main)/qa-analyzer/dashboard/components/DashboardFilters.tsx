@@ -1,9 +1,9 @@
 import React from 'react';
-import { Calendar, Users, Filter, ChevronRight, Headset } from 'lucide-react';
-import { QAPeriod, SERVICE_LABELS } from '../../lib/qa-types';
+import { Users, Filter, ChevronRight, Headset } from 'lucide-react';
+import { SERVICE_LABELS } from '../../lib/qa-types';
 import { YearSelector } from './YearSelector';
 
-const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const _MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
 import { MonthRangePicker } from '@/app/components/ui/MonthRangePicker';
 

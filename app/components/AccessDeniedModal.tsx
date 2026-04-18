@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShieldAlert, ArrowLeft, Home } from 'lucide-react';
+import { ShieldAlert, Home } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAccessDenied } from '@/app/context/AccessDeniedContext';
 

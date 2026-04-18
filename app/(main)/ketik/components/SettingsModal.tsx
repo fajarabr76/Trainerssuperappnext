@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { AppSettings, Scenario, ConsumerType, ConsumerDifficulty } from '@/app/types';
-import { DEFAULT_SCENARIOS, DEFAULT_CONSUMER_TYPES, AI_MODELS } from '../constants';
+import { AI_MODELS } from '../constants';
 import { defaultSettings } from '../data';
 import { Clock, Trash2, X, Plus, Check, Edit2, RotateCcw, Save, Image as ImageIcon, User, Settings, FileText, Users, Fingerprint } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
