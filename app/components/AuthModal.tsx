@@ -61,10 +61,12 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   async function waitForActiveSession() {
     for (let attempt = 0; attempt < 10; attempt += 1) {
       const {
-        data: { session },
-      } = await supabase.auth.getSession();
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
 
-      if (session?.user) {
+      if (user && !error) {
+        const { data: { session } } = await supabase.auth.getSession();
         return session;
       }
 

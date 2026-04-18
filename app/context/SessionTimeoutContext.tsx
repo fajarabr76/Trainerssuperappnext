@@ -29,9 +29,18 @@ export const SessionTimeoutProvider: React.FC<{ children: React.ReactNode }> = (
   const { isIdle, resetTimer } = useIdleTimeout(AUTH_SESSION_TIMEOUT);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: 'global' });
     localStorage.removeItem('trainers_login_time');
     localStorage.removeItem('trainers_last_activity');
+
+    // Hapus semua cookies Supabase untuk memastikan tidak ada session tersisa
+    document.cookie.split(';').forEach((c) => {
+      const name = c.trim().split('=')[0];
+      if (name.startsWith('sb-')) {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
+      }
+    });
+
     setShowWarning(false);
     
     // Clear any active countdowns
