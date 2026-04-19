@@ -7,17 +7,11 @@ import { useRouter } from 'next/navigation';
 
 interface ReportWarningModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onConfirm: () => void;
+  onCancel: () => void;
 }
 
-export function ReportWarningModal({ isOpen, onClose }: ReportWarningModalProps) {
-  const router = useRouter();
-
-  const handleBackToDashboard = () => {
-    onClose();
-    router.push('/qa-analyzer/dashboard');
-  };
-
+export function ReportWarningModal({ isOpen, onConfirm, onCancel }: ReportWarningModalProps) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -26,7 +20,7 @@ export function ReportWarningModal({ isOpen, onClose }: ReportWarningModalProps)
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={handleBackToDashboard}
+            onClick={onCancel}
             className="absolute inset-0 bg-background/80 backdrop-blur-md"
           />
           
@@ -57,13 +51,13 @@ export function ReportWarningModal({ isOpen, onClose }: ReportWarningModalProps)
               
               <div className="grid grid-cols-1 w-full gap-3">
                 <button
-                  onClick={handleBackToDashboard}
+                  onClick={onCancel}
                   className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground h-14 rounded-2xl font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary/20"
                 >
                   <Home className="w-4 h-4" /> Kembali ke dashboard
                 </button>
                 <button
-                  onClick={onClose}
+                  onClick={onConfirm}
                   className="w-full h-14 rounded-2xl font-medium text-muted-foreground hover:text-muted-foreground hover:bg-foreground/5 transition-all text-sm"
                 >
                   Tetap Lanjutkan <ArrowRight className="w-3 h-3 ml-1 inline" />

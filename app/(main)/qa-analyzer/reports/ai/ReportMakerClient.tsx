@@ -4,6 +4,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import Link from 'next/link';
 import { FileText, Loader2, Download, ChevronLeft } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
 import type { ServiceType } from '../../lib/qa-types';
 import { SERVICE_LABELS } from '../../lib/qa-types';
 import type { ParetoData, CriticalVsNonCriticalData } from '../../lib/qa-types';
@@ -39,6 +41,7 @@ type Props = {
 };
 
 export default function ReportMakerClient({ role, models, agents, folders, availableYears }: Props) {
+  const router = useRouter();
   const [reportKind, setReportKind] = useState<'layanan' | 'individu'>('layanan');
   const [serviceType, setServiceType] = useState<ServiceType>('call');
   const [folderId, setFolderId] = useState<string>('ALL');
@@ -75,6 +78,11 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
   const handleCloseWarning = () => {
     sessionStorage.setItem('sidak-ai-report-acknowledged', 'true');
     setShowWarning(false);
+  };
+
+  const handleCancelAi = () => {
+    setShowWarning(false);
+    router.push('/qa-analyzer/dashboard');
   };
 
   const captureRef = useRef<ReportChartCaptureHandle>(null);
@@ -509,7 +517,8 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
 
       <ReportWarningModal 
         isOpen={showWarning} 
-        onClose={handleCloseWarning} 
+        onConfirm={handleCloseWarning} 
+        onCancel={handleCancelAi}
       />
     </main>
   );

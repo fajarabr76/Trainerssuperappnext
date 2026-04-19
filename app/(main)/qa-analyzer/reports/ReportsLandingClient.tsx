@@ -32,6 +32,11 @@ export default function ReportsLandingClient({ role }: Props) {
     router.push('/qa-analyzer/reports/ai');
   };
 
+  const handleCancelAi = () => {
+    setShowAiWarning(false);
+    router.push('/qa-analyzer/dashboard');
+  };
+
   return (
     <main className="flex flex-1 flex-col overflow-hidden">
       <header className="relative z-20 flex shrink-0 flex-col items-start justify-between gap-4 border-b border-border/50 bg-background/80 px-4 py-4 backdrop-blur-xl sm:h-28 sm:flex-row sm:items-center sm:px-6 sm:py-0 lg:px-10">
@@ -113,7 +118,8 @@ export default function ReportsLandingClient({ role }: Props) {
 
       <ReportWarningModal 
         isOpen={showAiWarning} 
-        onClose={handleContinueAi} 
+        onConfirm={handleContinueAi}
+        onCancel={handleCancelAi}
       />
     </main>
   );
