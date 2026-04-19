@@ -123,11 +123,20 @@ export default function QaDashboardClient({
   };
 
   const handleRangeChange = (start: number | null, end: number | null) => {
+    // Always update local state for UI responsiveness
+    if (start !== null) setStartMonth(start);
+    if (end !== null) setEndMonth(end);
+
     if (start !== null && end !== null) {
-      updateFilters(start, end, selectedFolderId, selectedService, selectedYear);
+      // Only trigger URL update if range is valid
+      if (end >= start) {
+        updateFilters(start, end, selectedFolderId, selectedService, selectedYear);
+      }
     } else if (start === null && end === null) {
       const currentYear = new Date().getFullYear();
       const endM = selectedYear === currentYear ? new Date().getMonth() + 1 : 12;
+      setStartMonth(1);
+      setEndMonth(endM);
       updateFilters(1, endM, selectedFolderId, selectedService, selectedYear);
     }
   };
@@ -169,12 +178,12 @@ export default function QaDashboardClient({
 
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex flex-col pr-4 border-r border-border/50 hidden lg:flex">
-              <span className="text-xs text-muted-foreground">Scope Aktif</span>
-              <span className="text-sm font-semibold">{SERVICE_LABELS[selectedService as keyof typeof SERVICE_LABELS] || selectedService} • {activeFolderName}</span>
+              <span className="text-xs text-muted-foreground uppercase tracking-widest font-black">Scope Aktif</span>
+              <span className="text-sm font-bold text-primary">{SERVICE_LABELS[selectedService as keyof typeof SERVICE_LABELS] || selectedService} • {activeFolderName}</span>
             </div>
             <div className="flex flex-col pr-4 border-r border-border/50 hidden lg:flex">
-              <span className="text-xs text-muted-foreground">Periode</span>
-              <span className="text-sm font-semibold">{activePeriodText}</span>
+              <span className="text-xs text-muted-foreground uppercase tracking-widest font-black">Periode</span>
+              <span className="text-sm font-bold text-primary">{activePeriodText}</span>
             </div>
             <button 
               onClick={() => updateFilters(1, new Date().getMonth() + 1, 'ALL', 'call', new Date().getFullYear())}
@@ -293,6 +302,20 @@ export default function QaDashboardClient({
         ) : (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             
+            {/* Mobile Context Summary */}
+            <div className="lg:hidden flex flex-col gap-2 p-4 bg-primary/5 rounded-2xl border border-primary/10">
+              <div className="flex items-center gap-2">
+                <Layers className="w-3.5 h-3.5 text-primary" />
+                <span className="text-xs font-black uppercase tracking-wider text-primary">
+                  {SERVICE_LABELS[selectedService as keyof typeof SERVICE_LABELS] || selectedService} • {activeFolderName}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="w-3.5 h-3.5 text-primary" />
+                <span className="text-sm font-bold">{activePeriodText}</span>
+              </div>
+            </div>
+
             {/* 3. Summary Strip */}
             <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
@@ -328,11 +351,11 @@ export default function QaDashboardClient({
                 },
                 {
                   id: 'compliance',
-                  label: startMonth === endMonth ? "Compliance Rate" : "Average Compliance Rate",
+                  label: startMonth === endMonth ? "Tingkat Kepatuhan" : "Rata-rata Kepatuhan",
                   value: `${displayData.summary.complianceRate.toFixed(1)}%`,
                   icon: Sparkles,
                   color: "text-emerald-500",
-                  desc: "Agent dengan skor ≥ 95%",
+                  desc: "Agen dengan skor ≥ 95%",
                   sparklineData: displayData.sparklines.compliance || [],
                   invertDelta: false
                 }
@@ -358,7 +381,7 @@ export default function QaDashboardClient({
                 
                 {/* Trend Section */}
                 <div className="bg-card p-6 rounded-2xl border border-border shadow-sm">
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                         <LineChart className="w-5 h-5 text-primary" />
@@ -368,17 +391,26 @@ export default function QaDashboardClient({
                         <p className="text-sm text-muted-foreground">Fluktuasi temuan berdasarkan parameter QA</p>
                       </div>
                     </div>
+                    
+                    {!isTrendEmpty && (
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-xl border border-border/50">
+                        <Info className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">
+                          Mode Awal: Total Temuan
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {isTrendEmpty ? (
                     <div className="h-[400px] flex flex-col items-center justify-center bg-muted/20 rounded-xl border border-dashed">
-                      <p className="text-sm text-muted-foreground font-medium">Data tren tidak tersedia</p>
+                      <p className="text-sm text-muted-foreground font-medium">Data tren tidak tersedia untuk filter ini</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
                       {/* Compact Toggles */}
                       <div className="flex flex-wrap items-center gap-1.5 pb-2">
-                        <span className="text-xs font-semibold text-muted-foreground mr-2">Tampilkan:</span>
+                        <span className="text-xs font-bold text-muted-foreground mr-2 uppercase tracking-tighter">Parameter:</span>
                         {displayData.paramTrend?.datasets.map((ds: TrendDataset, i: number) => {
                           if (ds.isTotal) return null;
                           const color = TREND_COLORS[i % TREND_COLORS.length];
@@ -387,24 +419,34 @@ export default function QaDashboardClient({
                             <button
                               key={ds.label}
                               onClick={() => toggleParam(ds.label)}
-                              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
+                              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold border transition-all ${
                                 isHidden
                                   ? 'bg-transparent border-transparent text-muted-foreground hover:bg-muted'
-                                  : 'border-border shadow-sm'
+                                  : 'border-border shadow-sm scale-105 z-10'
                               }`}
                               style={{
                                 backgroundColor: isHidden ? undefined : `${color}15`,
                                 color: isHidden ? undefined : color,
+                                borderColor: isHidden ? undefined : `${color}40`,
                               }}
                             >
                               <div 
-                                className={`w-2 h-2 rounded-full ${isHidden ? 'bg-muted-foreground/30' : ''}`}
+                                className={`w-1.5 h-1.5 rounded-full ${isHidden ? 'bg-muted-foreground/30' : ''}`}
                                 style={{ backgroundColor: isHidden ? undefined : color }}
                               />
                               <span className="max-w-[120px] truncate">{ds.label}</span>
                             </button>
                           );
                         })}
+                        
+                        {/* Action: Show All */}
+                        <button
+                          onClick={() => setHiddenParams(new Set())}
+                          className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-black text-primary hover:bg-primary/5 transition-colors uppercase tracking-widest ml-auto"
+                        >
+                          Tampilkan Semua
+                          <ArrowRight className="w-3 h-3" />
+                        </button>
                       </div>
 
                       <div className="h-[360px] w-full mt-2">
@@ -449,29 +491,44 @@ export default function QaDashboardClient({
                       </div>
                       <div>
                         <h2 className="text-base font-bold">Top Agen (Temuan)</h2>
-                        <p className="text-xs text-muted-foreground">Prioritas Coaching</p>
+                        <p className="text-xs text-muted-foreground">Prioritas Coaching & Perbaikan</p>
                       </div>
                     </div>
                     <Link href={`/qa-analyzer/ranking?service=${selectedService}&year=${selectedYear}&folder=${selectedFolderId === 'ALL' ? '' : selectedFolderId}`} className="text-xs font-semibold text-primary hover:underline">
-                      View All
+                      Lihat Semua
                     </Link>
                   </div>
 
                   <div className="space-y-3">
                     {displayData.topAgents.slice(0, 5).map((agent, i) => (
-                      <div key={agent.agentId} className="flex items-center justify-between p-3 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors group cursor-pointer" onClick={() => router.push(`/qa-analyzer/agents/${agent.agentId}`)}>
-                        <div className="flex items-center gap-3">
-                          <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground group-hover:text-primary transition-colors">
-                            #{i+1}
+                      <div 
+                        key={agent.agentId} 
+                        className="flex items-center justify-between p-3 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors group cursor-pointer" 
+                        onClick={() => router.push(`/qa-analyzer/agents/${agent.agentId}`)}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-6 h-6 shrink-0 rounded-md bg-muted flex items-center justify-center text-[10px] font-black text-muted-foreground group-hover:text-primary transition-colors">
+                            {i+1}
                           </div>
-                          <div className="flex flex-col">
-                            <span className="text-sm font-semibold truncate max-w-[120px]">{agent.nama}</span>
-                            <span className="text-xs text-muted-foreground">{agent.tim || agent.batch}</span>
+                          <div className="flex flex-col min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-bold truncate">{agent.nama}</span>
+                              {agent.hasCritical && (
+                                <span className="px-1.5 py-0.5 rounded-md bg-red-500/10 text-[9px] font-black text-red-500 uppercase tracking-tighter">Fatal</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-muted-foreground font-medium truncate">{agent.tim || agent.batch}</span>
+                              <span className="w-1 h-1 rounded-full bg-border shrink-0" />
+                              <span className={`text-[10px] font-bold ${agent.score >= 95 ? 'text-emerald-500' : agent.score >= 85 ? 'text-blue-500' : 'text-amber-500'}`}>
+                                Skor: {agent.score.toFixed(1)}%
+                              </span>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex flex-col items-end">
-                          <span className="text-sm font-bold text-red-500">{agent.defects}</span>
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Temuan</span>
+                        <div className="flex flex-col items-end shrink-0 pl-2">
+                          <span className="text-sm font-black text-red-500 leading-none">{agent.defects}</span>
+                          <span className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mt-0.5">Temuan</span>
                         </div>
                       </div>
                     ))}
@@ -494,17 +551,27 @@ export default function QaDashboardClient({
                   </div>
                   
                   <div className="h-[240px] flex items-center justify-center">
-                    {displayData.donutData && <FatalDonutChart data={displayData.donutData} />}
+                    {displayData.donutData && displayData.donutData.total > 0 ? (
+                      <FatalDonutChart data={displayData.donutData} />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-center p-6 grayscale opacity-60">
+                         <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                            <PieChart className="w-6 h-6 text-muted-foreground" />
+                         </div>
+                         <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Belum Ada Temuan</p>
+                         <p className="text-[10px] text-muted-foreground mt-1 max-w-[140px]">Severity mix akan tampil setelah ada data audit yang masuk.</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Service Distribution */}
-                <div className="bg-card p-6 rounded-2xl border border-border shadow-sm">
+                <div className="bg-card p-6 rounded-2xl border border-border shadow-sm h-full max-h-[400px]">
                   <h3 className="text-sm font-bold mb-4 flex items-center gap-2">
                     <div className="w-1.5 h-4 bg-primary rounded-full" />
                     Distribusi per Layanan
                   </h3>
-                  <div className="h-[240px] w-full text-left">
+                  <div className="h-[280px] w-full text-left">
                     <ServiceBarChart data={displayData.serviceData} />
                   </div>
                 </div>
