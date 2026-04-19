@@ -16,18 +16,18 @@ const DONUT_COLORS = ['#f43f5e', '#64748b']; // Rose for critical, Slate for non
 export default function FatalDonutChart({ data }: FatalDonutChartProps) {
   if (!data || data.total === 0) {
     return (
-      <div className="h-64 flex flex-col items-center justify-center text-muted-foreground text-sm italic">
+      <div className="h-64 flex flex-col items-center justify-center text-muted-foreground">
         <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
-          <span className="text-xl">🍩</span>
+          <PieChart className="w-6 h-6 text-muted-foreground/40" />
         </div>
-        Data kasus tidak tersedia.
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Belum Ada Data</p>
       </div>
     );
   }
 
   const chartData = [
-    { name: 'Critical', value: data.critical },
-    { name: 'Non-Critical', value: data.nonCritical },
+    { name: 'Kritikal', value: data.critical },
+    { name: 'Non-Kritikal', value: data.nonCritical },
   ];
 
   return (

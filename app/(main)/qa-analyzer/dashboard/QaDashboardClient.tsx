@@ -149,14 +149,19 @@ export default function QaDashboardClient({
     (displayData.paramTrend.datasets.filter((ds: TrendDataset) => !ds.isTotal).every((ds: TrendDataset) => ds.data.every((v: number) => v === 0)));
 
   const activeFolderName = useMemo(() => {
-    if (selectedFolderId === 'ALL') return 'Semua Tim';
-    return displayData.folders.find(f => f.id === selectedFolderId)?.name || selectedFolderId;
-  }, [selectedFolderId, displayData.folders]);
+    const folderId = initialFilters.folder;
+    if (folderId === 'ALL') return 'Semua Tim';
+    return displayData.folders.find(f => f.id === folderId)?.name || folderId;
+  }, [initialFilters.folder, displayData.folders]);
 
   const activePeriodText = useMemo(() => {
-    if (startMonth === endMonth) return `${_MONTHS[startMonth - 1]} ${selectedYear}`;
-    return `${_MONTHS[startMonth - 1]} - ${_MONTHS[endMonth - 1]} ${selectedYear}`;
-  }, [startMonth, endMonth, selectedYear]);
+    const s = initialFilters.startMonth;
+    const e = initialFilters.endMonth;
+    const y = initialFilters.year;
+    
+    if (s === e) return `${_MONTHS[s - 1]} ${y}`;
+    return `${_MONTHS[s - 1]} - ${_MONTHS[e - 1]} ${y}`;
+  }, [initialFilters]);
 
   return (
     <div data-module="qa-analyzer" className="module-clean-app flex-1 flex flex-col min-h-screen bg-background relative overflow-x-hidden">
@@ -179,7 +184,7 @@ export default function QaDashboardClient({
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex flex-col pr-4 border-r border-border/50 hidden lg:flex">
               <span className="text-xs text-muted-foreground uppercase tracking-widest font-black">Scope Aktif</span>
-              <span className="text-sm font-bold text-primary">{SERVICE_LABELS[selectedService as keyof typeof SERVICE_LABELS] || selectedService} • {activeFolderName}</span>
+              <span className="text-sm font-bold text-primary">{SERVICE_LABELS[initialFilters.service as keyof typeof SERVICE_LABELS] || initialFilters.service} • {activeFolderName}</span>
             </div>
             <div className="flex flex-col pr-4 border-r border-border/50 hidden lg:flex">
               <span className="text-xs text-muted-foreground uppercase tracking-widest font-black">Periode</span>
@@ -307,7 +312,7 @@ export default function QaDashboardClient({
               <div className="flex items-center gap-2">
                 <Layers className="w-3.5 h-3.5 text-primary" />
                 <span className="text-xs font-black uppercase tracking-wider text-primary">
-                  {SERVICE_LABELS[selectedService as keyof typeof SERVICE_LABELS] || selectedService} • {activeFolderName}
+                  {SERVICE_LABELS[initialFilters.service as keyof typeof SERVICE_LABELS] || initialFilters.service} • {activeFolderName}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -351,7 +356,7 @@ export default function QaDashboardClient({
                 },
                 {
                   id: 'compliance',
-                  label: startMonth === endMonth ? "Tingkat Kepatuhan" : "Rata-rata Kepatuhan",
+                  label: initialFilters.startMonth === initialFilters.endMonth ? "Tingkat Kepatuhan" : "Rata-rata Kepatuhan",
                   value: `${displayData.summary.complianceRate.toFixed(1)}%`,
                   icon: Sparkles,
                   color: "text-emerald-500",
@@ -545,8 +550,8 @@ export default function QaDashboardClient({
                       <PieChart className="w-5 h-5 text-indigo-500" />
                     </div>
                     <div>
-                      <h2 className="text-base font-bold">Severity Mix</h2>
-                      <p className="text-xs text-muted-foreground">Critical vs Non-Critical</p>
+                      <h2 className="text-base font-bold">Komposisi Severity</h2>
+                      <p className="text-xs text-muted-foreground">Parameter Kritikal vs Non-Kritikal</p>
                     </div>
                   </div>
                   
