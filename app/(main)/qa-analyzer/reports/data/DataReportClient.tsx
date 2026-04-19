@@ -20,7 +20,6 @@ import {
 import type { ServiceType, QAIndicator } from '../../lib/qa-types';
 import { SERVICE_LABELS } from '../../lib/qa-types';
 import { fetchDataReportAction } from './actions';
-import ExcelJS from 'exceljs';
 
 const SERVICE_TYPES = Object.keys(SERVICE_LABELS) as ServiceType[];
 
@@ -83,8 +82,14 @@ export default function DataReportClient({
     if (!sortConfig) return data;
 
     return [...data].sort((a, b) => {
-      const aValue = a[sortConfig.key];
-      const bValue = b[sortConfig.key];
+      let aValue = a[sortConfig.key];
+      let bValue = b[sortConfig.key];
+
+      // Use periodSortValue for chronological sorting of period column
+      if (sortConfig.key === 'period') {
+        aValue = a.periodSortValue;
+        bValue = b.periodSortValue;
+      }
 
       if (aValue === bValue) return 0;
       
@@ -144,6 +149,7 @@ export default function DataReportClient({
   const handleExport = async () => {
     if (sortedData.length === 0) return;
 
+    const ExcelJS = (await import('exceljs')).default;
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Laporan Data QA');
 

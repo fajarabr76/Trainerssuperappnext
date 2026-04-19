@@ -2678,6 +2678,7 @@ export const qaServiceServer = {
       id: item.id,
       service: item.service_type as ServiceType,
       period: `${MONTHS_SHORT[item.qa_periods.month - 1]} ${item.qa_periods.year}`,
+      periodSortValue: item.qa_periods.year * 12 + item.qa_periods.month,
       agentName: item.profiler_peserta.nama,
       batch: item.profiler_peserta.batch_name,
       ticketNumber: item.no_tiket || '—',
