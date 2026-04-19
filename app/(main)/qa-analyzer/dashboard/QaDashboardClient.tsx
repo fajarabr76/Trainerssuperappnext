@@ -141,6 +141,15 @@ export default function QaDashboardClient({
     }
   };
 
+  // Helper to get valid months for non-range filter updates
+  const getEffectiveMonths = () => {
+    const isInvalid = startMonth > endMonth;
+    return {
+      s: isInvalid ? initialFilters.startMonth : startMonth,
+      e: isInvalid ? initialFilters.endMonth : endMonth
+    };
+  };
+
   const hasVisibleParam = displayData.paramTrend?.datasets
     .filter((ds: TrendDataset) => !ds.isTotal && ds.label)
     .some((ds: TrendDataset) => !hiddenParams.has(ds.label)) ?? false;
@@ -214,7 +223,11 @@ export default function QaDashboardClient({
                 </div>
                 <select
                   value={selectedService}
-                  onChange={(e) => { setSelectedService(e.target.value); updateFilters(startMonth, endMonth, selectedFolderId, e.target.value, selectedYear); }}
+                  onChange={(e) => { 
+                    setSelectedService(e.target.value); 
+                    const { s, e: end } = getEffectiveMonths();
+                    updateFilters(s, end, selectedFolderId, e.target.value, selectedYear); 
+                  }}
                   className="w-full h-9 pl-9 pr-8 bg-card border border-border rounded-lg text-sm font-medium appearance-none focus:outline-none focus:ring-1 focus:ring-ring transition-all cursor-pointer"
                 >
                   {Object.entries(SERVICE_LABELS).map(([val, label]) => (
@@ -232,7 +245,11 @@ export default function QaDashboardClient({
                 </div>
                 <select
                   value={selectedFolderId}
-                  onChange={(e) => { setSelectedFolderId(e.target.value); updateFilters(startMonth, endMonth, e.target.value, selectedService, selectedYear); }}
+                  onChange={(e) => { 
+                    setSelectedFolderId(e.target.value); 
+                    const { s, e: end } = getEffectiveMonths();
+                    updateFilters(s, end, e.target.value, selectedService, selectedYear); 
+                  }}
                   className="w-full h-9 pl-9 pr-8 bg-card border border-border rounded-lg text-sm font-medium appearance-none focus:outline-none focus:ring-1 focus:ring-ring transition-all cursor-pointer"
                 >
                   <option key="folder-all" value="ALL">Semua Tim</option>
@@ -251,7 +268,12 @@ export default function QaDashboardClient({
                 </div>
                 <select
                   value={selectedYear}
-                  onChange={(e) => { const y = parseInt(e.target.value); setSelectedYear(y); updateFilters(startMonth, endMonth, selectedFolderId, selectedService, y); }}
+                  onChange={(e) => { 
+                    const y = parseInt(e.target.value); 
+                    setSelectedYear(y); 
+                    const { s, e: end } = getEffectiveMonths();
+                    updateFilters(s, end, selectedFolderId, selectedService, y); 
+                  }}
                   className="w-full h-9 pl-9 pr-8 bg-card border border-border rounded-lg text-sm font-medium appearance-none focus:outline-none focus:ring-1 focus:ring-ring transition-all cursor-pointer"
                 >
                   {displayData.availableYears.map(y => (
@@ -564,7 +586,7 @@ export default function QaDashboardClient({
                             <PieChart className="w-6 h-6 text-muted-foreground" />
                          </div>
                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Belum Ada Temuan</p>
-                         <p className="text-[10px] text-muted-foreground mt-1 max-w-[140px]">Severity mix akan tampil setelah ada data audit yang masuk.</p>
+                         <p className="text-[10px] text-muted-foreground mt-1 max-w-[140px]">Komposisi severity akan tampil setelah ada data audit yang masuk.</p>
                       </div>
                     )}
                   </div>
