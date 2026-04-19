@@ -8,7 +8,6 @@ import {
   Sparkles, 
   LayoutDashboard, 
   ChevronRight,
-  Filter,
   BarChart3,
   Users,
   Calendar,
@@ -24,7 +23,6 @@ import {
   ArrowRight,
   ArrowUp
 } from 'lucide-react';
-import { motion } from 'motion/react';
 import Link from 'next/link';
 
 import { DashboardData, TrendDataset, SERVICE_LABELS } from '../lib/qa-types';
