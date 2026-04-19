@@ -12,14 +12,22 @@ import {
   Filter,
   User,
   LayoutGrid,
-  Calendar
+  Calendar,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import type { ServiceType, QAIndicator } from '../../lib/qa-types';
 import { SERVICE_LABELS } from '../../lib/qa-types';
 import { fetchDataReportAction } from './actions';
+import ExcelJS from 'exceljs';
 
-const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 const SERVICE_TYPES = Object.keys(SERVICE_LABELS) as ServiceType[];
+
+const MONTHS = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+];
 
 type AgentOption = { id: string; nama: string; batch_name?: string | null };
 type FolderOption = { id: string; name: string };
@@ -32,6 +40,13 @@ type Props = {
   allIndicators: QAIndicator[];
 };
 
+type SortKey = 'service' | 'period' | 'agentName' | 'ticketNumber' | 'parameter' | 'score';
+
+interface SortConfig {
+  key: SortKey;
+  direction: 'asc' | 'desc';
+}
+
 export default function DataReportClient({ 
   role, 
   agents, 
@@ -43,6 +58,7 @@ export default function DataReportClient({
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
 
   // Filters
   const [serviceType, setServiceType] = useState<ServiceType>('call');
@@ -63,6 +79,39 @@ export default function DataReportClient({
     return agents.filter(a => folderId === 'ALL' || a.batch_name === folderId);
   }, [agents, folderId]);
 
+  const sortedData = useMemo(() => {
+    if (!sortConfig) return data;
+
+    return [...data].sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+
+      if (aValue === bValue) return 0;
+      
+      const comparison = aValue < bValue ? -1 : 1;
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+  }, [data, sortConfig]);
+
+  const requestSort = (key: SortKey) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: SortKey) => {
+    if (!sortConfig || sortConfig.key !== key) {
+      return <ArrowUpDown className="h-3 w-3 opacity-30" />;
+    }
+    return sortConfig.direction === 'asc' ? (
+      <ArrowUp className="h-3 w-3 text-primary" />
+    ) : (
+      <ArrowDown className="h-3 w-3 text-primary" />
+    );
+  };
+
   const handleFetch = async () => {
     if (periodMode === 'range' && startMonth > endMonth) {
       setError('Bulan mulai tidak boleh lebih besar dari bulan akhir.');
@@ -71,6 +120,7 @@ export default function DataReportClient({
 
     setLoading(true);
     setError(null);
+    setSortConfig(null); // Reset sort on new search
     try {
       const results = await fetchDataReportAction({
         serviceType,
@@ -92,9 +142,8 @@ export default function DataReportClient({
   };
 
   const handleExport = async () => {
-    if (data.length === 0) return;
+    if (sortedData.length === 0) return;
 
-    const ExcelJS = (await import('exceljs')).default;
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Laporan Data QA');
 
@@ -110,7 +159,7 @@ export default function DataReportClient({
       { header: 'Skor', key: 'score', width: 10 },
     ];
 
-    const exportRows = data.map(item => ({
+    const exportRows = sortedData.map(item => ({
       ...item,
       serviceLabel: SERVICE_LABELS[item.service] || item.service
     }));
@@ -256,8 +305,8 @@ export default function DataReportClient({
                   onChange={(e) => setStartMonth(Number(e.target.value))}
                   className="h-11 w-full rounded-xl border border-border/50 bg-background px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
                 >
-                  {MONTHS.map((name, i) => (
-                    <option key={i + 1} value={i + 1}>{name}</option>
+                  {MONTHS.map((m, i) => (
+                    <option key={i + 1} value={i + 1}>{m}</option>
                   ))}
                 </select>
               </div>
@@ -271,8 +320,8 @@ export default function DataReportClient({
                     onChange={(e) => setEndMonth(Number(e.target.value))}
                     className="h-11 w-full rounded-xl border border-border/50 bg-background px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
                   >
-                    {MONTHS.map((name, i) => (
-                      <option key={i + 1} value={i + 1}>{name}</option>
+                    {MONTHS.map((m, i) => (
+                      <option key={i + 1} value={i + 1}>{m}</option>
                     ))}
                   </select>
                 </div>
@@ -330,7 +379,7 @@ export default function DataReportClient({
                   <select
                     value={pesertaId}
                     onChange={(e) => setPesertaId(e.target.value)}
-                    className="h-11 w-full rounded-xl border border-border/50 bg-background px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                    className="h-12 w-full rounded-xl border border-border/50 bg-background px-4 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
                   >
                     <option value="">— Pilih Agen —</option>
                     {filteredAgents.slice(0, 500).map((a) => (
@@ -399,7 +448,7 @@ export default function DataReportClient({
               </div>
             )}
 
-            {hasSearched && !loading && data.length === 0 && (
+            {hasSearched && !loading && sortedData.length === 0 && (
               <div className="flex h-full flex-col items-center justify-center text-center p-10 opacity-60">
                 <div className="mb-6 rounded-full bg-amber-500/10 p-8 text-amber-500">
                   <AlertCircle className="h-16 w-16" />
@@ -411,23 +460,58 @@ export default function DataReportClient({
               </div>
             )}
 
-            {hasSearched && !loading && data.length > 0 && (
+            {hasSearched && !loading && sortedData.length > 0 && (
               <div className="rounded-[2.5rem] border border-border/50 bg-card/40 overflow-hidden backdrop-blur-sm shadow-xl">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="border-b border-border/50 bg-foreground/5">
-                        <th className="px-6 py-4 font-black uppercase tracking-widest text-muted-foreground">Layanan</th>
-                        <th className="px-6 py-4 font-black uppercase tracking-widest text-muted-foreground">Periode</th>
-                        <th className="px-6 py-4 font-black uppercase tracking-widest text-muted-foreground">Agen</th>
-                        <th className="px-6 py-4 font-black uppercase tracking-widest text-muted-foreground">No. Tiket</th>
-                        <th className="px-6 py-4 font-black uppercase tracking-widest text-muted-foreground">Parameter</th>
+                        <th 
+                          onClick={() => requestSort('service')}
+                          className="px-6 py-4 font-black uppercase tracking-widest text-muted-foreground cursor-pointer hover:bg-foreground/[0.05] transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            Layanan {getSortIcon('service')}
+                          </div>
+                        </th>
+                        <th 
+                          onClick={() => requestSort('period')}
+                          className="px-6 py-4 font-black uppercase tracking-widest text-muted-foreground cursor-pointer hover:bg-foreground/[0.05] transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            Periode {getSortIcon('period')}
+                          </div>
+                        </th>
+                        <th 
+                          onClick={() => requestSort('agentName')}
+                          className="px-6 py-4 font-black uppercase tracking-widest text-muted-foreground cursor-pointer hover:bg-foreground/[0.05] transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            Agen {getSortIcon('agentName')}
+                          </div>
+                        </th>
+                        <th 
+                          onClick={() => requestSort('ticketNumber')}
+                          className="px-6 py-4 font-black uppercase tracking-widest text-muted-foreground cursor-pointer hover:bg-foreground/[0.05] transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            No. Tiket {getSortIcon('ticketNumber')}
+                          </div>
+                        </th>
+                        <th 
+                          onClick={() => requestSort('parameter')}
+                          className="px-6 py-4 font-black uppercase tracking-widest text-muted-foreground cursor-pointer hover:bg-foreground/[0.05] transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            Parameter {getSortIcon('parameter')}
+                          </div>
+                        </th>
                         <th className="px-6 py-4 font-black uppercase tracking-widest text-muted-foreground">Temuan</th>
                         <th className="px-6 py-4 font-black uppercase tracking-widest text-muted-foreground">Seharusnya</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/30">
-                      {data.map((item) => (
+                      {sortedData.map((item) => (
                         <tr key={item.id} className="hover:bg-foreground/[0.02] transition-colors group">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="font-bold uppercase tracking-widest text-primary text-[10px]">
@@ -461,7 +545,7 @@ export default function DataReportClient({
                   </table>
                 </div>
                 <div className="border-t border-border/50 bg-foreground/[0.02] px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  Menampilkan {data.length} temuan
+                  Menampilkan {sortedData.length} temuan
                 </div>
               </div>
             )}
