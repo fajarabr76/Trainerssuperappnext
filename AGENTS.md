@@ -1,5 +1,30 @@
 # AGENTS.md
 
+## Subagent Usage
+
+- Gunakan subagent (tool Task) untuk tugas yang memerlukan eksplorasi codebase atau riset multi-step
+- Gunakan subagent_type `explore` untuk mencari file, searching pattern, atau menjawab pertanyaan tentang struktur kode
+- Gunakan subagent_type `general` untuk tugas research kompleks dan multi-step
+- Untuk tugas spesifik, gunakan specialized sub-agents yang sudah didefinisikan di bawah
+
+## Specialized Sub-Agents
+
+### PDKT-Evaluator
+**Trigger:** Tugas terkait perbaikan logika scoring, update rubrik penilaian, atau penanganan error pada module PDKT.
+- Gunakan `app/lib/ai-models.ts` sebagai sumber kebenaran untuk ID model
+- Pastikan setiap pemanggilan AI memiliki mekanisme retry untuk transient errors (429, 500, timeout)
+- Setiap perubahan pada logic scoring wajib diverifikasi dengan menjalankan `api/pdkt/evaluate`
+
+### SIDAK-Performance-Guard
+**Trigger:** Modifikasi pada module QA-Analyzer (SIDAK) atau penambahan library eksternal baru.
+- Gunakan lazy loading untuk komponen berat (chart, modal besar)
+- Gunakan `next/image` dan hindari efek blur/shadow berlebihan (>60px) pada viewport mobile
+
+### Auth-Guard-Sentinel
+**Trigger:** Perubahan pada `app/lib/authz.ts`, `middleware.ts`, atau kueri ke tabel `profiles`.
+- Gunakan `PROFILE_FIELDS` dari `app/lib/authz.ts` untuk canonical auth profile read
+- Setiap kegagalan pembacaan profil memicu `signOut()` dan redirect ke `/?auth=login&message=profile-unavailable`
+
 ## Commands
 
 - Use `npm`, not `pnpm`: the repo has `package-lock.json` and no workspace config.
@@ -15,6 +40,26 @@
 - Shared auth helpers live in `app/lib/authz.ts` and `app/lib/supabase/*`.
 - There are Server Actions in `app/actions/`, but this repo also uses Route Handlers in `app/api/**` for some server-only flows.
 - Supabase SQL changes live in `supabase/migrations/`; rollback SQL is kept separately in `supabase/rollback/`.
+- Data mutations should be handled via **Server Actions** (typically found in `app/actions` or module-specific action files).
+
+## Key Directories
+
+- `app/`: Next.js App Router root
+  - `app/(main)/`: Protected routes requiring authentication
+  - `app/components/`: Reusable UI components
+  - `app/lib/`: Core utilities, Supabase clients, and hooks
+  - `app/actions/`: Global Server Actions
+- `supabase/migrations/`: Database schema and migration scripts
+- `docs/`: Extensive project documentation
+
+## Development Conventions
+
+- **Architecture:** Follows Next.js App Router paradigm
+- **Type Safety:** Avoid `any`. Use `unknown` and proper type casting. Leverage centralized types (e.g., `app/types/auth.ts`)
+- **Supabase Data Handling:** Use unwrap helpers (like `unwrapIndicator`, `unwrapPeriod`) for type safety when dealing with dynamic data
+- **UI/UX:** Use Tailwind CSS and existing UI components. Consult `docs/design-guidelines.md`
+- **Dependency Management:** Do not add new dependencies without explicit instruction
+- **State Management:** Be cautious with `useEffect` dependency arrays to avoid infinite loops
 
 ## Auth And Access Gotchas
 

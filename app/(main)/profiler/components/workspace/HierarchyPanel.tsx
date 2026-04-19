@@ -3,14 +3,13 @@
 import React from 'react';
 import { ProfilerYear, ProfilerFolder } from '../../services/profilerService';
 import { 
-  Plus, ChevronRight, Folder, 
+  Plus, ChevronRight, 
   Pencil, Trash2, Copy, 
-  Layers, CalendarDays,
-  ShieldCheck, CreditCard, BarChart3,
-  UserCheck, GraduationCap, Headset, Building2
+  Layers, CalendarDays
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { getDynamicIcon, cleanYearLabel } from '../../lib/workspace-utils';
 
 interface HierarchyPanelProps {
   years: ProfilerYear[];
@@ -28,19 +27,6 @@ interface HierarchyPanelProps {
   role?: string;
   isMobile?: boolean;
 }
-
-const getDynamicIcon = (name: string, size = 12) => {
-  const n = name.toUpperCase();
-  if (n.includes('OM') || n.includes('OPERATIONAL')) return <ShieldCheck size={size} />;
-  if (n.includes('SLIK') || n.includes('CHECKING')) return <CreditCard size={size} />;
-  if (n.includes('DA') || n.includes('ANALYST') || n.includes('DATA')) return <BarChart3 size={size} />;
-  if (n.includes('SV') || n.includes('SUPERVISOR')) return <UserCheck size={size} />;
-  if (n.includes('TR') || n.includes('TRAINER')) return <GraduationCap size={size} />;
-  if (n.includes('AG') || n.includes('AGENT')) return <Headset size={size} />;
-  if (n.includes('SM') || n.includes('SITE') || n.includes('MANAGER')) return <Building2 size={size} />;
-  if (n.includes('BATCH')) return <Layers size={size} />;
-  return <Folder size={size} />;
-};
 
 export default function HierarchyPanel({
   years,
@@ -137,7 +123,7 @@ export default function HierarchyPanel({
                 <ChevronRight size={14} className={selectedYearId === year.id ? 'text-primary-foreground' : 'text-primary/40'} />
               </div>
               <span className="flex-1 text-left text-xs uppercase tracking-widest font-black">
-                {year.label.replace(/Tahun\s+/gi, '')}
+                {cleanYearLabel(year.label)}
               </span>
               {selectedYearId === year.id && (
                 <motion.div layoutId="activeYearIndicator" className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />
@@ -178,7 +164,7 @@ export default function HierarchyPanel({
                                 </div>
                               ) : (
                                 <div className={selectedFolderId === folder.id ? 'text-module-profiler' : 'text-muted-foreground/40'}>
-                                  {getDynamicIcon(folder.name)}
+                                  {getDynamicIcon(folder.name, 12)}
                                 </div>
                               )}
                             </div>
@@ -218,7 +204,7 @@ export default function HierarchyPanel({
                                     }`}
                                   >
                                     <div className={selectedFolderId === sub.id ? 'text-module-profiler' : 'text-muted-foreground/30'}>
-                                      {getDynamicIcon(sub.name)}
+                                      {getDynamicIcon(sub.name, 12)}
                                     </div>
                                     <span className="flex-1 text-left truncate tracking-tight">{sub.name}</span>
                                     {counts[sub.name] > 0 && (

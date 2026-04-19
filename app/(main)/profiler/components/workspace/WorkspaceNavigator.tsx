@@ -3,11 +3,10 @@
 import React from 'react';
 import { ProfilerYear, ProfilerFolder } from '../../services/profilerService';
 import { 
-  CalendarDays, Users, Layers, Plus, Sparkles,
-  ShieldCheck, CreditCard, BarChart3,
-  UserCheck, GraduationCap, Headset, Building2, Folder
+  CalendarDays, Users, Layers, Plus, Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { getDynamicIcon, cleanYearLabel } from '../../lib/workspace-utils';
 
 interface WorkspaceNavigatorProps {
   years: ProfilerYear[];
@@ -21,19 +20,6 @@ interface WorkspaceNavigatorProps {
   onAddFolder: (yearId: string, parentId?: string) => void;
   counts: Record<string, number>;
 }
-
-const getDynamicIcon = (name: string, size = 18) => {
-  const n = name.toUpperCase();
-  if (n.includes('OM') || n.includes('OPERATIONAL')) return <ShieldCheck size={size} />;
-  if (n.includes('SLIK') || n.includes('CHECKING')) return <CreditCard size={size} />;
-  if (n.includes('DA') || n.includes('ANALYST') || n.includes('DATA')) return <BarChart3 size={size} />;
-  if (n.includes('SV') || n.includes('SUPERVISOR')) return <UserCheck size={size} />;
-  if (n.includes('TR') || n.includes('TRAINER')) return <GraduationCap size={size} />;
-  if (n.includes('AG') || n.includes('AGENT')) return <Headset size={size} />;
-  if (n.includes('SM') || n.includes('SITE') || n.includes('MANAGER')) return <Building2 size={size} />;
-  if (n.includes('BATCH')) return <Layers size={size} />;
-  return <Folder size={size} />;
-};
 
 export default function WorkspaceNavigator({
   years,
@@ -96,7 +82,7 @@ export default function WorkspaceNavigator({
                   }
                 `}
               >
-                {year.label.replace(/Tahun\s+/gi, '')}
+                {cleanYearLabel(year.label)}
               </button>
             ))}
           </div>

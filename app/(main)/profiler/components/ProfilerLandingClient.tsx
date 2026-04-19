@@ -243,7 +243,7 @@ export default function ProfilerLandingClient({
         setSelectedTeamId(folder.parent_id);
         setSelectedBatch(folder.name);
       }
-      setIsSidebarOpen(false); // Close mobile sidebar on select
+      // REMOVED: setIsSidebarOpen(false); -> Allow user to see CRUD tools in drawer after selection
     }
   };
 
