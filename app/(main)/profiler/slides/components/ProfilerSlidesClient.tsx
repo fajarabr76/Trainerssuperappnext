@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, ChevronLeft, ChevronRight, ImageDown, Loader2, ChevronDown, Check } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { 
+  ArrowLeft, ChevronLeft, ChevronRight, ImageDown, 
+  Loader2, ChevronDown, Check, Search, X
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Peserta, labelJabatan, labelTim,
@@ -52,31 +55,49 @@ export default function ProfilerSlidesClient({
   role: _role = 'trainer'
 }: ProfilerSlidesClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const participantId = searchParams.get('participant');
+
   const [index, setIndex] = useState(0);
   const [fade, setFade] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingPdf, setSavingPdf] = useState(false);
   const [showFolderDropdown, setShowFolderDropdown] = useState(false);
+  const [showParticipantPicker, setShowParticipantPicker] = useState(false);
   const [slideMode, setSlideMode] = useState<SlideMode>('original');
+  
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const slideRef = useRef<HTMLDivElement>(null);
 
   const activeTab: string = 'slides';
 
+  // Find index from participantId in URL
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowFolderDropdown(false);
+    if (participantId && initialPeserta.length > 0) {
+      const foundIndex = initialPeserta.findIndex(p => p.id === participantId);
+      if (foundIndex !== -1 && foundIndex !== index) {
+        setIndex(foundIndex);
       }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    }
+  }, [participantId, initialPeserta, index]);
+
+  const updateUrl = useCallback((id: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('participant', id);
+    router.replace(`?${params.toString()}`);
+  }, [router, searchParams]);
 
   const goTo = useCallback((i: number) => {
+    if (i < 0 || i >= initialPeserta.length) return;
     setFade(false);
-    setTimeout(() => { setIndex(i); setFade(true); }, 110);
-  }, []);
+    setTimeout(() => { 
+      setIndex(i); 
+      setFade(true); 
+      updateUrl(initialPeserta[i].id);
+    }, 110);
+  }, [initialPeserta, updateUrl]);
 
   const prev = useCallback(() => {
     if (index > 0) goTo(index - 1);
@@ -88,12 +109,28 @@ export default function ProfilerSlidesClient({
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
+      // Don't trigger slide change if search input is focused
+      if (document.activeElement?.tagName === 'INPUT') return;
+      
       if (e.key === 'ArrowRight') next();
       if (e.key === 'ArrowLeft') prev();
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
   }, [next, prev]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowFolderDropdown(false);
+      }
+      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+        setShowParticipantPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const captureElementCanvas = async (target: HTMLElement | null) => {
     if (!target) return null;
@@ -160,6 +197,19 @@ export default function ProfilerSlidesClient({
       setSavingPdf(false);
     }
   };
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const filteredPeserta = useMemo(() => {
+    if (!searchQuery.trim()) return initialPeserta;
+    const q = searchQuery.toLowerCase();
+    return initialPeserta.filter(p => 
+      p.nama?.toLowerCase().includes(q) ||
+      p.tim?.toLowerCase().includes(q) ||
+      labelTim[p.tim]?.toLowerCase().includes(q) ||
+      p.jabatan?.toLowerCase().includes(q) ||
+      labelJabatan[p.jabatan]?.toLowerCase().includes(q)
+    );
+  }, [initialPeserta, searchQuery]);
 
   const p = initialPeserta[index];
   const theme = p ? timTheme(p.tim) : timTheme('');
@@ -298,61 +348,165 @@ export default function ProfilerSlidesClient({
         >
           <ArrowLeft size={15} /> Kembali
         </button>
-        <div className="relative" ref={dropdownRef}>
-          <button
-            onClick={() => setShowFolderDropdown(!showFolderDropdown)}
-            className="group flex flex-col items-center hover:bg-muted px-3 py-1 -my-1 rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm font-black tracking-tight text-foreground">{batchName}</span>
-              <ChevronDown className={`w-3.5 h-3.5 text-primary transition-transform duration-300 ${showFolderDropdown ? 'rotate-180' : ''}`} />
-            </div>
-            <p className="text-[10px] text-muted-foreground font-bold">{index + 1} / {initialPeserta.length}</p>
-          </button>
 
-          <AnimatePresence>
-            {showFolderDropdown && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 bg-card border border-border/40 rounded-3xl shadow-2xl z-[100] overflow-hidden"
-              >
-                <div className="max-h-80 overflow-y-auto p-3 space-y-4 custom-scrollbar">
-                  {initialYears.map(year => {
-                    const yearFolders = initialFolders.filter(f => f.year_id === year.id);
-                    if (yearFolders.length === 0) return null;
-                    return (
-                      <div key={year.id} className="space-y-1">
-                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] px-3 py-1">{year.label}</p>
-                        <div className="space-y-0.5">
-                          {yearFolders.map(folder => (
+        <div className="flex items-center gap-2">
+          {/* Batch Selector */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setShowFolderDropdown(!showFolderDropdown)}
+              className="flex items-center gap-2 h-10 px-4 bg-muted/50 hover:bg-muted border border-border/40 rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span className="text-xs font-black tracking-tight text-foreground truncate max-w-[120px]">{batchName}</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-primary transition-transform duration-300 ${showFolderDropdown ? 'rotate-180' : ''}`} />
+            </button>
+
+            <AnimatePresence>
+              {showFolderDropdown && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute top-full left-0 mt-2 w-[calc(100vw-2.5rem)] md:w-64 bg-card border border-border/40 rounded-3xl shadow-2xl z-[100] overflow-hidden"
+                >
+                  <div className="max-h-80 overflow-y-auto p-3 space-y-4 custom-scrollbar">
+                    {initialYears.map(year => {
+                      const yearFolders = initialFolders.filter(f => f.year_id === year.id);
+                      if (yearFolders.length === 0) return null;
+                      return (
+                        <div key={year.id} className="space-y-1">
+                          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] px-3 py-1">{year.label}</p>
+                          <div className="space-y-0.5">
+                            {yearFolders.map(folder => (
+                              <button
+                                key={folder.id}
+                                onClick={() => {
+                                  router.push(`/profiler/slides?batch=${encodeURIComponent(folder.name)}`);
+                                  setShowFolderDropdown(false);
+                                }}
+                                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                                  folder.name === batchName
+                                    ? 'bg-primary text-primary-foreground font-bold'
+                                    : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                                }`}
+                              >
+                                <span className="truncate">{folder.name}</span>
+                                {folder.name === batchName && <Check className="w-3 h-3" />}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Participant Picker (Combobox) */}
+          <div className="relative" ref={pickerRef}>
+            <button
+              onClick={() => {
+                setShowParticipantPicker(!showParticipantPicker);
+                if (!showParticipantPicker) {
+                  setSearchQuery('');
+                  setTimeout(() => searchInputRef.current?.focus(), 100);
+                }
+              }}
+              disabled={initialPeserta.length === 0}
+              className="flex flex-col items-center justify-center h-10 px-4 bg-muted/50 hover:bg-muted border border-border/40 rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-w-[180px] disabled:opacity-50"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-foreground truncate max-w-[150px]">
+                  {initialPeserta.length > 0 ? (p?.nama || 'Pilih Peserta') : 'Belum ada peserta'}
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 text-primary transition-transform duration-300 ${showParticipantPicker ? 'rotate-180' : ''}`} />
+              </div>
+              {initialPeserta.length > 0 && (
+                <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">
+                  {index + 1} / {initialPeserta.length}
+                </p>
+              )}
+            </button>
+
+            <AnimatePresence>
+              {showParticipantPicker && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[calc(100vw-2.5rem)] md:w-80 bg-card border border-border/40 rounded-3xl shadow-2xl z-[100] overflow-hidden flex flex-col"
+                >
+                  <div className="p-3 border-b border-border/40 relative">
+                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
+                    <input 
+                      ref={searchInputRef}
+                      type="text"
+                      placeholder="Cari nama, tim, jabatan..."
+                      className="w-full bg-muted/50 border border-border/40 rounded-xl py-2 pl-9 pr-4 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    {searchQuery && (
+                      <button 
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-6 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-80 overflow-y-auto p-2 custom-scrollbar">
+                    {filteredPeserta.length === 0 ? (
+                      <div className="py-8 text-center text-muted-foreground">
+                        <p className="text-xs font-medium">Tidak ada peserta ditemukan</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {filteredPeserta.map((peserta) => {
+                          const isActive = peserta.id === p?.id;
+                          return (
                             <button
-                              key={folder.id}
+                              key={peserta.id}
                               onClick={() => {
-                                router.push(`/profiler/slides?batch=${encodeURIComponent(folder.name)}`);
-                                setShowFolderDropdown(false);
-                                setIndex(0);
+                                const newIndex = initialPeserta.findIndex(item => item.id === peserta.id);
+                                if (newIndex !== -1) goTo(newIndex);
+                                setShowParticipantPicker(false);
                               }}
-                              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                                folder.name === batchName
-                                  ? 'bg-primary text-primary-foreground font-bold'
-                                  : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                              className={`w-full flex items-center gap-3 p-2 rounded-2xl text-left transition-all hover:bg-muted group ${
+                                isActive ? 'bg-primary/5 ring-1 ring-primary/20' : ''
                               }`}
                             >
-                              <span className="truncate">{folder.name}</span>
-                              {folder.name === batchName && <Check className="w-3 h-3" />}
+                              <div className="w-10 h-10 rounded-full bg-muted flex-shrink-0 overflow-hidden relative border border-border/40">
+                                {peserta.foto_url ? (
+                                  <Image src={peserta.foto_url} alt={peserta.nama || ''} fill className="object-cover" referrerPolicy="no-referrer" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary font-bold text-sm">
+                                    {peserta.nama?.charAt(0)}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-xs font-bold truncate ${isActive ? 'text-primary' : 'text-foreground'}`}>
+                                  {peserta.nama}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground truncate uppercase tracking-tighter">
+                                  {peserta.tim} • {labelJabatan[peserta.jabatan] || peserta.jabatan}
+                                </p>
+                              </div>
+                              {isActive && <Check className="w-4 h-4 text-primary shrink-0" />}
                             </button>
-                          ))}
-                        </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
+
         <div className="flex items-center gap-3">
           {/* Slide Mode Toggle */}
           <div className="flex items-center bg-muted/30 rounded-xl p-1 border border-border/40">
@@ -374,10 +528,6 @@ export default function ProfilerSlidesClient({
             >
               Opsi 2
             </button>
-          </div>
-
-          <div className="px-3 py-1.5 rounded-xl border border-primary/20 bg-primary/5 text-[10px] uppercase tracking-widest font-bold text-primary">
-            Mode: {slideMode === 'original' ? 'Versi Original' : 'Opsi 2 (Portrait A4)'}
           </div>
 
           <button
