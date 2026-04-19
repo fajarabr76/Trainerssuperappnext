@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import Image from 'next/image';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { 
   ArrowLeft, ChevronLeft, ChevronRight, ImageDown, 
   Loader2, ChevronDown, Check, Search, X
@@ -55,6 +55,7 @@ export default function ProfilerSlidesClient({
   role: _role = 'trainer'
 }: ProfilerSlidesClientProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const participantId = searchParams.get('participant');
 
@@ -78,8 +79,16 @@ export default function ProfilerSlidesClient({
   // 1. Initial load dengan/tanpa participantId
   // 2. Perpindahan batch (initialPeserta berubah)
   // 3. Update URL jika ID tidak valid
+  // 4. Sinkronisasi state saat URL berubah (back/forward)
   useEffect(() => {
+    // Kasus: Batch kosong
     if (initialPeserta.length === 0) {
+      if (participantId) {
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete('participant');
+        const query = params.toString();
+        router.replace(query ? `${pathname}?${query}` : pathname);
+      }
       setIndex(0);
       return;
     }
@@ -87,29 +96,30 @@ export default function ProfilerSlidesClient({
     // Jika ada participantId di URL, cari index-nya
     if (participantId) {
       const foundIndex = initialPeserta.findIndex(p => p.id === participantId);
-      
+
       if (foundIndex !== -1) {
-        // ID Valid: Sync index ke ID tersebut
-        if (foundIndex !== index) setIndex(foundIndex);
+        setIndex(foundIndex);
       } else {
         // ID Invalid (mungkin dari batch lain atau dihapus): Fallback ke pertama & bersihkan URL
         setIndex(0);
         const params = new URLSearchParams(searchParams.toString());
         params.delete('participant');
-        router.replace(`?${params.toString()}`);
+        const query = params.toString();
+        router.replace(query ? `${pathname}?${query}` : pathname);
       }
     } else {
       // Tidak ada ID di URL (baru buka batch): Reset ke index 0
       setIndex(0);
     }
-  }, [batchName, initialPeserta, participantId, router, searchParams, index]);
+  }, [batchName, initialPeserta, participantId, pathname, router, searchParams]);
   // ───────────────────────────────────────────────────────────────────────
 
   const updateUrl = useCallback((id: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('participant', id);
-    router.replace(`?${params.toString()}`);
-  }, [router, searchParams]);
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  }, [pathname, router, searchParams]);
 
   const goTo = useCallback((i: number) => {
     if (i < 0 || i >= initialPeserta.length) return;
