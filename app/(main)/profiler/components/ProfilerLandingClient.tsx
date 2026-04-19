@@ -1,17 +1,12 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import {
-  Plus, Upload, Table2, SlidersHorizontal, Download,
-  Trash2, ChevronLeft, Cake,
-  Settings2, UserPlus, Moon, Sun, PieChart, CalendarDays, Users, Layers
+  Trash2, Cake
 } from 'lucide-react';
 import { ProfilerYear, ProfilerFolder } from '../services/profilerService';
-import YearSidebar from './YearSidebar';
 import AddMemberPicker from './AddMemberPicker';
 import DuplicateFolderModal from './DuplicateFolderModal';
-import { useTheme } from 'next-themes';
 import { 
   createYear, 
   createFolder as createFolderAction, 
@@ -19,8 +14,14 @@ import {
   deleteBatch as deleteBatchAction,
   getPesertaByBatch
 } from '../actions';
-import { Loader2 } from 'lucide-react';
 import { Peserta } from '../lib/profiler-types';
+
+// New Redesigned Components
+import WorkspaceHeader from './workspace/WorkspaceHeader';
+import WorkspaceNavigator from './workspace/WorkspaceNavigator';
+import WorkspaceActiveBatch from './workspace/WorkspaceActiveBatch';
+import HierarchyPanel from './workspace/HierarchyPanel';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface ProfilerLandingClientProps {
   initialYears: ProfilerYear[];
@@ -71,8 +72,6 @@ export default function ProfilerLandingClient({
   role = 'trainer'
 }: ProfilerLandingClientProps) {
   const isReadOnly = role === 'leader';
-  const router = useRouter();
-  const { theme, setTheme } = useTheme();
   
   const [years, setYears] = useState<ProfilerYear[]>(initialYears);
   const [folders, setFolders] = useState<ProfilerFolder[]>(initialFolders);
@@ -90,6 +89,9 @@ export default function ProfilerLandingClient({
   const [counts, setCounts] = useState<Record<string, number>>(initialCounts);
   const [pesertaMap, setPesertaMap] = useState<Record<string, Peserta[]>>(initialPesertaMap);
   
+  // UI States
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
   // Modals
   const [showAddYear, setShowAddYear] = useState(false);
   const [newYearValue, setNewYearValue] = useState(new Date().getFullYear());
@@ -104,21 +106,6 @@ export default function ProfilerLandingClient({
   const [deleting, setDeleting] = useState(false);
   const [showBirthdayModal, setShowBirthdayModal] = useState(false);
   const [loadingPeserta, setLoadingPeserta] = useState(false);
-
-  const teamsInSelectedYear = useMemo(() => {
-    if (!selectedYearId) return [];
-    return folders.filter((f) => f.year_id === selectedYearId && !f.parent_id);
-  }, [folders, selectedYearId]);
-
-  const batchesInSelectedTeam = useMemo(() => {
-    if (!selectedTeamId) return [];
-    return folders.filter((f) => f.parent_id === selectedTeamId);
-  }, [folders, selectedTeamId]);
-
-  const selectedTeamFolder = useMemo(
-    () => (selectedTeamId ? folders.find((f) => f.id === selectedTeamId) || null : null),
-    [folders, selectedTeamId]
-  );
 
   useEffect(() => {
     if (!selectedYearId) {
@@ -256,10 +243,10 @@ export default function ProfilerLandingClient({
         setSelectedTeamId(folder.parent_id);
         setSelectedBatch(folder.name);
       }
+      setIsSidebarOpen(false); // Close mobile sidebar on select
     }
   };
 
-  const hasPeserta = (counts[selectedBatch] || 0) > 0;
   const count = counts[selectedBatch] || 0;
 
   const upcomingBirthdays = useMemo(() => {
@@ -267,371 +254,153 @@ export default function ProfilerLandingClient({
     return getUpcomingBirthdays(list);
   }, [pesertaMap, selectedBatch]);
 
-  const nearestBirthday = upcomingBirthdays[0] ?? null;
+  const activeTeamName = useMemo(() => {
+    return folders.find(f => f.id === selectedTeamId)?.name;
+  }, [folders, selectedTeamId]);
+
+  const activeYearLabel = useMemo(() => {
+    return years.find(y => y.id === selectedYearId)?.label;
+  }, [years, selectedYearId]);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col transition-colors duration-500">
-      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-border/40 bg-card/30 px-8 py-4 backdrop-blur-2xl">
-        <div className="flex-1">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="flex items-center gap-3 text-xs font-black uppercase tracking-[0.2em] text-foreground/70 hover:text-primary transition-all group"
-          >
-            <div className="w-8 h-8 rounded-xl bg-accent/50 flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-all">
-              <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
-            </div>
-            <span className="hidden md:block">Dashboard</span>
-          </button>
-        </div>
-        
-        <div className="flex flex-col items-center text-center leading-none">
-          <span className="text-[10px] font-black uppercase tracking-[0.25em] text-foreground/80">Profiler Workspace</span>
-          <span className="mt-1 text-sm font-semibold tracking-tight">Manajemen Profil Peserta</span>
-        </div>
-        
-        <div className="flex-1 flex justify-end">
-          <button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="w-10 h-10 flex items-center justify-center rounded-2xl bg-accent/30 text-foreground/70 hover:text-primary transition-all border border-border/40 hover:shadow-lg hover:shadow-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
-          >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-background flex flex-col transition-colors duration-500 overflow-hidden">
+      <WorkspaceHeader 
+        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+        activeBatch={selectedBatch}
+        activeTeam={activeTeamName}
+        activeYearLabel={activeYearLabel}
+      />
 
-      <div className="flex flex-1 overflow-hidden p-4 gap-4">
-        <main className="flex-1 overflow-y-auto bg-card border border-border/40 rounded-2xl shadow-sm custom-scrollbar relative">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none overflow-hidden z-0 rounded-2xl">
-            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px] animate-pulse" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-module-profiler/5 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
+      <div className="flex flex-1 overflow-hidden relative">
+        <main className="flex-1 overflow-hidden relative group">
+          {/* Subtle Workspace Glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none overflow-hidden z-0">
+            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/3 rounded-full blur-[120px]" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-module-profiler/5 rounded-full blur-[120px]" />
           </div>
 
-          {!selectedBatch ? (
-            <div className="h-full p-6 md:p-8 overflow-y-auto custom-scrollbar relative z-10">
-              <div className="max-w-7xl mx-auto space-y-6">
-                <div className="rounded-3xl border border-border/40 bg-card/70 backdrop-blur-sm p-6">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-primary">Profiler Hub</p>
-                  <h2 className="mt-2 text-3xl font-bold tracking-tight text-foreground">Pilih Tahun dan Tim</h2>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Mulai dari tahun, lanjutkan ke tim, lalu pilih batch yang ingin Anda kelola.
-                  </p>
-                </div>
-
-                <section className="rounded-3xl border border-border/40 bg-card/70 backdrop-blur-sm p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <CalendarDays className="w-4 h-4 text-primary" />
-                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Tahun</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {years.map((year) => (
-                      <button
-                        key={year.id}
-                        onClick={() => setSelectedYearId(year.id)}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                          selectedYearId === year.id
-                            ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/10'
-                            : 'bg-background text-muted-foreground border-border/40 hover:text-foreground hover:bg-muted'
-                        }`}
-                      >
-                        {year.label}
-                      </button>
-                    ))}
-                  </div>
-                </section>
-
-                <section className="rounded-3xl border border-border/40 bg-card/70 backdrop-blur-sm p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Users className="w-4 h-4 text-primary" />
-                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Tim</p>
-                  </div>
-                  {teamsInSelectedYear.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Belum ada tim untuk tahun yang dipilih.</p>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                      {teamsInSelectedYear.map((team) => {
-                        const batchCount = folders.filter((f) => f.parent_id === team.id).length;
-                        return (
-                          <button
-                            key={team.id}
-                            onClick={() => {
-                              setSelectedTeamId(team.id);
-                              setSelectedFolderId(team.id);
-                              if (batchCount === 0) {
-                                setSelectedBatch(team.name);
-                              } else {
-                                setSelectedBatch('');
-                              }
-                            }}
-                            className={`rounded-2xl border p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                              selectedTeamId === team.id
-                                ? 'border-primary bg-primary/5 shadow-md shadow-primary/10'
-                                : 'border-border/40 bg-background hover:bg-muted'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between gap-3">
-                              <p className="font-bold tracking-tight text-foreground truncate">{team.name}</p>
-                              <span className="px-2 py-1 rounded-lg bg-foreground/5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                                {batchCount} Batch
-                              </span>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-2">
-                              {batchCount > 0 ? 'Pilih tim untuk melihat daftar batch.' : 'Batch belum tersedia untuk tim ini.'}
-                            </p>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </section>
-
-                {selectedTeamFolder && (
-                  <section className="rounded-3xl border border-border/40 bg-card/70 backdrop-blur-sm p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Layers className="w-4 h-4 text-primary" />
-                      <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
-                        Daftar Batch · Tim {selectedTeamFolder.name}
-                      </p>
-                    </div>
-                    {batchesInSelectedTeam.length === 0 ? (
-                      <div className="rounded-2xl border border-border/40 bg-background p-4">
-                        <p className="text-sm text-muted-foreground">Batch belum tersedia untuk tim ini. Buat batch pertama untuk mulai mengelola peserta.</p>
-                        {!isReadOnly && (
-                          <button
-                            onClick={() => setShowAddFolder({ yearId: selectedTeamFolder.year_id, parentId: selectedTeamFolder.id })}
-                            className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                            Buat Batch
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                        {batchesInSelectedTeam.map((batch) => (
-                          <button
-                            key={batch.id}
-                            onClick={() => {
-                              setSelectedFolderId(batch.id);
-                              setSelectedBatch(batch.name);
-                            }}
-                            className="rounded-2xl border border-border/40 bg-background p-4 text-left hover:bg-muted transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                          >
-                            <div className="flex items-center justify-between gap-3">
-                              <p className="font-bold tracking-tight text-foreground truncate">{batch.name}</p>
-                              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                                {counts[batch.name] || 0} Peserta
-                              </span>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-2">Buka workspace batch ini.</p>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </section>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="p-6 flex flex-col max-w-7xl mx-auto w-full relative z-10">
-              <div className="mb-6 flex items-start justify-between">
-                <div>
-                  <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
-                    Batch Workspace
-                  </div>
-                  <div className="flex items-center gap-4 mb-2">
-                    <h2 className="text-3xl font-bold tracking-tight">{selectedBatch}</h2>
-                    {count > 0 && (
-                      <span className="px-3 py-1 bg-foreground/5 text-muted-foreground text-[10px] font-bold uppercase tracking-widest rounded-full border border-border flex items-center gap-2">
-                        {loadingPeserta ? <Loader2 size={10} className="animate-spin" /> : null}
-                        {count} Peserta
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground font-light">
-                    {count > 0 
-                      ? 'Kelola profil peserta, analisis data, dan ekspor dokumen dari satu workspace.' 
-                      : 'Batch ini belum memiliki peserta. Tambahkan data untuk memulai.'}
-                  </p>
-                </div>
-
-                {!isReadOnly && (
-                  <div className="flex items-center gap-3">
-                    <button 
-                      onClick={() => setShowPicker(true)}
-                      className="flex items-center gap-2 px-5 py-2.5 bg-module-profiler text-white rounded-xl text-sm font-bold shadow-lg shadow-module-profiler/20 hover:scale-105 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
-                    >
-                      <UserPlus size={18} />
-                      Ambil dari Batch Lain
-                    </button>
-                    <button 
-                      onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(selectedBatch)}`)}
-                      className="flex items-center gap-2 px-5 py-2.5 bg-accent text-foreground rounded-xl text-sm font-bold border border-border/40 hover:bg-accent/80 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
-                    >
-                      <Plus size={18} />
-                      Tambah Peserta
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {!isReadOnly && (
-                <section className="mb-8">
-                  <div className="flex items-center gap-3 mb-4 px-1">
-                    <div className="w-1 h-3 bg-primary rounded-full" />
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Manajemen Data</p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <ActionCard
-                      icon={<Plus className="w-5 h-5" />}
-                      iconBg="bg-primary/10"
-                      iconColor="text-primary"
-                      title="Input Manual"
-                      desc="Tambahkan data peserta satu per satu melalui formulir."
-                      className="md:col-span-2"
-                      onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(selectedBatch)}`)}
-                    />
-                    <ActionCard
-                      icon={<Upload className="w-5 h-5" />}
-                      iconBg="bg-module-telefun-bg"
-                      iconColor="text-module-telefun"
-                      title="Impor Massal"
-                      desc="Unggah file Excel untuk menambah atau memperbarui data peserta."
-                      onClick={() => router.push(`/profiler/import?batch=${encodeURIComponent(selectedBatch)}`)}
-                    />
-                  </div>
-                </section>
-              )}
-
-              <section className={`transition-all duration-500 mb-8 ${!hasPeserta ? 'opacity-30 grayscale pointer-events-none' : ''}`}>
-                <div className="flex items-center gap-3 mb-4 px-1">
-                  <div className="w-1 h-3 bg-primary rounded-full" />
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Analisis & Ekspor</p>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <ActionCard
-                    icon={<Table2 className="w-5 h-5" />}
-                    iconBg="bg-chart-blue/10"
-                    iconColor="text-chart-blue"
-                    title="Database"
-                    desc="Kelola data peserta dalam tampilan tabel."
-                    onClick={() => router.push(`/profiler/table?batch=${encodeURIComponent(selectedBatch)}`)}
-                  />
-                  <ActionCard
-                    icon={<SlidersHorizontal className="w-5 h-5" />}
-                    iconBg="bg-module-pdkt/10"
-                    iconColor="text-module-pdkt"
-                    title="Slides"
-                    desc="Lihat profil peserta dalam format presentasi."
-                    onClick={() => router.push(`/profiler/slides?batch=${encodeURIComponent(selectedBatch)}`)}
-                  />
-                  <ActionCard
-                    icon={<Download className="w-5 h-5" />}
-                    iconBg="bg-chart-orange/10"
-                    iconColor="text-chart-orange"
-                    title="Ekspor"
-                    desc="Unduh data ke format PDF dan Excel."
-                    onClick={() => router.push(`/profiler/export?batch=${encodeURIComponent(selectedBatch)}`)}
-                  />
-                  <ActionCard
-                    icon={<PieChart className="w-5 h-5" />}
-                    iconBg="bg-module-telefun-bg"
-                    iconColor="text-module-telefun"
-                    title="Statistik"
-                    desc="Lihat ringkasan distribusi data per batch."
-                    onClick={() => router.push(`/profiler/analytics?batch=${encodeURIComponent(selectedBatch)}`)}
-                  />
-                </div>
-              </section>
-
-              {!isReadOnly && (
-                <section className="mt-2 mb-8">
-                  <div className="flex items-center gap-3 mb-4 px-1">
-                    <div className="w-1 h-3 bg-foreground/20 rounded-full" />
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Konfigurasi</p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <ActionCard
-                      icon={<Settings2 className="w-5 h-5" />}
-                      iconBg="bg-foreground/10"
-                      iconColor="text-muted-foreground"
-                      title="Manajemen Tim"
-                      desc="Kelola daftar tim untuk kebutuhan input data."
-                      onClick={() => router.push('/profiler/teams')}
-                    />
-                  </div>
-                </section>
-              )}
-
-              {hasPeserta && (
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <StatCard label="Total Peserta" value={String(count)} />
-                  <StatCard label="Batch Aktif" value={selectedBatch} small />
-                  <button
-                    onClick={() => setShowBirthdayModal(true)}
-                    className="group relative overflow-hidden bg-primary/5 border border-primary/10 rounded-2xl p-4 text-left hover:shadow-lg hover:shadow-primary/5 transition-all"
-                  >
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Cake className="w-4 h-4 text-primary" />
-                      </div>
-                      <p className="text-[10px] text-primary uppercase tracking-widest font-bold">Ulang Tahun</p>
-                    </div>
-                    {nearestBirthday ? (
-                      <>
-                        <p className="text-base font-bold truncate leading-tight mb-1">{nearestBirthday.nama}</p>
-                        <div className="flex items-baseline gap-2">
-                          {nearestBirthday.days === 0 ? (
-                            <span className="text-lg font-bold text-primary">Hari ini! 🎉</span>
-                          ) : (
-                            <>
-                              <span className="text-2xl font-bold text-primary">{nearestBirthday.days}</span>
-                              <span className="text-[10px] text-muted-foreground font-light">hari lagi</span>
-                            </>
-                          )}
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-xs text-muted-foreground font-light">Belum ada data ulang tahun.</p>
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+          <AnimatePresence mode="wait">
+            {!selectedBatch ? (
+              <motion.div 
+                key="navigator"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                transition={{ duration: 0.4, ease: "circOut" }}
+                className="h-full"
+              >
+                <WorkspaceNavigator 
+                  years={years}
+                  folders={folders}
+                  selectedYearId={selectedYearId}
+                  onSelectYear={setSelectedYearId}
+                  selectedTeamId={selectedTeamId}
+                  onSelectTeam={setSelectedTeamId}
+                  onSelectBatch={(id, name) => {
+                    setSelectedFolderId(id);
+                    setSelectedBatch(name);
+                  }}
+                  isReadOnly={isReadOnly}
+                  onAddFolder={(yearId, parentId) => setShowAddFolder({ yearId, parentId })}
+                  counts={counts}
+                />
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="active-batch"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.4, ease: "circOut" }}
+                className="h-full"
+              >
+                <WorkspaceActiveBatch 
+                  batchName={selectedBatch}
+                  count={count}
+                  loadingPeserta={loadingPeserta}
+                  isReadOnly={isReadOnly}
+                  onPickPeserta={() => setShowPicker(true)}
+                  upcomingBirthdays={upcomingBirthdays}
+                  onShowBirthdays={() => setShowBirthdayModal(true)}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </main>
 
-        <YearSidebar 
-          years={years}
-          folders={folders}
-          selectedYearId={selectedYearId}
-          selectedFolderId={selectedFolderId}
-          onSelectYear={setSelectedYearId}
-          onSelectFolder={selectFolder}
-          onAddYear={() => setShowAddYear(true)}
-          onAddFolder={(yearId, parentId) => setShowAddFolder({ yearId, parentId })}
-          onRenameFolder={(f) => { setRenamingFolder(f); setRenameValue(f.name); }}
-          onDeleteFolder={setConfirmDeleteFolder}
-          onDuplicateFolder={setDuplicateFolder}
-          counts={counts}
-          role={role}
-        />
+        <aside className="hidden md:block">
+          <HierarchyPanel 
+            years={years}
+            folders={folders}
+            selectedYearId={selectedYearId}
+            selectedFolderId={selectedFolderId}
+            onSelectYear={setSelectedYearId}
+            onSelectFolder={selectFolder}
+            onAddYear={() => setShowAddYear(true)}
+            onAddFolder={(yearId, parentId) => setShowAddFolder({ yearId, parentId })}
+            onRenameFolder={(f) => { setRenamingFolder(f); setRenameValue(f.name); }}
+            onDeleteFolder={setConfirmDeleteFolder}
+            onDuplicateFolder={setDuplicateFolder}
+            counts={counts}
+            role={role}
+          />
+        </aside>
+
+        {/* Mobile Hierarchy Sidebar */}
+        <AnimatePresence>
+          {isSidebarOpen && (
+            <>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsSidebarOpen(false)}
+                className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm md:hidden"
+              />
+              <motion.aside
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                className="fixed top-0 right-0 z-[70] h-full w-[85%] max-w-sm bg-card shadow-2xl md:hidden"
+              >
+                <HierarchyPanel 
+                  years={years}
+                  folders={folders}
+                  selectedYearId={selectedYearId}
+                  selectedFolderId={selectedFolderId}
+                  onSelectYear={setSelectedYearId}
+                  onSelectFolder={selectFolder}
+                  onAddYear={() => setShowAddYear(true)}
+                  onAddFolder={(yearId, parentId) => setShowAddFolder({ yearId, parentId })}
+                  onRenameFolder={(f) => { setRenamingFolder(f); setRenameValue(f.name); }}
+                  onDeleteFolder={setConfirmDeleteFolder}
+                  onDuplicateFolder={setDuplicateFolder}
+                  counts={counts}
+                  role={role}
+                  isMobile
+                />
+              </motion.aside>
+            </>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Modals */}
+      {/* Modals - Maintained for functionality */}
       {showAddYear && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md">
-          <div className="bg-card w-full max-w-sm rounded-[2rem] p-6 shadow-2xl border border-border/40">
-            <h3 className="text-lg font-bold mb-4">Tambah Tahun Data</h3>
+          <div className="bg-card w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl border border-border/40">
+            <h3 className="text-xl font-black tracking-tight mb-6">Create Archives</h3>
             <input 
               type="number"
               value={newYearValue}
               onChange={e => setNewYearValue(parseInt(e.target.value))}
-              className="w-full px-4 py-3 rounded-2xl border border-border/40 bg-background mb-4 transition-all focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full px-5 py-4 rounded-2xl border border-border/40 bg-background mb-6 transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 font-bold"
               min="2000" max="2100"
             />
             <div className="flex gap-3">
-              <button onClick={() => setShowAddYear(false)} className="flex-1 py-3 bg-accent border border-border/40 hover:bg-accent/80 rounded-2xl font-bold text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Batal</button>
-              <button onClick={handleAddYear} className="flex-1 py-3 bg-primary text-primary-foreground hover:opacity-90 rounded-2xl font-bold text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Simpan</button>
+              <button onClick={() => setShowAddYear(false)} className="flex-1 py-4 bg-accent border border-border/40 hover:bg-accent/80 rounded-2xl font-black text-[10px] uppercase tracking-widest">Cancel</button>
+              <button onClick={handleAddYear} className="flex-1 py-4 bg-primary text-primary-foreground hover:opacity-90 rounded-2xl font-black text-[10px] uppercase tracking-widest">Construct</button>
             </div>
           </div>
         </div>
@@ -639,19 +408,19 @@ export default function ProfilerLandingClient({
 
       {showAddFolder && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md">
-          <div className="bg-card w-full max-w-sm rounded-[2rem] p-6 shadow-2xl border border-border/40">
-            <h3 className="text-lg font-bold mb-4">{showAddFolder.parentId ? 'Tambah Batch' : 'Tambah Tim'}</h3>
+          <div className="bg-card w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl border border-border/40">
+            <h3 className="text-xl font-black tracking-tight mb-6">{showAddFolder.parentId ? 'New Batch' : 'New Team'}</h3>
             <input 
               type="text"
               value={newFolderName}
               onChange={e => setNewFolderName(e.target.value)}
-              placeholder={showAddFolder.parentId ? 'Contoh: Batch April' : 'Contoh: Tim OM'}
-              className="w-full px-4 py-3 rounded-2xl border border-border/40 bg-background mb-4 transition-all focus:outline-none focus:ring-2 focus:ring-primary/20"
+              placeholder={showAddFolder.parentId ? 'e.g. Batch Genesis' : 'e.g. Team Alpha'}
+              className="w-full px-5 py-4 rounded-2xl border border-border/40 bg-background mb-6 transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 font-bold"
               autoFocus
             />
             <div className="flex gap-3">
-              <button onClick={() => setShowAddFolder(null)} className="flex-1 py-3 bg-accent border border-border/40 hover:bg-accent/80 rounded-2xl font-bold text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Batal</button>
-              <button onClick={handleAddFolder} className="flex-1 py-3 bg-primary text-primary-foreground hover:opacity-90 rounded-2xl font-bold text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Simpan</button>
+              <button onClick={() => setShowAddFolder(null)} className="flex-1 py-4 bg-accent border border-border/40 hover:bg-accent/80 rounded-2xl font-black text-[10px] uppercase tracking-widest">Cancel</button>
+              <button onClick={handleAddFolder} className="flex-1 py-4 bg-primary text-primary-foreground hover:opacity-90 rounded-2xl font-black text-[10px] uppercase tracking-widest">Deploy</button>
             </div>
           </div>
         </div>
@@ -659,18 +428,18 @@ export default function ProfilerLandingClient({
 
       {renamingFolder && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md">
-          <div className="bg-card w-full max-w-sm rounded-[2rem] p-6 shadow-2xl border border-border/40">
-            <h3 className="text-lg font-bold mb-4">Ubah Nama</h3>
+          <div className="bg-card w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl border border-border/40">
+            <h3 className="text-xl font-black tracking-tight mb-6">Rename Node</h3>
             <input 
               type="text"
               value={renameValue}
               onChange={e => setRenameValue(e.target.value)}
-              className="w-full px-4 py-3 rounded-2xl border border-border/40 bg-background mb-4 transition-all focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full px-5 py-4 rounded-2xl border border-border/40 bg-background mb-6 transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 font-bold"
               autoFocus
             />
             <div className="flex gap-3">
-              <button onClick={() => setRenamingFolder(null)} className="flex-1 py-3 bg-accent border border-border/40 hover:bg-accent/80 rounded-2xl font-bold text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Batal</button>
-              <button onClick={handleRenameFolder} className="flex-1 py-3 bg-primary text-primary-foreground hover:opacity-90 rounded-2xl font-bold text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Simpan</button>
+              <button onClick={() => setRenamingFolder(null)} className="flex-1 py-4 bg-accent border border-border/40 hover:bg-accent/80 rounded-2xl font-black text-[10px] uppercase tracking-widest">Cancel</button>
+              <button onClick={handleRenameFolder} className="flex-1 py-4 bg-primary text-primary-foreground hover:opacity-90 rounded-2xl font-black text-[10px] uppercase tracking-widest">Commit</button>
             </div>
           </div>
         </div>
@@ -678,20 +447,20 @@ export default function ProfilerLandingClient({
 
       {confirmDeleteFolder && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md" onClick={() => !deleting && setConfirmDeleteFolder(null)}>
-          <div className="bg-card w-full max-w-sm rounded-[2rem] p-6 shadow-2xl border border-border/40" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-center mb-4">
-              <div className="w-14 h-14 bg-red-500/15 rounded-2xl flex items-center justify-center">
-                <Trash2 className="w-7 h-7 text-red-500" />
+          <div className="bg-card w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl border border-border/40" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-center mb-6">
+              <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500">
+                <Trash2 size={32} />
               </div>
             </div>
-            <h3 className="text-base font-bold text-center mb-1">Hapus Folder?</h3>
-            <p className="text-sm text-muted-foreground text-center mb-1 font-semibold">{confirmDeleteFolder.name}</p>
-            <p className="text-xs text-red-500 text-center mb-6">Tindakan ini menghapus folder dan seluruh data peserta secara permanen.</p>
-            <div className="space-y-2">
-              <button onClick={handleDeleteFolder} disabled={deleting} className="w-full py-3 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white rounded-2xl font-bold text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background">
-                {deleting ? 'Menghapus...' : 'Hapus Permanen'}
+            <h3 className="text-xl font-black tracking-tight text-center mb-2">Delete Node?</h3>
+            <p className="text-sm text-muted-foreground text-center mb-2 font-bold">{confirmDeleteFolder.name}</p>
+            <p className="text-xs text-red-500/60 text-center mb-8 px-4 leading-relaxed font-medium">This action will permanently purge the node and all nested participants data.</p>
+            <div className="space-y-3">
+              <button onClick={handleDeleteFolder} disabled={deleting} className="w-full py-4 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest">
+                {deleting ? 'Purging...' : 'Confirm Purge'}
               </button>
-              <button onClick={() => setConfirmDeleteFolder(null)} disabled={deleting} className="w-full py-3 bg-accent border border-border/40 hover:bg-accent/80 rounded-2xl font-bold text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-2 focus-visible:ring-ring">Batal</button>
+              <button onClick={() => setConfirmDeleteFolder(null)} disabled={deleting} className="w-full py-4 bg-accent border border-border/40 hover:bg-accent/80 rounded-2xl font-black text-[10px] uppercase tracking-widest">Cancel</button>
             </div>
           </div>
         </div>
@@ -724,30 +493,31 @@ export default function ProfilerLandingClient({
 
       {showBirthdayModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md" onClick={() => setShowBirthdayModal(false)}>
-          <div className="bg-card w-full max-w-sm rounded-[2rem] shadow-2xl border border-border/40 overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="p-6 bg-gradient-to-br from-pink-500 to-rose-500">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2 tracking-tight">
-                <Cake size={20} /> 
-                Ulang Tahun Terdekat
+          <div className="bg-card w-full max-w-sm rounded-[2.5rem] shadow-2xl border border-border/40 overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-8 bg-module-profiler text-white">
+              <h3 className="text-2xl font-black flex items-center gap-3 tracking-tighter">
+                <Cake size={28} /> 
+                Celebrations
               </h3>
+              <p className="text-xs font-bold text-white/60 uppercase tracking-widest mt-1">Upcoming events in {selectedBatch}</p>
             </div>
             <div className="p-4 space-y-2">
               {upcomingBirthdays.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-sm text-muted-foreground font-light italic">Tidak ada data ulang tahun.</p>
+                  <p className="text-sm text-muted-foreground font-medium italic opacity-40">No celebrations found.</p>
                 </div>
               ) : (
                 upcomingBirthdays.map((b, i) => (
-                  <div key={i} className={`flex items-center gap-3 p-4 rounded-2xl border transition-all ${b.days === 0 ? 'bg-pink-50 border-pink-200 dark:bg-pink-500/10' : 'bg-background border-border/40'}`}>
+                  <div key={i} className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${b.days === 0 ? 'bg-module-profiler/5 border-module-profiler/20' : 'bg-background border-border/40'}`}>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-bold truncate ${b.days === 0 ? 'text-pink-600 dark:text-pink-400' : 'text-foreground'}`}>
+                      <p className={`text-sm font-black truncate tracking-tight ${b.days === 0 ? 'text-module-profiler' : 'text-foreground'}`}>
                         {b.nama}
                       </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">{formatDate(b.tglLahir)} · {b.age} tahun</p>
+                      <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wider mt-0.5">{formatDate(b.tglLahir)} · {b.age} Y.O</p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className={`text-xs font-black uppercase tracking-widest ${b.days === 0 ? 'text-pink-500' : 'text-muted-foreground'}`}>
-                        {b.days === 0 ? 'Hari ini!' : `${b.days} hari`}
+                      <p className={`text-[10px] font-black uppercase tracking-widest ${b.days === 0 ? 'text-module-profiler animate-pulse' : 'text-muted-foreground/40'}`}>
+                        {b.days === 0 ? 'Active Now' : `${b.days} Days`}
                       </p>
                     </div>
                   </div>
@@ -755,46 +525,15 @@ export default function ProfilerLandingClient({
               )}
             </div>
             {upcomingBirthdays.length > 0 && (
-              <div className="px-6 pb-5">
-                <p className="text-[10px] text-muted-foreground/40 text-center font-mono">
-                  Maksimal 5 ulang tahun terdekat
+              <div className="px-8 pb-6">
+                <p className="text-[10px] text-muted-foreground/30 text-center font-black uppercase tracking-widest">
+                  Showing top 5 insights
                 </p>
               </div>
             )}
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-interface ActionCardProps { icon: React.ReactNode; iconBg: string; iconColor: string; title: string; desc: string; onClick?: () => void; className?: string; }
-function ActionCard({ icon, iconBg, iconColor, title, desc, onClick, className }: ActionCardProps) {
-  return (
-    <button onClick={onClick} className={`group flex flex-col gap-3 p-5 bg-card/40 backdrop-blur-sm border border-border/40 rounded-xl text-left transition-all hover:bg-card hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-0.5 relative overflow-hidden active:translate-y-0 ${className}`}>
-      <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center transition-transform group-hover:scale-110 duration-500 flex-shrink-0`}>
-        <span className={iconColor}>{icon}</span>
-      </div>
-      <div className="relative z-10 flex-1">
-        <p className="text-base font-bold mb-1 tracking-tight group-hover:text-primary transition-colors">{title}</p>
-        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 font-light">{desc}</p>
-      </div>
-      {/* Decorative background icon */}
-      <div className="absolute -right-2 -bottom-2 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity duration-700 rotate-12 scale-150 pointer-events-none">
-        {icon}
-      </div>
-    </button>
-  );
-}
-
-interface StatCardProps { label: string; value: string | number; small?: boolean; }
-function StatCard({ label, value, small = false }: StatCardProps) {
-  return (
-    <div className="bg-card/40 backdrop-blur-sm border border-border/40 rounded-xl p-4 flex flex-col justify-between shadow-sm hover:shadow-lg hover:shadow-primary/5 transition-all">
-      <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-black">{label}</p>
-      <p className={`font-black tracking-tighter ${
-        small ? 'text-lg opacity-60 truncate' : 'text-3xl text-foreground'
-      }`}>{value}</p>
     </div>
   );
 }

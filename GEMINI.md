@@ -46,6 +46,7 @@ The project uses `npm` for package management.
 
 ## 💻 Development Conventions
 
+*   **Leverage Sub-Agents:** Utilize specialized sub-agents (via the `Task` tool) for complex, multi-step tasks, research, and code exploration. Only perform trivial tasks (single-step edits, reads, or searches) directly.
 *   **Architecture:** Follows the Next.js App Router paradigm.
     *   Protected application routes reside inside `app/(main)`.
     *   Data mutations should be handled via **Server Actions** (typically found in `app/actions` or module-specific action files).
