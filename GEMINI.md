@@ -66,6 +66,13 @@ The project uses `npm` for package management.
 *   `supabase/migrations/`: Database schema and migration scripts.
 *   `docs/`: Extensive project documentation.
 
+## 🔌 MCP Servers
+
+This project has MCP servers configured for enhanced AI assistance:
+
+- **context7** - Always use context7 MCP tools for documentation lookup, code search, and exploring codebase patterns before executing tasks or reading files individually
+- **supabase-mcp-server** - Use for Supabase data queries and database operations
+
 ## 🤖 Specialized Sub-Agents
 
 ### PDKT-Evaluator

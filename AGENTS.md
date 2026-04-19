@@ -1,7 +1,13 @@
 # AGENTS.md
 
+## MCP Servers
+
+- **context7** - Always use context7 MCP for documentation lookup and code search before executing tasks
+- **supabase-mcp-server** - Use for Supabase data queries and database operations
+
 ## Subagent Usage
 
+- Untuk searching pattern atau menjawab pertanyaan tentang struktur kode, gunakan context7 MCP tools terlebih dahulu sebelum membaca file satu per satu
 - Gunakan subagent (tool Task) untuk tugas yang memerlukan eksplorasi codebase atau riset multi-step
 - Gunakan subagent_type `explore` untuk mencari file, searching pattern, atau menjawab pertanyaan tentang struktur kode
 - Gunakan subagent_type `general` untuk tugas research kompleks dan multi-step

@@ -73,15 +73,37 @@ export default function ProfilerSlidesClient({
 
   const activeTab: string = 'slides';
 
-  // Find index from participantId in URL
+  // ── SINKRONISASI STATE & URL ───────────────────────────────────────────
+  // Menangani:
+  // 1. Initial load dengan/tanpa participantId
+  // 2. Perpindahan batch (initialPeserta berubah)
+  // 3. Update URL jika ID tidak valid
   useEffect(() => {
-    if (participantId && initialPeserta.length > 0) {
-      const foundIndex = initialPeserta.findIndex(p => p.id === participantId);
-      if (foundIndex !== -1 && foundIndex !== index) {
-        setIndex(foundIndex);
-      }
+    if (initialPeserta.length === 0) {
+      setIndex(0);
+      return;
     }
-  }, [participantId, initialPeserta, index]);
+
+    // Jika ada participantId di URL, cari index-nya
+    if (participantId) {
+      const foundIndex = initialPeserta.findIndex(p => p.id === participantId);
+      
+      if (foundIndex !== -1) {
+        // ID Valid: Sync index ke ID tersebut
+        if (foundIndex !== index) setIndex(foundIndex);
+      } else {
+        // ID Invalid (mungkin dari batch lain atau dihapus): Fallback ke pertama & bersihkan URL
+        setIndex(0);
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete('participant');
+        router.replace(`?${params.toString()}`);
+      }
+    } else {
+      // Tidak ada ID di URL (baru buka batch): Reset ke index 0
+      setIndex(0);
+    }
+  }, [batchName, initialPeserta, participantId, router, searchParams, index]);
+  // ───────────────────────────────────────────────────────────────────────
 
   const updateUrl = useCallback((id: string) => {
     const params = new URLSearchParams(searchParams.toString());
