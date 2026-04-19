@@ -11,9 +11,9 @@ import {
   HeadingLevel,
   AlignmentType,
 } from 'docx';
-import type { DashboardSummary } from '../../lib/qa-types';
-import type { ServiceType } from '../../lib/qa-types';
-import { SERVICE_LABELS } from '../../lib/qa-types';
+import type { DashboardSummary } from '../../../lib/qa-types';
+import type { ServiceType } from '../../../lib/qa-types';
+import { SERVICE_LABELS } from '../../../lib/qa-types';
 
 /** AI narrative parsing helper to turn numbered lists into headings + bullets */
 function renderParsedNarrative(narration: string): Paragraph[] {

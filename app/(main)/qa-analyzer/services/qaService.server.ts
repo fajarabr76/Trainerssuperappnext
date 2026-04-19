@@ -2611,6 +2611,83 @@ export const qaServiceServer = {
     };
   },
 
+  /** Fetches raw findings for Data Report workspace with specific filters. */
+  async getDataReportRows(filter: {
+    serviceType: ServiceType;
+    indicatorId?: string;
+    year: number;
+    startMonth: number;
+    endMonth: number;
+    folderId?: string;
+    pesertaId?: string;
+  }) {
+    const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
+
+    let query = supabase
+      .from('qa_temuan')
+      .select(`
+        id,
+        service_type,
+        no_tiket,
+        nilai,
+        ketidaksesuaian,
+        sebaiknya,
+        is_phantom_padding,
+        qa_periods!inner (
+          month,
+          year
+        ),
+        qa_indicators!inner (
+          name,
+          category
+        ),
+        profiler_peserta!inner (
+          nama,
+          batch_name
+        )
+      `)
+      .eq('service_type', filter.serviceType)
+      .eq('tahun', filter.year)
+      .gte('qa_periods.month', filter.startMonth)
+      .lte('qa_periods.month', filter.endMonth);
+
+    if (filter.indicatorId && filter.indicatorId !== 'ALL') {
+      query = query.eq('indicator_id', filter.indicatorId);
+    }
+    if (filter.pesertaId) {
+      query = query.eq('peserta_id', filter.pesertaId);
+    }
+    if (filter.folderId && filter.folderId !== 'ALL') {
+      query = query.eq('profiler_peserta.batch_name', filter.folderId);
+    }
+    if (hasPhantomSupport) {
+      query = query.eq('is_phantom_padding', false);
+    }
+
+    // Only meaningful findings (has issues)
+    query = query.or('nilai.lt.3,ketidaksesuaian.not.is.null,sebaiknya.not.is.null');
+
+    const { data, error } = await query
+      .order('id', { ascending: true }) // Stable for pagination
+      .limit(2000); // Higher limit for data report
+
+    if (error) throw error;
+
+    return (data || []).map((item: any) => ({
+      id: item.id,
+      service: item.service_type as ServiceType,
+      period: `${MONTHS_SHORT[item.qa_periods.month - 1]} ${item.qa_periods.year}`,
+      agentName: item.profiler_peserta.nama,
+      batch: item.profiler_peserta.batch_name,
+      ticketNumber: item.no_tiket || '—',
+      parameter: item.qa_indicators.name,
+      finding: item.ketidaksesuaian || '—',
+      expected: item.sebaiknya || '—',
+      score: item.nilai,
+    }));
+  },
+
   /** Rows for Report Maker — detail table (service report). */
   async getServiceReportTemuanDetailRows(
     serviceType: string,

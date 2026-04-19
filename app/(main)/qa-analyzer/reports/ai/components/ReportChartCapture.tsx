@@ -18,7 +18,7 @@ import {
   Pie,
   Legend,
 } from 'recharts';
-import type { ParetoData, CriticalVsNonCriticalData } from '../../lib/qa-types';
+import type { ParetoData, CriticalVsNonCriticalData } from '../../../lib/qa-types';
 
 const PARETO_COLORS = { critical: '#f43f5e', non_critical: '#64748b' };
 const DONUT_COLORS = ['#f43f5e', '#64748b'];

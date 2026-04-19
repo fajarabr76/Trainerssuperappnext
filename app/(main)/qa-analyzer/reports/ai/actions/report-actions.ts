@@ -5,9 +5,9 @@ import { createAdminClient } from '@/app/lib/supabase/admin';
 import { getProviderFromModelId } from '@/app/lib/ai-models';
 import { generateOpenRouterContent } from '@/app/actions/openrouter';
 import { generateGeminiContent } from '@/app/actions/gemini';
-import { qaServiceServer } from '../../services/qaService.server';
-import type { ServiceType, QATemuan } from '../../lib/qa-types';
-import { SERVICE_LABELS } from '../../lib/qa-types';
+import { qaServiceServer } from '../../../services/qaService.server';
+import type { ServiceType, QATemuan } from '../../../lib/qa-types';
+import { SERVICE_LABELS } from '../../../lib/qa-types';
 import { getReportMaxPerDay } from '../lib/report-models';
 import { buildIndividualReportDocx, buildServiceReportDocx } from '../lib/docx-builder';
 

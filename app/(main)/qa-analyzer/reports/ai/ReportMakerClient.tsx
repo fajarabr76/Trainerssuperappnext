@@ -4,12 +4,12 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import Link from 'next/link';
 import { FileText, Loader2, Download, ChevronLeft } from 'lucide-react';
-import type { ServiceType } from '../lib/qa-types';
-import { SERVICE_LABELS } from '../lib/qa-types';
-import type { ParetoData, CriticalVsNonCriticalData } from '../lib/qa-types';
+import type { ServiceType } from '../../lib/qa-types';
+import { SERVICE_LABELS } from '../../lib/qa-types';
+import type { ParetoData, CriticalVsNonCriticalData } from '../../lib/qa-types';
 import type { ReportAiModelOption } from './lib/report-models';
 import { modelProviderLabel } from './lib/report-models';
-import QaStatePanel from '../components/QaStatePanel';
+import QaStatePanel from '../../components/QaStatePanel';
 import nextDynamic from 'next/dynamic';
 import {
   checkReportRateLimitAction,
