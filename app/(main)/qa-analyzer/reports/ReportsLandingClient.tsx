@@ -27,6 +27,7 @@ export default function ReportsLandingClient({ role }: Props) {
   };
 
   const handleContinueAi = () => {
+    sessionStorage.setItem('sidak-ai-report-acknowledged', 'true');
     setShowAiWarning(false);
     router.push('/qa-analyzer/reports/ai');
   };

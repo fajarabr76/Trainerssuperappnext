@@ -14,11 +14,9 @@ import {
   LayoutGrid,
   Calendar
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import type { ServiceType, QAIndicator, QAPeriod } from '../../lib/qa-types';
+import type { ServiceType, QAIndicator } from '../../lib/qa-types';
 import { SERVICE_LABELS } from '../../lib/qa-types';
 import { fetchDataReportAction } from './actions';
-import ExcelJS from 'exceljs';
 
 const SERVICE_TYPES = Object.keys(SERVICE_LABELS) as ServiceType[];
 
@@ -31,7 +29,6 @@ type Props = {
   folders: FolderOption[];
   availableYears: number[];
   allIndicators: QAIndicator[];
-  periods: QAPeriod[];
 };
 
 export default function DataReportClient({ 
@@ -39,8 +36,7 @@ export default function DataReportClient({
   agents, 
   folders, 
   availableYears, 
-  allIndicators,
-  periods 
+  allIndicators
 }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,6 +93,7 @@ export default function DataReportClient({
   const handleExport = async () => {
     if (data.length === 0) return;
 
+    const ExcelJS = (await import('exceljs')).default;
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Laporan Data QA');
 

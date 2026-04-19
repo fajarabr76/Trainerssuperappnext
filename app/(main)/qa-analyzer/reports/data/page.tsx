@@ -10,12 +10,11 @@ export default async function DataReportPage() {
     allowedRoles: ['trainer', 'admin']
   });
 
-  const [agentsRaw, foldersData, availableYears, allIndicators, periods] = await Promise.all([
+  const [agentsRaw, foldersData, availableYears, allIndicators] = await Promise.all([
     qaServiceServer.getAgentListWithScores(),
     qaServiceServer.getFolders(),
     qaServiceServer.getAvailableYears(),
     qaServiceServer.getIndicators(),
-    qaServiceServer.getPeriods(),
   ]);
 
   const agents = (agentsRaw ?? []).map((a: { id: string; nama: string; batch_name?: string | null }) => ({
@@ -37,7 +36,6 @@ export default async function DataReportPage() {
       folders={folders}
       availableYears={years}
       allIndicators={allIndicators}
-      periods={periods}
     />
   );
 }

@@ -62,7 +62,20 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
     trendPoints: Array<{ label: string; score: number; findings: number }>;
   }>({ paretoData: [], donutData: null, trendPoints: [] });
   const [captureWarning, setCaptureWarning] = useState<string | null>(null);
-  const [showWarning, setShowWarning] = useState(true);
+  const [showWarning, setShowWarning] = useState(false);
+
+  // Sync warning state with session storage to handle direct URL vs landing page flow
+  useEffect(() => {
+    const acknowledged = sessionStorage.getItem('sidak-ai-report-acknowledged');
+    if (!acknowledged) {
+      setShowWarning(true);
+    }
+  }, []);
+
+  const handleCloseWarning = () => {
+    sessionStorage.setItem('sidak-ai-report-acknowledged', 'true');
+    setShowWarning(false);
+  };
 
   const captureRef = useRef<ReportChartCaptureHandle>(null);
 
@@ -496,7 +509,7 @@ export default function ReportMakerClient({ role, models, agents, folders, avail
 
       <ReportWarningModal 
         isOpen={showWarning} 
-        onClose={() => setShowWarning(false)} 
+        onClose={handleCloseWarning} 
       />
     </main>
   );
