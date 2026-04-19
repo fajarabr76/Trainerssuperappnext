@@ -18,6 +18,7 @@ import type { ServiceType, QAIndicator } from '../../lib/qa-types';
 import { SERVICE_LABELS } from '../../lib/qa-types';
 import { fetchDataReportAction } from './actions';
 
+const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 const SERVICE_TYPES = Object.keys(SERVICE_LABELS) as ServiceType[];
 
 type AgentOption = { id: string; nama: string; batch_name?: string | null };
@@ -255,8 +256,8 @@ export default function DataReportClient({
                   onChange={(e) => setStartMonth(Number(e.target.value))}
                   className="h-11 w-full rounded-xl border border-border/50 bg-background px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
                 >
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                    <option key={m} value={m}>{m}</option>
+                  {MONTHS.map((name, i) => (
+                    <option key={i + 1} value={i + 1}>{name}</option>
                   ))}
                 </select>
               </div>
@@ -270,8 +271,8 @@ export default function DataReportClient({
                     onChange={(e) => setEndMonth(Number(e.target.value))}
                     className="h-11 w-full rounded-xl border border-border/50 bg-background px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
                   >
-                    {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                      <option key={m} value={m}>{m}</option>
+                    {MONTHS.map((name, i) => (
+                      <option key={i + 1} value={i + 1}>{name}</option>
                     ))}
                   </select>
                 </div>
