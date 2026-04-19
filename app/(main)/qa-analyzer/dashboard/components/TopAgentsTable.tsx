@@ -49,65 +49,65 @@ export default function TopAgentsTable({ agents, serviceType, selectedYear }: To
   }
 
   return (
-    <div className="overflow-hidden bg-card/50 backdrop-blur-sm rounded-xl border border-border/50">
+    <div className="overflow-hidden bg-card rounded-xl border border-border shadow-sm">
       <table className="w-full text-left border-collapse">
         <thead>
-          <tr className="border-b border-border/50">
-            <th scope="col" className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Rank</th>
-            <th scope="col" className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Agen</th>
-            <th scope="col" className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center">Temuan</th>
-            <th scope="col" className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center">Skor QA</th>
-            <th scope="col" className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Aksi</th>
+          <tr className="border-b border-border bg-muted/20">
+            <th scope="col" className="px-6 py-3 text-xs font-semibold text-muted-foreground">Rank</th>
+            <th scope="col" className="px-6 py-3 text-xs font-semibold text-muted-foreground">Agen</th>
+            <th scope="col" className="px-6 py-3 text-xs font-semibold text-muted-foreground text-center">Temuan</th>
+            <th scope="col" className="px-6 py-3 text-xs font-semibold text-muted-foreground text-center">Skor QA</th>
+            <th scope="col" className="px-6 py-3 text-xs font-semibold text-muted-foreground text-right">Aksi</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-border/30">
+        <tbody className="divide-y divide-border">
           {agents.map((agent, index) => (
             <motion.tr 
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 }}
               key={agent.agentId} 
-              className="group hover:bg-primary/[0.02] transition-colors cursor-pointer"
+              className="group hover:bg-muted/50 transition-colors cursor-pointer"
               onClick={() => router.push(`/qa-analyzer/agents/${agent.agentId}`)}
             >
               <td className="px-6 py-4">
-                <span className="text-xs font-black text-muted-foreground group-hover:text-primary/40 transition-colors">
+                <span className="text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
                   #{String(index + 1).padStart(2, '0')}
                 </span>
               </td>
               <td className="px-6 py-4">
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{agent.nama}</span>
+                    <span className="text-sm font-semibold text-foreground">{agent.nama}</span>
                     {agent.hasCritical && (
-                      <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-rose-500/10 text-rose-500 text-[9px] font-black uppercase tracking-tighter">
-                        <AlertCircle className="w-2.5 h-2.5" /> Fatal
+                      <span className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-red-500/20 bg-red-50 text-red-600 text-[10px] font-semibold uppercase">
+                        <AlertCircle className="w-3 h-3" /> Fatal
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] text-muted-foreground font-medium">{agent.batch}</span>
+                  <span className="text-xs text-muted-foreground">{agent.batch}</span>
                 </div>
               </td>
               <td className="px-6 py-4 text-center">
-                <span className="text-sm font-black text-rose-500/80 tabular-nums">
+                <span className="text-sm font-bold text-red-500">
                   {agent.defects}
                 </span>
               </td>
               <td className="px-6 py-4 text-center">
-                <div className="inline-flex flex-col items-center">
-                   <span className={`text-sm font-black tabular-nums ${
-                    agent.score >= 90 ? 'text-emerald-500' :
-                    agent.score >= 80 ? 'text-amber-500' :
-                    'text-rose-500'
+                <div className="inline-flex flex-col items-center w-full max-w-[80px]">
+                   <span className={`text-sm font-bold ${
+                    agent.score >= 90 ? 'text-green-600' :
+                    agent.score >= 80 ? 'text-amber-600' :
+                    'text-red-600'
                   }`}>
                     {agent.score.toFixed(1)}%
                   </span>
-                  <div className="w-12 h-1 bg-foreground/5 rounded-full mt-1 overflow-hidden">
+                  <div className="w-full h-1.5 bg-muted rounded-full mt-1.5 overflow-hidden">
                     <div 
                       className={`h-full rounded-full ${
-                        agent.score >= 90 ? 'bg-emerald-500' :
+                        agent.score >= 90 ? 'bg-green-500' :
                         agent.score >= 80 ? 'bg-amber-500' :
-                        'bg-rose-500'
+                        'bg-red-500'
                       }`}
                       style={{ width: `${Math.max(10, agent.score)}%` }}
                     />
@@ -115,7 +115,7 @@ export default function TopAgentsTable({ agents, serviceType, selectedYear }: To
                 </div>
               </td>
               <td className="px-6 py-4 text-right">
-                <button className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-foreground/5 text-muted-foreground group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                <button className="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-muted text-muted-foreground transition-colors">
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </td>
@@ -124,10 +124,10 @@ export default function TopAgentsTable({ agents, serviceType, selectedYear }: To
         </tbody>
       </table>
       
-      <div className="p-3 border-t border-border/30 bg-white/30 dark:bg-black/10 flex justify-end">
+      <div className="p-3 border-t border-border bg-muted/10 flex justify-end">
         <Link
           href={rankingHref}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-primary hover:bg-primary/10 transition-all duration-200"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-primary hover:bg-primary/5 transition-colors"
         >
           Lihat Semua Ranking
           <ChevronRight className="w-4 h-4" />

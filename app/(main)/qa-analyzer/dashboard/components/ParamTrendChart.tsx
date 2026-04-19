@@ -51,7 +51,7 @@ export default function ParamTrendChart({
   const isFiltered = filterLabel !== 'all';
 
   return (
-    <div className="h-full w-full rounded-3xl border border-border/40 bg-background/60 dark:bg-white/[0.04] p-3 shadow-inner animate-in fade-in duration-700">
+    <div className="h-full w-full animate-in fade-in duration-700">
       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
           <defs>
@@ -65,24 +65,23 @@ export default function ParamTrendChart({
             dataKey="name" 
             axisLine={false} 
             tickLine={false} 
-            tick={{ fontSize: 10, fill: 'currentColor', opacity: 0.5, fontWeight: 600 }}
+            tick={{ fontSize: 11, fill: 'currentColor', opacity: 0.6 }}
             dy={10}
           />
           <YAxis 
             axisLine={false} 
             tickLine={false} 
-            tick={{ fontSize: 10, fill: 'currentColor', opacity: 0.5, fontWeight: 600 }}
+            tick={{ fontSize: 11, fill: 'currentColor', opacity: 0.6 }}
           />
           <Tooltip 
             contentStyle={{ 
-              backgroundColor: 'hsl(var(--card))', 
-              borderColor: 'hsl(var(--border))',
-              borderRadius: '16px',
+              borderRadius: '8px', 
+              border: '1px solid var(--border)', 
+              backgroundColor: 'var(--card)', 
+              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
               fontSize: '12px',
-              fontWeight: '600',
-              boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-              color: 'hsl(var(--foreground))',
-              borderWidth: '1px'
+              fontWeight: '500',
+              color: 'var(--foreground)'
             }}
           />
           
@@ -94,7 +93,7 @@ export default function ParamTrendChart({
             const color = TREND_COLORS[i % TREND_COLORS.length];
             return (
               <Area
-                key={ds.label}
+                key={`area-param-${i}`}
                 name={ds.label}
                 type="monotone"
                 dataKey={`dataset_${i}`}
@@ -118,7 +117,7 @@ export default function ParamTrendChart({
             
             return (
               <Area
-                key={ds.label}
+                key={`area-total-${i}`}
                 name={ds.label}
                 type="monotone"
                 dataKey={`dataset_${i}`}
