@@ -1,23 +1,45 @@
 'use client';
 
-import React, { startTransition, useEffect, useState } from 'react';
+import React, { startTransition, useEffect, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, AlertTriangle, Sparkles } from 'lucide-react';
+import { 
+  Loader2, 
+  AlertTriangle, 
+  Sparkles, 
+  LayoutDashboard, 
+  ChevronRight,
+  Filter,
+  BarChart3,
+  Users,
+  Calendar,
+  Layers,
+  Info,
+  ArrowUpRight,
+  ArrowDownRight,
+  Target,
+  Search,
+  RefreshCw,
+  PieChart,
+  LineChart,
+  ArrowRight,
+  ArrowUp
+} from 'lucide-react';
 import { motion } from 'motion/react';
 import Link from 'next/link';
 
-import { DashboardData, TrendDataset } from '../lib/qa-types';
+import { DashboardData, TrendDataset, SERVICE_LABELS } from '../lib/qa-types';
 
-import DashboardFilters from './components/DashboardFilters';
-import KpiCard from './components/KpiCard';
+import { ResponsiveContainer, AreaChart, Area } from 'recharts';
 import ServiceBarChart from './components/ServiceBarChart';
-import TopAgentsTable from './components/TopAgentsTable';
 import ParetoChart from './components/ParetoChart';
 import FatalDonutChart from './components/FatalDonutChart';
 import ParamTrendChart, { TREND_COLORS } from './components/ParamTrendChart';
 
 import { User } from '@supabase/supabase-js';
 import { Profile } from '@/app/types/auth';
+import { MonthRangePicker } from '@/app/components/ui/MonthRangePicker';
+
+const _MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
 interface QaDashboardClientProps {
   user: User | null;
@@ -34,7 +56,7 @@ interface QaDashboardClientProps {
 }
 
 export default function QaDashboardClient({ 
-  user, 
+  user: _user, 
   role: _role, 
   profile: _profile,
   initialData,
@@ -53,15 +75,10 @@ export default function QaDashboardClient({
   const [selectedFolderId, setSelectedFolderId] = useState(initialFilters.folder);
   const [selectedService, setSelectedService] = useState(initialFilters.service);
   
-  // Trend local state for hiding/showing parameters only
-  const [hiddenParams, setHiddenParams] = useState<Set<string>>(() => {
-    const labels = initialData.paramTrend?.datasets
-      .filter((ds: TrendDataset) => !ds.isTotal && ds.label)
-      .map((ds: TrendDataset) => ds.label as string) || [];
-    return new Set(labels);
-  });
+  // Trend local state
+  const [hiddenParams, setHiddenParams] = useState<Set<string>>(new Set());
 
-  // Sync state when initialData (props) changes (navigation complete)
+  // Sync state when initialData (props) changes
   useEffect(() => {
     setLoading(false);
     setSelectedYear(initialFilters.year);
@@ -71,6 +88,7 @@ export default function QaDashboardClient({
     setSelectedService(initialFilters.service);
     setDisplayData(initialData);
     
+    // Default: hide all params except total for trend analysis focus initially
     const newLabels = initialData.paramTrend?.datasets
       .filter((ds: TrendDataset) => !ds.isTotal && ds.label)
       .map((ds: TrendDataset) => ds.label as string) || [];
@@ -86,7 +104,6 @@ export default function QaDashboardClient({
     });
   };
 
-  // Update URL when filters change
   const updateFilters = (newStart: number, newEnd: number, newFolder: string, newService: string, newYear: number) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('start_month', String(newStart));
@@ -95,7 +112,7 @@ export default function QaDashboardClient({
     params.set('service', newService);
     params.set('year', String(newYear));
     
-    // Remove legacy params if they exist
+    // Clean up old params
     params.delete('period');
     params.delete('timeframe');
     
@@ -105,14 +122,13 @@ export default function QaDashboardClient({
     });
   };
 
-  const handleYearChange = (year: number) => {
-    if (year === selectedYear) return;
-    updateFilters(startMonth, endMonth, selectedFolderId, selectedService, year);
-  };
-
   const handleRangeChange = (start: number | null, end: number | null) => {
     if (start !== null && end !== null) {
       updateFilters(start, end, selectedFolderId, selectedService, selectedYear);
+    } else if (start === null && end === null) {
+      const currentYear = new Date().getFullYear();
+      const endM = selectedYear === currentYear ? new Date().getMonth() + 1 : 12;
+      updateFilters(1, endM, selectedFolderId, selectedService, selectedYear);
     }
   };
 
@@ -123,172 +139,247 @@ export default function QaDashboardClient({
   const isTrendEmpty = !displayData.paramTrend || displayData.paramTrend.labels.length === 0 || 
     (displayData.paramTrend.datasets.filter((ds: TrendDataset) => !ds.isTotal).every((ds: TrendDataset) => ds.data.every((v: number) => v === 0)));
 
+  const activeFolderName = useMemo(() => {
+    if (selectedFolderId === 'ALL') return 'Semua Tim';
+    return displayData.folders.find(f => f.id === selectedFolderId)?.name || selectedFolderId;
+  }, [selectedFolderId, displayData.folders]);
+
+  const activePeriodText = useMemo(() => {
+    if (startMonth === endMonth) return `${_MONTHS[startMonth - 1]} ${selectedYear}`;
+    return `${_MONTHS[startMonth - 1]} - ${_MONTHS[endMonth - 1]} ${selectedYear}`;
+  }, [startMonth, endMonth, selectedYear]);
+
   return (
-    <>
-      <main className="flex-1 overflow-y-auto relative flex flex-col pb-20">
-        <div className="sticky top-0 z-30 flex items-center justify-between border-b border-border/50 bg-background/80 p-6 backdrop-blur-md">
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex flex-col leading-none">
-              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-foreground/70 font-display">SIDAK Workspace</span>
-              <span className="mt-1 text-sm font-semibold tracking-tight">Analitik kualitas</span>
+    <div data-module="qa-analyzer" className="module-clean-app flex-1 flex flex-col min-h-screen bg-background relative overflow-x-hidden">
+      
+      {/* 1. Utility Header */}
+      <header className="sticky top-0 z-[40] bg-background/80 backdrop-blur-md border-b border-border/50">
+        <div className="max-w-[1600px] mx-auto px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground mb-1">
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              <span>Workspace</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+              <span className="text-foreground">SIDAK Dashboard</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold tracking-tight">Analitik Operasional</h1>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-sm">
-              {user?.email?.charAt(0).toUpperCase()}
+
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex flex-col pr-4 border-r border-border/50 hidden lg:flex">
+              <span className="text-xs text-muted-foreground">Scope Aktif</span>
+              <span className="text-sm font-semibold">{SERVICE_LABELS[selectedService as keyof typeof SERVICE_LABELS] || selectedService} • {activeFolderName}</span>
             </div>
+            <div className="flex flex-col pr-4 border-r border-border/50 hidden lg:flex">
+              <span className="text-xs text-muted-foreground">Periode</span>
+              <span className="text-sm font-semibold">{activePeriodText}</span>
+            </div>
+            <button 
+              onClick={() => updateFilters(1, new Date().getMonth() + 1, 'ALL', 'call', new Date().getFullYear())}
+              className="h-9 px-4 rounded-xl flex items-center gap-2 text-sm font-medium border border-border/50 hover:bg-secondary transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Reset
+            </button>
           </div>
         </div>
+      </header>
 
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1200px] h-[300px] md:h-[500px] bg-primary/5 rounded-full blur-[60px] md:blur-[120px] pointer-events-none opacity-40 md:opacity-50" />
-        
-        <div className="p-8 lg:p-12 w-full max-w-[1600px] mx-auto relative z-10">
-          <header className="mb-12">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-                <Link href="/dashboard" className="hover:text-primary transition-colors">Dashboard</Link>
-                <span>/</span>
-                <span className="text-foreground font-medium">SIDAK</span>
+      {/* 2. Command Bar (Sticky Filters) */}
+      <div className="sticky top-[73px] z-[35] bg-background border-b border-border/40 py-3">
+        <div className="max-w-[1600px] mx-auto px-6">
+          <div className="flex flex-col xl:flex-row gap-3 items-stretch xl:items-center">
+            
+            {/* Service & Team Selectors */}
+            <div className="flex flex-1 gap-2">
+              <div className="relative group/input flex-1 max-w-[200px]">
+                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-muted-foreground group-focus-within/input:text-foreground transition-colors">
+                  <Layers className="w-3.5 h-3.5" />
+                </div>
+                <select
+                  value={selectedService}
+                  onChange={(e) => { setSelectedService(e.target.value); updateFilters(startMonth, endMonth, selectedFolderId, e.target.value, selectedYear); }}
+                  className="w-full h-9 pl-9 pr-8 bg-card border border-border rounded-lg text-sm font-medium appearance-none focus:outline-none focus:ring-1 focus:ring-ring transition-all cursor-pointer"
+                >
+                  {Object.entries(SERVICE_LABELS).map(([val, label]) => (
+                    <option key={val} value={val}>{label}</option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-muted-foreground">
+                  <ChevronRight className="w-3.5 h-3.5 rotate-90" />
+                </div>
               </div>
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
-                <Sparkles className="h-3.5 w-3.5" />
-                Workspace analitik terpadu
-              </div>
-              <h1 className="mb-4 text-4xl font-semibold tracking-tight lg:text-5xl font-display">
-                Dashboard Analitik SIDAK
-              </h1>
-              <p className="max-w-2xl text-lg font-light leading-relaxed text-muted-foreground">
-                Pantau performa kualitas, analisis akar masalah, dan temukan area perbaikan untuk tim Anda.
-              </p>
-            </motion.div>
-          </header>
 
-          <div className="space-y-8">
-            <div className="flex flex-col md:flex-row md:items-center gap-4">
-              <DashboardFilters 
+              <div className="relative group/input flex-1 max-w-[200px]">
+                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-muted-foreground group-focus-within/input:text-foreground transition-colors">
+                  <Users className="w-3.5 h-3.5" />
+                </div>
+                <select
+                  value={selectedFolderId}
+                  onChange={(e) => { setSelectedFolderId(e.target.value); updateFilters(startMonth, endMonth, e.target.value, selectedService, selectedYear); }}
+                  className="w-full h-9 pl-9 pr-8 bg-card border border-border rounded-lg text-sm font-medium appearance-none focus:outline-none focus:ring-1 focus:ring-ring transition-all cursor-pointer"
+                >
+                  <option key="folder-all" value="ALL">Semua Tim</option>
+                  {displayData.folders.map(f => (
+                    <option key={`folder-${f.id}`} value={f.id}>{f.name}</option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-muted-foreground">
+                  <ChevronRight className="w-3.5 h-3.5 rotate-90" />
+                </div>
+              </div>
+
+              <div className="relative group/input flex-1 max-w-[140px]">
+                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-muted-foreground group-focus-within/input:text-foreground transition-colors">
+                  <Calendar className="w-3.5 h-3.5" />
+                </div>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => { const y = parseInt(e.target.value); setSelectedYear(y); updateFilters(startMonth, endMonth, selectedFolderId, selectedService, y); }}
+                  className="w-full h-9 pl-9 pr-8 bg-card border border-border rounded-lg text-sm font-medium appearance-none focus:outline-none focus:ring-1 focus:ring-ring transition-all cursor-pointer"
+                >
+                  {displayData.availableYears.map(y => (
+                    <option key={`year-${y}`} value={y}>{y}</option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-muted-foreground">
+                  <ChevronRight className="w-3.5 h-3.5 rotate-90" />
+                </div>
+              </div>
+            </div>
+
+            <div className="hidden xl:block w-px h-6 bg-border mx-2" />
+
+            {/* Month Range Picker Redesigned */}
+            <div className="flex-[1.5] min-w-[300px]">
+              <MonthRangePicker 
+                selectedYear={selectedYear}
                 startMonth={startMonth}
                 endMonth={endMonth}
                 onRangeChange={handleRangeChange}
-                folders={displayData.folders}
-                selectedFolderId={selectedFolderId}
-                onFolderChange={(v) => { setSelectedFolderId(v); updateFilters(startMonth, endMonth, v, selectedService, selectedYear); }}
-                serviceType={selectedService}
-                onServiceChange={(v) => { setSelectedService(v); updateFilters(startMonth, endMonth, selectedFolderId, v, selectedYear); }}
-                selectedYear={selectedYear}
-                availableYears={displayData.availableYears || []}
-                onYearChange={handleYearChange}
+                variant="toolbar"
+                className="w-full"
               />
             </div>
+          </div>
+        </div>
+      </div>
 
-            {loading ? (
-              <div className="flex flex-col items-center justify-center py-32 text-muted-foreground">
-                <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
-                <p>Membarui data SIDAK...</p>
-              </div>
-            ) : !displayData.summary ? (
-              <div className="flex flex-col items-center justify-center py-32 text-muted-foreground bg-card rounded-2xl border border-dashed border-border">
-                <AlertTriangle className="w-12 h-12 text-yellow-500 mb-4 opacity-50" />
-                <p className="text-lg font-medium text-foreground mb-1">Tidak Ada Data</p>
-                <p className="text-sm">Silakan pilih periode atau tim yang berbeda.</p>
-              </div>
-            ) : (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-8"
-              >
-                <section>
-                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 font-display">
-                    <span className="w-1 h-5 bg-primary rounded-full"></span>
-                    Ringkasan Utama
-                  </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <KpiCard 
-                      label="Total Temuan QA"
-                      value={displayData.summary.totalDefects}
-                      delta={-12}
-                      target="Target: < 100"
-                      reverseLogic={true}
-                      sparklineData={displayData.sparklines.total || []}
-                    />
-                    <KpiCard 
-                      label="Rata-rata temuan parameter / agent"
-                      value={displayData.summary.avgDefectsPerAudit.toFixed(1)}
-                      delta={-5}
-                      target="Target: < 1.0"
-                      reverseLogic={true}
-                      sparklineData={displayData.sparklines.avg || []}
-                    />
-                    <KpiCard 
-                      label="Rata-rata Skor Agent"
-                      value={displayData.summary.avgAgentScore?.toFixed(1) ?? '0.0'}
-                      unit="%"
-                      delta={0}
-                      target="TARGET: ≥ 95%"
-                      targetValue={95}
-                      reverseLogic={false}
-                      sparklineData={displayData.sparklines.avgAgentScore || []}
-                    />
-                    <KpiCard 
-                      label="Kepatuhan (Skor ≥ 95%)"
-                      value={displayData.summary.complianceCount}
-                      unit={` agent (${displayData.summary.complianceRate.toFixed(1)}%)`}
-                      delta={4}
-                      target="Target: > 95%"
-                      reverseLogic={false}
-                      sparklineData={displayData.sparklines.compliance || []}
-                    />
-                  </div>
-                </section>
+      <main className="max-w-[1600px] mx-auto px-6 py-8 w-full flex-1">
+        
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-40">
+            <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
+            <p className="mt-4 text-sm font-medium text-muted-foreground">Memuat data dashboard...</p>
+          </div>
+        ) : !displayData.summary ? (
+          <div className="flex flex-col items-center justify-center py-32 bg-card rounded-2xl border border-border shadow-sm">
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+              <AlertTriangle className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h2 className="text-lg font-bold mb-2">Data Tidak Ditemukan</h2>
+            <p className="text-muted-foreground text-sm max-w-sm text-center px-6">
+              Tidak ada rekaman QA untuk filter yang Anda pilih. Coba sesuaikan rentang waktu atau tim.
+            </p>
+            <button 
+              onClick={() => updateFilters(1, new Date().getMonth() + 1, 'ALL', 'call', new Date().getFullYear())}
+              className="mt-6 px-6 py-2.5 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-colors"
+            >
+              Reset Filter
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            
+            {/* 3. Summary Strip */}
+            <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                {
+                  id: 'total-defects',
+                  label: "Total Temuan QA",
+                  value: displayData.summary.totalDefects,
+                  icon: Search,
+                  color: "text-orange-500",
+                  desc: "Kumulatif temuan parameter",
+                  sparklineData: displayData.sparklines.total || [],
+                  invertDelta: true
+                },
+                {
+                  id: 'avg-defects',
+                  label: "Rata-rata Temuan per Agen",
+                  value: displayData.summary.avgDefectsPerAudit.toFixed(1),
+                  icon: Target,
+                  color: "text-red-500",
+                  desc: "Rasio temuan / sesi audit",
+                  sparklineData: displayData.sparklines.avg || [],
+                  invertDelta: true
+                },
+                {
+                  id: 'avg-score',
+                  label: "Rata-rata Skor",
+                  value: `${displayData.summary.avgAgentScore?.toFixed(1) ?? '0.0'}%`,
+                  icon: BarChart3,
+                  color: "text-blue-500",
+                  desc: "Kualitas performa rata-rata",
+                  sparklineData: displayData.sparklines.avgAgentScore || [],
+                  invertDelta: false
+                },
+                {
+                  id: 'compliance',
+                  label: startMonth === endMonth ? "Compliance Rate" : "Average Compliance Rate",
+                  value: `${displayData.summary.complianceRate.toFixed(1)}%`,
+                  icon: Sparkles,
+                  color: "text-emerald-500",
+                  desc: "Agent dengan skor ≥ 95%",
+                  sparklineData: displayData.sparklines.compliance || [],
+                  invertDelta: false
+                }
+              ].map((card) => (
+                <SummaryCard 
+                  key={card.id}
+                  label={card.label}
+                  value={card.value}
+                  icon={card.icon}
+                  color={card.color}
+                  desc={card.desc}
+                  sparklineData={card.sparklineData}
+                  invertDelta={card.invertDelta}
+                />
+              ))}
+            </section>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <section className="bg-card rounded-2xl border border-border/40 p-5">
-                    <h2 className="text-lg font-semibold mb-6 flex items-center gap-2 font-display">
-                      <span className="w-1 h-5 bg-chart-blue rounded-full"></span>
-                      Total Temuan per Layanan
-                    </h2>
-                    <ServiceBarChart data={displayData.serviceData} />
-                  </section>
-
-                  <section className="bg-card rounded-2xl border border-border/40 p-5">
-                    <h2 className="text-lg font-semibold mb-6 flex items-center gap-2 font-display">
-                      <span className="w-1 h-5 bg-chart-orange rounded-full"></span>
-                      Top 5 Agen (Temuan Tertinggi)
-                    </h2>
-                    <TopAgentsTable 
-                      agents={displayData.topAgents} 
-                      serviceType={selectedService}
-                      selectedYear={selectedYear}
-                    />
-                  </section>
-                </div>
+            {/* 4. Analysis Workspace (Main Grid) */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              
+              {/* Left Lane: Trends & Detailed Analysis (2/3) */}
+              <div className="lg:col-span-2 space-y-8">
                 
-                <section className="bg-card rounded-2xl border border-border/40 p-5">
-                  <div className="flex items-center justify-between mb-8">
-                    <h2 className="text-lg font-semibold flex items-center gap-2 font-display">
-                      <span className="w-1 h-5 bg-primary rounded-full"></span>
-                      Tren Historis & Analisis Parameter
-                    </h2>
-                    <div className="flex items-center gap-2 px-3 py-1 bg-primary/5 rounded-full border border-primary/10">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-primary">
-                        Periode Analisis Tersinkronisasi
-                      </span>
+                {/* Trend Section */}
+                <div className="bg-card p-6 rounded-2xl border border-border shadow-sm">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <LineChart className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-bold">Tren Kualitas & Parameter</h2>
+                        <p className="text-sm text-muted-foreground">Fluktuasi temuan berdasarkan parameter QA</p>
+                      </div>
                     </div>
                   </div>
 
                   {isTrendEmpty ? (
-                    <div className="flex flex-col items-center justify-center py-24 text-muted-foreground bg-background/20 rounded-2xl border border-dashed border-border/50">
-                      <AlertTriangle className="w-8 h-8 text-yellow-500 mb-3 opacity-30" />
-                      <p className="text-sm font-medium">Tidak ada data pada rentang bulan ini</p>
+                    <div className="h-[400px] flex flex-col items-center justify-center bg-muted/20 rounded-xl border border-dashed">
+                      <p className="text-sm text-muted-foreground font-medium">Data tren tidak tersedia</p>
                     </div>
-                  ) : displayData.paramTrend && (
-                    <>
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {displayData.paramTrend.datasets.map((ds: TrendDataset, i: number) => {
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Compact Toggles */}
+                      <div className="flex flex-wrap items-center gap-1.5 pb-2">
+                        <span className="text-xs font-semibold text-muted-foreground mr-2">Tampilkan:</span>
+                        {displayData.paramTrend?.datasets.map((ds: TrendDataset, i: number) => {
                           if (ds.isTotal) return null;
                           const color = TREND_COLORS[i % TREND_COLORS.length];
                           const isHidden = hiddenParams.has(ds.label);
@@ -296,61 +387,241 @@ export default function QaDashboardClient({
                             <button
                               key={ds.label}
                               onClick={() => toggleParam(ds.label)}
-                              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all duration-200 ${
+                              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
                                 isHidden
-                                  ? 'opacity-40 border-border bg-transparent line-through'
-                                  : 'border-transparent'
+                                  ? 'bg-transparent border-transparent text-muted-foreground hover:bg-muted'
+                                  : 'border-border shadow-sm'
                               }`}
                               style={{
-                                backgroundColor: isHidden ? 'transparent' : `${color}22`,
-                                color,
+                                backgroundColor: isHidden ? undefined : `${color}15`,
+                                color: isHidden ? undefined : color,
                               }}
                             >
-                              <span
-                                className="w-2 h-2 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: color }}
+                              <div 
+                                className={`w-2 h-2 rounded-full ${isHidden ? 'bg-muted-foreground/30' : ''}`}
+                                style={{ backgroundColor: isHidden ? undefined : color }}
                               />
-                              {ds.label}
+                              <span className="max-w-[120px] truncate">{ds.label}</span>
                             </button>
                           );
                         })}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1 mb-3">
-                        Klik parameter untuk menampilkan tren spesifik
-                      </p>
-                      <div className="h-[350px] w-full rounded-[2rem] border border-border/40 bg-background/60 dark:bg-white/[0.04] p-3 shadow-inner">
+
+                      <div className="h-[360px] w-full mt-2">
                         <ParamTrendChart 
-                          data={displayData.paramTrend} 
+                          data={displayData.paramTrend!} 
                           showParameters={true} 
                           hiddenKeys={hiddenParams}
                           hideTotal={hasVisibleParam}
                         />
                       </div>
-                    </>
+                    </div>
                   )}
-                </section>
+                </div>
 
-                <section className="bg-card rounded-2xl border border-border/40 p-5">
-                  <h2 className="text-lg font-semibold mb-6 flex items-center gap-2 font-display">
-                    <span className="w-1 h-5 bg-chart-red rounded-full"></span>
-                    Analisis Akar Masalah
-                  </h2>
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-2">
-                      <h3 className="text-sm font-medium text-muted-foreground mb-4">Pareto Kategori Temuan (80/20 Rule)</h3>
-                      <ParetoChart data={displayData.paretoData} />
+                {/* Pareto / Root Cause Section */}
+                <div className="bg-card p-6 rounded-2xl border border-border shadow-sm">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                      <BarChart3 className="w-5 h-5 text-orange-500" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-medium text-muted-foreground mb-4 text-center">Proporsi Critical vs Non-Critical</h3>
-                      {displayData.donutData && <FatalDonutChart data={displayData.donutData} />}
+                      <h2 className="text-lg font-bold">Root Cause Analysis</h2>
+                      <p className="text-sm text-muted-foreground">Prinsip Pareto: 80% temuan biasanya berasal dari 20% kategori utama</p>
                     </div>
                   </div>
-                </section>
-              </motion.div>
-            )}
+
+                  <div className="w-full">
+                    <ParetoChart data={displayData.paretoData} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Lane: Secondary Insights & Leaderboard (1/3) */}
+              <div className="space-y-8">
+                
+                {/* Agent Leaderboard Card */}
+                <div className="bg-card p-6 rounded-2xl border border-border shadow-sm">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
+                        <Users className="w-5 h-5 text-red-500" />
+                      </div>
+                      <div>
+                        <h2 className="text-base font-bold">Top Agen (Temuan)</h2>
+                        <p className="text-xs text-muted-foreground">Prioritas Coaching</p>
+                      </div>
+                    </div>
+                    <Link href={`/qa-analyzer/ranking?service=${selectedService}&year=${selectedYear}&folder=${selectedFolderId === 'ALL' ? '' : selectedFolderId}`} className="text-xs font-semibold text-primary hover:underline">
+                      View All
+                    </Link>
+                  </div>
+
+                  <div className="space-y-3">
+                    {displayData.topAgents.slice(0, 5).map((agent, i) => (
+                      <div key={agent.agentId} className="flex items-center justify-between p-3 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors group cursor-pointer" onClick={() => router.push(`/qa-analyzer/agents/${agent.agentId}`)}>
+                        <div className="flex items-center gap-3">
+                          <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground group-hover:text-primary transition-colors">
+                            #{i+1}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-semibold truncate max-w-[120px]">{agent.nama}</span>
+                            <span className="text-xs text-muted-foreground">{agent.tim || agent.batch}</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span className="text-sm font-bold text-red-500">{agent.defects}</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Temuan</span>
+                        </div>
+                      </div>
+                    ))}
+                    {displayData.topAgents.length === 0 && (
+                      <p className="text-center py-10 text-sm text-muted-foreground italic">Tidak ada data agen</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Critical Ratio Card */}
+                <div className="bg-card p-6 rounded-2xl border border-border shadow-sm">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                      <PieChart className="w-5 h-5 text-indigo-500" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold">Severity Mix</h2>
+                      <p className="text-xs text-muted-foreground">Critical vs Non-Critical</p>
+                    </div>
+                  </div>
+                  
+                  <div className="h-[240px] flex items-center justify-center">
+                    {displayData.donutData && <FatalDonutChart data={displayData.donutData} />}
+                  </div>
+                </div>
+
+                {/* Service Distribution */}
+                <div className="bg-card p-6 rounded-2xl border border-border shadow-sm">
+                  <h3 className="text-sm font-bold mb-4 flex items-center gap-2">
+                    <div className="w-1.5 h-4 bg-primary rounded-full" />
+                    Distribusi per Layanan
+                  </h3>
+                  <div className="h-[240px] w-full text-left">
+                    <ServiceBarChart data={displayData.serviceData} />
+                  </div>
+                </div>
+
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </main>
-    </>
+
+      {/* Floating Action for Mobile / Quick Access */}
+      <div className="fixed bottom-6 right-6 z-[100] md:hidden">
+        <button 
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="w-14 h-14 rounded-2xl bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
+        >
+          <ArrowUp className="w-6 h-6" />
+        </button>
+      </div>
+
+    </div>
+  );
+}
+
+function SummaryCard({ 
+  label, 
+  value, 
+  icon: Icon, 
+  color,
+  desc,
+  sparklineData,
+  invertDelta = false
+}: { 
+  label: string; 
+  value: string | number; 
+  icon: any; 
+  color: string;
+  desc: string;
+  sparklineData: any[];
+  invertDelta?: boolean;
+}) {
+  const sparklineColor = color.includes('orange') ? '#F97316' : 
+                        color.includes('red') ? '#EF4444' :
+                        color.includes('blue') ? '#3B82F6' :
+                        color.includes('green') ? '#10B981' : '#1E293B';
+  
+  let delta = null;
+  let isPositive = false;
+  let isNeutral = true;
+  
+  if (sparklineData && sparklineData.length >= 2) {
+    const current = sparklineData[sparklineData.length - 1].value;
+    const prev = sparklineData[sparklineData.length - 2].value;
+    
+    if (prev > 0) {
+      const change = ((current - prev) / prev) * 100;
+      delta = Math.abs(change).toFixed(1);
+      isNeutral = change === 0;
+      // if invertDelta is true, meaning an increase is BAD (like total defects)
+      if (invertDelta) {
+        isPositive = change <= 0; // Less defects = good
+      } else {
+        isPositive = change > 0; // More score = good
+      }
+    }
+  }
+
+  return (
+    <div className="bg-card p-5 rounded-2xl border border-border shadow-sm flex flex-col justify-between h-full min-h-[180px]">
+      
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-3">
+          <div className={`w-9 h-9 rounded-xl ${color.replace('text-', 'bg-')}/10 flex items-center justify-center`}>
+            <Icon className={`w-4.5 h-4.5 ${color}`} />
+          </div>
+          {delta !== null && !isNeutral && (
+            <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold ${isPositive ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
+              {isPositive !== invertDelta ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
+              {delta}%
+            </div>
+          )}
+          {delta !== null && isNeutral && (
+            <div className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-muted-foreground bg-muted">
+              0%
+            </div>
+          )}
+        </div>
+        
+        <span className="block text-sm font-medium text-muted-foreground mb-1">{label}</span>
+        <div className="flex items-baseline gap-1">
+          <h3 className="text-3xl font-bold">{value}</h3>
+        </div>
+        <p className="mt-1.5 text-xs text-muted-foreground">{desc}</p>
+      </div>
+
+      <div className="h-12 w-full -mx-5 -mb-5 mt-4 relative overflow-hidden shrink-0">
+        <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-card via-transparent to-card z-10" />
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={sparklineData}>
+            <defs>
+              <linearGradient id={`gradient-${label.replace(/\s+/g, '-')}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={sparklineColor} stopOpacity={0.2}/>
+                <stop offset="95%" stopColor={sparklineColor} stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            <Area 
+              type="monotone" 
+              dataKey="value" 
+              stroke={sparklineColor} 
+              strokeWidth={2} 
+              fillOpacity={1} 
+              fill={`url(#gradient-${label.replace(/\s+/g, '-')})`}
+              isAnimationActive={true}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
   );
 }

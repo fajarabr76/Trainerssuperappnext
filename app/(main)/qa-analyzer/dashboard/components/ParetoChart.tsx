@@ -37,7 +37,7 @@ export default function ParetoChart({ data }: ParetoChartProps) {
           <XAxis 
             dataKey="name" 
             tickFormatter={(value) => value.length > 15 ? `${value.substring(0, 15)}...` : value}
-            tick={{ fontSize: 9, fill: 'currentColor', opacity: 0.4, fontWeight: 'bold' }} 
+            tick={{ fontSize: 11, fill: 'currentColor', opacity: 0.6 }} 
             angle={-30} 
             textAnchor="end"
             height={60}
@@ -48,7 +48,7 @@ export default function ParetoChart({ data }: ParetoChartProps) {
           <YAxis 
             yAxisId="left" 
             orientation="left" 
-            tick={{ fill: 'currentColor', fontSize: 10, opacity: 0.4, fontWeight: 'bold' }} 
+            tick={{ fill: 'currentColor', fontSize: 11, opacity: 0.6 }} 
             axisLine={false}
             tickLine={false}
           />
@@ -56,8 +56,9 @@ export default function ParetoChart({ data }: ParetoChartProps) {
             yAxisId="right" 
             orientation="right" 
             domain={[0, 100]} 
+            ticks={[0, 20, 40, 60, 80, 100]}
             tickFormatter={v => `${v}%`} 
-            tick={{ fill: 'currentColor', fontSize: 10, opacity: 0.4, fontWeight: 'bold' }}
+            tick={{ fill: 'currentColor', fontSize: 11, opacity: 0.6 }}
             axisLine={false}
             tickLine={false}
           />
@@ -70,16 +71,16 @@ export default function ParetoChart({ data }: ParetoChartProps) {
               return label;
             }}
             contentStyle={{ 
-              borderRadius: '16px', 
+              borderRadius: '8px', 
               border: '1px solid var(--border)', 
               backgroundColor: 'var(--card)', 
-              boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-              fontSize: '11px',
-              fontWeight: 'bold',
+              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+              fontSize: '12px',
+              fontWeight: '500',
               color: 'var(--foreground)'
             }}
           />
-          <Bar yAxisId="left" dataKey="count" radius={[12, 12, 0, 0]} maxBarSize={40}>
+          <Bar yAxisId="left" dataKey="count" radius={[8, 8, 0, 0]} maxBarSize={32}>
             {data.map((entry, index) => (
               <Cell 
                 key={`cell-${index}`} 
@@ -92,26 +93,11 @@ export default function ParetoChart({ data }: ParetoChartProps) {
             yAxisId="right" 
             dataKey="cumulative" 
             stroke="#f59e0b" 
-            strokeWidth={3}
-            dot={{ fill: '#f59e0b', r: 4, strokeWidth: 0 }} 
-            activeDot={{ r: 6, strokeWidth: 0 }}
+            strokeWidth={2}
+            dot={{ fill: '#f59e0b', r: 3, strokeWidth: 0 }} 
+            activeDot={{ r: 5, strokeWidth: 0 }}
             type="monotone" 
             animationDuration={2000}
-          />
-          <ReferenceLine
-            yAxisId="right"
-            y={80}
-            stroke="var(--foreground)"
-            strokeOpacity={0.3}
-            strokeDasharray="6 4"
-            label={{ 
-              value: '80%', 
-              position: 'right', 
-              fontSize: 10, 
-              fill: 'currentColor', 
-              opacity: 0.4,
-              fontWeight: 'bold'
-            }}
           />
         </ComposedChart>
       </ResponsiveContainer>

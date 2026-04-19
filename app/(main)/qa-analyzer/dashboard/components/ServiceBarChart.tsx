@@ -53,12 +53,12 @@ export default function ServiceBarChart({ data }: ServiceBarChartProps) {
     });
 
   return (
-    <div className="h-80 w-full animate-in fade-in duration-700">
+    <div className="h-full w-full animate-in fade-in duration-700">
       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <BarChart
           data={chartData}
           layout="vertical"
-          margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+          margin={{ top: 5, right: 10, left: -20, bottom: 5 }}
         >
           <CartesianGrid strokeDasharray="5 5" horizontal={true} vertical={false} stroke="currentColor" opacity={0.05} />
           <XAxis type="number" hide />
@@ -67,22 +67,22 @@ export default function ServiceBarChart({ data }: ServiceBarChartProps) {
             type="category" 
             axisLine={false} 
             tickLine={false} 
-            tick={{ fill: 'currentColor', fontSize: 10, opacity: 0.4, fontWeight: 'bold' }} 
-            width={120}
+            tick={{ fill: 'currentColor', fontSize: 11, opacity: 0.6 }} 
+            width={85}
           />
           <Tooltip 
             cursor={{ fill: 'currentColor', opacity: 0.03 }}
             contentStyle={{ 
-              borderRadius: '16px', 
+              borderRadius: '8px', 
               border: '1px solid var(--border)', 
               backgroundColor: 'var(--card)', 
-              boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-              fontSize: '11px',
-              fontWeight: 'bold',
+              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+              fontSize: '12px',
+              fontWeight: '500',
               color: 'var(--foreground)'
             }}
           />
-          <Bar dataKey="total" radius={[0, 12, 12, 0]} barSize={32}>
+          <Bar dataKey="total" radius={[0, 8, 8, 0]} barSize={24}>
             {chartData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={getSeverityColor(entry.severity)} fillOpacity={0.8} />
             ))}
