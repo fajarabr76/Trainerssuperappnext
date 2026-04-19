@@ -3,7 +3,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertTriangle, ArrowRight, Home } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 
 interface ReportWarningModalProps {
   isOpen: boolean;
