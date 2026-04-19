@@ -93,20 +93,20 @@ export default function WorkspaceActiveBatch({
             <section className="space-y-6">
               <div className="flex items-center gap-3">
                 <div className="w-1.5 h-6 bg-primary rounded-full" />
-                <h3 className="text-xl font-black tracking-tight uppercase">Operational Tools</h3>
+                <h3 className="text-xl font-black tracking-tight uppercase">Manajemen Data</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <ActionToolTile 
                   icon={<Plus size={24} />}
                   accent="primary"
-                  title="Entry Studio"
+                  title="Input Manual"
                   desc="Antarmuka input manual untuk pendaftaran peserta baru satu per satu."
                   onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(batchName)}`)}
                 />
                 <ActionToolTile 
                   icon={<Upload size={24} />}
                   accent="telefun"
-                  title="Context Import"
+                  title="Impor Data"
                   desc="Unggah dataset eksternal (Excel) untuk integrasi data massal."
                   onClick={() => router.push(`/profiler/import?batch=${encodeURIComponent(batchName)}`)}
                 />
@@ -118,30 +118,30 @@ export default function WorkspaceActiveBatch({
           <section className="space-y-6">
             <div className="flex items-center gap-3">
               <div className="w-1.5 h-6 bg-module-profiler rounded-full" />
-              <h3 className="text-xl font-black tracking-tight uppercase">Intelligence & Output</h3>
+              <h3 className="text-xl font-black tracking-tight uppercase">Analisis & Ekspor</h3>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <ActionToolTile 
                 disabled={!hasPeserta}
                 icon={<Table2 size={24} />}
                 accent="primary"
-                title="Context Matrix"
-                desc="Tabel database interaktif untuk audit data."
+                title="Database"
+                desc="Tabel database interaktif untuk audit dan manajemen data."
                 onClick={() => router.push(`/profiler/table?batch=${encodeURIComponent(batchName)}`)}
               />
               <ActionToolTile 
                 disabled={!hasPeserta}
                 icon={<SlidersHorizontal size={24} />}
                 accent="pdkt"
-                title="Profile Deck"
-                desc="Visualisasi profil dalam format slide presentasi."
+                title="Slide Profil"
+                desc="Visualisasi profil dalam format slide presentasi otomatis."
                 onClick={() => router.push(`/profiler/slides?batch=${encodeURIComponent(batchName)}`)}
               />
               <ActionToolTile 
                 disabled={!hasPeserta}
                 icon={<Download size={24} />}
                 accent="sidak"
-                title="Data Export"
+                title="Ekspor Laporan"
                 desc="Generate dokumen PDF/Excel untuk laporan resmi."
                 onClick={() => router.push(`/profiler/export?batch=${encodeURIComponent(batchName)}`)}
               />
@@ -149,8 +149,8 @@ export default function WorkspaceActiveBatch({
                 disabled={!hasPeserta}
                 icon={<PieChart size={24} />}
                 accent="telefun"
-                title="Batch Analytics"
-                desc="Distribusi data dan statistik demografi batch."
+                title="Statistik Batch"
+                desc="Distribusi data dan statistik demografi batch aktif."
                 onClick={() => router.push(`/profiler/analytics?batch=${encodeURIComponent(batchName)}`)}
               />
             </div>
@@ -161,13 +161,13 @@ export default function WorkspaceActiveBatch({
             <section className="space-y-6 opacity-60 hover:opacity-100 transition-opacity duration-500">
               <div className="flex items-center gap-3">
                 <div className="w-1.5 h-6 bg-muted-foreground/30 rounded-full" />
-                <h3 className="text-xl font-black tracking-tight uppercase text-muted-foreground/60">System Config</h3>
+                <h3 className="text-xl font-black tracking-tight uppercase text-muted-foreground/60">Konfigurasi</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <ActionToolTile 
                   icon={<Settings2 size={24} />}
                   accent="slate"
-                  title="Team Governance"
+                  title="Manajemen Tim"
                   desc="Atur daftar tim dan parameter organisasi modul."
                   onClick={() => router.push('/profiler/teams')}
                 />

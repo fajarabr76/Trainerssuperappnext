@@ -390,7 +390,7 @@ export default function ProfilerLandingClient({
       {showAddYear && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md">
           <div className="bg-card w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl border border-border/40">
-            <h3 className="text-xl font-black tracking-tight mb-6">Create Archives</h3>
+            <h3 className="text-xl font-black tracking-tight mb-6">Tambah Tahun</h3>
             <input 
               type="number"
               value={newYearValue}
@@ -399,8 +399,8 @@ export default function ProfilerLandingClient({
               min="2000" max="2100"
             />
             <div className="flex gap-3">
-              <button onClick={() => setShowAddYear(false)} className="flex-1 py-4 bg-accent border border-border/40 hover:bg-accent/80 rounded-2xl font-black text-[10px] uppercase tracking-widest">Cancel</button>
-              <button onClick={handleAddYear} className="flex-1 py-4 bg-primary text-primary-foreground hover:opacity-90 rounded-2xl font-black text-[10px] uppercase tracking-widest">Construct</button>
+              <button onClick={() => setShowAddYear(false)} className="flex-1 py-4 bg-accent border border-border/40 hover:bg-accent/80 rounded-2xl font-black text-[10px] uppercase tracking-widest">Batal</button>
+              <button onClick={handleAddYear} className="flex-1 py-4 bg-primary text-primary-foreground hover:opacity-90 rounded-2xl font-black text-[10px] uppercase tracking-widest">Simpan</button>
             </div>
           </div>
         </div>
@@ -409,7 +409,7 @@ export default function ProfilerLandingClient({
       {showAddFolder && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md">
           <div className="bg-card w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl border border-border/40">
-            <h3 className="text-xl font-black tracking-tight mb-6">{showAddFolder.parentId ? 'New Batch' : 'New Team'}</h3>
+            <h3 className="text-xl font-black tracking-tight mb-6">{showAddFolder.parentId ? 'Tambah Batch' : 'Tambah Tim'}</h3>
             <input 
               type="text"
               value={newFolderName}
@@ -419,8 +419,8 @@ export default function ProfilerLandingClient({
               autoFocus
             />
             <div className="flex gap-3">
-              <button onClick={() => setShowAddFolder(null)} className="flex-1 py-4 bg-accent border border-border/40 hover:bg-accent/80 rounded-2xl font-black text-[10px] uppercase tracking-widest">Cancel</button>
-              <button onClick={handleAddFolder} className="flex-1 py-4 bg-primary text-primary-foreground hover:opacity-90 rounded-2xl font-black text-[10px] uppercase tracking-widest">Deploy</button>
+              <button onClick={() => setShowAddFolder(null)} className="flex-1 py-4 bg-accent border border-border/40 hover:bg-accent/80 rounded-2xl font-black text-[10px] uppercase tracking-widest">Batal</button>
+              <button onClick={handleAddFolder} className="flex-1 py-4 bg-primary text-primary-foreground hover:opacity-90 rounded-2xl font-black text-[10px] uppercase tracking-widest">Simpan</button>
             </div>
           </div>
         </div>
@@ -429,7 +429,7 @@ export default function ProfilerLandingClient({
       {renamingFolder && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md">
           <div className="bg-card w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl border border-border/40">
-            <h3 className="text-xl font-black tracking-tight mb-6">Rename Node</h3>
+            <h3 className="text-xl font-black tracking-tight mb-6">Ubah Nama</h3>
             <input 
               type="text"
               value={renameValue}
@@ -438,8 +438,8 @@ export default function ProfilerLandingClient({
               autoFocus
             />
             <div className="flex gap-3">
-              <button onClick={() => setRenamingFolder(null)} className="flex-1 py-4 bg-accent border border-border/40 hover:bg-accent/80 rounded-2xl font-black text-[10px] uppercase tracking-widest">Cancel</button>
-              <button onClick={handleRenameFolder} className="flex-1 py-4 bg-primary text-primary-foreground hover:opacity-90 rounded-2xl font-black text-[10px] uppercase tracking-widest">Commit</button>
+              <button onClick={() => setRenamingFolder(null)} className="flex-1 py-4 bg-accent border border-border/40 hover:bg-accent/80 rounded-2xl font-black text-[10px] uppercase tracking-widest">Batal</button>
+              <button onClick={handleRenameFolder} className="flex-1 py-4 bg-primary text-primary-foreground hover:opacity-90 rounded-2xl font-black text-[10px] uppercase tracking-widest">Simpan</button>
             </div>
           </div>
         </div>
@@ -453,14 +453,14 @@ export default function ProfilerLandingClient({
                 <Trash2 size={32} />
               </div>
             </div>
-            <h3 className="text-xl font-black tracking-tight text-center mb-2">Delete Node?</h3>
+            <h3 className="text-xl font-black tracking-tight text-center mb-2">Hapus Data?</h3>
             <p className="text-sm text-muted-foreground text-center mb-2 font-bold">{confirmDeleteFolder.name}</p>
-            <p className="text-xs text-red-500/60 text-center mb-8 px-4 leading-relaxed font-medium">This action will permanently purge the node and all nested participants data.</p>
+            <p className="text-xs text-red-500/60 text-center mb-8 px-4 leading-relaxed font-medium">Tindakan ini akan menghapus seluruh data peserta di dalamnya secara permanen.</p>
             <div className="space-y-3">
               <button onClick={handleDeleteFolder} disabled={deleting} className="w-full py-4 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest">
-                {deleting ? 'Purging...' : 'Confirm Purge'}
+                {deleting ? 'Menghapus...' : 'Hapus Permanen'}
               </button>
-              <button onClick={() => setConfirmDeleteFolder(null)} disabled={deleting} className="w-full py-4 bg-accent border border-border/40 hover:bg-accent/80 rounded-2xl font-black text-[10px] uppercase tracking-widest">Cancel</button>
+              <button onClick={() => setConfirmDeleteFolder(null)} disabled={deleting} className="w-full py-4 bg-accent border border-border/40 hover:bg-accent/80 rounded-2xl font-black text-[10px] uppercase tracking-widest">Batal</button>
             </div>
           </div>
         </div>
@@ -497,14 +497,14 @@ export default function ProfilerLandingClient({
             <div className="p-8 bg-module-profiler text-white">
               <h3 className="text-2xl font-black flex items-center gap-3 tracking-tighter">
                 <Cake size={28} /> 
-                Celebrations
+                Ulang Tahun
               </h3>
-              <p className="text-xs font-bold text-white/60 uppercase tracking-widest mt-1">Upcoming events in {selectedBatch}</p>
+              <p className="text-xs font-bold text-white/60 uppercase tracking-widest mt-1">Acara mendatang di {selectedBatch}</p>
             </div>
             <div className="p-4 space-y-2">
               {upcomingBirthdays.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-sm text-muted-foreground font-medium italic opacity-40">No celebrations found.</p>
+                  <p className="text-sm text-muted-foreground font-medium italic opacity-40">Tidak ada data ulang tahun.</p>
                 </div>
               ) : (
                 upcomingBirthdays.map((b, i) => (
@@ -513,11 +513,11 @@ export default function ProfilerLandingClient({
                       <p className={`text-sm font-black truncate tracking-tight ${b.days === 0 ? 'text-module-profiler' : 'text-foreground'}`}>
                         {b.nama}
                       </p>
-                      <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wider mt-0.5">{formatDate(b.tglLahir)} · {b.age} Y.O</p>
+                      <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-wider mt-0.5">{formatDate(b.tglLahir)} · {b.age} TAHUN</p>
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className={`text-[10px] font-black uppercase tracking-widest ${b.days === 0 ? 'text-module-profiler animate-pulse' : 'text-muted-foreground/40'}`}>
-                        {b.days === 0 ? 'Active Now' : `${b.days} Days`}
+                        {b.days === 0 ? 'HARI INI' : `${b.days} HARI LAGI`}
                       </p>
                     </div>
                   </div>
@@ -527,7 +527,7 @@ export default function ProfilerLandingClient({
             {upcomingBirthdays.length > 0 && (
               <div className="px-8 pb-6">
                 <p className="text-[10px] text-muted-foreground/30 text-center font-black uppercase tracking-widest">
-                  Showing top 5 insights
+                  Menampilkan 5 data terdekat
                 </p>
               </div>
             )}

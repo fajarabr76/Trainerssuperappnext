@@ -2,7 +2,11 @@
 
 import React from 'react';
 import { ProfilerYear, ProfilerFolder } from '../../services/profilerService';
-import { CalendarDays, Users, Layers, Plus, Sparkles } from 'lucide-react';
+import { 
+  CalendarDays, Users, Layers, Plus, Sparkles,
+  ShieldCheck, CreditCard, BarChart3,
+  UserCheck, GraduationCap, Headset, Building2, Folder
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface WorkspaceNavigatorProps {
@@ -17,6 +21,19 @@ interface WorkspaceNavigatorProps {
   onAddFolder: (yearId: string, parentId?: string) => void;
   counts: Record<string, number>;
 }
+
+const getDynamicIcon = (name: string, size = 18) => {
+  const n = name.toUpperCase();
+  if (n.includes('OM') || n.includes('OPERATIONAL')) return <ShieldCheck size={size} />;
+  if (n.includes('SLIK') || n.includes('CHECKING')) return <CreditCard size={size} />;
+  if (n.includes('DA') || n.includes('ANALYST') || n.includes('DATA')) return <BarChart3 size={size} />;
+  if (n.includes('SV') || n.includes('SUPERVISOR')) return <UserCheck size={size} />;
+  if (n.includes('TR') || n.includes('TRAINER')) return <GraduationCap size={size} />;
+  if (n.includes('AG') || n.includes('AGENT')) return <Headset size={size} />;
+  if (n.includes('SM') || n.includes('SITE') || n.includes('MANAGER')) return <Building2 size={size} />;
+  if (n.includes('BATCH')) return <Layers size={size} />;
+  return <Folder size={size} />;
+};
 
 export default function WorkspaceNavigator({
   years,
@@ -67,7 +84,7 @@ export default function WorkspaceNavigator({
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Pilih Tahun</span>
           </div>
           <div className="flex flex-wrap gap-2">
-            {years.sort((a,b) => b.year - a.year).map((year) => (
+            {[...years].sort((a,b) => b.year - a.year).map((year) => (
               <button
                 key={year.id}
                 onClick={() => onSelectYear(year.id)}
@@ -79,7 +96,7 @@ export default function WorkspaceNavigator({
                   }
                 `}
               >
-                {year.label}
+                {year.label.replace(/Tahun\s+/gi, '')}
               </button>
             ))}
           </div>
@@ -138,7 +155,7 @@ export default function WorkspaceNavigator({
                         w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500
                         ${isActive ? 'bg-module-profiler text-white rotate-6' : 'bg-muted text-muted-foreground group-hover:bg-module-profiler/10 group-hover:text-module-profiler'}
                       `}>
-                        <Users size={18} />
+                        {getDynamicIcon(team.name)}
                       </div>
                       <span className="text-[10px] font-black tracking-widest text-muted-foreground/40 uppercase">
                         {batchCount > 0 ? `${batchCount} BATCH` : (counts[team.name] > 0 ? `${counts[team.name]} SUBJEK` : 'KOSONG')}
@@ -210,7 +227,7 @@ export default function WorkspaceNavigator({
                     >
                       <div className="flex items-center justify-between">
                         <div className="w-8 h-8 rounded-lg bg-muted group-hover:bg-module-profiler/10 flex items-center justify-center text-muted-foreground/40 group-hover:text-module-profiler transition-all">
-                          <Layers size={14} />
+                          {getDynamicIcon(batch.name, 14)}
                         </div>
                         {counts[batch.name] > 0 && (
                           <span className="text-[10px] font-black font-mono text-muted-foreground/40 group-hover:text-module-profiler">

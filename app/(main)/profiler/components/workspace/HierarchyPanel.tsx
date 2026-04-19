@@ -5,7 +5,9 @@ import { ProfilerYear, ProfilerFolder } from '../../services/profilerService';
 import { 
   Plus, ChevronRight, Folder, 
   Pencil, Trash2, Copy, 
-  Layers, CalendarDays
+  Layers, CalendarDays,
+  ShieldCheck, CreditCard, BarChart3,
+  UserCheck, GraduationCap, Headset, Building2
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -26,6 +28,19 @@ interface HierarchyPanelProps {
   role?: string;
   isMobile?: boolean;
 }
+
+const getDynamicIcon = (name: string, size = 12) => {
+  const n = name.toUpperCase();
+  if (n.includes('OM') || n.includes('OPERATIONAL')) return <ShieldCheck size={size} />;
+  if (n.includes('SLIK') || n.includes('CHECKING')) return <CreditCard size={size} />;
+  if (n.includes('DA') || n.includes('ANALYST') || n.includes('DATA')) return <BarChart3 size={size} />;
+  if (n.includes('SV') || n.includes('SUPERVISOR')) return <UserCheck size={size} />;
+  if (n.includes('TR') || n.includes('TRAINER')) return <GraduationCap size={size} />;
+  if (n.includes('AG') || n.includes('AGENT')) return <Headset size={size} />;
+  if (n.includes('SM') || n.includes('SITE') || n.includes('MANAGER')) return <Building2 size={size} />;
+  if (n.includes('BATCH')) return <Layers size={size} />;
+  return <Folder size={size} />;
+};
 
 export default function HierarchyPanel({
   years,
@@ -108,7 +123,7 @@ export default function HierarchyPanel({
           </div>
         )}
 
-        {years.sort((a,b) => b.year - a.year).map(year => (
+        {[...years].sort((a,b) => b.year - a.year).map(year => (
           <div key={year.id} className="space-y-1">
             <button
               onClick={() => toggleYear(year.id)}
@@ -121,7 +136,9 @@ export default function HierarchyPanel({
               <div className={`transition-transform duration-300 ${expandedYears[year.id] ? 'rotate-90' : ''}`}>
                 <ChevronRight size={14} className={selectedYearId === year.id ? 'text-primary-foreground' : 'text-primary/40'} />
               </div>
-              <span className="flex-1 text-left text-xs uppercase tracking-widest font-black">{year.label}</span>
+              <span className="flex-1 text-left text-xs uppercase tracking-widest font-black">
+                {year.label.replace(/Tahun\s+/gi, '')}
+              </span>
               {selectedYearId === year.id && (
                 <motion.div layoutId="activeYearIndicator" className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />
               )}
@@ -160,7 +177,9 @@ export default function HierarchyPanel({
                                   <ChevronRight size={12} className={selectedFolderId === folder.id ? 'text-module-profiler' : 'text-muted-foreground/40'} />
                                 </div>
                               ) : (
-                                <Layers size={12} className={selectedFolderId === folder.id ? 'text-module-profiler' : 'text-muted-foreground/40'} />
+                                <div className={selectedFolderId === folder.id ? 'text-module-profiler' : 'text-muted-foreground/40'}>
+                                  {getDynamicIcon(folder.name)}
+                                </div>
                               )}
                             </div>
                             <span className="flex-1 text-left truncate tracking-tight">{folder.name}</span>
@@ -174,7 +193,10 @@ export default function HierarchyPanel({
                           </button>
                           
                           {!isReadOnly && (
-                            <div className="hidden group-hover:flex items-center gap-0.5 pr-1 animate-in fade-in slide-in-from-right-2 duration-200">
+                            <div className={`
+                              ${isMobile && selectedFolderId === folder.id ? 'flex' : 'hidden group-hover:flex'} 
+                              items-center gap-0.5 pr-1 animate-in fade-in slide-in-from-right-2 duration-200
+                            `}>
                               <button onClick={(e) => { e.stopPropagation(); onAddFolder(year.id, folder.id); }} className="p-1 hover:bg-primary/10 hover:text-primary rounded text-muted-foreground/40 transition-colors" title="Tambah Batch"><Plus size={12} /></button>
                               <button onClick={(e) => { e.stopPropagation(); onDuplicateFolder(folder); }} className="p-1 hover:bg-primary/10 hover:text-primary rounded text-muted-foreground/40 transition-colors" title="Duplikat"><Copy size={12} /></button>
                               <button onClick={(e) => { e.stopPropagation(); onRenameFolder(folder); }} className="p-1 hover:bg-primary/10 hover:text-primary rounded text-muted-foreground/40 transition-colors" title="Rename"><Pencil size={12} /></button>
@@ -186,7 +208,7 @@ export default function HierarchyPanel({
                         {expandedFolders[folder.id] && (
                           <div className="ml-4 space-y-1 border-l border-module-profiler/10 pl-2">
                             {subFolders(folder.id).map(sub => (
-                              <div key={sub.id} className="group flex items-center gap-1">
+                              <div key={sub.id} className={`group flex items-center gap-1`}>
                                   <button
                                     onClick={() => onSelectFolder(sub.id)}
                                     className={`flex-1 flex items-center gap-2.5 p-2 rounded-lg text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
@@ -195,14 +217,19 @@ export default function HierarchyPanel({
                                         : 'hover:bg-accent/40 text-muted-foreground'
                                     }`}
                                   >
-                                    <Folder size={12} className={selectedFolderId === sub.id ? 'text-module-profiler' : 'text-muted-foreground/30'} />
+                                    <div className={selectedFolderId === sub.id ? 'text-module-profiler' : 'text-muted-foreground/30'}>
+                                      {getDynamicIcon(sub.name)}
+                                    </div>
                                     <span className="flex-1 text-left truncate tracking-tight">{sub.name}</span>
                                     {counts[sub.name] > 0 && (
                                       <span className="text-[10px] opacity-50 font-mono">({counts[sub.name]})</span>
                                     )}
                                   </button>
                                   {!isReadOnly && (
-                                    <div className="hidden group-hover:flex items-center gap-0.5 pr-1 animate-in fade-in slide-in-from-right-1 duration-200">
+                                    <div className={`
+                                      ${isMobile && selectedFolderId === sub.id ? 'flex' : 'hidden group-hover:flex'} 
+                                      items-center gap-0.5 pr-1 animate-in fade-in slide-in-from-right-1 duration-200
+                                    `}>
                                       <button onClick={(e) => { e.stopPropagation(); onRenameFolder(sub); }} className="p-1 hover:bg-primary/10 hover:text-primary rounded text-muted-foreground/40 transition-colors" title="Rename"><Pencil size={12} /></button>
                                       <button onClick={(e) => { e.stopPropagation(); onDeleteFolder(sub); }} className="p-1 hover:bg-destructive/10 hover:text-destructive rounded text-muted-foreground/40 transition-colors" title="Hapus"><Trash2 size={12} /></button>
                                     </div>
