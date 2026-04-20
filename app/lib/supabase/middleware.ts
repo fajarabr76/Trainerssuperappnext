@@ -3,10 +3,23 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { normalizeRole, PROFILE_FIELDS } from '@/app/lib/authz';
 
 export async function updateSession(request: NextRequest) {
-  // Guard: if env vars aren't available, pass through instead of crashing
+  const path = request.nextUrl.pathname;
+  const protectedRoutes = ['/dashboard', '/ketik', '/pdkt', '/telefun', '/profiler', '/qa-analyzer', '/account'];
+  const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route));
+  const isAuthPage = path === '/login' || path === '/register';
+
+  // Guard: if env vars aren't available, fail-closed for protected routes
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
   if (!supabaseUrl || !supabaseAnonKey) {
+    if (isProtectedRoute) {
+      console.error('[middleware] Supabase environment variables are missing. Failing closed for protected route:', path);
+      const url = new URL('/', request.url);
+      url.searchParams.set('auth', 'login');
+      url.searchParams.set('message', 'misconfigured-auth');
+      return NextResponse.redirect(url);
+    }
     return NextResponse.next({ request });
   }
 
@@ -42,12 +55,6 @@ export async function updateSession(request: NextRequest) {
       },
     }
   );
-
-  // Role-based routing logic
-  const path = request.nextUrl.pathname;
-  const protectedRoutes = ['/dashboard', '/ketik', '/pdkt', '/telefun', '/profiler', '/qa-analyzer', '/account'];
-  const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route));
-  const isAuthPage = path === '/login' || path === '/register';
 
   // Only call getUser() if we are on a protected route or authenticating
   if (isProtectedRoute || isAuthPage) {

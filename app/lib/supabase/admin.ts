@@ -1,3 +1,4 @@
+import 'server-only';
 import { createClient as createJSClient } from '@supabase/supabase-js';
 
 // Lazy Service Role client helper (Server-side only)

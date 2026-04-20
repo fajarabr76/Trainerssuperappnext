@@ -1,6 +1,9 @@
 'use server';
 
 import { GoogleGenAI, Content, Schema, SpeechConfig } from "@google/genai";
+import { createClient } from "@/app/lib/supabase/server";
+import { consumeRateLimit } from "@/app/lib/rate-limit";
+import { randomUUID } from "crypto";
 
 export interface GeminiResponse {
   success: boolean;
@@ -20,6 +23,24 @@ export async function generateGeminiContent(options: {
   speechConfig?: SpeechConfig;
 }): Promise<GeminiResponse> {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // Rate limit: 30 requests per minute per user
+    const rateLimitKey = `gemini:${user?.id || 'anon'}`;
+    const rateLimit = await consumeRateLimit({
+      key: rateLimitKey,
+      limit: 30,
+      windowMs: 60 * 1000,
+    });
+
+    if (!rateLimit.allowed) {
+      return {
+        success: false,
+        error: `Rate limit exceeded. Please try again in ${rateLimit.retryAfterSeconds} seconds.`,
+      };
+    }
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY is not set in environment variables");
@@ -105,22 +126,40 @@ export async function generateGeminiContent(options: {
 function injectSystemInstructionIntoContents(contents: Content[], systemInstruction?: string): Content[] {
   if (!systemInstruction) return contents;
 
-  const instructionText = `[System Instruction]\n${systemInstruction}\n\n[User Request]\n`;
+  // Generate a unique boundary for this specific request to prevent spoofing
+  const boundary = `BLOCK_${randomUUID().replace(/-/g, '')}`;
+  
+  const instructionText = `
+[SYSTEM_CONTEXT_START:${boundary}]
+${systemInstruction}
+[SYSTEM_CONTEXT_END:${boundary}]
+
+[USER_INPUT_START:${boundary}]
+`;
+  const footerText = `\n[USER_INPUT_END:${boundary}]`;
+
   const cloned = Array.isArray(contents) ? [...contents] : [];
 
   const firstUserIndex = cloned.findIndex((c) => c?.role === 'user' && Array.isArray(c?.parts));
   if (firstUserIndex >= 0) {
     const firstUser = { ...cloned[firstUserIndex] };
     const firstParts = Array.isArray(firstUser.parts) ? [...firstUser.parts] : [];
+    
+    // Normalize user input and wrap it
     const firstTextPartIndex = firstParts.findIndex((p) => typeof p?.text === 'string');
-
     if (firstTextPartIndex >= 0) {
+      // Sanitize: Strip any attempts to close our unique boundary early or mimic it
+      let sanitizedText = firstParts[firstTextPartIndex].text || "";
+      sanitizedText = sanitizedText.replace(new RegExp(`\\[USER_INPUT_END:${boundary}\\]`, 'g'), '');
+      sanitizedText = sanitizedText.replace(/\[USER_INPUT_(START|END):BLOCK_[0-9a-f]+\]/g, '');
+      
       firstParts[firstTextPartIndex] = {
         ...firstParts[firstTextPartIndex],
-        text: `${instructionText}${firstParts[firstTextPartIndex].text}`,
+        text: `${instructionText}${sanitizedText.trim()}${footerText}`,
       };
     } else {
       firstParts.unshift({ text: instructionText });
+      firstParts.push({ text: footerText });
     }
 
     firstUser.parts = firstParts;
@@ -128,5 +167,5 @@ function injectSystemInstructionIntoContents(contents: Content[], systemInstruct
     return cloned;
   }
 
-  return [{ role: 'user', parts: [{ text: instructionText }] }, ...cloned];
+  return [{ role: 'user', parts: [{ text: instructionText }, { text: footerText }] }, ...cloned];
 }

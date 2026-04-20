@@ -12,75 +12,46 @@ export type RateLimitResult = {
   retryAfterSeconds: number;
 };
 
+/**
+ * Consumes a rate limit token for a given key.
+ * This implementation uses a single atomic Postgres operation via RPC to ensure thread-safety.
+ */
 export async function consumeRateLimit({
   key,
   limit,
   windowMs,
 }: ConsumeRateLimitOptions): Promise<RateLimitResult> {
   const admin = createAdminClient();
-  const now = new Date();
-  const windowStart = new Date(now.getTime() - windowMs);
 
-  const { data: existing, error: selectError } = await admin
-    .from('security_rate_limits')
-    .select('key, count, window_start')
-    .eq('key', key)
-    .maybeSingle();
+  const { data, error } = await admin.rpc('consume_rate_limit', {
+    p_key: key,
+    p_limit: limit,
+    p_window_ms: windowMs,
+  });
 
-  if (selectError) {
-    throw selectError;
-  }
-
-  const activeWindowStart = existing?.window_start ? new Date(existing.window_start) : null;
-  const isWindowActive = activeWindowStart ? activeWindowStart > windowStart : false;
-
-  if (!existing || !isWindowActive) {
-    const resetWindowStart = now.toISOString();
-    const { error: upsertError } = await admin
-      .from('security_rate_limits')
-      .upsert({
-        key,
-        count: 1,
-        window_start: resetWindowStart,
-        updated_at: now.toISOString(),
-      });
-
-    if (upsertError) {
-      throw upsertError;
-    }
-
+  if (error) {
+    console.error('[RateLimit] RPC Critical Error:', error);
+    // FAIL-CLOSED: If rate limiting infra fails, we block to protect the system.
     return {
-      allowed: true,
-      remaining: Math.max(0, limit - 1),
+      allowed: false,
+      remaining: 0,
       retryAfterSeconds: Math.ceil(windowMs / 1000),
     };
   }
 
-  if ((existing.count ?? 0) >= limit) {
-    const retryAfterMs = windowMs - (now.getTime() - activeWindowStart.getTime());
+  const result = Array.isArray(data) ? data[0] : data;
+
+  if (!result) {
     return {
       allowed: false,
       remaining: 0,
-      retryAfterSeconds: Math.max(1, Math.ceil(retryAfterMs / 1000)),
+      retryAfterSeconds: Math.ceil(windowMs / 1000),
     };
   }
 
-  const nextCount = (existing.count ?? 0) + 1;
-  const { error: updateError } = await admin
-    .from('security_rate_limits')
-    .update({
-      count: nextCount,
-      updated_at: now.toISOString(),
-    })
-    .eq('key', key);
-
-  if (updateError) {
-    throw updateError;
-  }
-
   return {
-    allowed: true,
-    remaining: Math.max(0, limit - nextCount),
-    retryAfterSeconds: Math.ceil(windowMs / 1000),
+    allowed: result.allowed,
+    remaining: result.remaining,
+    retryAfterSeconds: result.retry_after_seconds,
   };
 }
