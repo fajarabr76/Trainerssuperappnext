@@ -9,6 +9,30 @@ export interface GeminiResponse {
   error?: string;
 }
 
+// SDK format response bisa berubah antar versi @google/genai —
+// helper ini memastikan ekstraksi text kompatibel lintas versi.
+function resolveResponseText(
+  response: {
+    text?: unknown;
+    candidates?: Array<{
+      content?: { parts?: Array<{ text?: string; inlineData?: unknown }> };
+    }>;
+  }
+): string {
+  // v1.x lama: text adalah function
+  if (typeof response.text === "function") {
+    return (response as { text: () => string }).text();
+  }
+  // v1.29+: text sudah berupa string langsung
+  if (typeof response.text === "string") {
+    return response.text;
+  }
+  // Fallback manual ke candidates[0].content.parts
+  const parts = response.candidates?.[0]?.content?.parts ?? [];
+  const joined = parts.map((p) => p.text ?? "").join("");
+  return joined;
+}
+
 export async function generateGeminiContent(options: {
   model?: string;
   systemInstruction?: string;
@@ -39,50 +63,51 @@ export async function generateGeminiContent(options: {
         temperature: options.temperature ?? 0.7,
         responseModalities: options.responseModalities as string[],
         speechConfig: options.speechConfig,
-        }
-        });
-        let response;
-        try {
-        response = await ai.models.generateContent(buildRequest(true));
-        } catch (firstError: unknown) {
-        const err = firstError as { message?: string };
-        const isDeveloperInstructionUnsupported =
+      }
+    });
+
+    let response;
+    try {
+      response = await ai.models.generateContent(buildRequest(true));
+    } catch (firstError: unknown) {
+      const err = firstError as { message?: string };
+      const isDeveloperInstructionUnsupported =
         typeof err?.message === 'string' &&
         err.message.includes('Developer instruction is not enabled');
 
-        if (!isDeveloperInstructionUnsupported || !options.systemInstruction) {
+      if (!isDeveloperInstructionUnsupported || !options.systemInstruction) {
         throw firstError;
-        }
+      }
 
-        console.warn(
+      console.warn(
         `[Gemini Action] Model "${modelName}" does not support developer instruction. Retrying without systemInstruction.`
-        );
-        response = await ai.models.generateContent(buildRequest(false));
-        }
+      );
+      response = await ai.models.generateContent(buildRequest(false));
+    }
 
-        let audioData: string | undefined;
-        if (response.candidates?.[0]?.content?.parts) {
-        for (const part of response.candidates[0].content.parts) {
+    let audioData: string | undefined;
+    if (response.candidates?.[0]?.content?.parts) {
+      for (const part of response.candidates[0].content.parts) {
         if (part.inlineData) {
           audioData = part.inlineData.data;
           break;
         }
-        }
-        }
+      }
+    }
 
-        return {
-        success: true,
-        text: response.text(),
-        audioData
-        };
-        } catch (error: unknown) {
-        console.error("[Gemini Action] Error generating content:", error);
-        return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error)
-        };
-        }
-        }
+    return {
+      success: true,
+      text: resolveResponseText(response),
+      audioData
+    };
+  } catch (error: unknown) {
+    console.error("[Gemini Action] Error generating content:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+}
 
 function injectSystemInstructionIntoContents(contents: Content[], systemInstruction?: string): Content[] {
   if (!systemInstruction) return contents;
