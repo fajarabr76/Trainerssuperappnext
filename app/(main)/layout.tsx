@@ -2,6 +2,8 @@ import React from 'react';
 import MainLayoutClient from './MainLayoutClient';
 import { requirePageAccess } from '@/app/lib/authz';
 
+export const dynamic = 'force-dynamic';
+
 export default async function MainLayout({
   children,
 }: {

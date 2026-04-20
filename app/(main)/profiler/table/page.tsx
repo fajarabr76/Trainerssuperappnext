@@ -5,6 +5,8 @@ import { profilerServiceServer } from '../services/profilerService.server';
 import ProfilerTableClient from './components/ProfilerTableClient';
 import { requirePageAccess } from '@/app/lib/authz';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Profiler Table | Trainers SuperApp',
   description: 'Kelola database peserta profiler dengan mudah.',

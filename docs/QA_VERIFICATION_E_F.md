@@ -4,8 +4,8 @@ This report documents the verification of the implementation for Backlog E (Regr
 
 ## 1. Tooling & Build Stability (F1, F3)
 - [x] **Linting**: `npm run lint` results in **0 problems**. Verified 100% clean.
-- [x] **Type Checking**: `npm run type-check` (using `next build --no-lint`) completes successfully.
-- [x] **Production Build**: `npm run build` completes without errors.
+- [x] **Type Checking**: `npm run type-check` (using `next build`) completes successfully and includes ESLint validation.
+- [x] **Production Build**: `npm run build` completes without errors and enforces linting during the build.
 - [x] **SSR/Build Fix**: Removed `ssr: false` from `ProfilerExportPage` (Server Component), resolving previous build worker crashes.
 
 ## 2. Unified Auth Guard Centralization (E2, E3, F2)

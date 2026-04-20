@@ -1,11 +1,13 @@
 import React, { Suspense } from 'react';
 import { Metadata } from 'next';
 import { profilerServiceServer } from '../services/profilerService.server';
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
 import { requirePageAccess } from '@/app/lib/authz';
 
-const ProfilerExportClient = dynamic(() => import('./components/ProfilerExportClient'), {
+export const dynamic = 'force-dynamic';
+
+const ProfilerExportClient = nextDynamic(() => import('./components/ProfilerExportClient'), {
   loading: () => (
     <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
       <Loader2 className="w-10 h-10 animate-spin text-primary opacity-50" />

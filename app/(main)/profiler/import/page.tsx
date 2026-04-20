@@ -1,10 +1,12 @@
 import React from 'react';
 import { Metadata } from 'next';
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 import { profilerServiceServer } from '../services/profilerService.server';
 import { requirePageAccess } from '@/app/lib/authz';
 
-const ProfilerImportClient = dynamic(() => import('./components/ProfilerImportClient'), {
+export const dynamic = 'force-dynamic';
+
+const ProfilerImportClient = nextDynamic(() => import('./components/ProfilerImportClient'), {
   loading: () => (
     <div className="flex h-screen items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">

@@ -25,7 +25,7 @@ This document provides context and guidelines for AI assistants working on the *
 
 ## 🏗️ Building and Running
 
-The project uses `npm` for package management.
+The project uses `npm` for package management. **Do not use pnpm or yarn.**
 
 ### Setup
 1.  Install dependencies:
@@ -33,29 +33,31 @@ The project uses `npm` for package management.
     npm install
     ```
 2.  Environment Variables: Ensure `.env.local` is configured with Supabase and Gemini credentials (e.g., `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `GEMINI_API_KEY`).
+    *   **Note:** There is no `.env.example` in the repo. Missing Supabase public vars might not crash build/dev but will cause runtime errors.
 
 ### Development Commands
 *   **Start Dev Server:** `npm run dev` (runs on port 3000 by default)
-*   **Build for Production:** `npm run build`
+*   **Build for Production:** `npm run build` (Next.js production build with ESLint enabled)
 *   **Start Production Server:** `npm run start`
 
 ### Code Quality Commands
 *   **Linting:** `npm run lint`
 *   **Fix Lint Errors:** `npm run lint:fix`
-*   **Type Checking:** `npm run type-check` (runs `next build --no-lint` to validate compile, type checks, and route build behavior)
+*   **Type Checking:** `npm run type-check` (runs `next build`, so it validates compile, types, and ESLint in one pass).
 
 ## 💻 Development Conventions
 
-*   **Leverage Sub-Agents:** Utilize specialized sub-agents (via the `Task` tool) for complex, multi-step tasks, research, and code exploration. Only perform trivial tasks (single-step edits, reads, or searches) directly.
+*   **Leverage Sub-Agents:** Utilize specialized sub-agents (via the `Task` tool) for complex, multi-step tasks and research.
+    *   Use `subagent_type: "explore"` for searching patterns or mapping codebase structure.
+    *   Use `subagent_type: "general"` for multi-step research or implementation tasks.
+*   **Context7 First:** Always use `context7` MCP tools for documentation lookup and code search before reading files manually.
 *   **Architecture:** Follows the Next.js App Router paradigm.
     *   Protected application routes reside inside `app/(main)`.
     *   Data mutations should be handled via **Server Actions** (typically found in `app/actions` or module-specific action files).
-*   **Type Safety:** The project is actively enforcing strict TypeScript usage. Avoid `any`. Use `unknown` and proper type casting or narrowing when dealing with dynamic data (especially Supabase RPC responses). Leverage centralized types (e.g., `app/types/auth.ts`, `app/(main)/qa-analyzer/lib/qa-types.ts`).
-*   **Supabase Data Handling:** When working with joined data from Supabase that might return single objects or arrays unpredictably, use unwrap helpers (like `unwrapIndicator`, `unwrapPeriod` from `qa-types.ts`) to ensure type safety.
-*   **UI/UX:** Adhere to existing design guidelines (refer to `docs/design-guidelines.md`). Use Tailwind CSS and existing UI components.
-*   **Documentation:** Consult the `docs/` directory for detailed architecture (`architecture.md`), module specifications (`modules.md`), RBAC (`auth-rbac.md`), and database schema (`database.md`).
-*   **Dependency Management:** Do not add new dependencies without explicit instruction. The project relies heavily on the existing ecosystem (Supabase, Tailwind, Recharts).
-*   **State Management:** Be cautious with `useEffect` dependency arrays (`exhaustive-deps`). Ensure updates don't cause infinite loops, especially in core contexts like `SessionTimeoutContext`.
+*   **Type Safety:** Strict TypeScript usage. Avoid `any`. Use `unknown` and proper type narrowing. Leverage centralized types (e.g., `app/types/auth.ts`).
+*   **Supabase Data Handling:** Use unwrap helpers (like `unwrapIndicator`, `unwrapPeriod` from `qa-types.ts`) for type safety when dealing with joined/dynamic data.
+*   **UI/UX:** Use Tailwind CSS 4 and existing UI components. Consult `docs/design-guidelines.md`.
+*   **State Management:** Be cautious with `useEffect` dependency arrays to avoid infinite loops, especially in core contexts.
 
 ## 📂 Key Directories
 *   `app/`: Next.js App Router root.
@@ -64,14 +66,31 @@ The project uses `npm` for package management.
     *   `app/lib/`: Core utilities, Supabase clients, and hooks.
     *   `app/actions/`: Global Server Actions.
 *   `supabase/migrations/`: Database schema and migration scripts.
+    *   Migration files are versioned in git but are not applied by `next build`; they must still be pushed or executed against the target Supabase database.
 *   `docs/`: Extensive project documentation.
 
 ## 🔌 MCP Servers
 
-This project has MCP servers configured for enhanced AI assistance:
+This project has MCP servers configured:
+- **context7** - Primary tool for documentation lookup and codebase exploration.
+- **supabase-mcp-server** - Used for database queries and Supabase operations.
 
-- **context7** - Always use context7 MCP tools for documentation lookup, code search, and exploring codebase patterns before executing tasks or reading files individually
-- **supabase-mcp-server** - Use for Supabase data queries and database operations
+## 🤖 AI Integration Conventions
+
+*   **Source of Truth:** Use `app/lib/ai-models.ts` for all model IDs and provider mapping.
+*   **Centralized Actions:** Use server-side wrappers like `app/actions/gemini.ts` and `app/actions/openrouter.ts`.
+*   **Prompt Isolation:** Gemini instruction injection now uses unique per-request boundaries. Preserve the boundary sanitization logic and avoid reintroducing static markers.
+*   **Rate Limiting:** Gemini requests are rate-limited through the `consume_rate_limit` Supabase RPC in `app/lib/rate-limit.ts`. Keep this server-side and preserve fail-closed behavior if RPC or DB access breaks.
+*   **Defensive Extraction:** For Gemini (`@google/genai`), extraction of `response.text` must be defensive (check property, function, then candidates fallback).
+*   **Normalization:** Always ensure AI responses are normalized to valid strings (or empty string fallback) before use.
+*   **Validation:** Always validate/sanitize AI output before calling `JSON.parse`, `sanitizeConsumerText`, or rendering.
+*   **Error Handling:** Provide user-friendly error messages if AI fails or returns invalid formats. Use structured warnings with module prefixes.
+
+## Security Notes
+
+*   `next.config.ts` now sets `eslint.ignoreDuringBuilds = false`, so both `npm run build` and `npm run type-check` will fail on lint errors.
+*   Security headers are defined centrally in `next.config.ts`, including `Content-Security-Policy`, `X-Frame-Options`, and `Referrer-Policy`.
+*   Admin Supabase flows depend on `SUPABASE_SERVICE_ROLE_KEY`; `app/lib/supabase/admin.ts` is guarded with `server-only` and should stay server-exclusive.
 
 ## 🤖 Specialized Sub-Agents
 
@@ -81,22 +100,22 @@ This project has MCP servers configured for enhanced AI assistance:
 **Instructions:**
 1. **Consistency First:** Gunakan `app/lib/ai-models.ts` sebagai satu-satunya sumber kebenaran untuk ID model.
 2. **Robustness:** Pastikan setiap pemanggilan AI memiliki mekanisme retry untuk *transient errors* (429, 500, timeout).
-3. **Linguistic Standard:** Evaluasi harus mencakup pengecekan typo (Bahasa Indonesia), kejelasan (clarity), dan gap konten berdasarkan konteks konsumen.
-4. **Validation:** Setiap perubahan pada logic scoring wajib diverifikasi dengan menjalankan `api/pdkt/evaluate` secara lokal atau melalui simulasi unit test.
+3. **Linguistic Standard:** Evaluasi harus mencakup pengecekan typo (Bahasa Indonesia), kejelasan (clarity), dan gap konten.
+4. **Validation:** Setiap perubahan logic scoring wajib diverifikasi dengan menjalankan `api/pdkt/evaluate` secara lokal.
 
 ### SIDAK-Performance-Guard
 **Role:** Frontend Performance Engineer.
 **Trigger:** Modifikasi pada module QA-Analyzer (SIDAK) atau penambahan library eksternal baru.
 **Instructions:**
-1. **Lazy Loading:** Gunakan `next/dynamic` untuk komponen berat (chart, modal besar) dan `import()` dinamis untuk library spreadsheet (XLSX, ExcelJS).
-2. **Asset Optimization:** Gunakan `next/image` dan hindari efek blur/shadow berlebihan (>60px) pada viewport mobile.
-3. **Bundle Awareness:** Minimalisir First Load JS; pastikan komponen capture hanya di-mount saat dibutuhkan (on-demand).
+1. **Lazy Loading:** Gunakan `next/dynamic` untuk komponen berat dan `import()` dinamis untuk library spreadsheet.
+2. **Asset Optimization:** Gunakan `next/image` dan hindari efek visual berlebihan pada viewport mobile.
+3. **Bundle Awareness:** Minimalisir First Load JS; mount komponen berat hanya saat dibutuhkan.
 
 ### Auth-Guard-Sentinel
 **Role:** Security & Auth Architect.
 **Trigger:** Perubahan pada `app/lib/authz.ts`, `middleware.ts`, atau kueri ke tabel `profiles`.
 **Instructions:**
-1. **Strict Select:** Gunakan `PROFILE_FIELDS` dari `app/lib/authz.ts` untuk canonical auth profile read di auth guard, middleware, atau alur lain yang membutuhkan kontrak profil penuh. Untuk kueri feature-specific, pilih kolom minimum yang dibutuhkan, tetapi jangan menambahkan kolom di luar skema database yang terdokumentasi.
-2. **Explicit Recovery:** Pastikan setiap kegagalan pembacaan profil (`profile is null` atau `error`) memicu `signOut()` dan redirect ke `/?auth=login&message=profile-unavailable`.
-3. **Type Sync:** Jaga sinkronisasi antara interface `Profile` di `app/types/auth.ts` dengan skema database asli. Jangan biarkan field "asumsi" (seperti `avatar_url`) masuk ke tipe data utama.
-4. **Refactor Checklist:** Jika mengubah auth flow atau skema `profiles`, sinkronkan `PROFILE_FIELDS`, tipe `Profile`, `docs/database.md`, `docs/auth-rbac.md`, lalu verifikasi dengan `npm run lint`, `npm run type-check`, serta smoke test login untuk state `approved`, `pending`, `rejected`, dan `profile-unavailable`.
+1. **Strict Select:** Gunakan `PROFILE_FIELDS` dari `app/lib/authz.ts` untuk canonical auth profile read.
+2. **Explicit Recovery:** Kegagalan pembacaan profil memicu `signOut()` dan redirect ke `/?auth=login&message=profile-unavailable`.
+3. **Type Sync:** Sinkronkan interface `Profile` dengan skema database asli.
+4. **Verification:** Jalankan `npm run lint` dan `npm run type-check` setelah perubahan auth.
