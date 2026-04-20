@@ -262,7 +262,10 @@ ${extraPrompt || 'Balas sebagai konsumen:'}`;
           'Maaf, layanan AI sementara tidak tersedia. Silakan tunggu sebentar lalu kirim pesan lagi.',
       };
     }
-    const sanitizedText = sanitizeConsumerText(response.text || '[NO_RESPONSE]');
+
+    // Ensure we have a valid string and perform sanitization.
+    const rawText = typeof response.text === 'string' ? response.text : '[NO_RESPONSE]';
+    const sanitizedText = sanitizeConsumerText(rawText);
     return { success: true, text: sanitizedText || '[NO_RESPONSE]' };
   } catch (error) {
     console.error('[Ketik] Gemini Error:', error);

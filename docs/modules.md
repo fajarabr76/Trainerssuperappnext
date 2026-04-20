@@ -20,6 +20,7 @@ Ruang simulasi untuk melatih kemampuan komunikasi tertulis melalui media chat.
   - **Skenario Dinamis**: Latihan berdasarkan berbagai tingkat kesulitan.
   - **AI feedback**: Analisis otomatis terhadap respon peserta menggunakan model Gemini.
   - **Riwayat Sesi**: Peserta bisa meninjau kembali percakapan sebelumnya.
+- **Catatan Teknis**: Respons AI divalidasi sebagai string terlebih dahulu lalu disanitasi sebelum ditampilkan atau dipakai sebagai balasan konsumen.
 
 ## 3. PDKT (Email Simulation)
 Workspace untuk latihan korespondensi email yang terstandarisasi.
@@ -29,6 +30,7 @@ Workspace untuk latihan korespondensi email yang terstandarisasi.
   - **Rich Text Editor**: Interface penulisan email yang profesional.
   - **Struktur Formal**: Melatih penggunaan template, greeting, dan closing yang benar.
   - **Feedback Analitik**: Evaluasi kualitas bahasa dan ketepatan solusi.
+- **Catatan Teknis**: Output model untuk draft email awal dan evaluasi QA divalidasi dulu sebagai string valid sebelum diparse sebagai JSON.
 
 ## 4. TELEFUN (Phone Simulation)
 Modul simulasi komunikasi suara untuk melatih intonasi dan kecepatan respon telepon.
@@ -37,6 +39,7 @@ Modul simulasi komunikasi suara untuk melatih intonasi dan kecepatan respon tele
 - **Fitur Utama**:
   - **Voice Interface**: Simulasi visual panggilan telepon.
   - **Context Modal**: Informasi data pelanggan yang muncul saat panggilan berlangsung.
+- **Catatan Teknis**: Response AI untuk pembuka panggilan, balasan konsumen, dan scoring memakai fallback aman bila provider mengembalikan payload kosong atau tidak valid.
 
 ## 5. KTP / Profiler (Database Peserta)
 Sistem manajemen database terstruktur untuk peserta training dan agen aktif.
@@ -58,3 +61,4 @@ Platform analytics kualitas untuk memantau performa agent secara mendalam.
   - **Ranking & Leaderboard**: Memantau agent dengan performa terbaik dan area yang butuh perbaikan.
   - **Input Temuan**: Form input terstandarisasi untuk trainer memasukkan hasil audit.
   - **Periode & Parameter**: Pengaturan periode penilaian dan bobot indikator penilaian.
+- **Catatan Teknis**: Flow narasi/laporan berbasis AI memanfaatkan server action terpusat agar handling provider dan validasi output tetap konsisten.

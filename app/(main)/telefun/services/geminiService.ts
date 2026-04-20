@@ -558,7 +558,7 @@ export const generateConsumerResponse = async (
       temperature: 0.7,
     });
 
-    return response.text || "Halo?";
+    return typeof response.text === 'string' ? response.text : "Halo?";
   } catch (error) {
     console.error("[Telefun] Response generation error:", error);
     return "Maaf, bisa diulangi?";
@@ -594,7 +594,7 @@ export const generateFirstCallMessage = async (
       temperature: 0.7,
     });
 
-    return response.text || "Halo?";
+    return typeof response.text === 'string' ? response.text : "Halo?";
   } catch (error) {
     console.error("[Telefun] First call message generation error:", error);
     return "Halo?";
@@ -633,7 +633,8 @@ export const generateScore = async (
       responseMimeType: "application/json",
     });
 
-    const result = JSON.parse(response.text || "{}");
+    const responseText = typeof response.text === 'string' ? response.text : "{}";
+    const result = JSON.parse(responseText);
     return {
       score: result.score || 0,
       feedback: result.feedback || "Gagal menghasilkan penilaian."

@@ -23,7 +23,7 @@ graph TD
     Frontend -->|Server Actions| NextServer[Next.js Server]
     NextServer -->|SQL / Auth| Supabase[(Supabase / PostgreSQL)]
     Frontend -->|Realtime / Client SDK| Supabase
-    NextServer -->|AI Analysis| Gemini[Google Gemini AI]
+    NextServer -->|AI Analysis| AIProviders[Gemini / OpenRouter]
 ```
 
 ### Penjelasan Alur:
@@ -31,7 +31,7 @@ graph TD
 2. **Server Actions**: Digunakan sebagai pengganti API tradisional untuk interaksi database yang aman dari sisi server.
 3. **Supabase**: Menangani autentikasi user, penyimpanan data persisten, dan media (foto profil/bukti QA).
 4. **RLS (Row Level Security)**: Memastikan keamanan data di tingkat database berdasarkan role user (Admin, Trainer, Leader, Agent).
-5. **Gemini AI**: Digunakan di modul simulasi (Ketik/PDKT) untuk analisis respon dan feedback otomatis.
+5. **AI Providers**: Modul simulasi dan beberapa flow laporan memakai provider abstraction server-side yang saat ini mendukung Gemini dan OpenRouter.
 
 ## Directory Structure
 
@@ -60,6 +60,13 @@ Proyek ini mengutamakan pola **Centralized Service Layer**:
 - Logic database tidak diletakkan langsung di dalam komponen UI.
 - Semua query kompleks berada di `app/lib/services/` (contoh: `qaService.server.ts`).
 - Mutasi data dilakukan melalui Server Actions di `app/actions/` atau folder modul terkait.
+
+## AI Integration Pattern
+
+- Integrasi AI dipusatkan di server action provider wrapper seperti `app/actions/gemini.ts` dan `app/actions/openrouter.ts`.
+- Pemilihan model dan provider mengikuti canonical mapping di `app/lib/ai-models.ts`.
+- Caller modul tidak boleh mengasumsikan bentuk response SDK/provider selalu stabil; ekstraksi `text` harus defensif dan siap menghadapi accessor, function, atau fallback dari `candidates[0].content.parts`.
+- Output AI yang akan dipakai UI, sanitizer, atau parser JSON harus divalidasi terlebih dahulu agar perubahan SDK/provider tidak langsung memicu crash lintas modul.
 
 ## Security Model
 

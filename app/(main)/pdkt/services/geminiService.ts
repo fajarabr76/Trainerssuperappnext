@@ -205,7 +205,7 @@ export const initializeEmailSession = async (
       };
     }
 
-    const responseText = response.text || "{}";
+    const responseText = typeof response.text === 'string' ? response.text : "{}";
     let jsonResponse;
     try {
       jsonResponse = parseJsonFromModelText(responseText);
@@ -309,7 +309,7 @@ export const evaluateAgentResponse = async (
         throw new Error(response.error || "Gagal mendapatkan respons dari AI.");
       }
 
-      const evalText = response.text || "{}";
+      const evalText = typeof response.text === 'string' ? response.text : "{}";
       const result = parseJsonFromModelText(evalText);
 
       return {

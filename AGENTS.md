@@ -67,6 +67,16 @@
 - **Dependency Management:** Do not add new dependencies without explicit instruction
 - **State Management:** Be cautious with `useEffect` dependency arrays to avoid infinite loops
 
+## AI Integration Conventions
+
+- Gunakan `app/lib/ai-models.ts` sebagai sumber kebenaran untuk model ID dan provider mapping.
+- Untuk integrasi provider, utamakan wrapper server-side terpusat seperti `app/actions/gemini.ts` dan `app/actions/openrouter.ts`.
+- Jangan mengasumsikan bentuk `response.text` stabil antar versi SDK/provider. Untuk Gemini (`@google/genai`), ekstraksi teks harus defensif: cek property string, function accessor, lalu fallback ke `response.candidates?.[0]?.content?.parts`.
+- Pastikan `GeminiResponse.text` atau output provider lain dinormalisasi ke string sebelum dipakai caller.
+- Sebelum memakai output AI untuk `sanitizeConsumerText`, `JSON.parse`, `parseJsonFromModelText`, atau render UI, validasi dulu bahwa nilainya string yang valid.
+- Jika format respons AI invalid, kembalikan pesan error yang user-friendly dan gunakan log warning terstruktur dengan prefix modul bila perlu tracing.
+- Untuk perubahan AI integration, verifikasi minimal dengan `npm run lint`, `npm run type-check`, dan smoke test flow modul yang terdampak.
+
 ## Auth And Access Gotchas
 
 - Middleware entrypoint is root `middleware.ts`, which delegates to `app/lib/supabase/middleware.ts`.

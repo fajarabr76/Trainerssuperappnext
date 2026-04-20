@@ -69,7 +69,7 @@ async function narrationWithTimeout(modelId: string, systemInstruction: string, 
       temperature: 0.5,
     });
     if (!r.success) throw new Error(r.error || 'Gagal memanggil Gemini');
-    return r.text || '';
+    return typeof r.text === 'string' ? r.text : '';
   };
 
   return await Promise.race([

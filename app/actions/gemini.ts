@@ -62,20 +62,38 @@ export async function generateGeminiContent(options: {
 
         let audioData: string | undefined;
         if (response.candidates?.[0]?.content?.parts) {
-        for (const part of response.candidates[0].content.parts) {
-        if (part.inlineData) {
-          audioData = part.inlineData.data;
-          break;
+          for (const part of response.candidates[0].content.parts) {
+            if (part.inlineData) {
+              audioData = part.inlineData.data;
+              break;
+            }
+          }
         }
-        }
+
+        // The @google/genai SDK (v1.29.0+) uses .text as a property/accessor, not a function.
+        // We harden this to handle potential variations, candidates fallback, and ensure a string result.
+        let finalOutputText = "";
+        try {
+          if (typeof response.text === 'string') {
+            finalOutputText = response.text;
+          } else if (typeof (response as any).text === 'function') {
+            finalOutputText = (response as any).text();
+          } else if (response.candidates?.[0]?.content?.parts) {
+            // Manual extraction if .text accessor fails but parts exist
+            finalOutputText = response.candidates[0].content.parts
+              .map(p => p.text || "")
+              .join("");
+          }
+        } catch (e) {
+          console.warn("[Gemini Action] Error extracting text from response:", e);
         }
 
         return {
-        success: true,
-        text: response.text(),
-        audioData
+          success: true,
+          text: finalOutputText,
+          audioData
         };
-        } catch (error: unknown) {
+      } catch (error: unknown) {
         console.error("[Gemini Action] Error generating content:", error);
         return {
         success: false,
