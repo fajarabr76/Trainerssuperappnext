@@ -261,11 +261,11 @@ export default function ProfilerSlidesClient({
           <section className="rounded-[1.5rem] border border-white/45 bg-card/80 p-5 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-card/55">
             <div className="grid grid-cols-1 sm:grid-cols-[132px_1fr] gap-4 items-center">
               {participant.foto_url ? (
-                <div className="w-[132px] h-[172px] rounded-[1.2rem] overflow-hidden shadow-xl relative ring-[5px] ring-card" style={{ boxShadow: `0 10px 24px ${theme.accent}32` }}>
+                <div className="w-40 h-40 rounded-[2rem] overflow-hidden shadow-xl relative ring-[5px] ring-card" style={{ boxShadow: `0 10px 24px ${theme.accent}32` }}>
                   <Image src={participant.foto_url} alt={participant.nama || ''} fill className="object-cover" style={getPhotoImageStyle(getPhotoFrame(participant.id, participant.photo_frame))} referrerPolicy="no-referrer" />
                 </div>
               ) : (
-                <div className="w-[132px] h-[172px] rounded-[1.2rem] flex items-center justify-center font-black text-5xl shadow-lg ring-[5px] ring-card" style={{ background: theme.light, color: theme.accent, border: `1px solid ${theme.accent}40` }}>
+                <div className="w-40 h-40 rounded-[2rem] flex items-center justify-center font-black text-5xl shadow-lg ring-[5px] ring-card" style={{ background: theme.light, color: theme.accent, border: `1px solid ${theme.accent}40` }}>
                   {participant.nama?.charAt(0)}
                 </div>
               )}

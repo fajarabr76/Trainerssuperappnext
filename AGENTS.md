@@ -36,8 +36,8 @@
 - Use `npm`, not `pnpm`: the repo has `package-lock.json` and no workspace config.
 - Dev server: `npm run dev` (binds to port `3000`).
 - Lint: `npm run lint`.
-- Type check: `npm run type-check` runs `next build --no-lint`, so it is effectively a production build without ESLint.
-- Build: `npm run build`. Build does not lint because `next.config.ts` sets `eslint.ignoreDuringBuilds = true`.
+- Type check: `npm run type-check` runs `next build`, so it performs a production build and runs ESLint.
+- Build: `npm run build`. Build also lints because `next.config.ts` sets `eslint.ignoreDuringBuilds = false`.
 
 ## Verified Structure
 
@@ -46,6 +46,7 @@
 - Shared auth helpers live in `app/lib/authz.ts` and `app/lib/supabase/*`.
 - There are Server Actions in `app/actions/`, but this repo also uses Route Handlers in `app/api/**` for some server-only flows.
 - Supabase SQL changes live in `supabase/migrations/`; rollback SQL is kept separately in `supabase/rollback/`.
+- Migration files are not applied by `next build`; DB changes in `supabase/migrations/` must be pushed or executed against the target Supabase project.
 - Data mutations should be handled via **Server Actions** (typically found in `app/actions` or module-specific action files).
 
 ## Key Directories
@@ -71,6 +72,8 @@
 
 - Gunakan `app/lib/ai-models.ts` sebagai sumber kebenaran untuk model ID dan provider mapping.
 - Untuk integrasi provider, utamakan wrapper server-side terpusat seperti `app/actions/gemini.ts` dan `app/actions/openrouter.ts`.
+- `app/actions/gemini.ts` now applies per-user rate limiting through the `consume_rate_limit` Supabase RPC in `app/lib/rate-limit.ts`; keep this flow server-side and preserve fail-closed behavior on infra errors.
+- Prompt hardening for Gemini uses unique per-request boundaries. If you change instruction injection, preserve the boundary sanitization logic and avoid static delimiters.
 - Jangan mengasumsikan bentuk `response.text` stabil antar versi SDK/provider. Untuk Gemini (`@google/genai`), ekstraksi teks harus defensif: cek property string, function accessor, lalu fallback ke `response.candidates?.[0]?.content?.parts`.
 - Pastikan `GeminiResponse.text` atau output provider lain dinormalisasi ke string sebelum dipakai caller.
 - Sebelum memakai output AI untuk `sanitizeConsumerText`, `JSON.parse`, `parseJsonFromModelText`, atau render UI, validasi dulu bahwa nilainya string yang valid.
@@ -92,9 +95,10 @@
 - Some server flows build URLs from `NEXT_PUBLIC_APP_URL`.
 - There is no `.env.example` in the repo right now; do not tell users to copy it.
 - Missing Supabase public vars do not hard-crash build/dev helpers: the client/server wrappers fall back to placeholder values. This can hide misconfiguration until runtime.
+- Rate limiting and other admin RPC flows also require `SUPABASE_SERVICE_ROLE_KEY` to be present at runtime.
 
 ## Verification Notes
 
 - There is no test script in `package.json`.
-- For focused verification, default to `npm run lint` and the smallest relevant app flow; use `npm run type-check` only when you need build-level validation.
-- Because `type-check` is a build, it is slower and can surface runtime/build integration issues beyond TypeScript.
+- For focused verification, default to `npm run lint` and the smallest relevant app flow; use `npm run type-check` when you need full build-level validation.
+- Because `type-check` is a full build with linting, it is slower and can surface runtime/build integration issues beyond TypeScript.

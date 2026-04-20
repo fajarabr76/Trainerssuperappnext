@@ -165,21 +165,28 @@ export default function ProfilerExportClient({
         const theme = timTheme(p.tim);
         const accentColor = theme.accent;
         const addProfilePhoto = async (x: number, y: number, w: number, h: number, fallbackFontSize: number) => {
+          // Force square aspect ratio for photos in PPT export to match table editor
+          const squareSize = Math.min(w, h);
+          const finalW = squareSize;
+          const finalH = squareSize;
+          const finalX = x + (w - squareSize) / 2;
+          const finalY = y + (h - squareSize) / 2;
+
           if (p.foto_url) {
             const frame = getPhotoFrame(p.id, p.photo_frame);
             const framedData = await buildFramedPhotoData(p.foto_url, frame);
             try {
               if (framedData) {
-                slide.addImage({ data: framedData, x, y, w, h, rounding: true });
+                slide.addImage({ data: framedData, x: finalX, y: finalY, w: finalW, h: finalH, rounding: true });
               } else {
                 slide.addImage({
                   path: p.foto_url,
-                  x,
-                  y,
-                  w,
-                  h,
+                  x: finalX,
+                  y: finalY,
+                  w: finalW,
+                  h: finalH,
                   rounding: true,
-                  sizing: { type: 'cover', w, h },
+                  sizing: { type: 'cover', w: finalW, h: finalH },
                 });
               }
               return;
@@ -187,17 +194,17 @@ export default function ProfilerExportClient({
           }
 
           slide.addShape(prs.ShapeType.rect, {
-            x,
-            y,
-            w,
-            h,
+            x: finalX,
+            y: finalY,
+            w: finalW,
+            h: finalH,
             fill: { color: theme.light.replace('#', '') },
           });
           slide.addText(p.nama?.charAt(0) || '?', {
-            x,
-            y,
-            w,
-            h,
+            x: finalX,
+            y: finalY,
+            w: finalW,
+            h: finalH,
             align: 'center',
             valign: 'middle',
             fontSize: fallbackFontSize,

@@ -20,6 +20,7 @@ import {
   getPhotoImageStyle,
   normalizePhotoFrame,
   setPhotoFrame,
+  markPhotoFrameAsSaved,
   type PhotoFrame,
 } from '../../lib/photo-frame';
 import { 
@@ -214,7 +215,7 @@ const EditModal: React.FC<{
   onClose: () => void;
   onSaved: (updated: Peserta) => void;
   onDeleted: (id: string) => void;
-  onFrameUpdated: (id: string) => void;
+  onFrameUpdated: (id: string, frame: PhotoFrame) => void;
   isReadOnly?: boolean;
 }> = ({ peserta, timList, onClose, onSaved, onDeleted, onFrameUpdated, isReadOnly }) => {
   const [form, setForm] = useState<Peserta>({ ...peserta });
@@ -223,13 +224,33 @@ const EditModal: React.FC<{
   const [uploadingFoto, setUploadingFoto] = useState(false);
   const [photoFrame, setPhotoFrameState] = useState<PhotoFrame>(DEFAULT_PHOTO_FRAME);
   const frameSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingFrameRef = useRef<PhotoFrame | null>(null);
 
   useEffect(() => {
     setPhotoFrameState(getPhotoFrame(peserta.id, peserta.photo_frame));
   }, [peserta.id, peserta.photo_frame]);
 
+  const flushPendingFrameSave = async () => {
+    if (frameSaveTimerRef.current) {
+      clearTimeout(frameSaveTimerRef.current);
+      frameSaveTimerRef.current = null;
+    }
+    if (pendingFrameRef.current && form.id && !isReadOnly) {
+      const frameToSave = pendingFrameRef.current;
+      pendingFrameRef.current = null;
+      try {
+        await updatePeserta(form.id, { photo_frame: frameToSave });
+        // Mark as saved in local cache to sync status
+        markPhotoFrameAsSaved(form.id, frameToSave);
+      } catch (err) {
+        console.error('Gagal flush frame foto ke server', err);
+      }
+    }
+  };
+
   useEffect(() => {
     return () => {
+      // Flush on unmount if possible, though we usually call it explicitly in onClose
       if (frameSaveTimerRef.current) {
         clearTimeout(frameSaveTimerRef.current);
       }
@@ -237,24 +258,35 @@ const EditModal: React.FC<{
   }, []);
 
   const set = <K extends keyof Peserta>(key: K, value: Peserta[K]) => setForm(prev => ({ ...prev, [key]: value }));
+  
   const updateFrame = (next: Partial<PhotoFrame>) => {
     if (isReadOnly || !form.id) return;
     const normalized = normalizePhotoFrame({ ...photoFrame, ...next });
     setPhotoFrameState(normalized);
     setPhotoFrame(form.id, normalized);
     setForm(prev => ({ ...prev, photo_frame: normalized }));
-    onFrameUpdated(form.id);
+    onFrameUpdated(form.id, normalized);
 
+    pendingFrameRef.current = normalized;
     if (frameSaveTimerRef.current) {
       clearTimeout(frameSaveTimerRef.current);
     }
     frameSaveTimerRef.current = setTimeout(async () => {
+      if (!pendingFrameRef.current || !form.id) return;
+      const frameToSave = pendingFrameRef.current;
+      pendingFrameRef.current = null;
       try {
-        await updatePeserta(form.id!, { photo_frame: normalized });
+        await updatePeserta(form.id, { photo_frame: frameToSave });
+        markPhotoFrameAsSaved(form.id, frameToSave);
       } catch (err) {
         console.error('Gagal sinkronisasi frame foto ke server', err);
       }
-    }, 450);
+    }, 800); // Slightly longer debounce for smoother UI
+  };
+
+  const handleClose = async () => {
+    await flushPendingFrameSave();
+    onClose();
   };
 
   const handleFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -274,6 +306,7 @@ const EditModal: React.FC<{
     if (!form.nama?.trim()) { alert('Nama wajib diisi.'); return; }
     setSaving(true);
     try {
+      await flushPendingFrameSave();
       await updatePeserta(form.id!, form);
       onSaved(form); 
       onClose();
@@ -291,7 +324,7 @@ const EditModal: React.FC<{
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-background/40 backdrop-blur-md p-0 sm:p-4 overflow-hidden"
-        onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+        onClick={e => { if (e.target === e.currentTarget) handleClose(); }}>
         <motion.div 
           initial={{ opacity: 0, scale: 0.98, y: 30 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -323,7 +356,7 @@ const EditModal: React.FC<{
                 </>
               )}
               <button 
-                onClick={onClose} 
+                onClick={handleClose} 
                 className="w-11 h-11 flex items-center justify-center hover:bg-muted rounded-full transition-all group active:scale-95"
               >
                 <X className="w-6 h-6 text-muted-foreground group-hover:text-foreground transition-colors" />
@@ -569,7 +602,10 @@ export default function ProfilerTableClient({
   }, [peserta]);
 
   const activeTab = 'table';
-  const refreshPhotoFrame = useCallback(() => setPhotoFrameTick((v) => v + 1), []);
+  const refreshPhotoFrame = useCallback((id: string, frame: PhotoFrame) => {
+    setPeserta(prev => prev.map(p => (p.id === id ? { ...p, photo_frame: frame } : p)));
+    setPhotoFrameTick((v) => v + 1);
+  }, []);
 
   const handleSaved = (updated: Peserta) => setPeserta(prev => prev.map(p => p.id === updated.id ? updated : p));
   const handleDeleted = (id: string) => setPeserta(prev => prev.filter(p => p.id !== id));
