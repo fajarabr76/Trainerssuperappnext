@@ -2176,17 +2176,37 @@ export const qaServiceServer = {
   },
 
   
-  async getPersonalTrendWithParameters(agentId: string, timeframe: '3m' | '6m' | 'all' = '3m', serviceType?: string) {
+  async getPersonalTrendWithParameters(agentId: string, year: number, startMonth: number, endMonth: number, serviceType?: string) {
     const supabase = await createClient();
     const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
-    const periodQuery = supabase.from('qa_periods').select('*').order('year', { ascending: false }).order('month', { ascending: false });
-    const limitMap = { '3m': 3, '6m': 6, 'all': 12 };
-    const { data: periods } = await periodQuery.limit(limitMap[timeframe]);
-    if (!periods) return { labels: [], datasets: [] };
+    
+    if (endMonth < startMonth) return { labels: [], datasets: [] };
 
-    const sortedPeriods = [...periods].reverse();
-    const pIds = sortedPeriods.map(p => p.id);
-    const labels = sortedPeriods.map(p => `${MONTHS_SHORT[p.month - 1]} ${String(p.year).slice(-2)}`);
+    const { data: periods } = await supabase
+      .from('qa_periods')
+      .select('*')
+      .eq('year', year)
+      .gte('month', startMonth)
+      .lte('month', endMonth)
+      .order('month', { ascending: true });
+
+    if (!periods || periods.length === 0) {
+      const labels = [];
+      for (let m = startMonth; m <= endMonth; m++) {
+        labels.push(`${MONTHS_SHORT[m - 1]} ${String(year).slice(-2)}`);
+      }
+      return { labels, datasets: [] };
+    }
+
+    const pIds = periods.map(p => p.id);
+    const periodIdByMonth = Object.fromEntries(periods.map(p => [p.month, p.id]));
+
+    const labels: string[] = [];
+    const validMonths: number[] = [];
+    for (let m = startMonth; m <= endMonth; m++) {
+      labels.push(`${MONTHS_SHORT[m - 1]} ${String(year).slice(-2)}`);
+      validMonths.push(m);
+    }
 
     let temuanQuery = supabase
       .from('qa_temuan')
@@ -2216,9 +2236,14 @@ export const qaServiceServer = {
       .map(([name, periodCounts]) => ({ name, total: Object.values(periodCounts).reduce((a, b) => a + b, 0) }))
       .sort((a, b) => b.total - a.total).map(p => p.name);
 
+    const getCountForMonth = (m: number, countMap: Record<string, number>) => {
+      const pid = periodIdByMonth[m];
+      return pid ? (countMap[pid] || 0) : 0;
+    };
+
     const datasets = [
-      { label: 'Total Temuan', data: sortedPeriods.map(p => totalByPeriod[p.id] || 0), isTotal: true },
-      ...topParams.map(name => ({ label: name, data: sortedPeriods.map(p => counts[name][p.id] || 0), isTotal: false }))
+      { label: 'Total Temuan', data: validMonths.map(m => getCountForMonth(m, totalByPeriod)), isTotal: true },
+      ...topParams.map(name => ({ label: name, data: validMonths.map(m => getCountForMonth(m, counts[name])), isTotal: false }))
     ];
 
     return { labels, datasets };

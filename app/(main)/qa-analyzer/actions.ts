@@ -60,9 +60,42 @@ export async function getAgentExportDataAction(agentId: string): Promise<ExportD
   return await qaServiceServer.getAgentExportData(agentId);
 }
 
-export async function getPersonalTrendAction(agentId: string, timeframe: '3m' | '6m' | 'all', serviceType?: string) {
+export async function getPersonalTrendAction(agentId: string, year: number, startMonth: number, endMonth: number, serviceType?: string) {
   const { qaServiceServer } = await import('./services/qaService.server');
-  return await qaServiceServer.getPersonalTrendWithParameters(agentId, timeframe, serviceType);
+  return await qaServiceServer.getPersonalTrendWithParameters(agentId, year, startMonth, endMonth, serviceType);
+}
+
+export async function getLastAuditedMonthAction(agentId: string, year: number, serviceType?: string) {
+  const { createClient } = await import('@/app/lib/supabase/server');
+  const supabase = await createClient();
+  const { data: periods } = await supabase
+    .from('qa_periods')
+    .select('id, month')
+    .eq('year', year)
+    .order('month', { ascending: false });
+
+  if (!periods || periods.length === 0) return null;
+
+  const pIds = periods.map((p: any) => p.id);
+  const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
+  
+  let query = supabase
+    .from('qa_temuan')
+    .select('period_id')
+    .eq('peserta_id', agentId)
+    .in('period_id', pIds);
+
+  if (serviceType) query = query.eq('service_type', serviceType);
+  if (hasPhantomSupport) query = query.eq('is_phantom_padding', false);
+  
+  const { data: temuan } = await query;
+  
+  if (!temuan || temuan.length === 0) return null;
+
+  const activePeriodIds = new Set(temuan.map((t: any) => t.period_id));
+  const latestPeriod = periods.find((p: any) => activePeriodIds.has(p.id));
+  
+  return latestPeriod ? latestPeriod.month : null;
 }
 
 export async function createPeriodAction(month: number, year: number) {

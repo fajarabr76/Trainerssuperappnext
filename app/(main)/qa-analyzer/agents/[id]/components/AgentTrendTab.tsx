@@ -18,18 +18,14 @@ const TREND_COLORS = [
 interface AgentTrendTabProps {
   loadingTrend: boolean;
   personalTrend: TrendData;
-  timeframe: '3m' | '6m' | 'all';
   activeTrendFilter: string;
-  onTimeframeChange: (tf: '3m' | '6m' | 'all') => void;
   onFilterChange: (filter: string) => void;
 }
 
 export default function AgentTrendTab({
   loadingTrend,
   personalTrend,
-  timeframe,
   activeTrendFilter,
-  onTimeframeChange,
   onFilterChange
 }: AgentTrendTabProps) {
   if (loadingTrend) {
@@ -45,30 +41,19 @@ export default function AgentTrendTab({
     );
   }
 
+  const trendRangeLabel = personalTrend && personalTrend.labels.length > 0 
+    ? `${personalTrend.labels[0]} - ${personalTrend.labels[personalTrend.labels.length - 1]}`
+    : '';
+
   return (
     <div className="bg-card/50 backdrop-blur-sm rounded-[2rem] border border-border/50 p-5 sm:p-8 shadow-sm">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-4">
         <div>
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-muted-foreground mb-2">
-            <TrendingUp className="w-3.5 h-3.5" /> Tren Kinerja
+            <TrendingUp className="w-3.5 h-3.5" /> Tren Kinerja {trendRangeLabel ? `• ${trendRangeLabel}` : ''}
           </div>
           <h3 className="text-2xl sm:text-3xl font-black tracking-tight">Pergerakan skor per periode audit</h3>
-          <p className="text-[11px] text-muted-foreground font-medium mt-2">Pantau konsistensi nilai agen berdasarkan parameter yang telah dievaluasi.</p>
-        </div>
-        <div className="flex p-1.5 bg-foreground/5 dark:bg-foreground/[0.03] border border-border/50 rounded-2xl w-fit shadow-inner">
-          {(['3m', '6m', 'all'] as const).map((tf) => (
-            <button
-              key={tf}
-              onClick={() => onTimeframeChange(tf)}
-              className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
-                timeframe === tf 
-                  ? 'bg-primary text-white shadow-xl shadow-primary/20' 
-                  : 'text-muted-foreground hover:text-muted-foreground hover:bg-foreground/5'
-              }`}
-            >
-              {tf === '3m' ? '3 Bulan' : tf === '6m' ? '6 Bulan' : 'Semua'}
-            </button>
-          ))}
+          <p className="text-[11px] text-muted-foreground font-medium mt-2">Pantau tren temuan agen pada setiap periode evaluasi di tahun aktif.</p>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Database, 
@@ -20,6 +20,7 @@ import {
 import type { ServiceType, QAIndicator } from '../../lib/qa-types';
 import { SERVICE_LABELS } from '../../lib/qa-types';
 import { fetchDataReportAction } from './actions';
+import { getLastAuditedMonthAction } from '../../actions';
 
 const SERVICE_TYPES = Object.keys(SERVICE_LABELS) as ServiceType[];
 
@@ -70,6 +71,25 @@ export default function DataReportClient({
   const [pesertaId, setPesertaId] = useState('');
   const [folderId, setFolderId] = useState('ALL');
 
+  const [loadingContext, setLoadingContext] = useState(false);
+
+  useEffect(() => {
+    if (mode === 'individu' && pesertaId && year) {
+      setLoadingContext(true);
+      getLastAuditedMonthAction(pesertaId, year, serviceType)
+        .then((month) => {
+          if (month) {
+            setEndMonth(month);
+            setStartMonth(1);
+          } else {
+            setEndMonth(0);
+          }
+        })
+        .catch(console.error)
+        .finally(() => setLoadingContext(false));
+    }
+  }, [mode, pesertaId, year, serviceType]);
+
   const filteredIndicators = useMemo(() => {
     return allIndicators.filter(ind => ind.service_type === serviceType);
   }, [allIndicators, serviceType]);
@@ -118,6 +138,11 @@ export default function DataReportClient({
   };
 
   const handleFetch = async () => {
+    if (mode === 'individu' && endMonth === 0) {
+      setError('Tidak ada data audit untuk agen ini di tahun terpilih.');
+      return;
+    }
+
     if (periodMode === 'range' && startMonth > endMonth) {
       setError('Bulan mulai tidak boleh lebih besar dari bulan akhir.');
       return;
@@ -277,62 +302,87 @@ export default function DataReportClient({
               </select>
             </div>
 
-            <div className="pt-2">
-              <label className="mb-3 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                Mode Periode
-              </label>
-              <div className="flex gap-2 p-1 bg-foreground/5 rounded-2xl">
-                <button
-                  onClick={() => setPeriodMode('single')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                    periodMode === 'single' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
-                  }`}
-                >
-                  <Calendar className="h-3 w-3" /> 1 Bulan
-                </button>
-                <button
-                  onClick={() => setPeriodMode('range')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                    periodMode === 'range' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
-                  }`}
-                >
-                  <LayoutGrid className="h-3 w-3" /> Rentang
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
-              <div>
-                <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                  {periodMode === 'single' ? 'Bulan' : 'Bulan Mulai'}
-                </label>
-                <select
-                  value={startMonth}
-                  onChange={(e) => setStartMonth(Number(e.target.value))}
-                  className="h-11 w-full rounded-xl border border-border/50 bg-background px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
-                >
-                  {MONTHS.map((m, i) => (
-                    <option key={i + 1} value={i + 1}>{m}</option>
-                  ))}
-                </select>
-              </div>
-              {periodMode === 'range' && (
-                <div>
-                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                    Bulan Akhir
+            {mode === 'layanan' ? (
+              <>
+                <div className="pt-2">
+                  <label className="mb-3 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    Mode Periode
                   </label>
-                  <select
-                    value={endMonth}
-                    onChange={(e) => setEndMonth(Number(e.target.value))}
-                    className="h-11 w-full rounded-xl border border-border/50 bg-background px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
-                  >
-                    {MONTHS.map((m, i) => (
-                      <option key={i + 1} value={i + 1}>{m}</option>
-                    ))}
-                  </select>
+                  <div className="flex gap-2 p-1 bg-foreground/5 rounded-2xl">
+                    <button
+                      onClick={() => setPeriodMode('single')}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                        periodMode === 'single' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
+                      }`}
+                    >
+                      <Calendar className="h-3 w-3" /> 1 Bulan
+                    </button>
+                    <button
+                      onClick={() => setPeriodMode('range')}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                        periodMode === 'range' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
+                      }`}
+                    >
+                      <LayoutGrid className="h-3 w-3" /> Rentang
+                    </button>
+                  </div>
                 </div>
-              )}
-            </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                  <div>
+                    <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                      {periodMode === 'single' ? 'Bulan' : 'Bulan Mulai'}
+                    </label>
+                    <select
+                      value={startMonth}
+                      onChange={(e) => setStartMonth(Number(e.target.value))}
+                      className="h-11 w-full rounded-xl border border-border/50 bg-background px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      {MONTHS.map((m, i) => (
+                        <option key={i + 1} value={i + 1}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {periodMode === 'range' && (
+                    <div>
+                      <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        Bulan Akhir
+                      </label>
+                      <select
+                        value={endMonth}
+                        onChange={(e) => setEndMonth(Number(e.target.value))}
+                        className="h-11 w-full rounded-xl border border-border/50 bg-background px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                      >
+                        {MONTHS.map((m, i) => (
+                          <option key={i + 1} value={i + 1}>{m}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="pt-2">
+                <label className="mb-3 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  Konteks Audit Pribadi
+                </label>
+                <div className="h-11 w-full rounded-xl border border-border/50 bg-foreground/5 px-3 flex items-center text-sm font-medium text-foreground/70">
+                  {loadingContext ? (
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Menghitung...
+                    </span>
+                  ) : pesertaId ? (
+                    endMonth > 0 ? (
+                      <span>Januari - {MONTHS[endMonth - 1]} {year}</span>
+                    ) : (
+                      <span className="text-amber-600 dark:text-amber-500 italic">Tidak ada data audit</span>
+                    )
+                  ) : (
+                    <span className="text-muted-foreground italic">Pilih agen terlebih dahulu</span>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="pt-2">
               <label className="mb-3 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
@@ -414,7 +464,7 @@ export default function DataReportClient({
 
             <button
               onClick={handleFetch}
-              disabled={loading || (mode === 'individu' && !pesertaId)}
+              disabled={loading || loadingContext || (mode === 'individu' && (!pesertaId || endMonth === 0))}
               className="w-full h-12 flex items-center justify-center gap-2 rounded-2xl bg-foreground text-background font-black uppercase tracking-widest text-xs transition-all hover:opacity-90 disabled:opacity-30 disabled:pointer-events-none mt-4"
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}

@@ -51,9 +51,7 @@ export function useAgentDetail({
 }: UseAgentDetailProps) {
   const router = useRouter();
   const [loadingTemuan, setLoadingTemuan] = useState(false);
-  const [loadingTrend, setLoadingTrend] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [timeframe, setTimeframe] = useState<'3m' | '6m' | 'all'>('3m');
   const [activeSection, setActiveSection] = useState<'summary' | 'trend' | 'temuan'>('summary');
   const [trendMounted, setTrendMounted] = useState(false);
   const [temuanMounted, setTemuanMounted] = useState(false);
@@ -246,9 +244,12 @@ export function useAgentDetail({
       const periodKey = `${period.id}:${period.serviceType}`;
       const shouldRefreshTrend = options?.forceTrend || !loadedPeriodKey || !loadedPeriodKey.endsWith(`:${period.serviceType}`);
 
+      const latestPeriodForService = periodSummaries.find(p => p.serviceType === period.serviceType);
+      const endMonth = latestPeriodForService ? latestPeriodForService.month : 0;
+
       const [pageResult, trendResult] = await Promise.all([
         getAgentTemuanPageAction(agentId, selectedYear, period.id!, period.serviceType, 0),
-        shouldRefreshTrend ? getPersonalTrendAction(agentId, timeframe, period.serviceType) : Promise.resolve(null),
+        shouldRefreshTrend ? getPersonalTrendAction(agentId, selectedYear, 1, endMonth, period.serviceType) : Promise.resolve(null),
       ]);
 
       setData((prev) => ({
@@ -267,7 +268,7 @@ export function useAgentDetail({
     } finally {
       setLoadingTemuan(false);
     }
-  }, [agentId, loadedPeriodKey, selectedYear, timeframe]);
+  }, [agentId, loadedPeriodKey, selectedYear, periodSummaries]);
 
   const handleSelectedPeriodChange = useCallback(async (period: PeriodSelection) => {
     setSelectedPeriod(period);
@@ -282,7 +283,7 @@ export function useAgentDetail({
       const nextPeriod = periodsResult.periods[0] ?? null;
 
       if (!nextPeriod) {
-        setData((prev) => ({ ...prev, periodSummaries: [], temuan: [] }));
+        setData((prev) => ({ ...prev, periodSummaries: [], temuan: [], personalTrend: { labels: [], datasets: [] } }));
         setSelectedPeriod(null);
         setSelectedYear(year);
         setCurrentPage(0);
@@ -291,9 +292,12 @@ export function useAgentDetail({
         return;
       }
 
+      const latestPeriodForService = periodsResult.periods.find(p => p.serviceType === nextPeriod.serviceType);
+      const endMonth = latestPeriodForService ? latestPeriodForService.month : 0;
+
       const [pageResult, trendResult] = await Promise.all([
         getAgentTemuanPageAction(agentId, year, nextPeriod.id, nextPeriod.serviceType, 0),
-        getPersonalTrendAction(agentId, timeframe, nextPeriod.serviceType),
+        getPersonalTrendAction(agentId, year, 1, endMonth, nextPeriod.serviceType),
       ]);
 
       setData((prev) => ({
@@ -340,19 +344,7 @@ export function useAgentDetail({
     }
   };
 
-  const handleTimeframeChange = useCallback(async (nextTimeframe: '3m' | '6m' | 'all') => {
-    setLoadingTrend(true);
-    try {
-      const targetService = selectedPeriod?.serviceType || sortedPeriods[0]?.serviceType || 'call';
-      const result = await getPersonalTrendAction(agentId, nextTimeframe, targetService);
-      setData((prev) => ({ ...prev, personalTrend: result }));
-      setTimeframe(nextTimeframe);
-    } catch (err) {
-      console.error('Gagal memuat tren', err);
-    } finally {
-      setLoadingTrend(false);
-    }
-  }, [agentId, selectedPeriod?.serviceType, sortedPeriods]);
+
 
   const startEdit = (temuanItem: QATemuan) => {
     setEditingTemuan(temuanItem);
@@ -472,11 +464,11 @@ export function useAgentDetail({
 
   return {
     loadingTemuan,
-    loadingTrend,
+    loadingTrend: loadingTemuan,
     exporting,
     selectedPeriod,
     setSelectedPeriod: handleSelectedPeriodChange,
-    timeframe,
+
     activeSection,
     trendMounted,
     temuanMounted,
@@ -507,7 +499,6 @@ export function useAgentDetail({
     handleDelete,
     handleYearChange,
     handlePageChange,
-    handleTimeframeChange,
     handleExport,
     handleTambahTemuan,
     setEditingTemuan,

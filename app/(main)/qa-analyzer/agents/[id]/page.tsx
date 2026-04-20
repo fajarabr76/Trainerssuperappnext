@@ -48,8 +48,11 @@ export default async function QaAgentDetailPage({ params }: { params: Promise<{ 
     const initialService = initialPeriod?.serviceType ||
       (agent.tim ? TIM_TO_DEFAULT_SERVICE[agent.tim] : 'call');
 
+    const latestPeriodForService = periodSummary.periods.find(p => p.serviceType === initialService);
+    const endMonth = latestPeriodForService ? latestPeriodForService.month : 0;
+
     const [personalTrend, initialTemuan] = await Promise.all([
-      qaServiceServer.getPersonalTrendWithParameters(agentId, '3m', initialService),
+      qaServiceServer.getPersonalTrendWithParameters(agentId, currentYear, 1, endMonth, initialService),
       initialPeriod
         ? qaServiceServer.getAgentTemuanPage(agentId, currentYear, initialPeriod.id, initialService, 0)
         : Promise.resolve({ temuan: [], hasMore: false, total: 0 })

@@ -88,7 +88,6 @@ export default function QaAgentDetailClient({
     exporting,
     selectedPeriod,
     setSelectedPeriod,
-    timeframe,
     activeSection,
     trendMounted,
     temuanMounted,
@@ -122,7 +121,7 @@ export default function QaAgentDetailClient({
     handleDelete,
     handleYearChange,
     handlePageChange,
-    handleTimeframeChange,
+
     handleExport,
     handleTambahTemuan,
     setEditingTemuan
@@ -336,7 +335,7 @@ export default function QaAgentDetailClient({
                       className="space-y-8"
                     >
                       {sortedPeriods.length > 0 && (
-                        <div className="flex flex-wrap gap-2 bg-card/40 backdrop-blur-md rounded-2xl border border-border/50 p-2 shadow-sm">
+                        <div className="flex flex-wrap gap-2 bg-card border border-border rounded-xl p-1.5 shadow-sm">
                           {sortedPeriods.map(p => {
                             const isActive = getPeriodKey(p.month, p.year) === getPeriodKey(selectedPeriod?.month || 0, selectedPeriod?.year || 0) && p.serviceType === selectedPeriod?.serviceType;
                             return (
@@ -359,8 +358,7 @@ export default function QaAgentDetailClient({
                       {selectedScore && selectedPeriod && (
                         <div className="space-y-8">
                           {/* Score Card */}
-                          <div className="bg-card/40 backdrop-blur-sm rounded-[2rem] md:rounded-[2.5rem] border border-border/50 p-6 md:p-10 relative overflow-hidden group shadow-xl md:shadow-2xl shadow-primary/5">
-                            <div className="absolute top-0 right-0 w-48 h-48 md:w-64 md:h-64 bg-primary/10 rounded-full -mr-24 -mt-24 md:-mr-32 md:-mt-32 blur-[50px] md:blur-[100px] group-hover:bg-primary/20 transition-all duration-1000" />
+                          <div className="bg-card border border-border p-6 md:p-10 relative overflow-hidden rounded-2xl shadow-sm">
                             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-10 relative z-10">
                               <div>
                                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mb-4">
@@ -487,15 +485,12 @@ export default function QaAgentDetailClient({
                   <div id="section-trend">
                     {trendMounted ? (
                       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                        <AgentTrendTab 
+                        <AgentTrendTab
                           loadingTrend={loadingTrend}
                           personalTrend={personalTrend}
-                          timeframe={timeframe}
                           activeTrendFilter={activeTrendFilter}
-                          onTimeframeChange={handleTimeframeChange}
                           onFilterChange={setActiveTrendFilter}
-                        />
-                      </motion.div>
+                        />                      </motion.div>
                     ) : (
                       <TabSkeleton />
                     )}
