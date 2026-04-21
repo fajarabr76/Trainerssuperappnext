@@ -377,6 +377,14 @@ function scoreSession(
        + calcCat('critical')     * weight.critical_weight;
 }
 
+export function calculateSessionScoreFromTemuan(
+  indicators: QAIndicator[],
+  temuan: { indicator_id: string; nilai: number }[],
+  serviceWeight: ServiceWeight = DEFAULT_SERVICE_WEIGHTS['call']
+): number {
+  return scoreSession(indicators, temuan, serviceWeight);
+}
+
 /**
  * Menghitung skor QA berdasarkan temuan
  */

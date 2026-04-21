@@ -68,6 +68,41 @@
 - **Dependency Management:** Do not add new dependencies without explicit instruction
 - **State Management:** Be cautious with `useEffect` dependency arrays to avoid infinite loops
 
+## Golden Rule: File Editing Harus Pakai Unified Diff
+
+Saat mendesain agent, prioritaskan pembuatan fungsi tool untuk editing file menggunakan metode patch dengan format **unified diff**.
+
+### Kenapa aturan ini penting
+Metode unified diff memaksa agent untuk membaca isi file terbaru sebelum melakukan perubahan. Ini penting untuk mencegah agent mengubah file secara sembarangan, terutama pada file yang sensitif terhadap struktur seperti Python yang sangat bergantung pada indentasi.
+
+Selain itu, file bisa saja sudah berubah oleh step sebelumnya tetapi belum terbaca lagi oleh agent. Risiko ini makin besar pada sistem yang menggunakan parallel execution atau multi-agent. Karena itu, patch berbasis unified diff harus dianggap sebagai mekanisme edit default, dan dalam konteks multi-agent sifatnya wajib.
+
+### Aturan wajib
+1. Agent **harus membaca file terlebih dahulu** sebelum membuat perubahan.
+2. Agent **harus mengedit file menggunakan patch berformat unified diff**, bukan overwrite penuh.
+3. Agent **tidak boleh mengganti seluruh isi file** jika perubahan hanya terjadi pada sebagian kecil.
+4. Agent **harus membuat perubahan seminimal mungkin** agar scope edit tetap jelas dan aman.
+5. Agent **harus menggunakan konteks terbaru dari file** sebelum menyusun patch.
+6. Untuk file dengan struktur sensitif seperti Python, YAML, atau file konfigurasi lain, penggunaan unified diff **sangat diprioritaskan**.
+7. Dalam workflow parallel atau multi-agent, patch unified diff **wajib digunakan** untuk mengurangi konflik dan mencegah file corruption.
+
+### Tujuan utama
+- Menjaga agent agar tidak ngawur saat mengubah file
+- Mengurangi risiko merusak syntax, indentasi, atau struktur file
+- Memastikan perubahan tetap presisi walaupun file sudah berubah di step sebelumnya
+- Membuat proses edit lebih aman, audit-able, dan mudah direview
+
+### Prinsip implementasi
+Jika agent ingin mengubah file, urutannya harus seperti ini:
+1. Baca file terbaru
+2. Identifikasi bagian yang benar-benar perlu diubah
+3. Buat patch dalam format unified diff
+4. Terapkan patch
+5. Verifikasi hasil akhir setelah patch diterapkan
+
+### Catatan penting
+Jangan jadikan overwrite penuh sebagai default behavior. Default behavior agent untuk file editing harus selalu: **read first, patch second**.
+
 ## AI Integration Conventions
 
 - Gunakan `app/lib/ai-models.ts` sebagai sumber kebenaran untuk model ID dan provider mapping.

@@ -9,6 +9,8 @@ import {
   EditFormState,
   CoachingInsight,
   TrendData,
+  DEFAULT_SERVICE_WEIGHTS,
+  calculateSessionScoreFromTemuan,
   unwrapIndicator,
   unwrapPeriod,
   ServiceType,
@@ -53,11 +55,12 @@ export function useAgentDetail({
   const [agent] = useState<Agent>(initialAgent);
   const [data, setData] = useState<AgentDetailData>(initialData);
   
-  // --- GLOBAL CONTEXT (Initialized from typed initial fields) ---
+  // --- GLOBAL CONTEXT ---
   const [selectedServiceType, setSelectedServiceType] = useState<ServiceType>(initialData.initialService);
   const [selectedYear, setSelectedYear] = useState(initialData.initialYear);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
 
-  // --- TREND SPECIFIC CONTEXT (Scoped as tstart/tend) ---
+  // --- TREND SPECIFIC CONTEXT ---
   const [trendStartMonth, setTrendStartMonth] = useState(initialData.initialTrendRange.start);
   const [trendEndMonth, setTrendEndMonth] = useState(initialData.initialTrendRange.end);
 
@@ -78,7 +81,7 @@ export function useAgentDetail({
   const personalTrend = data.personalTrend;
   const periodSummaries = data.periodSummaries;
 
-  // --- RECONCILIATION: Sync local state when server canonical props change ---
+  // --- RECONCILIATION ---
   useEffect(() => {
     setData(initialData);
     setSelectedYear(initialData.initialYear);
@@ -86,18 +89,20 @@ export function useAgentDetail({
     setTrendStartMonth(initialData.initialTrendRange.start);
     setTrendEndMonth(initialData.initialTrendRange.end);
     
-    // Safety check for trend filter when data changes
+    const summaries = initialData.periodSummaries
+      .filter(p => p.serviceType === initialData.initialService)
+      .sort((a, b) => a.month - b.month);
+    if (summaries.length > 0) {
+      setSelectedMonth(summaries[summaries.length - 1].month);
+    }
+
     setActiveTrendFilter(prev => {
       const labels = initialData.personalTrend?.datasets?.map(d => d.label) || [];
       if (prev !== 'all' && !labels.includes(prev)) return 'all';
       return prev;
     });
-  }, [
-    agentId, 
-    initialData
-  ]);
+  }, [agentId, initialData]);
 
-  // --- HELPER: Sync URL with current filters (tstart/tend for explicit scoping) ---
   const syncUrl = useCallback((year: number, tstart: number, tend: number, service: string) => {
     router.replace(`/qa-analyzer/agents/${agentId}?year=${year}&tstart=${tstart}&tend=${tend}&service=${service}`, { scroll: false });
   }, [agentId, router]);
@@ -108,6 +113,94 @@ export function useAgentDetail({
       .filter(p => p.serviceType === selectedServiceType)
       .sort((a, b) => a.month - b.month);
   }, [periodSummaries, selectedServiceType]);
+
+  const topTickets = useMemo(() => {
+    if (!selectedMonth) return [];
+
+    const serviceIndicators = data.indicators.filter(
+      (indicator) => indicator.service_type === selectedServiceType
+    );
+
+    if (serviceIndicators.length === 0) return [];
+
+    const activeServiceWeight = data.weights?.[selectedServiceType] ?? DEFAULT_SERVICE_WEIGHTS[selectedServiceType];
+
+    const monthFindings = temuan.filter(t => {
+      const p = unwrapPeriod(t.qa_periods);
+      return p?.month === selectedMonth;
+    });
+
+    const ticketMap: Record<string, {
+      no_tiket: string, 
+      totalPenaltyWeight: number,
+      findingCount: number, 
+      heaviestParam: string,
+      maxPenaltyWeight: number,
+      isSamplingQa: boolean,
+      sessionFindings: { indicator_id: string; nilai: number }[],
+    }> = {};
+
+    monthFindings.forEach(f => {
+      const ticketKey = f.no_tiket || `audit-${f.id}`;
+      const indicator = unwrapIndicator(f.qa_indicators);
+      const weight = Number(indicator?.bobot ?? 0);
+      const nilai = Number.isFinite(f.nilai) ? Math.max(0, Math.min(3, Number(f.nilai))) : 3;
+      const penaltyWeight = ((3 - nilai) / 3) * weight;
+      const paramName = indicator?.name || 'Unknown';
+
+      if (!ticketMap[ticketKey]) {
+        ticketMap[ticketKey] = {
+          no_tiket: ticketKey,
+          totalPenaltyWeight: 0,
+          findingCount: 0,
+          heaviestParam: paramName,
+          maxPenaltyWeight: penaltyWeight,
+          isSamplingQa: f.is_phantom_padding === true || ticketKey.startsWith('__PHANTOM__'),
+          sessionFindings: []
+        };
+      }
+
+      ticketMap[ticketKey].totalPenaltyWeight += penaltyWeight;
+      ticketMap[ticketKey].findingCount += 1;
+      ticketMap[ticketKey].isSamplingQa = ticketMap[ticketKey].isSamplingQa || f.is_phantom_padding === true || ticketKey.startsWith('__PHANTOM__');
+
+      ticketMap[ticketKey].sessionFindings.push({
+        indicator_id: f.indicator_id,
+        nilai,
+      });
+
+      if (penaltyWeight > ticketMap[ticketKey].maxPenaltyWeight) {
+        ticketMap[ticketKey].maxPenaltyWeight = penaltyWeight;
+        ticketMap[ticketKey].heaviestParam = paramName;
+      }
+    });
+
+    return Object.values(ticketMap)
+      .map((ticket) => {
+        const sessionScore = calculateSessionScoreFromTemuan(
+          serviceIndicators,
+          ticket.sessionFindings,
+          activeServiceWeight,
+        );
+        const scoreDeduction = Math.max(0, 100 - sessionScore);
+
+        return {
+          no_tiket: ticket.no_tiket,
+          scoreDeduction,
+          totalPenaltyWeight: ticket.totalPenaltyWeight,
+          findingCount: ticket.findingCount,
+          heaviestParam: ticket.heaviestParam,
+          isSamplingQa: ticket.isSamplingQa,
+        };
+      })
+      .filter((ticket) => ticket.scoreDeduction > 0)
+      .sort((a, b) => {
+        if (b.scoreDeduction !== a.scoreDeduction) return b.scoreDeduction - a.scoreDeduction;
+        if (b.totalPenaltyWeight !== a.totalPenaltyWeight) return b.totalPenaltyWeight - a.totalPenaltyWeight;
+        return b.findingCount - a.findingCount;
+      })
+      .slice(0, 5);
+  }, [data.indicators, data.weights, selectedMonth, selectedServiceType, temuan]);
 
   const groupedFindingsByMonth = useMemo(() => {
     const groups: Record<number, QATemuan[]> = {};
@@ -157,7 +250,6 @@ export function useAgentDetail({
   }, [temuan]);
 
   // --- EFFECTS ---
-
   useEffect(() => {
     if (role === 'agent') return;
     async function loadSwitcherData() {
@@ -169,17 +261,12 @@ export function useAgentDetail({
         ]);
         setTeams(allTeams);
         setAgentsInTeam(teamAgents as Agent[]);
-      } catch (err) { 
-        console.error('Gagal memuat switcher data:', err); 
-      } finally {
-        setLoadingAgents(false);
-      }
+      } catch (err) { console.error('Gagal memuat switcher data:', err); } finally { setLoadingAgents(false); }
     }
     loadSwitcherData();
   }, [role, selectedTeam]);
 
   // --- ACTIONS ---
-
   const handleAgentChange = (newAgentId: string) => {
     if (newAgentId === agentId) return;
     router.push(`/qa-analyzer/agents/${newAgentId}?year=${selectedYear}&tstart=${trendStartMonth}&tend=${trendEndMonth}&service=${selectedServiceType}`);
@@ -188,9 +275,7 @@ export function useAgentDetail({
   const validateTrendFilter = useCallback((trendResult: TrendData) => {
     const labels = trendResult.datasets.map((dataset) => dataset.label);
     setActiveTrendFilter((currentFilter) => {
-      if (currentFilter !== 'all' && !labels.includes(currentFilter)) {
-        return 'all';
-      }
+      if (currentFilter !== 'all' && !labels.includes(currentFilter)) return 'all';
       return currentFilter;
     });
   }, []);
@@ -200,7 +285,6 @@ export function useAgentDetail({
     setTrendStartMonth(start);
     setTrendEndMonth(end);
     syncUrl(selectedYear, start, end, selectedServiceType);
-    
     setLoadingTrend(true);
     try {
       const trendResult = await getPersonalTrendAction(agentId, selectedYear, start, end, selectedServiceType);
@@ -212,7 +296,6 @@ export function useAgentDetail({
   const handleServiceChange = useCallback(async (service: ServiceType) => {
     setSelectedServiceType(service);
     syncUrl(selectedYear, trendStartMonth, trendEndMonth, service);
-    
     setLoadingTemuan(true);
     setLoadingTrend(true);
     try {
@@ -234,23 +317,15 @@ export function useAgentDetail({
     setLoadingTrend(true);
     try {
       const periodsResult = await getAgentPeriodsAction(agentId, year);
-      
       let targetService = selectedServiceType;
       const isSvcValid = periodsResult.periods.some(p => p.serviceType === selectedServiceType);
-      if (!isSvcValid && periodsResult.periods.length > 0) {
-        targetService = periodsResult.periods[0].serviceType as ServiceType;
-      }
+      if (!isSvcValid && periodsResult.periods.length > 0) targetService = periodsResult.periods[0].serviceType as ServiceType;
       setSelectedServiceType(targetService);
 
       const isCurrentYear = year === new Date().getFullYear();
       const start = 1;
-      let end: number;
-      if (isCurrentYear) {
-        end = new Date().getMonth() + 1;
-      } else {
-        const latestForSvc = periodsResult.periods.find(p => p.serviceType === targetService);
-        end = latestForSvc ? latestForSvc.month : 12;
-      }
+      const end = isCurrentYear ? new Date().getMonth() + 1 : (periodsResult.periods.find(p => p.serviceType === targetService)?.month || 12);
+      
       setTrendStartMonth(start);
       setTrendEndMonth(end);
       syncUrl(year, start, end, targetService);
@@ -260,12 +335,7 @@ export function useAgentDetail({
         getPersonalTrendAction(agentId, year, start, end, targetService),
       ]);
 
-      setData((prev) => ({
-        ...prev,
-        periodSummaries: periodsResult.periods,
-        temuan: allTemuan,
-        personalTrend: trendResult,
-      }));
+      setData((prev) => ({ ...prev, periodSummaries: periodsResult.periods, temuan: allTemuan, personalTrend: trendResult }));
       validateTrendFilter(trendResult);
       setSelectedYear(year);
     } catch (err) { console.error(`Gagal ganti tahun:`, err); } finally {
@@ -274,10 +344,7 @@ export function useAgentDetail({
     }
   };
 
-  const handleTeamChange = async (team: string) => {
-    setSelectedTeam(team);
-  };
-
+  const handleTeamChange = async (team: string) => setSelectedTeam(team);
   const startEdit = (temuanItem: QATemuan) => {
     setEditingTemuan(temuanItem);
     setEditForm({ nilai: temuanItem.nilai, ketidaksesuaian: temuanItem.ketidaksesuaian || '', sebaiknya: temuanItem.sebaiknya || '' });
@@ -292,12 +359,7 @@ export function useAgentDetail({
         getAgentTemuanRangeAction(agentId, selectedYear, 1, 12, selectedServiceType),
         getPersonalTrendAction(agentId, selectedYear, trendStartMonth, trendEndMonth, selectedServiceType)
       ]);
-      setData((prev) => ({ 
-        ...prev, 
-        periodSummaries: pResult.periods, 
-        temuan: tResult,
-        personalTrend: trendResult
-      }));
+      setData((prev) => ({ ...prev, periodSummaries: pResult.periods, temuan: tResult, personalTrend: trendResult }));
       validateTrendFilter(trendResult);
     } catch (err) { console.error('Gagal menyegarkan data:', err); } finally {
       setLoadingTrend(false);
@@ -313,15 +375,6 @@ export function useAgentDetail({
       setEditingTemuan(null);
       await refreshData();
     } catch (err) { console.error('Gagal simpan:', err); } finally { setIsSubmitting(false); }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Hapus temuan ini?')) return;
-    setDeletingId(id);
-    try {
-      await deleteTemuanAction(id);
-      await refreshData();
-    } catch (err) { console.error('Gagal hapus:', err); } finally { setDeletingId(null); }
   };
 
   const handleExport = async () => {
@@ -340,13 +393,7 @@ export function useAgentDetail({
       ];
       exportData.periods.forEach((period) => {
         const monthLabel = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][period.month - 1];
-        summaryRows.push([
-          `${monthLabel} ${period.year}`,
-          period.service_type.toUpperCase(),
-          period.score.toFixed(2),
-          period.ncScore.toFixed(2),
-          period.crScore.toFixed(2),
-        ]);
+        summaryRows.push([`${monthLabel} ${period.year}`, period.service_type.toUpperCase(), period.score.toFixed(2), period.ncScore.toFixed(2), period.crScore.toFixed(2)]);
       });
       const ws1 = XLSX.utils.aoa_to_sheet(summaryRows);
       ws1['!cols'] = [{ wch: 24 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
@@ -356,7 +403,6 @@ export function useAgentDetail({
         const monthShort = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'][period.month - 1];
         const svcLabel = period.service_type === 'call' ? 'Call' : period.service_type === 'email' ? 'Email' : `${period.service_type.charAt(0).toUpperCase()}${period.service_type.slice(1)}`;
         const sheetName = `${monthShort} ${period.year} (${svcLabel})`.slice(0, 31);
-
         const rows: (string | number | undefined)[][] = [
           [`${['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][period.month - 1]} ${period.year} - ${svcLabel}`], [''],
           [`Skor Akhir: ${period.score.toFixed(2)}`], [`Non-Critical: ${period.ncScore.toFixed(2)}`], [`Critical: ${period.crScore.toFixed(2)}`],
@@ -364,23 +410,23 @@ export function useAgentDetail({
         ];
         period.temuan.forEach((item) => {
           const indicator = unwrapIndicator(item.qa_indicators);
-          rows.push([
-            item.no_tiket ?? '-',
-            indicator?.category === 'critical' ? 'Critical' : 'Non-Critical',
-            indicator?.name ?? '-',
-            item.nilai,
-            { 0: 'CRITICAL', 1: 'DEFICIT', 2: 'GOOD', 3: 'EXCELLENT' }[item.nilai] || '-',
-            item.ketidaksesuaian ?? '-',
-            item.sebaiknya ?? '-',
-          ]);
+          rows.push([item.no_tiket ?? '-', indicator?.category === 'critical' ? 'Critical' : 'Non-Critical', indicator?.name ?? '-', item.nilai, { 0: 'CRITICAL', 1: 'DEFICIT', 2: 'GOOD', 3: 'EXCELLENT' }[item.nilai] || '-', item.ketidaksesuaian ?? '-', item.sebaiknya ?? '-']);
         });
         const ws = XLSX.utils.aoa_to_sheet(rows);
         ws['!cols'] = [{ wch: 14 }, { wch: 14 }, { wch: 32 }, { wch: 8 }, { wch: 14 }, { wch: 30 }, { wch: 30 }];
         XLSX.utils.book_append_sheet(wb, ws, sheetName);
       });
-
       XLSX.writeFile(wb, `QA_${exportData.agent.nama.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`);
     } catch (err) { console.error('Gagal mengekspor data', err); } finally { setExporting(false); }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Hapus temuan ini?')) return;
+    setDeletingId(id);
+    try {
+      await deleteTemuanAction(id);
+      await refreshData();
+    } catch (err) { console.error('Gagal hapus:', err); } finally { setDeletingId(null); }
   };
 
   useEffect(() => {
@@ -409,8 +455,8 @@ export function useAgentDetail({
     const element = document.getElementById(sectionId);
     if (element && scrollContainerRef.current) {
       manualScrollRef.current = Date.now();
-      const key = sectionId.replace('section-', '');
-      if (key === 'summary' || key === 'trend' || key === 'temuan') setActiveSection(key);
+      const key = sectionId.replace('section-', '') as 'summary' | 'trend' | 'temuan';
+      setActiveSection(key);
       const top = element.offsetTop - 140;
       scrollContainerRef.current.scrollTo({ top, behavior: 'smooth' });
     }
@@ -420,9 +466,10 @@ export function useAgentDetail({
     loadingTemuan, loadingTrend, exporting,
     selectedServiceType, handleServiceChange,
     selectedYear, handleYearChange,
+    selectedMonth, setSelectedMonth,
     activeSection, trendMounted, temuanMounted, activeTrendFilter, setActiveTrendFilter, agent,
     scrollContainerRef, editingTemuan, editForm, setEditForm, isSubmitting, deletingId,
-    indicators: data.indicators, personalTrend, monthlySummaries, groupedFindingsByMonth, availableServiceTypes,
+    indicators: data.indicators, personalTrend, monthlySummaries, topTickets, groupedFindingsByMonth, availableServiceTypes,
     automatedCoaching, scrollToSection, startEdit, handleEditSave, handleDelete,
     handleExport,
     handleTambahTemuan: () => router.push(`/qa-analyzer/entry?agentId=${agentId}&name=${encodeURIComponent(agent.nama)}`),
