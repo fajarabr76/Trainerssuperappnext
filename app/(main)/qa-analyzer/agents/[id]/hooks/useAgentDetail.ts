@@ -141,7 +141,8 @@ export function useAgentDetail({
     }> = {};
 
     monthFindings.forEach(f => {
-      const ticketKey = f.no_tiket || `audit-${f.id}`;
+      const rawTicket = (f.no_tiket ?? '').trim();
+      const ticketKey = rawTicket ? rawTicket.toUpperCase() : `audit-${f.id}`;
       const indicator = unwrapIndicator(f.qa_indicators);
       const weight = Number(indicator?.bobot ?? 0);
       const nilai = Number.isFinite(f.nilai) ? Math.max(0, Math.min(3, Number(f.nilai))) : 3;

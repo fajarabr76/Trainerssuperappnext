@@ -87,11 +87,17 @@ export default function AgentTemuanTab({
     <div className={`space-y-4 transition-opacity duration-300 ${loadingTemuan ? 'opacity-50 pointer-events-none' : ''}`}>
       {groupedFindingsByMonth.map((group) => {
         const isOpen = openMonths.has(group.month);
-        const tickets: Record<string, QATemuan[]> = {};
+        const tickets: Record<string, { label: string; items: QATemuan[] }> = {};
         group.items.forEach(t => {
-          const key = t.no_tiket || `audit-${t.id}`;
-          if (!tickets[key]) tickets[key] = [];
-          tickets[key].push(t);
+          const rawTicket = (t.no_tiket ?? '').trim();
+          const key = rawTicket ? rawTicket.toUpperCase() : `audit-${t.id}`;
+          if (!tickets[key]) {
+            tickets[key] = {
+              label: rawTicket ? rawTicket.toUpperCase() : 'AUDIT INTERNAL',
+              items: []
+            };
+          }
+          tickets[key].items.push(t);
         });
 
         return (
@@ -107,7 +113,7 @@ export default function AgentTemuanTab({
                 </div>
                 <div className="text-left">
                   <h4 className="text-base font-black tracking-tight text-slate-900 dark:text-white uppercase">{group.label}</h4>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{group.items.length} Temuan • {Object.keys(tickets).length} Audit</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{group.items.length} Temuan • {Object.keys(tickets).length} Tiket</p>
                 </div>
               </div>
               {isOpen ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
@@ -115,20 +121,24 @@ export default function AgentTemuanTab({
 
             {isOpen && (
               <div className="divide-y divide-slate-100 dark:divide-slate-800 border-t border-slate-100 dark:border-slate-800">
-                {Object.entries(tickets).map(([noTiket, items]) => (
-                  <div key={noTiket} className="p-6 space-y-6 bg-white dark:bg-slate-900">
+                {Object.entries(tickets).map(([ticketKey, ticket], ticketIndex) => (
+                  <div key={ticketKey} className="p-6 space-y-6 bg-white dark:bg-slate-900">
                     <div className="flex items-center justify-between gap-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-3 border border-slate-100 dark:border-slate-800/50">
                       <div className="flex items-center gap-3">
+                        <div className="w-7 h-7 rounded-lg bg-slate-900 text-white text-[10px] font-black flex items-center justify-center">{ticketIndex + 1}</div>
                         <Ticket className="w-4 h-4 text-slate-400" />
-                        <span className="text-[11px] font-black font-mono text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                          {noTiket.startsWith('audit-') ? 'AUDIT INTERNAL' : noTiket}
-                        </span>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.18em]">No Tiket</span>
+                          <span className="text-[11px] font-black font-mono text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                            {ticket.label}
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em]">{items.length} PARAMETER</span>
+                      <span className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em]">{ticket.items.length} PARAMETER</span>
                     </div>
 
                     <div className="space-y-8 pl-2">
-                      {items.map((t) => {
+                      {ticket.items.map((t) => {
                         const indicator = unwrapIndicator(t.qa_indicators);
                         const isCritical = indicator?.category === 'critical';
                         

@@ -394,48 +394,66 @@ export default function QaAgentDetailClient({
                 ) : (
                   <div className="space-y-6">
                     {/* MONTH RAIL */}
-                    <div className="flex flex-wrap gap-2 p-2 bg-slate-100 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-inner overflow-hidden">
-                      {monthlySummaries.map((p) => (
-                        <button
-                          key={`${p.month}-${p.year}`}
-                          onClick={() => setSelectedMonth(p.month)}
-                          className={`flex-1 min-w-[100px] px-3 py-3 rounded-xl border transition-all relative overflow-hidden group ${
-                            selectedMonth === p.month
-                              ? 'bg-white dark:bg-slate-700 border-primary shadow-md ring-1 ring-primary/20 scale-[1.02] z-10'
-                              : 'bg-transparent border-transparent hover:bg-white/50 dark:hover:bg-slate-700/50'
-                          }`}
-                        >
-                          <div className={`text-[9px] font-black uppercase tracking-widest mb-1.5 ${
-                            selectedMonth === p.month ? 'text-primary' : 'text-slate-500'
-                          }`}>
-                            {monthsFull[p.month-1].slice(0, 3)}
-                          </div>
-                          <div className="flex items-baseline gap-0.5">
-                            <span className={`text-xl font-black tracking-tighter ${
-                              selectedMonth === p.month ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'
-                            }`}>{p.finalScore.toFixed(1)}</span>
-                            <span className="text-[10px] font-bold text-slate-400">%</span>
-                          </div>
-                          {p.finalScore < 95 && (
-                            <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)] animate-pulse" />
-                          )}
-                          <div className={`absolute bottom-0 left-0 right-0 h-1 ${scoreBg(p.finalScore)} opacity-80`} />
-                        </button>
-                      ))}
+                    <div className="overflow-x-auto no-scrollbar">
+                      <div className="flex min-w-max items-end gap-1.5 border-b border-slate-200 dark:border-slate-700 pb-1">
+                        {monthlySummaries.map((p) => (
+                          <button
+                            key={`${p.month}-${p.year}`}
+                            onClick={() => setSelectedMonth(p.month)}
+                            className={`group relative min-w-[112px] px-2.5 pt-2 pb-3 text-left transition-colors ${
+                              selectedMonth === p.month
+                                ? 'text-slate-900 dark:text-white'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                            }`}
+                          >
+                            <div className={`text-[10px] font-black uppercase tracking-[0.18em] mb-1 ${
+                              selectedMonth === p.month ? 'text-primary' : 'text-slate-500'
+                            }`}>
+                              {monthsFull[p.month-1].slice(0, 3)}
+                            </div>
+
+                            <div className="flex items-end gap-0.5 leading-none">
+                              <span className={`text-[2rem] font-black tracking-tight ${
+                                selectedMonth === p.month ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'
+                              }`}>
+                                {p.finalScore.toFixed(1)}
+                              </span>
+                              <span className="text-sm font-black text-slate-400 pb-0.5">%</span>
+                            </div>
+
+                            {p.finalScore < 95 && (
+                              <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-rose-500" />
+                            )}
+
+                            {selectedMonth === p.month && (
+                              <div className="absolute inset-0 -z-10 rounded-lg bg-slate-100/75 dark:bg-slate-800/70" />
+                            )}
+
+                            <div className="absolute bottom-0 left-2.5 right-2.5 h-[3px] rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${scoreBg(p.finalScore)} transition-opacity ${
+                                  selectedMonth === p.month ? 'opacity-100' : 'opacity-55 group-hover:opacity-80'
+                                }`}
+                                style={{ width: `${Math.max(20, Math.min(100, p.finalScore))}%` }}
+                              />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
                     {/* ACTIVE DETAIL PANEL */}
                     {activeSummary && (
-                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in slide-in-from-bottom-4 duration-500">
+                      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 xl:gap-6 items-start animate-in slide-in-from-bottom-4 duration-500">
                         {/* Main Score Display */}
-                        <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm flex flex-col justify-between relative overflow-hidden group min-h-[360px]">
-                          <div className="absolute top-0 right-0 p-8 text-primary opacity-5 group-hover:opacity-10 transition-opacity">
-                            <ShieldCheck className="w-48 h-48 -rotate-12 translate-x-12 -translate-y-12" />
+                        <div className="xl:col-span-4 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 lg:p-7 shadow-sm relative overflow-hidden group">
+                          <div className="absolute top-0 right-0 p-6 text-primary opacity-5 group-hover:opacity-10 transition-opacity">
+                            <ShieldCheck className="w-40 h-40 -rotate-12 translate-x-10 -translate-y-10" />
                           </div>
-                          
-                          <div className="relative z-10">
-                            <div className="flex items-center justify-between mb-8">
-                              <span className="px-4 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">
+
+                          <div className="relative z-10 space-y-6">
+                            <div className="flex flex-wrap items-center gap-2.5">
+                              <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">
                                 {monthsFull[activeSummary.month-1]} {activeSummary.year}
                               </span>
                               {activeSummary.finalScore < 95 ? (
@@ -449,47 +467,58 @@ export default function QaAgentDetailClient({
                                 </div>
                               )}
                             </div>
-                            
-                            <div className="space-y-1">
+
+                            <div className="space-y-3">
                               <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Final Audit Score</div>
-                              <div className="flex items-baseline gap-2">
-                                <span className={`text-7xl font-black tracking-tighter ${
+                              <div className="flex items-end gap-2">
+                                <span className={`text-6xl sm:text-7xl font-black tracking-tighter leading-none ${
                                   scoreColor(activeSummary.finalScore).includes('green') ? 'text-emerald-500' : 
                                   scoreColor(activeSummary.finalScore).includes('amber') ? 'text-amber-500' : 
                                   'text-rose-500'
                                 }`}>{activeSummary.finalScore.toFixed(1)}</span>
-                                <span className="text-2xl font-black text-slate-300">%</span>
+                                <span className="text-xl sm:text-2xl font-black text-slate-300 pb-1">%</span>
+                              </div>
+
+                              <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                <div
+                                  className={`h-full transition-all duration-500 ${
+                                    scoreColor(activeSummary.finalScore).includes('green')
+                                      ? 'bg-emerald-500'
+                                      : scoreColor(activeSummary.finalScore).includes('amber')
+                                        ? 'bg-amber-500'
+                                        : 'bg-rose-500'
+                                  }`}
+                                  style={{ width: `${Math.max(0, Math.min(100, activeSummary.finalScore))}%` }}
+                                />
                               </div>
                             </div>
-                          </div>
 
-                          <div className="relative z-10 pt-8 mt-8 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                                <Activity className="w-5 h-5" />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-4">
+                                <div className="flex items-center gap-2 text-primary mb-2">
+                                  <Activity className="w-4 h-4" />
+                                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Volume Audit</span>
+                                </div>
+                                <div className="text-xl font-black text-slate-900 dark:text-white leading-none">{activeSummary.sessionCount} Sesi</div>
                               </div>
-                              <div>
-                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Volume Audit</div>
-                                <div className="text-lg font-black text-slate-900 dark:text-white leading-none">{activeSummary.sessionCount} Sesi</div>
-                              </div>
-                            </div>
 
-                            {delta !== 0 && (
-                              <div className="text-right">
-                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">vs Audit Terakhir</div>
-                                <div className={`flex items-center justify-end gap-1 text-lg font-black leading-none ${delta > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                  {delta > 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-4">
+                                <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">vs Audit Terakhir</div>
+                                <div className={`flex items-center gap-1 text-xl font-black leading-none ${
+                                  delta > 0 ? 'text-emerald-500' : delta < 0 ? 'text-rose-500' : 'text-slate-500'
+                                }`}>
+                                  {delta > 0 ? <TrendingUp className="w-4 h-4" /> : delta < 0 ? <TrendingDown className="w-4 h-4" /> : null}
                                   {delta > 0 ? '+' : ''}{delta.toFixed(1)}%
                                 </div>
                               </div>
-                            )}
+                            </div>
                           </div>
                         </div>
 
                         {/* Operational Analysis: Top 5 Tickets & AI Insight */}
-                        <div className="lg:col-span-7 space-y-6">
+                        <div className="xl:col-span-8 space-y-5">
                           {/* TOP 5 TICKETS BY WEIGHT */}
-                          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm space-y-6">
+                          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 lg:p-7 shadow-sm space-y-5">
                             <div className="flex items-center justify-between">
                               <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                                 <Ticket className="w-4 h-4 text-primary" /> Top 5 Pengurang Skor Terbesar
@@ -497,25 +526,26 @@ export default function QaAgentDetailClient({
                               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{topTickets.length} Tiket Ditemukan</span>
                             </div>
 
-                            <div className="space-y-3">
+                            <div className="space-y-2.5">
                               {topTickets.map((ticket, idx) => (
-                                <div key={ticket.no_tiket} className="group/ticket flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 hover:border-primary/30 transition-all">
-                                  <div className="w-8 h-8 rounded-xl bg-white dark:bg-slate-700 flex items-center justify-center text-xs font-black text-slate-400 shadow-sm group-hover/ticket:text-primary transition-colors">
+                                <div key={ticket.no_tiket} className="group/ticket grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 hover:border-primary/30 hover:bg-white dark:hover:bg-slate-800 transition-all">
+                                  <div className="w-8 h-8 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center text-xs font-black text-slate-400 shadow-sm group-hover/ticket:text-primary transition-colors">
                                     0{idx + 1}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                     <div className="flex items-center gap-2 mb-0.5">
-                                       <span className="text-[11px] font-black font-mono text-slate-700 dark:text-slate-300 truncate uppercase">
-                                         {ticket.isSamplingQa ? 'Tiket Sampling QA' : ticket.no_tiket.startsWith('audit-') ? 'Audit Internal' : ticket.no_tiket}
-                                       </span>
-                                     </div>
-                                    <p className="text-[10px] font-medium text-slate-500 truncate italic">
+                                    <div className="flex items-center gap-2 mb-0.5">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.18em]">No Tiket</span>
+                                      <span className="text-[11px] font-black font-mono text-slate-700 dark:text-slate-300 truncate uppercase">
+                                        {ticket.isSamplingQa ? 'Tiket Sampling QA' : ticket.no_tiket.toLowerCase().startsWith('audit-') ? 'Audit Internal' : ticket.no_tiket}
+                                      </span>
+                                    </div>
+                                    <p className="text-[11px] font-medium text-slate-500 truncate italic">
                                       &quot;{ticket.heaviestParam}&quot;
                                     </p>
                                   </div>
-                                  <div className="text-right flex flex-col items-end gap-1">
+                                  <div className="text-right flex flex-col items-end gap-1 pt-0.5">
                                     <div className="flex items-center gap-1.5">
-                                      <span className="text-xs font-black text-slate-900 dark:text-white leading-none">-{ticket.scoreDeduction.toFixed(1)} poin</span>
+                                      <span className="text-xs font-black text-slate-900 dark:text-white leading-none whitespace-nowrap">-{ticket.scoreDeduction.toFixed(1)} poin</span>
                                       <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                                     </div>
                                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{ticket.findingCount} Temuan</span>
@@ -532,16 +562,16 @@ export default function QaAgentDetailClient({
 
                           {/* AI Insight */}
                           {automatedCoaching && (
-                            <div className="bg-slate-900 dark:bg-slate-800 text-white rounded-3xl p-8 relative overflow-hidden shadow-xl border border-slate-800 dark:border-slate-700">
+                            <div className="bg-slate-900 dark:bg-slate-800 text-white rounded-3xl p-6 lg:p-7 relative overflow-hidden shadow-lg border border-slate-800 dark:border-slate-700">
                               <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/10 rounded-full translate-x-12 -translate-y-12 blur-2xl pointer-events-none" />
                               
-                              <div className="flex flex-col sm:flex-row gap-8 relative z-10">
-                                <div className="sm:w-2/5 space-y-4">
+                              <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.38fr)_minmax(0,1fr)] gap-6 lg:gap-8 relative z-10">
+                                <div className="space-y-4">
                                   <div className="flex items-center gap-2">
                                     <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />
                                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400">Area Perbaikan</span>
                                   </div>
-                                  <h4 className="text-2xl font-black tracking-tight leading-tight uppercase">{automatedCoaching.parameter}</h4>
+                                  <h4 className="text-xl sm:text-2xl font-black tracking-tight leading-tight uppercase">{automatedCoaching.parameter}</h4>
                                   <div className="flex items-center gap-3">
                                     <div className={`text-[10px] font-black px-3 py-1 rounded-full ${automatedCoaching.isCritical ? 'bg-rose-500 text-white' : 'bg-blue-500 text-white'}`}>
                                       {automatedCoaching.isCritical ? 'CRITICAL' : 'OPPORTUNITY'}
@@ -549,9 +579,10 @@ export default function QaAgentDetailClient({
                                     <div className="text-sm font-black text-slate-400">{automatedCoaching.count} Sesi</div>
                                   </div>
                                 </div>
-                                <div className="flex-1 sm:border-l sm:border-slate-700 sm:pl-8 flex flex-col justify-center">
-                                  <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Rekomendasi Strategis</div>
-                                  <blockquote className="text-lg font-medium italic text-slate-200 leading-relaxed">
+
+                                <div className="lg:border-l lg:border-slate-700 lg:pl-8 flex flex-col justify-center">
+                                  <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2.5">Rekomendasi Strategis</div>
+                                  <blockquote className="text-sm sm:text-base font-medium italic text-slate-200 leading-relaxed max-h-56 overflow-y-auto pr-1">
                                     &quot;{automatedCoaching.recommendation}&quot;
                                   </blockquote>
                                 </div>
