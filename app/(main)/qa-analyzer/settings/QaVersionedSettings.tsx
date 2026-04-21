@@ -42,6 +42,25 @@ const CAT_COLOR: Record<Category, string> = {
   critical: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/20',
   none: 'bg-foreground/10 text-muted-foreground border-foreground/20',
 };
+const MONTH_NAMES = [
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember',
+];
+
+const formatPeriodLabel = (month: number, year: number) => {
+  const monthName = MONTH_NAMES[month - 1] ?? String(month);
+  return `${monthName} ${year}`;
+};
 
 interface QaVersionedSettingsProps {
   user: User;
@@ -293,7 +312,7 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
                         </div>
                         <p className="text-xs font-black text-foreground">
                           {v.status === 'published' && (v as any).qa_periods
-                            ? `Effective: ${(v as any).qa_periods.month}/${(v as any).qa_periods.year}`
+                            ? `Effective: ${formatPeriodLabel((v as any).qa_periods.month, (v as any).qa_periods.year)}`
                             : 'Rule Draft Version'}
                         </p>
                         <div className="flex items-center gap-2 mt-2 opacity-60 group-hover:opacity-100">
@@ -338,7 +357,7 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
                     <div>
                       <h2 className="text-lg font-black text-green-700 dark:text-green-400">Versi Aktif (Published)</h2>
                       <p className="text-sm text-green-600/80 font-medium leading-relaxed">
-                        Versi ini bersifat <strong>immutable</strong> dan digunakan untuk kalkulasi periode {(selectedVersion as any).qa_periods?.month}/{(selectedVersion as any).qa_periods?.year} dan seterusnya hingga ada versi baru.
+                        Versi ini bersifat <strong>immutable</strong> dan digunakan untuk kalkulasi periode {formatPeriodLabel((selectedVersion as any).qa_periods?.month, (selectedVersion as any).qa_periods?.year)} dan seterusnya hingga ada versi baru.
                       </p>
                     </div>
                   </div>
