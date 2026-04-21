@@ -28,6 +28,7 @@ export default async function DataReportPage() {
     .filter((f) => !EXCLUDED_FOLDERS.some((ef) => ef.toLowerCase() === f.name.toLowerCase()));
 
   const years = availableYears.length > 0 ? availableYears : [new Date().getFullYear()];
+  const currentMonth = new Date().getMonth() + 1;
 
   return (
     <DataReportClient
@@ -35,6 +36,7 @@ export default async function DataReportPage() {
       agents={agents}
       folders={folders}
       availableYears={years}
+      currentMonth={currentMonth}
       allIndicators={allIndicators}
     />
   );

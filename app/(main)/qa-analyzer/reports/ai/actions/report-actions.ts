@@ -338,13 +338,14 @@ export async function generateReportAction(
       const periodLabelSafe = periodLabel.replace(/\s+/g, '_').replace(/–/g, '-');
       downloadName = `Laporan_QA_Layanan_${svcLabelSafe}_${periodLabelSafe}.docx`;
     } else {
-      const { agent, temuan: temuanRaw } = await qaServiceServer.getAgentWithTemuan(
+      const { agent, temuan: rawTemuan } = await qaServiceServer.getAgentWithTemuan(
         input.pesertaId,
         input.year,
         undefined
       );
+      const temuanRaw = rawTemuan as QATemuan[];
 
-      const temuan = (temuanRaw as QATemuan[]).filter((t) => {
+      const temuan = temuanRaw.filter((t) => {
         const p = t.qa_periods as { month?: number; year?: number } | undefined;
         if (!p) return false;
         return (
@@ -369,24 +370,79 @@ export async function generateReportAction(
             ? trend.reduce((a, b) => a + b.score, 0) / trend.length
             : 100;
 
-      const currentParams = new Set(temuan.map(t => (t.qa_indicators as any)?.name));
-      const preRangeTemuan = (temuanRaw as QATemuan[]).filter((t) => {
+      const preRangeTemuan = temuanRaw.filter((t) => {
         const p = t.qa_periods as { month?: number; year?: number } | undefined;
         if (!p) return false;
         return p.year === input.year && p.month < input.startMonth;
       });
-      const preRangeParams = new Set(preRangeTemuan.map(t => (t.qa_indicators as any)?.name));
 
-      // Fetch indicators to build the full parameter map
-      // Use any service type found in temuan, or default to 'call'
-      const sampleSvc = (temuan[0]?.service_type as ServiceType) || 'call';
-      const indicators = await qaServiceServer.getIndicators(sampleSvc);
-      
+      const latestPeriodByService = new Map<ServiceType, { periodId?: string; year: number; month: number }>();
+      temuanRaw.forEach((finding) => {
+        const service = (finding.service_type || 'call') as ServiceType;
+        const period = finding.qa_periods as { month?: number; year?: number } | undefined;
+        if (!period?.year || !period?.month) return;
+        if (period.year !== input.year || period.month > input.endMonth) return;
+
+        const current = latestPeriodByService.get(service);
+        if (!current || period.month > current.month) {
+          latestPeriodByService.set(service, {
+            periodId: finding.period_id,
+            year: period.year,
+            month: period.month,
+          });
+        }
+      });
+
+      if (latestPeriodByService.size === 0) {
+        const fallbackService = (temuan[0]?.service_type as ServiceType) || 'call';
+        latestPeriodByService.set(fallbackService, {
+          periodId: temuan[0]?.period_id,
+          year: input.year,
+          month: input.endMonth,
+        });
+      }
+
+      const serviceIndicatorNameMap = new Map<ServiceType, Map<string, string>>();
+      const allParameterNames = new Set<string>();
+
+      await Promise.all([...latestPeriodByService.entries()].map(async ([service, latest]) => {
+        const indicators = await qaServiceServer.getIndicators(service, latest.periodId || '');
+        const nameMap = new Map<string, string>();
+
+        (indicators as Array<{ id: string; name: string; legacy_indicator_id?: string | null }>).forEach((indicator) => {
+          const name = (indicator.name || '').trim();
+          if (!name) return;
+          allParameterNames.add(name);
+          nameMap.set(indicator.id, name);
+          if (indicator.legacy_indicator_id) {
+            nameMap.set(indicator.legacy_indicator_id, name);
+          }
+        });
+
+        serviceIndicatorNameMap.set(service, nameMap);
+      }));
+
+      const resolveParameterName = (finding: QATemuan): string => {
+        const joined = (finding.qa_indicators as { name?: string } | undefined)?.name?.trim();
+        if (joined) return joined;
+
+        const service = (finding.service_type || 'call') as ServiceType;
+        const key = finding.rule_indicator_id || finding.indicator_id || '';
+        if (!key) return 'Unknown';
+
+        return serviceIndicatorNameMap.get(service)?.get(key) || 'Unknown';
+      };
+
+      const currentParams = new Set(temuan.map(resolveParameterName).filter((name) => name !== 'Unknown'));
+      const preRangeParams = new Set(preRangeTemuan.map(resolveParameterName).filter((name) => name !== 'Unknown'));
+      const parameterUniverse = allParameterNames.size > 0
+        ? [...allParameterNames].sort((a, b) => a.localeCompare(b))
+        : [...new Set([...currentParams, ...preRangeParams])].sort((a, b) => a.localeCompare(b));
+
       const paramMapRows: Array<{ parameter: string; status: 'dipertahankan' | 'baru' | 'regresi' | 'aktif' }> = [];
       let zeroParamCount = 0;
 
-      indicators.forEach(ind => {
-        const name = ind.name;
+      parameterUniverse.forEach((name) => {
         const isCurrentZero = !currentParams.has(name);
         const isPreZero = !preRangeParams.has(name);
 
@@ -410,7 +466,7 @@ export async function generateReportAction(
         .filter(r => r.status === 'regresi')
         .map(r => r.parameter);
       
-      const totalParamCount = indicators.length;
+      const totalParamCount = parameterUniverse.length;
 
       const tickets = new Set<string>();
       temuan.forEach((t, idx) => {
@@ -423,7 +479,7 @@ export async function generateReportAction(
         const periode = p ? `${MONTHS[(p.month ?? 1) - 1]} ${p.year}` : '—';
         return {
           no_tiket: t.no_tiket ?? null,
-          parameter: (t.qa_indicators as { name?: string } | undefined)?.name?.trim() || '—',
+          parameter: resolveParameterName(t) === 'Unknown' ? '—' : resolveParameterName(t),
           nilai: t.nilai,
           periode,
           ketidaksesuaian: t.ketidaksesuaian ?? null,
@@ -434,7 +490,7 @@ export async function generateReportAction(
       const periodLabel = `${MONTHS[input.startMonth - 1]}–${MONTHS[input.endMonth - 1]} ${input.year}`;
       const topParams: Record<string, number> = {};
       temuan.forEach((t) => {
-        const n = (t.qa_indicators as { name?: string } | undefined)?.name || 'Unknown';
+        const n = resolveParameterName(t);
         topParams[n] = (topParams[n] || 0) + 1;
       });
       const topStr = Object.entries(topParams)

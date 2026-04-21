@@ -55,6 +55,29 @@ async function hasPhantomPaddingSupport(
   return true;
 }
 
+function isMissingVersionedRuleColumnError(
+  error: { code?: string; message?: string } | null | undefined
+): boolean {
+  if (!error) return false;
+  const message = (error.message || '').toLowerCase();
+  return error.code === '42703'
+    || error.code === 'PGRST204'
+    || message.includes('rule_version_id')
+    || message.includes('rule_indicator_id')
+    || message.includes('schema cache');
+}
+
+async function assertQaActionAccess(allowedRoles: string[]) {
+  const { user, profile, role } = await getCurrentUserContext();
+  if (!user || !profile) {
+    throw new Error('Tidak terautentikasi');
+  }
+  if (!hasRole(role, allowedRoles)) {
+    throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
+  }
+  return { user, profile, role };
+}
+
 async function assertCanAccessAgentDetail(agentId: string) {
   const { user, profile, role } = await getCurrentUserContext();
   if (!user || !profile) {
@@ -338,18 +361,32 @@ export async function createTemuanBatchAction(
   }
 
   const { qaServiceServer } = await import('./services/qaService.server');
-  
-  const insertData = await Promise.all(temuanList.map(async t => {
-    // Resolve rule version for this period and service
-    const resolved = await qaServiceServer.resolveRuleVersion(period_id, t.service_type);
-    const rule_version_id = resolved?.version.id || null;
-    const rule_indicator_id = resolved?.indicators.find(i => i.legacy_indicator_id === t.indicator_id)?.id || null;
+  const resolvedRuleByService = new Map<ServiceType, Awaited<ReturnType<typeof qaServiceServer.resolveRuleVersion>>>();
+
+  const insertData = await Promise.all(temuanList.map(async (t) => {
+    if (!resolvedRuleByService.has(t.service_type)) {
+      const resolved = await qaServiceServer.resolveRuleVersion(period_id, t.service_type);
+      resolvedRuleByService.set(t.service_type, resolved);
+    }
+    const resolved = resolvedRuleByService.get(t.service_type) ?? null;
+    const matchedIndicator = resolved?.indicators.find((indicator) =>
+      indicator.id === t.indicator_id || indicator.legacy_indicator_id === t.indicator_id
+    ) ?? null;
+
+    if (resolved && !matchedIndicator) {
+      console.warn('[SIDAK][input] unresolved rule indicator mapping', {
+        peserta_id,
+        period_id,
+        service_type: t.service_type,
+        indicator_id: t.indicator_id,
+      });
+    }
 
     return {
       peserta_id,
       period_id,
-      rule_version_id,
-      rule_indicator_id,
+      rule_version_id: resolved?.version.id ?? null,
+      rule_indicator_id: matchedIndicator?.id ?? null,
       ...t
     };
   }));
@@ -362,6 +399,9 @@ export async function createTemuanBatchAction(
   if (error) {
     if (error.code === '23505' && error.message.includes('uq_qa_temuan_single_phantom_batch_per_period')) {
       throw new Error('Sesi tanpa temuan gagal dibuat karena constraint database lama. Jalankan migration fix index terbaru terlebih dahulu.');
+    }
+    if (isMissingVersionedRuleColumnError(error)) {
+      throw new Error('Skema SIDAK belum mendukung versioned QA rules. Jalankan migration database terbaru (kolom rule_version_id/rule_indicator_id) lalu coba lagi.');
     }
     throw error;
   }
@@ -452,11 +492,13 @@ export async function deleteTemuanAction(id: string) {
 }
 
 export async function getAgentsByFolderAction(batch: string) {
+  await assertQaActionAccess(['trainer', 'admin']);
   const { qaServiceServer } = await import('./services/qaService.server');
   return await qaServiceServer.getAgentsByFolder(batch);
 }
 
 export async function getFoldersAction() {
+  await assertQaActionAccess(['trainer', 'admin']);
   const { qaServiceServer } = await import('./services/qaService.server');
   return await qaServiceServer.getFolders();
 }
@@ -594,6 +636,7 @@ export async function getRankingAgenAction(
   folderIds?: string[],
   year?: number
 ): Promise<{ data: TopAgentData[]; error?: string }> {
+  await assertQaActionAccess(['trainer', 'leader', 'admin']);
   try {
     const { qaServiceServer } = await import('./services/qaService.server');
     const data = await qaServiceServer.getAllAgentsRanking(
@@ -611,6 +654,7 @@ export async function getRankingAgenAction(
 }
 
 export async function getAllServiceWeightsAction(): Promise<Record<ServiceType, ServiceWeight>> {
+  await assertQaActionAccess(['trainer', 'admin']);
   const { createClient } = await import('@/app/lib/supabase/server');
   const supabase = await createClient();
   const { data, error } = await supabase.from('qa_service_weights').select('*');
@@ -679,20 +723,19 @@ export async function updateServiceWeightAction(
 
 // ── Rule Versioning Actions ──────────────────────────────────
 export async function getRuleVersionsAction(serviceType: ServiceType) {
+  await assertQaActionAccess(['trainer', 'admin']);
   const { qaServiceServer } = await import('./services/qaService.server');
   return await qaServiceServer.getRuleVersions(serviceType);
 }
 
 export async function getIndicatorsByVersionAction(versionId: string) {
+  await assertQaActionAccess(['trainer', 'admin']);
   const { qaServiceServer } = await import('./services/qaService.server');
   return await qaServiceServer.getIndicatorsByVersion(versionId);
 }
 
 export async function createRuleDraftAction(serviceType: ServiceType, sourceVersionId?: string) {
-  const { createClient } = await import('@/app/lib/supabase/server');
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Tidak terautentikasi');
+  const { user } = await assertQaActionAccess(['trainer', 'admin']);
 
   const { qaServiceServer } = await import('./services/qaService.server');
   const draft = await qaServiceServer.createRuleDraft(serviceType, user.id, sourceVersionId);
@@ -701,10 +744,7 @@ export async function createRuleDraftAction(serviceType: ServiceType, sourceVers
 }
 
 export async function updateRuleDraftAction(versionId: string, patch: any) {
-  const { createClient } = await import('@/app/lib/supabase/server');
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Tidak terautentikasi');
+  await assertQaActionAccess(['trainer', 'admin']);
 
   const { qaServiceServer } = await import('./services/qaService.server');
   const updated = await qaServiceServer.updateRuleDraft(versionId, patch);
@@ -713,10 +753,7 @@ export async function updateRuleDraftAction(versionId: string, patch: any) {
 }
 
 export async function deleteRuleDraftAction(versionId: string) {
-  const { createClient } = await import('@/app/lib/supabase/server');
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Tidak terautentikasi');
+  await assertQaActionAccess(['trainer', 'admin']);
 
   const { qaServiceServer } = await import('./services/qaService.server');
   await qaServiceServer.deleteRuleDraft(versionId);
@@ -724,10 +761,7 @@ export async function deleteRuleDraftAction(versionId: string) {
 }
 
 export async function publishRuleVersionAction(versionId: string, effectivePeriodId: string) {
-  const { createClient } = await import('@/app/lib/supabase/server');
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Tidak terautentikasi');
+  const { user } = await assertQaActionAccess(['trainer', 'admin']);
 
   const { qaServiceServer } = await import('./services/qaService.server');
   const published = await qaServiceServer.publishRuleVersion(versionId, user.id, effectivePeriodId);
@@ -741,6 +775,7 @@ export async function publishRuleVersionAction(versionId: string, effectivePerio
 }
 
 export async function addDraftIndicatorAction(versionId: string, indicator: any) {
+  await assertQaActionAccess(['trainer', 'admin']);
   const { qaServiceServer } = await import('./services/qaService.server');
   const created = await qaServiceServer.addDraftIndicator(versionId, indicator);
   revalidatePath('/qa-analyzer/settings');
@@ -748,6 +783,7 @@ export async function addDraftIndicatorAction(versionId: string, indicator: any)
 }
 
 export async function updateDraftIndicatorAction(id: string, patch: any) {
+  await assertQaActionAccess(['trainer', 'admin']);
   const { qaServiceServer } = await import('./services/qaService.server');
   const updated = await qaServiceServer.updateDraftIndicator(id, patch);
   revalidatePath('/qa-analyzer/settings');
@@ -755,17 +791,20 @@ export async function updateDraftIndicatorAction(id: string, patch: any) {
 }
 
 export async function deleteDraftIndicatorAction(id: string) {
+  await assertQaActionAccess(['trainer', 'admin']);
   const { qaServiceServer } = await import('./services/qaService.server');
   await qaServiceServer.deleteDraftIndicator(id);
   revalidatePath('/qa-analyzer/settings');
 }
 
 export async function getResolvedIndicatorsAction(serviceType: ServiceType, periodId: string) {
+  await assertQaActionAccess(['trainer', 'admin']);
   const { qaServiceServer } = await import('./services/qaService.server');
   return await qaServiceServer.getIndicators(serviceType, periodId);
 }
 
 export async function getResolvedWeightsAction(serviceType: ServiceType, periodId: string) {
+  await assertQaActionAccess(['trainer', 'admin']);
   const { qaServiceServer } = await import('./services/qaService.server');
   return await qaServiceServer.getServiceWeights(serviceType, periodId);
 }

@@ -382,6 +382,13 @@ export default function QaInputClient({
   const [weights, _setWeights] = useState<Record<ServiceType, ServiceWeight>>(initialWeights ?? DEFAULT_SERVICE_WEIGHTS);
 
   const activeWeight = weights[selectedService];
+  const indicatorLookup = useMemo(() => {
+    const map = new Map<string, QAIndicator>();
+    indicators.forEach((indicator) => {
+      map.set(indicator.id, indicator);
+    });
+    return map;
+  }, [indicators]);
 
   const [showForm, setShowForm]   = useState(false);
   const [noTiket, setNoTiket]     = useState('');
@@ -664,7 +671,15 @@ export default function QaInputClient({
   };
 
   const liveScore = useMemo(() => indicators.length > 0
-    ? calculateQAScoreFromTemuan(indicators, temuan.map(t => ({ indicator_id: t.indicator_id, nilai: t.nilai, no_tiket: t.no_tiket })), activeWeight)
+    ? calculateQAScoreFromTemuan(
+      indicators,
+      temuan.map(t => ({
+        indicator_id: t.rule_indicator_id || t.indicator_id,
+        nilai: t.nilai,
+        no_tiket: t.no_tiket,
+      })),
+      activeWeight
+    )
     : null, [indicators, temuan, activeWeight]);
 
   const groupedTemuan = useMemo(() => {
@@ -976,7 +991,9 @@ export default function QaInputClient({
                       </div>
                       <div className="divide-y divide-border">
                         {group.items.map((t, _iIdx) => {
-                          const ind = unwrapIndicator(t.qa_indicators);
+                          const joinedIndicator = unwrapIndicator(t.qa_indicators);
+                          const fallbackIndicator = indicatorLookup.get(t.rule_indicator_id || t.indicator_id);
+                          const ind = joinedIndicator || fallbackIndicator;
                           const isCritical = ind?.category === 'critical';
                           const isEditing  = editingId === t.id;
                           return (

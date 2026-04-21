@@ -37,6 +37,7 @@ type Props = {
   agents: AgentOption[];
   folders: FolderOption[];
   availableYears: number[];
+  currentMonth: number;
   allIndicators: QAIndicator[];
 };
 
@@ -52,6 +53,7 @@ export default function DataReportClient({
   agents, 
   folders, 
   availableYears, 
+  currentMonth,
   allIndicators
 }: Props) {
   const [loading, setLoading] = useState(false);
@@ -66,7 +68,7 @@ export default function DataReportClient({
   const [year, setYear] = useState(() => availableYears[0] ?? new Date().getFullYear());
   const [periodMode, setPeriodMode] = useState<'single' | 'range'>('single');
   const [startMonth, setStartMonth] = useState(1);
-  const [endMonth, setEndMonth] = useState(() => new Date().getMonth() + 1);
+  const [endMonth, setEndMonth] = useState(() => currentMonth);
   const [mode, setMode] = useState<'layanan' | 'individu'>('layanan');
   const [pesertaId, setPesertaId] = useState('');
   const [folderId, setFolderId] = useState('ALL');

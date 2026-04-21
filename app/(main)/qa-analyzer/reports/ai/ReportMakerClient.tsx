@@ -38,16 +38,17 @@ type Props = {
   agents: AgentOption[];
   folders: FolderOption[];
   availableYears: number[];
+  currentMonth: number;
 };
 
-export default function ReportMakerClient({ role, models, agents, folders, availableYears }: Props) {
+export default function ReportMakerClient({ role, models, agents, folders, availableYears, currentMonth }: Props) {
   const router = useRouter();
   const [reportKind, setReportKind] = useState<'layanan' | 'individu'>('layanan');
   const [serviceType, setServiceType] = useState<ServiceType>('call');
   const [folderId, setFolderId] = useState<string>('ALL');
   const [year, setYear] = useState(() => availableYears[0] ?? new Date().getFullYear());
   const [startMonth, setStartMonth] = useState(1);
-  const [endMonth, setEndMonth] = useState(() => new Date().getMonth() + 1);
+  const [endMonth, setEndMonth] = useState(() => currentMonth);
   const [pesertaId, setPesertaId] = useState('');
   const [modelId, setModelId] = useState(models[0]?.id ?? '');
 

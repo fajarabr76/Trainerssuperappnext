@@ -115,8 +115,9 @@ export async function updateSession(request: NextRequest) {
         '/profiler',
         '/qa-analyzer/dashboard',
         '/qa-analyzer/ranking',
-        '/qa-analyzer/agents',
       ];
+      const isQaAgentsListRoute = path === '/qa-analyzer/agents' || path === '/qa-analyzer/agents/';
+      const isQaAgentDetailRoute = path.startsWith('/qa-analyzer/agents/');
 
       if (trainerOnlyRoutes.some((route) => path.startsWith(route))) {
         const allowed = ['trainer', 'admin'];
@@ -127,6 +128,20 @@ export async function updateSession(request: NextRequest) {
 
       if (trainerOrLeaderRoutes.some((route) => path.startsWith(route))) {
         const allowed = ['trainer', 'leader', 'admin'];
+        if (!allowed.includes(role)) {
+          return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
+      }
+
+      if (isQaAgentsListRoute) {
+        const allowed = ['trainer', 'leader', 'admin'];
+        if (!allowed.includes(role)) {
+          return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
+      }
+
+      if (isQaAgentDetailRoute) {
+        const allowed = ['trainer', 'leader', 'agent', 'admin'];
         if (!allowed.includes(role)) {
           return NextResponse.redirect(new URL('/dashboard', request.url));
         }

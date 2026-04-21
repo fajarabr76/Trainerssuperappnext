@@ -11,7 +11,7 @@ const ReportMakerClient = nextDynamic(() => import('./ReportMakerClient'), {
 
 function LoadingState() {
   return (
-    <div className="flex h-screen items-center justify-center bg-background">
+    <div className="flex min-h-[45vh] items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         <p className="text-sm font-medium text-muted-foreground">Memuat Report Maker...</p>
@@ -48,6 +48,7 @@ export default async function ReportMakerPage() {
 
   const years =
     availableYears.length > 0 ? availableYears : [new Date().getFullYear()];
+  const currentMonth = new Date().getMonth() + 1;
 
   return (
     <Suspense fallback={<LoadingState />}>
@@ -57,6 +58,7 @@ export default async function ReportMakerPage() {
         agents={agents}
         folders={folders}
         availableYears={years}
+        currentMonth={currentMonth}
       />
     </Suspense>
   );
