@@ -640,12 +640,46 @@ export const qaServiceServer = {
 
   async getAgentDirectorySummary(year: number = new Date().getFullYear()) {
     const startedAt = measureStart();
-    // Keep directory scores aligned with the detail page by using the same
-    // TypeScript scoring path, which already paginates qa_temuan fetches past
-    // the 1000-row PostgREST cap.
-    const accurate = await this.getAgentListWithScores(year);
-    logServerMetric('qa.agentDirectorySummary.accurate', startedAt, { year, count: accurate.length });
-    return accurate;
+    let cachedSummary: AgentDirectoryEntry[] | null = null;
+
+    try {
+      cachedSummary = await _cachedFetchAgentDirectorySummary(year);
+    } catch (error) {
+      console.warn('[QA] qa.agentDirectorySummary.rpc-cache-hit fetch failed', {
+        year,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    if (Array.isArray(cachedSummary) && cachedSummary.length > 0) {
+      logServerMetric('qa.agentDirectorySummary.rpc-cache-hit', startedAt, { year, count: cachedSummary.length });
+      return cachedSummary;
+    }
+
+    try {
+      // Keep directory scores aligned with the detail page by using the same
+      // TypeScript scoring path, which already paginates qa_temuan fetches past
+      // the 1000-row PostgREST cap.
+      const accurate = await this.getAgentListWithScores(year);
+      if (!Array.isArray(accurate)) {
+        throw new Error('Invalid agent directory summary payload');
+      }
+      logServerMetric('qa.agentDirectorySummary.accurate-fallback', startedAt, { year, count: accurate.length });
+      return accurate;
+    } catch (error) {
+      console.error('[QA] qa.agentDirectorySummary.directory-failed', {
+        year,
+        cachedCount: Array.isArray(cachedSummary) ? cachedSummary.length : null,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      if (Array.isArray(cachedSummary)) {
+        return cachedSummary;
+      }
+
+      if (error instanceof Error) throw error;
+      throw new Error('Failed to load agent directory summary');
+    }
   },
 
   async getAgentListWithScores(year: number = new Date().getFullYear()) {
@@ -729,57 +763,76 @@ export const qaServiceServer = {
       const agentTemuan = temuanByAgent.get(agentId) || [];
       if (agentTemuan.length === 0) continue;
 
-      const pSvcMap = new Map<string, QATemuan[]>();
-      agentTemuan.forEach(t => {
-        const activeService = (t.service_type || TIM_TO_DEFAULT_SERVICE[agentObj.tim] || 'call').toLowerCase();
-        const period = t.qa_periods as QAPeriod;
-        const psk = periodServiceKey(period.month, period.year, activeService);
-        if (!pSvcMap.has(psk)) pSvcMap.set(psk, []);
-        pSvcMap.get(psk)!.push(t);
-      });
+      try {
+        const pSvcMap = new Map<string, QATemuan[]>();
+        agentTemuan.forEach(t => {
+          const activeService = (t.service_type || TIM_TO_DEFAULT_SERVICE[agentObj.tim] || 'call').toLowerCase();
+          const period = t.qa_periods as QAPeriod;
+          const psk = periodServiceKey(period.month, period.year, activeService);
+          if (!pSvcMap.has(psk)) pSvcMap.set(psk, []);
+          pSvcMap.get(psk)!.push(t);
+        });
 
-      const sortedPsk = [...pSvcMap.keys()].sort((a, b) => b.localeCompare(a));
-      const latestPsk = sortedPsk[0];
-      
-      const latestTemuan = pSvcMap.get(latestPsk)!;
-      const activeService = (latestTemuan[0]?.service_type || TIM_TO_DEFAULT_SERVICE[agentObj.tim] || 'call').toLowerCase();
-      
-      // Resolve versioned rules
-      const latestTeamInds = (await this.getIndicators(activeService, latestTemuan[0].period_id)) as QAIndicator[];
-      const latestWeights = await this.getServiceWeights(activeService, latestTemuan[0].period_id);
-      const latestWeight = latestWeights[activeService as ServiceType] || serviceWeights[activeService as ServiceType] || DEFAULT_SERVICE_WEIGHTS[activeService as ServiceType];
+        const sortedPsk = [...pSvcMap.keys()].sort((a, b) => b.localeCompare(a));
+        const latestPsk = sortedPsk[0];
+        if (!latestPsk) continue;
 
-      // Latest Score
-      const latestScore = calculateQAScoreFromTemuan(
-        latestTeamInds,
-        latestTemuan.map(t => ({ indicator_id: t.indicator_id!, nilai: t.nilai!, no_tiket: t.no_tiket, created_at: t.created_at, ketidaksesuaian: t.ketidaksesuaian, sebaiknya: t.sebaiknya })),
-        latestWeight
-      );
+        const latestTemuan = pSvcMap.get(latestPsk);
+        if (!latestTemuan || latestTemuan.length === 0) continue;
 
-      agentObj.avgScore = latestScore.finalScore;
-      agentObj.atRisk = latestScore.finalScore < 95;
+        const activeService = (latestTemuan[0]?.service_type || TIM_TO_DEFAULT_SERVICE[agentObj.tim] || 'call').toLowerCase();
 
-      let prevPsk = sortedPsk.find((key, idx) => idx > 0 && key.endsWith(activeService));
-      if (!prevPsk && sortedPsk.length > 1) {
-        prevPsk = sortedPsk[1]; 
-      }
+        // Resolve versioned rules
+        const latestTeamInds = (await this.getIndicators(activeService, latestTemuan[0].period_id)) as QAIndicator[];
+        const latestWeights = await this.getServiceWeights(activeService, latestTemuan[0].period_id);
+        const latestWeight = latestWeights[activeService as ServiceType] || serviceWeights[activeService as ServiceType] || DEFAULT_SERVICE_WEIGHTS[activeService as ServiceType];
 
-      if (prevPsk) {
-        const prevTemuan = pSvcMap.get(prevPsk)!;
-        const prevActiveService = (prevTemuan[0]?.service_type || activeService).toLowerCase();
-        
-        const prevTeamInds = (await this.getIndicators(prevActiveService, prevTemuan[0].period_id)) as QAIndicator[];
-        const prevWeights = await this.getServiceWeights(prevActiveService, prevTemuan[0].period_id);
-        const prevWeight = prevWeights[prevActiveService as ServiceType] || serviceWeights[prevActiveService as ServiceType] || DEFAULT_SERVICE_WEIGHTS[prevActiveService as ServiceType];
-        
-        const prevScore = calculateQAScoreFromTemuan(
-          prevTeamInds,
-          prevTemuan.map(t => ({ indicator_id: t.indicator_id!, nilai: t.nilai!, no_tiket: t.no_tiket, created_at: t.created_at, ketidaksesuaian: t.ketidaksesuaian, sebaiknya: t.sebaiknya })),
-          prevWeight
+        // Latest Score
+        const latestScore = calculateQAScoreFromTemuan(
+          latestTeamInds,
+          latestTemuan.map(t => ({ indicator_id: t.indicator_id!, nilai: t.nilai!, no_tiket: t.no_tiket, created_at: t.created_at, ketidaksesuaian: t.ketidaksesuaian, sebaiknya: t.sebaiknya })),
+          latestWeight
         );
-        
-        agentObj.trendValue = latestScore.finalScore - prevScore.finalScore;
-        agentObj.trend = agentObj.trendValue > 0 ? 'up' : agentObj.trendValue < 0 ? 'down' : 'same';
+
+        agentObj.avgScore = latestScore.finalScore;
+        agentObj.atRisk = latestScore.finalScore < 95;
+
+        let prevPsk = sortedPsk.find((key, idx) => idx > 0 && key.endsWith(activeService));
+        if (!prevPsk && sortedPsk.length > 1) {
+          prevPsk = sortedPsk[1];
+        }
+
+        if (prevPsk) {
+          const prevTemuan = pSvcMap.get(prevPsk);
+          if (!prevTemuan || prevTemuan.length === 0) continue;
+
+          const prevActiveService = (prevTemuan[0]?.service_type || activeService).toLowerCase();
+
+          const prevTeamInds = (await this.getIndicators(prevActiveService, prevTemuan[0].period_id)) as QAIndicator[];
+          const prevWeights = await this.getServiceWeights(prevActiveService, prevTemuan[0].period_id);
+          const prevWeight = prevWeights[prevActiveService as ServiceType] || serviceWeights[prevActiveService as ServiceType] || DEFAULT_SERVICE_WEIGHTS[prevActiveService as ServiceType];
+
+          const prevScore = calculateQAScoreFromTemuan(
+            prevTeamInds,
+            prevTemuan.map(t => ({ indicator_id: t.indicator_id!, nilai: t.nilai!, no_tiket: t.no_tiket, created_at: t.created_at, ketidaksesuaian: t.ketidaksesuaian, sebaiknya: t.sebaiknya })),
+            prevWeight
+          );
+
+          agentObj.trendValue = latestScore.finalScore - prevScore.finalScore;
+          agentObj.trend = agentObj.trendValue > 0 ? 'up' : agentObj.trendValue < 0 ? 'down' : 'same';
+        }
+      } catch (error) {
+        const sample = agentTemuan[0];
+        agentObj.avgScore = null;
+        agentObj.trend = 'none';
+        agentObj.trendValue = null;
+        agentObj.atRisk = false;
+        console.warn('[QA] Failed to score agent directory entry', {
+          agentId,
+          period_id: sample?.period_id ?? null,
+          service_type: sample?.service_type ?? null,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
 

@@ -1,4 +1,3 @@
-import { createClient } from '@/app/lib/supabase/server';
 import AgentDirectoryClient from './components/AgentDirectoryClient';
 import { qaServiceServer } from '../services/qaService.server';
 import { EXCLUDED_FOLDERS } from '../lib/qa-types';
@@ -11,19 +10,13 @@ export default async function AgentDirectoryPage() {
     allowedRoles: ['trainer', 'leader', 'admin']
   });
 
-  let agents;
-  let folderData;
-  try {
-    const supabase = await createClient();
-    [agents, folderData] = await Promise.all([
-      qaServiceServer.getAgentDirectorySummary(),
-      supabase.from('profiler_folders').select('name').order('created_at', { ascending: true })
-    ]);
-  } catch (error) {
-    console.error('Error loading agent directory server data:', error);
-  }
+  const [agentsResult, foldersResult] = await Promise.allSettled([
+    qaServiceServer.getAgentDirectorySummary(),
+    qaServiceServer.getFolders()
+  ]);
 
-  if (!agents || !folderData) {
+  if (agentsResult.status === 'rejected') {
+    console.error('Error loading agent directory server data:', agentsResult.reason);
     return (
       <div className="p-8 text-center text-red-500">
         Terjadi kendala saat memproses data agen. Silakan coba lagi.
@@ -31,15 +24,19 @@ export default async function AgentDirectoryPage() {
     );
   }
 
-  const batchList = (folderData.data ?? [])
-    .map(f => f.name)
+  if (foldersResult.status === 'rejected') {
+    console.warn('Error loading QA folder options:', foldersResult.reason);
+  }
+
+  const batchSource = foldersResult.status === 'fulfilled' ? foldersResult.value : [];
+  const batchList = batchSource
     .filter(name => !EXCLUDED_FOLDERS.includes(name.toLowerCase().trim()));
 
   return (
     <AgentDirectoryClient
       user={user}
       role={role}
-      initialAgents={agents}
+      initialAgents={agentsResult.value}
       initialBatches={batchList}
     />
   );
