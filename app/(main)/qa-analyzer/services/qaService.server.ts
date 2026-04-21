@@ -748,18 +748,18 @@ const cachedFetchAgentPeriodSummaries = unstable_cache(
 export const qaServiceServer = {
   // ── Rule Versioning ──────────────────────────────────────────
   async resolveRuleVersion(periodId: string, serviceType: ServiceType): Promise<ResolvedQARule | null> {
-    const supabase = await createClient();
-    const serviceSupabase = getServiceSupabase() || supabase;
+    const serviceSupabase = getServiceSupabase();
+    const queryClient = serviceSupabase ?? await createClient();
 
     // 1. Get the target period year and month
-    const { data: targetPeriod } = await serviceSupabase
+    const { data: targetPeriod } = await queryClient
       .from('qa_periods')
       .select('year, month')
       .eq('id', periodId)
       .single();
     
     // 2. Find the latest published version where effective_period (year, month) <= targetPeriod (year, month)
-    let query = serviceSupabase
+    let query = queryClient
       .from('qa_service_rule_versions')
       .select('*, qa_periods!inner(year, month)')
       .eq('service_type', serviceType)
@@ -782,7 +782,7 @@ export const qaServiceServer = {
     }
 
     // 3. Fetch indicators for this version
-    const { data: indicators, error: iErr } = await serviceSupabase
+    const { data: indicators, error: iErr } = await queryClient
       .from('qa_service_rule_indicators')
       .select('*')
       .eq('rule_version_id', version.id)
