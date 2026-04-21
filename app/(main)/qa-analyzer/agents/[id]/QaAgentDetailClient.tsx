@@ -67,10 +67,6 @@ export default function QaAgentDetailClient({
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    setAvatarLoadFailed(false);
-  }, [agent.foto_url]);
-  
   const {
     // State
     loadingTemuan,
@@ -132,6 +128,10 @@ export default function QaAgentDetailClient({
     initialAgent,
     initialData
   });
+
+  useEffect(() => {
+    setAvatarLoadFailed(false);
+  }, [agent.foto_url]);
 
   const monthsFull = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
   const isStaff = ['trainer', 'leader', 'admin'].includes(role);
