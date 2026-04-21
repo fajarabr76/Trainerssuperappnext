@@ -121,7 +121,7 @@ const cachedFetchIndicators = unstable_cache(
 
     return (data ?? []) as QAIndicator[];
   },
-  ['qa_indicators_global'], // Base key
+  ['qa_indicators'],
   { revalidate: 3600, tags: ['indicators'] }
 );
 
@@ -139,7 +139,7 @@ const cachedFetchPeriods = unstable_cache(
       label: `${MONTHS[p.month - 1]} ${p.year}`
     }));
   },
-  ['qa_periods_global'],
+  ['qa_periods'],
   { revalidate: 3600, tags: ['periods'] }
 );
 
@@ -188,7 +188,7 @@ const cachedFetchServiceWeights = unstable_cache(
 
     return mergedWeights;
   },
-  ['qa_service_weights_global'],
+  ['qa_service_weights'],
   { revalidate: 3600, tags: ['indicators'] } // Using indicators tag for easy revalidation
 );
 
@@ -563,7 +563,7 @@ const cachedFetchDashboardRangeData = unstable_cache(
       topAgents: TopAgentData[];
     } | null;
   },
-  ['qa_dashboard_range_data'],
+  ['qa_dashboard_range_data_rpc'],
   { revalidate: 300, tags: [QA_DASHBOARD_RANGE_TAG] }
 );
 
@@ -591,7 +591,7 @@ const cachedFetchDashboardRangeTrend = unstable_cache(
       paramTrend: { labels: string[]; datasets: Array<{ label: string; data: number[]; isTotal: boolean }> };
     } | null;
   },
-  ['qa_dashboard_range_trend_data'],
+  ['qa_dashboard_range_trend_data_rpc'],
   { revalidate: 300, tags: [QA_DASHBOARD_RANGE_TAG] }
 );
 
