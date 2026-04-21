@@ -440,6 +440,31 @@ const cachedFetchAgentPeriodSummaries = unstable_cache(
 );
 
 export const qaServiceServer = {
+  // ── Years per Agent ──────────────────────────────────────────
+  async getAgentAvailableYears(agentId: string): Promise<number[]> {
+    const supabase = await createClient();
+    const serviceClient = getServiceSupabase() || supabase;
+    const hasPhantomSupport = await hasPhantomPaddingSupport(serviceClient);
+
+    let query = serviceClient
+      .from('qa_temuan')
+      .select('tahun')
+      .eq('peserta_id', agentId);
+
+    if (hasPhantomSupport) {
+      query = query.eq('is_phantom_padding', false);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      console.error('Error in getAgentAvailableYears:', error);
+      return [];
+    }
+
+    const years = Array.from(new Set((data || []).map(d => Number(d.tahun)))).sort((a, b) => b - a);
+    return years;
+  },
+
   // ── Years (REVERTED TO DIRECT FETCH DUE TO RLS) ──────────────
   async getAvailableYears(): Promise<number[]> {
     try {
@@ -519,6 +544,37 @@ export const qaServiceServer = {
     const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
     return data ?? [];
+  },
+
+  async getAgentTemuanRange(agentId: string, year: number, startMonth: number, endMonth: number, serviceType: string) {
+    const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
+
+    const { data: periods } = await supabase
+      .from('qa_periods')
+      .select('id')
+      .eq('year', year)
+      .gte('month', startMonth)
+      .lte('month', endMonth);
+    
+    if (!periods || periods.length === 0) return [];
+    const pIds = periods.map(p => p.id);
+
+    let query = supabase
+      .from('qa_temuan')
+      .select('*, qa_periods!inner(*), qa_indicators!inner(*)')
+      .eq('peserta_id', agentId)
+      .eq('service_type', serviceType)
+      .in('period_id', pIds)
+      .order('created_at', { ascending: false });
+
+    if (hasPhantomSupport) {
+      query = query.eq('is_phantom_padding', false);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data as QATemuan[];
   },
 
   // ── Agents ────────────────────────────────────────────────────

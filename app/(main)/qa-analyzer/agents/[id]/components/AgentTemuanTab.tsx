@@ -1,205 +1,207 @@
 'use client';
 
-import { BarChart2, ShieldCheck, Edit2, Trash2, Loader2, ChevronRight, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { 
+  BarChart2, ShieldCheck, Edit2, Trash2, Loader2, 
+  AlertCircle, ChevronDown, ChevronUp, Ticket
+} from 'lucide-react';
 import type { QATemuan } from '../../../lib/qa-types';
 import { unwrapIndicator } from '../../../lib/qa-types';
+import { motion, AnimatePresence } from 'motion/react';
+
+interface MonthlyGroup {
+  month: number;
+  year: number;
+  label: string;
+  items: QATemuan[];
+}
 
 interface AgentTemuanTabProps {
-  groupedTemuan: { urutan: number; no_tiket: string | null; items: QATemuan[] }[];
-  selectedPeriod: { month: number; year: number; label: string; serviceType: string; id?: string } | null;
+  groupedFindingsByMonth: MonthlyGroup[];
   role: string;
   loadingTemuan: boolean;
-  currentPage: number;
-  hasMore: boolean;
   deletingId: string | null;
   onStartEdit: (t: QATemuan) => void;
   onDelete: (id: string) => void;
-  onPageChange: (page: number) => void;
+  contextKey: string; // Add this to control reset behavior
 }
 
 function NilaiBadge({ nilai }: { nilai: number }) {
-  const variants: Record<0 | 1 | 2 | 3, { bg: string; text: string; shadow: string; label: string }> = {
-    3: { bg: 'bg-emerald-500', text: 'text-emerald-500', shadow: 'shadow-emerald-500/40', label: 'SESUAI' },
-    2: { bg: 'bg-blue-500',    text: 'text-blue-500',    shadow: 'shadow-blue-500/40',    label: 'PERBAIKAN' },
-    1: { bg: 'bg-amber-500',   text: 'text-amber-500',   shadow: 'shadow-amber-500/40',   label: 'TIDAK SESUAI' },
-    0: { bg: 'bg-rose-500',    text: 'text-rose-500',    shadow: 'shadow-rose-500/40',    label: 'KRITIS' }
+  const variants: Record<0 | 1 | 2 | 3, { bg: string; text: string; label: string }> = {
+    3: { bg: 'bg-emerald-500', text: 'text-emerald-500', label: 'SESUAI' },
+    2: { bg: 'bg-blue-500',    text: 'text-blue-500',    label: 'PERBAIKAN' },
+    1: { bg: 'bg-amber-500',   text: 'text-amber-500',   label: 'TIDAK SESUAI' },
+    0: { bg: 'bg-rose-500',    text: 'text-rose-500',    label: 'KRITIS' }
   };
   const v = variants[nilai as 0 | 1 | 2 | 3] ?? variants[0];
   
   return (
-    <div className="flex flex-col items-center gap-1.5 shrink-0 group/badge">
-      <div className={`w-12 h-12 rounded-2xl ${v.bg} ${v.shadow} flex items-center justify-center text-white text-xl font-black shadow-xl transition-transform duration-500 group-hover/badge:scale-110 group-hover/badge:-rotate-6`}>
+    <div className="flex flex-col items-center gap-1 shrink-0">
+      <div className={`w-10 h-10 rounded-xl ${v.bg} flex items-center justify-center text-white text-lg font-black shadow-sm`}>
         {nilai}
       </div>
-      <span className={`text-[8px] font-black tracking-[0.2em] ${v.text} opacity-60`}>
-        {v.label}
-      </span>
+      <span className={`text-[7px] font-black tracking-widest ${v.text}`}>{v.label}</span>
     </div>
   );
 }
 
 export default function AgentTemuanTab({
-  groupedTemuan,
-  selectedPeriod,
+  groupedFindingsByMonth,
   role,
   loadingTemuan,
-  currentPage,
-  hasMore,
   deletingId,
   onStartEdit,
   onDelete,
-  onPageChange
+  contextKey
 }: AgentTemuanTabProps) {
-  return (
-    <div className={`relative bg-card/50 backdrop-blur-sm rounded-[2rem] border border-border/50 overflow-hidden shadow-sm transition-opacity duration-300 ${loadingTemuan ? 'opacity-60 pointer-events-none' : ''}`}>
-      {loadingTemuan && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/20">
-          <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin shadow-2xl" />
-        </div>
-      )}
+  const [openMonths, setOpenMonths] = useState<Set<number>>(new Set());
 
-      <div className="px-5 py-6 sm:px-8 sm:py-7 border-b border-border/50 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-foreground/[0.01]">
-        <div>
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-muted-foreground mb-2">
-            <BarChart2 className="w-3.5 h-3.5" /> Detail Temuan
-          </div>
-          <h3 className="text-2xl sm:text-3xl font-black tracking-tight">Temuan audit per tiket</h3>
+  const lastGroupRef = useRef(groupedFindingsByMonth);
+  useEffect(() => {
+    lastGroupRef.current = groupedFindingsByMonth;
+  }, [groupedFindingsByMonth]);
+
+  // Reset accordion ONLY when context (Year or Service) changes
+  useEffect(() => {
+    if (lastGroupRef.current.length > 0) {
+      setOpenMonths(new Set([lastGroupRef.current[0].month]));
+    } else {
+      setOpenMonths(new Set());
+    }
+  }, [contextKey]); // Preserve position on data refresh, reset on context switch
+
+  const toggleMonth = (month: number) => {
+    const next = new Set(openMonths);
+    if (next.has(month)) next.delete(month);
+    else next.add(month);
+    setOpenMonths(next);
+  };
+
+  if (groupedFindingsByMonth.length === 0) {
+    return (
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-16 text-center shadow-sm">
+        <div className="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center mx-auto mb-5 text-slate-300">
+          <Ticket className="w-8 h-8" />
         </div>
-        {selectedPeriod && (
-          <div className="px-4 py-2 bg-background/50 border border-border/50 rounded-xl text-[10px] font-black uppercase tracking-widest text-muted-foreground shadow-inner">
-            Periode aktif: <span className="text-foreground font-black ml-1 uppercase">{selectedPeriod.label}</span>
-          </div>
-        )}
+        <h4 className="text-lg font-black text-slate-400 uppercase tracking-tight">Tidak ada data audit</h4>
+        <p className="text-sm text-slate-500 mt-2">Belum ditemukan data temuan untuk konteks layanan atau tahun yang dipilih.</p>
       </div>
+    );
+  }
 
-      <div className="divide-y divide-border/50">
-        {groupedTemuan.length === 0 ? (
-          <div className="px-6 py-16 sm:px-10 sm:py-20 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-foreground/5 flex items-center justify-center mx-auto mb-5">
-              <ShieldCheck className="w-10 h-10 text-foreground/10" />
-            </div>
-            <h4 className="text-lg sm:text-xl font-black text-muted-foreground tracking-tight">Belum ada temuan pada periode ini</h4>
-            <p className="text-xs text-muted-foreground mt-2 font-medium">Kualitas layanan pada periode ini terpantau aman.</p>
-          </div>
-        ) : (
-          groupedTemuan.map((group) => (
-            <div key={group.no_tiket || `audit-${group.urutan}`} className="group/audit overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4 sm:px-8 sm:py-5 bg-foreground/[0.03] border-b border-border/10 group-hover/audit:bg-foreground/[0.05] transition-colors relative">
-                <div className="flex items-center gap-5">
-                  <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center text-sm font-black shadow-lg shadow-primary/30">
-                    {group.urutan}
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground leading-none mb-1.5">Referensi / No. Tiket</span>
-                    <span className="text-sm font-black font-mono tracking-tight text-foreground/70">{group.no_tiket || 'Audit internal (tanpa tiket)'}</span>
-                  </div>
+  return (
+    <div className={`space-y-4 transition-opacity duration-300 ${loadingTemuan ? 'opacity-50 pointer-events-none' : ''}`}>
+      {groupedFindingsByMonth.map((group) => {
+        const isOpen = openMonths.has(group.month);
+        const tickets: Record<string, QATemuan[]> = {};
+        group.items.forEach(t => {
+          const key = t.no_tiket || `audit-${t.id}`;
+          if (!tickets[key]) tickets[key] = [];
+          tickets[key].push(t);
+        });
+
+        return (
+          <div key={group.month} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
+            <button 
+              onClick={() => toggleMonth(group.month)}
+              className="w-full px-6 py-5 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-primary shadow-sm">
+                  <BarChart2 className="w-5 h-5" />
                 </div>
-                <div className="px-5 py-2 rounded-2xl bg-background/80 border border-border/50 text-[10px] font-black uppercase tracking-widest text-muted-foreground shadow-sm flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary/40" />
-                  {group.items.length} Parameter Dinilai
+                <div className="text-left">
+                  <h4 className="text-base font-black tracking-tight text-slate-900 dark:text-white uppercase">{group.label}</h4>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{group.items.length} Temuan • {Object.keys(tickets).length} Audit</p>
                 </div>
               </div>
+              {isOpen ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
+            </button>
 
-              <div className="divide-y divide-border/20 bg-card/10">
-                {group.items.map((t: QATemuan) => {
-                  const indicator = unwrapIndicator(t.qa_indicators);
-                  const isCritical = indicator?.category === 'critical';
-                  const isDeficit = t.nilai < 3;
-                  const hasRekomendasi = !!t.sebaiknya && t.sebaiknya.trim().length > 0;
-                  
-                  return (
-                    <div key={t.id} className="px-5 py-6 sm:px-8 sm:py-8 flex flex-col md:flex-row items-start gap-6 sm:gap-8 hover:bg-foreground/[0.01] transition-all duration-300 group/item">
-                      <NilaiBadge nilai={t.nilai} />
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-6 mb-5">
-                          <div>
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${isCritical ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20' : 'bg-blue-500/10 text-blue-500 border border-blue-500/20'}`}>
-                                {isCritical ? 'Critical' : 'Non-Critical'}
-                              </div>
-                              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-                                Nama Parameter
-                              </span>
-                            </div>
-                            <h4 className="text-lg sm:text-xl font-black tracking-tight text-foreground leading-tight">{indicator?.name}</h4>
+            <AnimatePresence>
+              {isOpen && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800 border-t border-slate-100 dark:border-slate-800">
+                    {Object.entries(tickets).map(([noTiket, items]) => (
+                      <div key={noTiket} className="p-6 space-y-6 bg-white dark:bg-slate-900">
+                        <div className="flex items-center justify-between gap-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-3 border border-slate-100 dark:border-slate-800/50">
+                          <div className="flex items-center gap-3">
+                            <Ticket className="w-4 h-4 text-slate-400" />
+                            <span className="text-[11px] font-black font-mono text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                              {noTiket.startsWith('audit-') ? 'AUDIT INTERNAL' : noTiket}
+                            </span>
                           </div>
-                          
-                          {role !== 'leader' && (
-                            <div className="flex gap-2 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                              <button 
-                                onClick={() => onStartEdit(t)} 
-                                className="w-10 h-10 bg-blue-500/5 hover:bg-blue-500 hover:text-white border border-blue-500/20 rounded-xl text-blue-500 flex items-center justify-center transition-all duration-300 shadow-sm"
-                                title="Edit Temuan"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              <button 
-                                onClick={() => onDelete(t.id)} 
-                                disabled={deletingId === t.id}
-                                className="w-10 h-10 bg-rose-500/5 hover:bg-rose-500 hover:text-white border border-rose-500/20 rounded-xl text-rose-500 flex items-center justify-center transition-all duration-300 shadow-sm disabled:opacity-50"
-                                title="Hapus Temuan"
-                              >
-                                {deletingId === t.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                              </button>
-                            </div>
-                          )}
+                          <span className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em]">{items.length} PARAMETER</span>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                          <div className={`space-y-3 p-5 rounded-2xl bg-foreground/[0.02] border border-border/30 transition-all duration-500 ${isDeficit ? 'hover:border-amber-500/30' : 'hover:border-foreground/20'}`}>
-                            <div className="flex items-center gap-2 mb-1">
-                              <AlertCircle className="w-3 h-3 text-muted-foreground" />
-                              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">Ketidaksesuaian</p>
-                            </div>
-                            <p className="text-sm text-foreground/70 leading-relaxed font-medium">
-                              {t.ketidaksesuaian || 'Belum ada catatan ketidaksesuaian untuk parameter ini.'}
-                            </p>
-                          </div>
-                          <div className={`space-y-3 p-5 rounded-2xl transition-all duration-500 ${hasRekomendasi ? 'bg-primary/5 border border-primary/20 hover:border-primary/40' : 'bg-foreground/[0.01] border border-border/20 blur-[0.5px] grayscale opacity-50'}`}>
-                            <div className="flex items-center gap-2 mb-1">
-                              <ShieldCheck className="w-3 h-3 text-primary/40" />
-                              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Rekomendasi Perbaikan</p>
-                            </div>
-                            <p className="text-sm text-foreground/80 leading-relaxed font-bold italic">
-                              {t.sebaiknya || 'Pertahankan standar layanan saat ini secara konsisten.'}
-                            </p>
-                          </div>
+                        <div className="space-y-8 pl-2">
+                          {items.map((t) => {
+                            const indicator = unwrapIndicator(t.qa_indicators);
+                            const isCritical = indicator?.category === 'critical';
+                            
+                            return (
+                              <div key={t.id} className="flex gap-6 items-start relative group/item">
+                                <NilaiBadge nilai={t.nilai} />
+                                <div className="flex-1 min-w-0 space-y-4">
+                                  <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${isCritical ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20' : 'bg-blue-500/10 text-blue-500 border border-blue-500/20'}`}>
+                                          {indicator?.category}
+                                        </span>
+                                      </div>
+                                      <h5 className="text-base font-black text-slate-900 dark:text-white leading-snug">{indicator?.name}</h5>
+                                    </div>
+                                    
+                                    {role !== 'leader' && (
+                                      <div className="flex gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                                        <button onClick={() => onStartEdit(t)} className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-500 rounded-lg transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
+                                        <button onClick={() => onDelete(t.id)} disabled={deletingId === t.id} className="p-2 hover:bg-rose-50 dark:hover:bg-rose-900/30 text-rose-500 rounded-lg transition-colors">
+                                          {deletingId === t.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800/50">
+                                      <div className="flex items-center gap-1.5 mb-2 text-slate-500">
+                                        <AlertCircle className="w-3 h-3" />
+                                        <span className="text-[9px] font-bold uppercase tracking-widest">Ketidaksesuaian</span>
+                                      </div>
+                                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                                        {t.ketidaksesuaian || '—'}
+                                      </p>
+                                    </div>
+                                    <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
+                                      <div className="flex items-center gap-1.5 mb-2 text-primary">
+                                        <ShieldCheck className="w-3 h-3" />
+                                        <span className="text-[9px] font-bold uppercase tracking-widest">Rekomendasi</span>
+                                      </div>
+                                      <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-bold italic">
+                                        {t.sebaiknya || '—'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      <div className="px-5 py-6 sm:px-8 sm:py-7 bg-card/60 backdrop-blur-xl border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex flex-col">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mb-1">Riwayat Temuan</p>
-          <div className="flex items-center gap-3">
-            <span className="text-2xl font-black tabular-nums">{groupedTemuan.reduce((acc, g) => acc + g.items.length, 0)}</span>
-            <div className="h-4 w-[1px] bg-border/50" />
-            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{hasMore ? 'Muat data bertahap aktif' : 'Semua data sudah dimuat'}</span>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => onPageChange(currentPage + 1)}
-            disabled={!hasMore || loadingTemuan}
-            className="h-12 px-8 flex items-center gap-2 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 disabled:opacity-30 disabled:scale-100 transition-all font-black"
-          >
-            {loadingTemuan ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <>Muat Temuan Berikutnya <ChevronRight className="w-4 h-4" /></>
-            )}
-          </button>
-        </div>
-      </div>
+        );
+      })}
     </div>
   );
 }

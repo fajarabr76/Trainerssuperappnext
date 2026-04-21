@@ -3,6 +3,12 @@ export type ServiceType = 'call' | 'chat' | 'email' | 'cso' | 'pencatatan' | 'bk
 export type Category = 'critical' | 'non_critical' | 'none';
 export type ScoringMode = 'weighted' | 'flat' | 'no_category';
 
+export const VALID_SERVICE_TYPES: ServiceType[] = ['call', 'chat', 'email', 'cso', 'pencatatan', 'bko', 'slik'];
+
+export function isServiceType(value: string | null | undefined): value is ServiceType {
+  return typeof value === 'string' && VALID_SERVICE_TYPES.includes(value as ServiceType);
+}
+
 export interface ServiceWeight {
   service_type: ServiceType;
   critical_weight: number;
@@ -216,6 +222,9 @@ export interface AgentDetailData {
   availableYears?: number[];
   scoreHistory?: ScoreResult[];
   weights?: Record<ServiceType, ServiceWeight>;
+  initialYear: number;
+  initialService: ServiceType;
+  initialTrendRange: { start: number; end: number };
 }
 
 export interface AgentPeriodSummary {

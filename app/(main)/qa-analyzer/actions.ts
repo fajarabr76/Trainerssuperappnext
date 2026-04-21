@@ -76,7 +76,7 @@ export async function getLastAuditedMonthAction(agentId: string, year: number, s
 
   if (!periods || periods.length === 0) return null;
 
-  const pIds = periods.map((p: any) => p.id);
+  const pIds = periods.map((period: { id: string }) => period.id);
   const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
   
   let query = supabase
@@ -92,8 +92,8 @@ export async function getLastAuditedMonthAction(agentId: string, year: number, s
   
   if (!temuan || temuan.length === 0) return null;
 
-  const activePeriodIds = new Set(temuan.map((t: any) => t.period_id));
-  const latestPeriod = periods.find((p: any) => activePeriodIds.has(p.id));
+  const activePeriodIds = new Set(temuan.map((item: { period_id: string }) => item.period_id));
+  const latestPeriod = periods.find((period: { id: string; month: number }) => activePeriodIds.has(period.id));
   
   return latestPeriod ? latestPeriod.month : null;
 }
@@ -415,6 +415,11 @@ export async function getAgentsByFolderAction(batch: string) {
   return await qaServiceServer.getAgentsByFolder(batch);
 }
 
+export async function getFoldersAction() {
+  const { qaServiceServer } = await import('./services/qaService.server');
+  return await qaServiceServer.getFolders();
+}
+
 export async function createPerfectScoreSessionAction(
   peserta_id: string,
   period_id: string,
@@ -507,6 +512,11 @@ export async function createPerfectScoreSessionAction(
 export async function getAgentPeriodsAction(agentId: string, year: number) {
   const { qaServiceServer } = await import('./services/qaService.server');
   return await qaServiceServer.getAgentPeriodSummaries(agentId, year);
+}
+
+export async function getAgentTemuanRangeAction(agentId: string, year: number, startMonth: number, endMonth: number, serviceType: string) {
+  const { qaServiceServer } = await import('./services/qaService.server');
+  return await qaServiceServer.getAgentTemuanRange(agentId, year, startMonth, endMonth, serviceType);
 }
 
 export async function getAgentTemuanPageAction(
