@@ -3,6 +3,9 @@
 Checklist ini dipakai setelah migration:
 - `20260421000000_versioned_qa_rules.sql`
 - `20260421000001_add_service_type_to_rule_indicators.sql`
+- `20260421090000_fix_qa_scoring_and_dashboard.sql`
+- `20260421103000_fix_qa_score_agent_uuid_session_grouping.sql`
+- `20260421105000_fix_qa_dashboard_range_category_alias.sql`
 
 ## A. Pre-check Database
 - [ ] Pastikan tabel baru ada: `qa_service_rule_versions`, `qa_service_rule_indicators`.
@@ -45,3 +48,10 @@ Checklist ini dipakai setelah migration:
 - [ ] Tulis hasil uji: PASS/FAIL per poin.
 - [ ] Catat bug yang ditemukan + langkah reproduksi.
 - [ ] Approve untuk deploy jika seluruh poin kritikal PASS.
+
+## H. Anti-regression (Skor/Kepatuhan 100%)
+- [ ] Verifikasi fetch indikator SIDAK memanggil cache dengan argumen `service_type` + `period_id` (hindari pola key global statis tanpa argumen).
+- [ ] Verifikasi `qa_score_agent` masih memetakan indikator dengan `COALESCE(rule_indicator_id, indicator_id)` agar kompatibel untuk data versioned + legacy.
+- [ ] Verifikasi kalkulasi agent dan dashboard memfilter `is_phantom_padding = false` untuk metrik audit nyata (jumlah agent, average defect, compliance, avg score).
+- [ ] Verifikasi `get_qa_dashboard_range_data` dan `get_qa_dashboard_range_trend_data` masih sinkron ke `qa_service_rule_indicators` (dengan fallback legacy saat diperlukan).
+- [ ] Jalankan smoke query cepat di SQL Editor: ambil 1 service + 1 rentang periode dan pastikan metrik tidak terkunci di 100% saat data temuan nyata (`nilai < 3`) tersedia.

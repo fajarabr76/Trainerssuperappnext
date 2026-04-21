@@ -62,3 +62,4 @@ Platform analytics kualitas untuk memantau performa agent secara mendalam.
   - **Input Temuan**: Form input terstandarisasi untuk trainer memasukkan hasil audit.
   - **Periode & Parameter**: Pengaturan periode penilaian dan bobot indikator penilaian.
 - **Catatan Teknis**: Flow narasi/laporan berbasis AI memanfaatkan server action terpusat agar handling provider dan validasi output tetap konsisten.
+- **Catatan Stabilitas SIDAK**: Untuk mencegah regresi skor/kepatuhan 100% akibat mismatch cache dan rule versioning, ikuti guardrails di `docs/SIDAK_SCORING_GUARDRAILS.md` sebelum merge dan sebelum deploy.

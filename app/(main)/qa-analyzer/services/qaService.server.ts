@@ -91,35 +91,39 @@ async function hasPhantomPaddingSupport(
 
 // ── Cached Fetchers (Pure logic, no cookies() inside) ──────────
 
+async function fetchIndicatorsUncached(service_type?: string, period_id?: string): Promise<QAIndicator[] | QARuleIndicatorSnapshot[]> {
+  const serviceSupabase = getServiceSupabase();
+  if (!serviceSupabase) return [];
+
+  if (period_id && service_type) {
+    const resolved = await qaServiceServer.resolveRuleVersion(period_id, service_type as ServiceType);
+    if (resolved) return resolved.indicators;
+  }
+
+  let query = serviceSupabase
+    .from('qa_indicators')
+    .select('id, service_type, name, category, bobot, has_na, threshold, created_at');
+
+  if (service_type) {
+    query = query.eq('service_type', service_type);
+  }
+
+  const { data, error } = await query
+    .order('category')
+    .order('bobot', { ascending: false })
+    .order('name');
+
+  if (error) {
+    console.warn('[Cache] qa indicators fallback error:', error.message);
+    return [];
+  }
+
+  return (data ?? []) as QAIndicator[];
+}
+
 const cachedFetchIndicators = unstable_cache(
   async (service_type?: string, period_id?: string): Promise<QAIndicator[] | QARuleIndicatorSnapshot[]> => {
-    const serviceSupabase = getServiceSupabase();
-    if (!serviceSupabase) return [];
-
-    if (period_id && service_type) {
-      const resolved = await qaServiceServer.resolveRuleVersion(period_id, service_type as ServiceType);
-      if (resolved) return resolved.indicators;
-    }
-
-    let query = serviceSupabase
-      .from('qa_indicators')
-      .select('id, service_type, name, category, bobot, has_na, threshold, created_at');
-
-    if (service_type) {
-      query = query.eq('service_type', service_type);
-    }
-
-    const { data, error } = await query
-      .order('category')
-      .order('bobot', { ascending: false })
-      .order('name');
-
-    if (error) {
-      console.warn('[Cache] qa indicators fallback error:', error.message);
-      return [];
-    }
-
-    return (data ?? []) as QAIndicator[];
+    return fetchIndicatorsUncached(service_type, period_id);
   },
   ['qa_indicators'],
   { revalidate: 3600, tags: ['indicators'] }
@@ -143,50 +147,54 @@ const cachedFetchPeriods = unstable_cache(
   { revalidate: 3600, tags: ['periods'] }
 );
 
+async function fetchServiceWeightsUncached(service_type?: string, period_id?: string): Promise<Record<ServiceType, ServiceWeight>> {
+  const serviceSupabase = getServiceSupabase();
+  if (!serviceSupabase) return DEFAULT_SERVICE_WEIGHTS;
+
+  if (period_id && service_type) {
+    const resolved = await qaServiceServer.resolveRuleVersion(period_id, service_type as ServiceType);
+    if (resolved) {
+      return {
+        [service_type as ServiceType]: {
+          service_type: resolved.version.service_type,
+          critical_weight: Number(resolved.version.critical_weight),
+          non_critical_weight: Number(resolved.version.non_critical_weight),
+          scoring_mode: resolved.version.scoring_mode,
+        }
+      } as Record<ServiceType, ServiceWeight>;
+    }
+  }
+
+  let query = serviceSupabase
+    .from('qa_service_weights')
+    .select('service_type, critical_weight, non_critical_weight, scoring_mode');
+
+  if (service_type) {
+    query = query.eq('service_type', service_type);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.warn('[Cache] qa service weights fallback error:', error.message);
+    return DEFAULT_SERVICE_WEIGHTS;
+  }
+
+  const mergedWeights = { ...DEFAULT_SERVICE_WEIGHTS };
+  (data ?? []).forEach((row) => {
+    mergedWeights[row.service_type as ServiceType] = {
+      service_type: row.service_type as ServiceType,
+      critical_weight: Number(row.critical_weight),
+      non_critical_weight: Number(row.non_critical_weight),
+      scoring_mode: row.scoring_mode as ScoringMode,
+    };
+  });
+
+  return mergedWeights;
+}
+
 const cachedFetchServiceWeights = unstable_cache(
   async (service_type?: string, period_id?: string): Promise<Record<ServiceType, ServiceWeight>> => {
-    const serviceSupabase = getServiceSupabase();
-    if (!serviceSupabase) return DEFAULT_SERVICE_WEIGHTS;
-
-    if (period_id && service_type) {
-      const resolved = await qaServiceServer.resolveRuleVersion(period_id, service_type as ServiceType);
-      if (resolved) {
-        return {
-          [service_type as ServiceType]: {
-            service_type: resolved.version.service_type,
-            critical_weight: Number(resolved.version.critical_weight),
-            non_critical_weight: Number(resolved.version.non_critical_weight),
-            scoring_mode: resolved.version.scoring_mode,
-          }
-        } as Record<ServiceType, ServiceWeight>;
-      }
-    }
-
-    let query = serviceSupabase
-      .from('qa_service_weights')
-      .select('service_type, critical_weight, non_critical_weight, scoring_mode');
-
-    if (service_type) {
-      query = query.eq('service_type', service_type);
-    }
-
-    const { data, error } = await query;
-    if (error) {
-      console.warn('[Cache] qa service weights fallback error:', error.message);
-      return DEFAULT_SERVICE_WEIGHTS;
-    }
-
-    const mergedWeights = { ...DEFAULT_SERVICE_WEIGHTS };
-    (data ?? []).forEach((row) => {
-      mergedWeights[row.service_type as ServiceType] = {
-        service_type: row.service_type as ServiceType,
-        critical_weight: Number(row.critical_weight),
-        non_critical_weight: Number(row.non_critical_weight),
-        scoring_mode: row.scoring_mode as ScoringMode,
-      };
-    });
-
-    return mergedWeights;
+    return fetchServiceWeightsUncached(service_type, period_id);
   },
   ['qa_service_weights'],
   { revalidate: 3600, tags: ['indicators'] } // Using indicators tag for easy revalidation
@@ -217,6 +225,10 @@ type CountableFindingLike = {
   sebaiknya?: string | null;
 };
 
+type PhantomFindingLike = {
+  is_phantom_padding?: boolean | null;
+};
+
 function hasMeaningfulNote(value: string | null | undefined) {
   return typeof value === 'string' && value.trim().length > 0;
 }
@@ -232,6 +244,10 @@ function filterCountableFindings<T extends CountableFindingLike>(items: T[]): T[
 
 function countCountableFindings<T extends CountableFindingLike>(items: T[]): number {
   return filterCountableFindings(items).length;
+}
+
+function filterRealAuditRows<T extends PhantomFindingLike>(items: T[]): T[] {
+  return items.filter((item): item is T => item.is_phantom_padding !== true);
 }
 
 function normalizeAgentDirectoryEntry(raw: Record<string, unknown>): AgentDirectoryEntry {
@@ -686,10 +702,12 @@ const cachedFetchAgentPeriodSummaries = unstable_cache(
       qa_periods: unwrapPeriod(item.qa_periods) as QAPeriod,
     }));
 
-    const periodsMap = new Map<string, AgentPeriodSummary>();
-    const grouped = new Map<string, typeof temuan>();
+    const temuanForScoring = filterRealAuditRows(temuan);
 
-    temuan.forEach((item) => {
+    const periodsMap = new Map<string, AgentPeriodSummary>();
+    const grouped = new Map<string, typeof temuanForScoring>();
+
+    temuanForScoring.forEach((item) => {
       if (!item.qa_periods) return;
       const serviceType = item.service_type;
       const key = `${item.period_id}:${serviceType}`;
@@ -728,7 +746,7 @@ const cachedFetchAgentPeriodSummaries = unstable_cache(
         nonCriticalScore: score.nonCriticalScore,
         criticalScore: score.criticalScore,
         sessionCount: score.sessionCount,
-        findingsCount: countCountableFindings(items.filter((item) => !item.is_phantom_padding)),
+        findingsCount: countCountableFindings(items),
       });
       return periodsMap.get(key) ?? null;
     }));
@@ -738,7 +756,7 @@ const cachedFetchAgentPeriodSummaries = unstable_cache(
       .sort((a, b) => {
       if (a.year !== b.year) return b.year - a.year;
       if (a.month !== b.month) return b.month - a.month;
-      return a.serviceType.localeCompare(b.serviceType);
+      return b.serviceType.localeCompare(a.serviceType);
     });
   },
   ['qa_agent_period_summaries'],
@@ -751,37 +769,50 @@ export const qaServiceServer = {
     const serviceSupabase = getServiceSupabase();
     const queryClient = serviceSupabase ?? await createClient();
 
-    // 1. Get the target period year and month
     const { data: targetPeriod } = await queryClient
       .from('qa_periods')
       .select('year, month')
       .eq('id', periodId)
       .single();
-    
-    // 2. Find the latest published version where effective_period (year, month) <= targetPeriod (year, month)
-    let query = queryClient
+
+    const { data: versionRows, error: vErr } = await queryClient
       .from('qa_service_rule_versions')
       .select('*, qa_periods!inner(year, month)')
       .eq('service_type', serviceType)
-      .eq('status', 'published');
+      .eq('status', 'published')
+      .order('published_at', { ascending: false });
 
-    if (targetPeriod) {
-      query = query
-        .or(`qa_periods.year.lt.${targetPeriod.year},and(qa_periods.year.eq.${targetPeriod.year},qa_periods.month.lte.${targetPeriod.month})`)
-        .order('year', { foreignTable: 'qa_periods', ascending: false })
-        .order('month', { foreignTable: 'qa_periods', ascending: false });
-    }
-
-    const { data: version, error: vErr } = await query
-      .order('published_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (vErr || !version) {
+    if (vErr || !versionRows || versionRows.length === 0) {
       return null;
     }
 
-    // 3. Fetch indicators for this version
+    const eligibleVersions = versionRows.filter((row) => {
+      const effectivePeriod = unwrapPeriod((row as { qa_periods?: QAPeriod | QAPeriod[] | null }).qa_periods);
+      if (!effectivePeriod) return false;
+      if (!targetPeriod) return true;
+      if (effectivePeriod.year < targetPeriod.year) return true;
+      return effectivePeriod.year === targetPeriod.year && effectivePeriod.month <= targetPeriod.month;
+    });
+
+    if (eligibleVersions.length === 0) {
+      return null;
+    }
+
+    const version = eligibleVersions.sort((a, b) => {
+      const periodA = unwrapPeriod((a as { qa_periods?: QAPeriod | QAPeriod[] | null }).qa_periods);
+      const periodB = unwrapPeriod((b as { qa_periods?: QAPeriod | QAPeriod[] | null }).qa_periods);
+
+      const yearA = Number(periodA?.year ?? 0);
+      const yearB = Number(periodB?.year ?? 0);
+      if (yearA !== yearB) return yearB - yearA;
+
+      const monthA = Number(periodA?.month ?? 0);
+      const monthB = Number(periodB?.month ?? 0);
+      if (monthA !== monthB) return monthB - monthA;
+
+      return new Date(b.published_at ?? b.created_at).getTime() - new Date(a.published_at ?? a.created_at).getTime();
+    })[0];
+
     const { data: indicators, error: iErr } = await queryClient
       .from('qa_service_rule_indicators')
       .select('*')
@@ -834,7 +865,10 @@ export const qaServiceServer = {
   },
 
   async getIndicators(service_type?: string, period_id?: string): Promise<QAIndicator[] | QARuleIndicatorSnapshot[]> {
-    // Rely on service-role cache (bypasses RLS)
+    if (process.env.NODE_ENV !== 'production') {
+      return await fetchIndicatorsUncached(service_type, period_id);
+    }
+
     const cached = await cachedFetchIndicators(service_type, period_id);
     if (cached && cached.length > 0) return cached;
 
@@ -873,6 +907,10 @@ export const qaServiceServer = {
   },
 
   async getServiceWeights(service_type?: string, period_id?: string): Promise<Record<ServiceType, ServiceWeight>> {
+    if (process.env.NODE_ENV !== 'production') {
+      return await fetchServiceWeightsUncached(service_type, period_id);
+    }
+
     return await cachedFetchServiceWeights(service_type, period_id);
   },
 
@@ -881,8 +919,9 @@ export const qaServiceServer = {
     peserta_id: string, period_id: string
   ): Promise<QATemuan[]> {
     const supabase = await createClient();
-    const supportsPhantom = await hasPhantomPaddingSupport(supabase);
-    let query = supabase
+    const queryClient = getServiceSupabase() || supabase;
+    const supportsPhantom = await hasPhantomPaddingSupport(queryClient);
+    let query = queryClient
       .from('qa_temuan')
       .select('*, qa_indicators:qa_service_rule_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
       .eq('peserta_id', peserta_id)
@@ -897,9 +936,10 @@ export const qaServiceServer = {
 
   async getAgentTemuanRange(agentId: string, year: number, startMonth: number, endMonth: number, serviceType: string) {
     const supabase = await createClient();
-    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
+    const queryClient = getServiceSupabase() || supabase;
+    const hasPhantomSupport = await hasPhantomPaddingSupport(queryClient);
 
-    const { data: periods } = await supabase
+    const { data: periods } = await queryClient
       .from('qa_periods')
       .select('id')
       .eq('year', year)
@@ -909,9 +949,9 @@ export const qaServiceServer = {
     if (!periods || periods.length === 0) return [];
     const pIds = periods.map(p => p.id);
 
-    let query = supabase
+    let query = queryClient
       .from('qa_temuan')
-      .select('*, qa_periods!inner(*), qa_indicators!inner(*)')
+      .select('*, qa_periods!inner(*), qa_indicators:qa_service_rule_indicators(id, name, category, bobot, has_na, service_type, threshold)')
       .eq('peserta_id', agentId)
       .eq('service_type', serviceType)
       .in('period_id', pIds)
@@ -1017,7 +1057,7 @@ export const qaServiceServer = {
     while (!finished) {
       const { data, error } = await serviceClient
         .from('qa_temuan')
-        .select('peserta_id, indicator_id, nilai, no_tiket, service_type, ketidaksesuaian, sebaiknya, period_id, created_at')
+        .select('peserta_id, indicator_id, rule_indicator_id, nilai, no_tiket, service_type, ketidaksesuaian, sebaiknya, period_id, created_at, is_phantom_padding')
         .eq('tahun', year)
         .range(from, from + step - 1);
 
@@ -1035,7 +1075,7 @@ export const qaServiceServer = {
     }
 
     // 3c. Enrich temuan with period data (safe — no dependency on PostgREST join)
-    const allTemuan = allTemuanData.map(t => ({
+    const allTemuan = filterRealAuditRows(allTemuanData).map(t => ({
       ...t,
       qa_periods: periodsMap.get(t.period_id || '') ?? null,
     }));
@@ -1139,23 +1179,26 @@ export const qaServiceServer = {
 
   async getAgentPeriodSummaries(agentId: string, year: number = new Date().getFullYear()) {
     const startedAt = measureStart();
-    const cached = await cachedFetchAgentPeriodSummaries(agentId, year);
-    if (cached) {
-      logServerMetric('qa.agentPeriodSummaries.cache', startedAt, { agentId, year, periods: cached.length });
-      return { periods: cached };
+    if (process.env.NODE_ENV === 'production') {
+      const cached = await cachedFetchAgentPeriodSummaries(agentId, year);
+      if (cached) {
+        logServerMetric('qa.agentPeriodSummaries.cache', startedAt, { agentId, year, periods: cached.length });
+        return { periods: cached };
+      }
     }
 
     const supabase = await createClient();
+    const queryClient = getServiceSupabase() || supabase;
     const loadScoringContext = createScoringContextLoader();
-    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
+    const hasPhantomSupport = await hasPhantomPaddingSupport(queryClient);
     const temuanPromise = hasPhantomSupport
-      ? supabase
+      ? queryClient
           .from('qa_temuan')
           .select('indicator_id, rule_indicator_id, nilai, ketidaksesuaian, sebaiknya, no_tiket, service_type, created_at, period_id, is_phantom_padding, qa_periods(month, year)')
           .eq('peserta_id', agentId)
           .eq('tahun', year)
           .order('created_at', { ascending: false })
-      : supabase
+      : queryClient
           .from('qa_temuan')
           .select('indicator_id, rule_indicator_id, nilai, ketidaksesuaian, sebaiknya, no_tiket, service_type, created_at, period_id, qa_periods(month, year)')
           .eq('peserta_id', agentId)
@@ -1182,8 +1225,10 @@ export const qaServiceServer = {
       qa_periods: unwrapPeriod(item.qa_periods) as QAPeriod,
     }));
 
-    const grouped = new Map<string, typeof temuan>();
-    temuan.forEach((item) => {
+    const temuanForScoring = filterRealAuditRows(temuan);
+
+    const grouped = new Map<string, typeof temuanForScoring>();
+    temuanForScoring.forEach((item) => {
       if (!item.qa_periods) return;
       const key = `${item.period_id}:${item.service_type}`;
       if (!grouped.has(key)) grouped.set(key, []);
@@ -1221,7 +1266,7 @@ export const qaServiceServer = {
         nonCriticalScore: score.nonCriticalScore,
         criticalScore: score.criticalScore,
         sessionCount: score.sessionCount,
-        findingsCount: countCountableFindings(items.filter((item) => !item.is_phantom_padding)),
+        findingsCount: countCountableFindings(items),
       };
     }));
 
@@ -1230,7 +1275,7 @@ export const qaServiceServer = {
       .sort((a, b) => {
         if (a.year !== b.year) return b.year - a.year;
         if (a.month !== b.month) return b.month - a.month;
-        return a.serviceType.localeCompare(b.serviceType);
+        return b.serviceType.localeCompare(a.serviceType);
       });
 
     logServerMetric('qa.agentPeriodSummaries.fallback', startedAt, { agentId, year, periods: periods.length });
@@ -1246,11 +1291,12 @@ export const qaServiceServer = {
     pageSize: number = 50
   ) {
     const supabase = await createClient();
-    const supportsPhantom = await hasPhantomPaddingSupport(supabase);
+    const queryClient = getServiceSupabase() || supabase;
+    const supportsPhantom = await hasPhantomPaddingSupport(queryClient);
     const from = Math.max(page, 0) * pageSize;
     const to = from + pageSize;
 
-    let query = supabase
+    let query = queryClient
       .from('qa_temuan')
       .select('*, qa_indicators:qa_service_rule_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)', {
         count: 'exact',
@@ -1279,7 +1325,8 @@ export const qaServiceServer = {
 
   async getAgentWithTemuan(peserta_id: string, year?: number, page?: number) {
     const supabase = await createClient();
-    const supportsPhantom = await hasPhantomPaddingSupport(supabase);
+    const queryClient = getServiceSupabase() || supabase;
+    const supportsPhantom = await hasPhantomPaddingSupport(queryClient);
     const { data: agentRaw, error: agentError } = await supabase
       .from('profiler_peserta').select('*').eq('id', peserta_id).single();
     if (agentError) throw agentError;
@@ -1289,7 +1336,7 @@ export const qaServiceServer = {
       batch: agentRaw.batch_name
     };
 
-    let query = supabase
+    let query = queryClient
       .from('qa_temuan')
       .select('*, qa_indicators:qa_service_rule_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
       .eq('peserta_id', peserta_id)
@@ -2398,21 +2445,6 @@ export const qaServiceServer = {
     endMonth: number
   ) {
     const startedAt = measureStart();
-    const supabase = await createClient();
-    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
-
-    if (hasPhantomSupport) {
-      const fallback = await this.getConsolidatedDashboardDataByRange(
-        serviceType,
-        folderIds,
-        context,
-        year,
-        startMonth,
-        endMonth
-      );
-      logServerMetric('qa.dashboardRangeData.fallback.phantom', startedAt, { serviceType, year, startMonth, endMonth });
-      return fallback;
-    }
 
     const cached = await cachedFetchDashboardRangeData(
       serviceType,
@@ -2448,21 +2480,6 @@ export const qaServiceServer = {
     endMonth: number
   ) {
     const startedAt = measureStart();
-    const supabase = await createClient();
-    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
-
-    if (hasPhantomSupport) {
-      const fallback = await this.getConsolidatedTrendDataByRange(
-        serviceType,
-        folderIds,
-        context,
-        year,
-        startMonth,
-        endMonth
-      );
-      logServerMetric('qa.dashboardRangeTrend.fallback.phantom', startedAt, { serviceType, year, startMonth, endMonth });
-      return fallback;
-    }
 
     const cached = await cachedFetchDashboardRangeTrend(
       serviceType,
@@ -2953,11 +2970,12 @@ export const qaServiceServer = {
   
   async getPersonalTrendWithParameters(agentId: string, year: number, startMonth: number, endMonth: number, serviceType?: string) {
     const supabase = await createClient();
-    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
+    const queryClient = getServiceSupabase() || supabase;
+    const hasPhantomSupport = await hasPhantomPaddingSupport(queryClient);
     
     if (endMonth < startMonth) return { labels: [], datasets: [] };
 
-    const { data: periods } = await supabase
+    const { data: periods } = await queryClient
       .from('qa_periods')
       .select('*')
       .eq('year', year)
@@ -2983,7 +3001,7 @@ export const qaServiceServer = {
       validMonths.push(m);
     }
 
-    let temuanQuery = supabase
+    let temuanQuery = queryClient
       .from('qa_temuan')
       .select('nilai, ketidaksesuaian, sebaiknya, period_id, indicator_id, rule_indicator_id, service_type, qa_indicators:qa_service_rule_indicators(id, name, category)')
       .eq('peserta_id', agentId)
