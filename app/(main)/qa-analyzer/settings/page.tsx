@@ -1,4 +1,4 @@
-import QaSettingsClient from './QaSettingsClient';
+import QaVersionedSettings from './QaVersionedSettings';
 import { qaServiceServer } from '../services/qaService.server';
 import { getAllServiceWeightsAction } from '../actions';
 import { requirePageAccess } from '@/app/lib/authz';
@@ -10,18 +10,20 @@ export default async function QaSettingsPage() {
     allowedRoles: ['trainer', 'admin']
   });
 
-  // Fetch initial data - all indicators and weights
-  const [indicators, weights] = await Promise.all([
+  // Fetch initial data
+  const [indicators, weights, periods] = await Promise.all([
     qaServiceServer.getIndicators(),
     getAllServiceWeightsAction(),
+    qaServiceServer.getPeriods(),
   ]);
 
   return (
-    <QaSettingsClient 
+    <QaVersionedSettings 
       user={user} 
       role={role} 
       initialIndicators={indicators}
       initialWeights={weights}
+      periods={periods}
     />
   );
 }

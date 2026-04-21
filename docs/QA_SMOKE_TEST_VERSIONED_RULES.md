@@ -1,0 +1,47 @@
+# TODO Smoke Test - Versioned QA Rules
+
+Checklist ini dipakai setelah migration:
+- `20260421000000_versioned_qa_rules.sql`
+- `20260421000001_add_service_type_to_rule_indicators.sql`
+
+## A. Pre-check Database
+- [ ] Pastikan tabel baru ada: `qa_service_rule_versions`, `qa_service_rule_indicators`.
+- [ ] Pastikan kolom baru ada di `qa_temuan`: `rule_version_id`, `rule_indicator_id`.
+- [ ] Pastikan `qa_service_rule_indicators.service_type` sudah terisi (tidak null).
+- [ ] Pastikan data temuan lama sudah ter-backfill ke `rule_version_id` dan `rule_indicator_id`.
+
+## B. Smoke Test Settings (Draft/Publish)
+- [ ] Buka halaman `/qa-analyzer/settings`.
+- [ ] Buat draft baru untuk 1 service (contoh: `call`).
+- [ ] Ubah minimal 1 parameter (nama/bobot/kategori).
+- [ ] Publish draft ke periode target (contoh: Mei 2026).
+- [ ] Verifikasi tidak bisa update/hapus indicator dari version yang status `published`.
+- [ ] Verifikasi tidak bisa publish 2 version `published` untuk service+periode yang sama.
+
+## C. Smoke Test Input Periode
+- [ ] Pilih agent + periode lama (contoh: April 2026), cek indikator yang muncul sesuai version lama.
+- [ ] Pilih agent + periode baru (contoh: Mei 2026), cek indikator yang muncul sesuai version baru.
+- [ ] Tanpa pilih periode dulu, ganti service, pastikan indikator tetap muncul (latest published).
+- [ ] Simpan temuan baru, lalu cek record `qa_temuan` terisi `rule_version_id` dan `rule_indicator_id`.
+
+## D. Historis Tidak Berubah
+- [ ] Catat skor 1 agent di periode lama sebelum publish.
+- [ ] Publish perubahan rule ke periode baru.
+- [ ] Buka ulang periode lama, pastikan skor lama tidak berubah.
+- [ ] Tambah input susulan di periode lama, pastikan tetap pakai rule version periode lama.
+
+## E. Dashboard/Ranking/Export Konsisten
+- [ ] Cek `/qa-analyzer/dashboard` untuk periode lama vs baru, pastikan tren masuk akal.
+- [ ] Cek `/qa-analyzer/ranking`, pastikan peringkat mengikuti rule tiap periode.
+- [ ] Jalankan export data agent, pastikan skor export per periode sesuai snapshot rules periode tersebut.
+- [ ] Verifikasi split `NC/CR` di export konsisten dengan kategori snapshot.
+
+## F. Regression Ringan
+- [ ] Jalankan `npm run lint` (expected: 0 error, warning existing boleh jika unrelated).
+- [ ] Jalankan `npm run type-check` (expected: build sukses).
+- [ ] Smoke check cepat halaman: `settings`, `input`, `dashboard`, `reports/data`.
+
+## G. Sign-off
+- [ ] Tulis hasil uji: PASS/FAIL per poin.
+- [ ] Catat bug yang ditemukan + langkah reproduksi.
+- [ ] Approve untuk deploy jika seluruh poin kritikal PASS.

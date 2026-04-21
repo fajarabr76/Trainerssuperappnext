@@ -307,16 +307,27 @@ export async function createTemuanBatchAction(
     throw new Error('Periode tidak valid atau tidak ditemukan.');
   }
 
-  const insertData = temuanList.map(t => ({
-    peserta_id,
-    period_id,
-    ...t
+  const { qaServiceServer } = await import('./services/qaService.server');
+  
+  const insertData = await Promise.all(temuanList.map(async t => {
+    // Resolve rule version for this period and service
+    const resolved = await qaServiceServer.resolveRuleVersion(period_id, t.service_type);
+    const rule_version_id = resolved?.version.id || null;
+    const rule_indicator_id = resolved?.indicators.find(i => i.legacy_indicator_id === t.indicator_id)?.id || null;
+
+    return {
+      peserta_id,
+      period_id,
+      rule_version_id,
+      rule_indicator_id,
+      ...t
+    };
   }));
 
   const { data, error } = await supabase
     .from('qa_temuan')
     .insert(insertData)
-    .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)');
+    .select('*, qa_indicators:qa_service_rule_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)');
   
   if (error) {
     if (error.code === '23505' && error.message.includes('uq_qa_temuan_single_phantom_batch_per_period')) {
@@ -365,7 +376,7 @@ export async function updateTemuanAction(
     .from('qa_temuan')
     .update(patch)
     .eq('id', id)
-    .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
+    .select('*, qa_indicators:qa_service_rule_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
     .single();
   if (error) throw error;
   
@@ -460,22 +471,36 @@ export async function createPerfectScoreSessionAction(
     throw new Error('Sesi tanpa temuan untuk periode ini sudah pernah dibuat.');
   }
 
-  // get indicators
-  const { data: inds, error: indsErr } = await supabase
-    .from('qa_indicators')
-    .select('id')
-    .eq('service_type', service_type);
-  if (indsErr || !inds) throw new Error('Gagal mengambil parameter untuk agent ini');
+  // get indicators from resolved rule if possible, else fallback
+  const { qaServiceServer } = await import('./services/qaService.server');
+  const resolved = await qaServiceServer.resolveRuleVersion(period_id, service_type);
+  
+  let indicators;
+  let rule_version_id = null;
+  
+  if (resolved) {
+    indicators = resolved.indicators.map(i => ({ id: i.legacy_indicator_id || i.id, rule_indicator_id: i.id }));
+    rule_version_id = resolved.version.id;
+  } else {
+    const { data: inds, error: indsErr } = await supabase
+      .from('qa_indicators')
+      .select('id')
+      .eq('service_type', service_type);
+    if (indsErr || !inds) throw new Error('Gagal mengambil parameter untuk agent ini');
+    indicators = inds.map(i => ({ id: i.id, rule_indicator_id: null }));
+  }
 
-  if (inds.length === 0) throw new Error('Tidak ada parameter untuk tim agent ini');
+  if (indicators.length === 0) throw new Error('Tidak ada parameter untuk tim agent ini');
 
   const phantomBatchId = crypto.randomUUID();
   const PADDING_COUNT = 5;
   const insertData = Array.from({ length: PADDING_COUNT }).flatMap((_, sessionIdx) =>
-    inds.map((ind: { id: string }) => ({
+    indicators.map((ind: { id: string, rule_indicator_id: string | null }) => ({
       peserta_id,
       period_id,
       indicator_id: ind.id,
+      rule_version_id,
+      rule_indicator_id: ind.rule_indicator_id,
       no_tiket: `__PHANTOM__${phantomBatchId}_${sessionIdx + 1}`,
       nilai: 3,
       service_type,
@@ -487,7 +512,7 @@ export async function createPerfectScoreSessionAction(
   const { data, error } = await supabase
     .from('qa_temuan')
     .insert(insertData)
-    .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)');
+    .select('*, qa_indicators:qa_service_rule_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)');
   
   if (error) {
     if (error.code === '23505' && error.message.includes('uq_qa_temuan_single_phantom_batch_per_period')) {
@@ -617,4 +642,97 @@ export async function updateServiceWeightAction(
   revalidateTag('indicators');
 
   return data;
+}
+
+// ── Rule Versioning Actions ──────────────────────────────────
+export async function getRuleVersionsAction(serviceType: ServiceType) {
+  const { qaServiceServer } = await import('./services/qaService.server');
+  return await qaServiceServer.getRuleVersions(serviceType);
+}
+
+export async function getIndicatorsByVersionAction(versionId: string) {
+  const { qaServiceServer } = await import('./services/qaService.server');
+  return await qaServiceServer.getIndicatorsByVersion(versionId);
+}
+
+export async function createRuleDraftAction(serviceType: ServiceType, sourceVersionId?: string) {
+  const { createClient } = await import('@/app/lib/supabase/server');
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Tidak terautentikasi');
+
+  const { qaServiceServer } = await import('./services/qaService.server');
+  const draft = await qaServiceServer.createRuleDraft(serviceType, user.id, sourceVersionId);
+  revalidatePath('/qa-analyzer/settings');
+  return draft;
+}
+
+export async function updateRuleDraftAction(versionId: string, patch: any) {
+  const { createClient } = await import('@/app/lib/supabase/server');
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Tidak terautentikasi');
+
+  const { qaServiceServer } = await import('./services/qaService.server');
+  const updated = await qaServiceServer.updateRuleDraft(versionId, patch);
+  revalidatePath('/qa-analyzer/settings');
+  return updated;
+}
+
+export async function deleteRuleDraftAction(versionId: string) {
+  const { createClient } = await import('@/app/lib/supabase/server');
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Tidak terautentikasi');
+
+  const { qaServiceServer } = await import('./services/qaService.server');
+  await qaServiceServer.deleteRuleDraft(versionId);
+  revalidatePath('/qa-analyzer/settings');
+}
+
+export async function publishRuleVersionAction(versionId: string, effectivePeriodId: string) {
+  const { createClient } = await import('@/app/lib/supabase/server');
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Tidak terautentikasi');
+
+  const { qaServiceServer } = await import('./services/qaService.server');
+  const published = await qaServiceServer.publishRuleVersion(versionId, user.id, effectivePeriodId);
+  
+  revalidatePath('/qa-analyzer/settings');
+  revalidatePath('/qa-analyzer/input');
+  revalidateQaPerformanceCaches();
+  revalidateTag('indicators');
+  
+  return published;
+}
+
+export async function addDraftIndicatorAction(versionId: string, indicator: any) {
+  const { qaServiceServer } = await import('./services/qaService.server');
+  const created = await qaServiceServer.addDraftIndicator(versionId, indicator);
+  revalidatePath('/qa-analyzer/settings');
+  return created;
+}
+
+export async function updateDraftIndicatorAction(id: string, patch: any) {
+  const { qaServiceServer } = await import('./services/qaService.server');
+  const updated = await qaServiceServer.updateDraftIndicator(id, patch);
+  revalidatePath('/qa-analyzer/settings');
+  return updated;
+}
+
+export async function deleteDraftIndicatorAction(id: string) {
+  const { qaServiceServer } = await import('./services/qaService.server');
+  await qaServiceServer.deleteDraftIndicator(id);
+  revalidatePath('/qa-analyzer/settings');
+}
+
+export async function getResolvedIndicatorsAction(serviceType: ServiceType, periodId: string) {
+  const { qaServiceServer } = await import('./services/qaService.server');
+  return await qaServiceServer.getIndicators(serviceType, periodId);
+}
+
+export async function getResolvedWeightsAction(serviceType: ServiceType, periodId: string) {
+  const { qaServiceServer } = await import('./services/qaService.server');
+  return await qaServiceServer.getServiceWeights(serviceType, periodId);
 }

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import {
   Sun, Moon, Download, Plus, ShieldCheck, Zap, BarChart2, ArrowLeft, Activity,
   Users, Calendar, Briefcase, Clock, TrendingUp, TrendingDown, Ticket, AlertCircle, ChevronDown
@@ -60,10 +61,15 @@ export default function QaAgentDetailClient({
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
+
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    setAvatarLoadFailed(false);
+  }, [agent.foto_url]);
   
   const {
     // State
@@ -201,14 +207,15 @@ export default function QaAgentDetailClient({
                 <div className="flex flex-col md:flex-row items-center md:items-end gap-6 text-center md:text-left">
                   <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary to-primary-focus p-1 shadow-xl shadow-primary/20 flex-shrink-0">
                     <div className="w-full h-full rounded-[calc(1rem-4px)] bg-white dark:bg-slate-800 flex items-center justify-center overflow-hidden relative">
-                      {agent.foto_url ? (
-                        <img 
-                          src={agent.foto_url} 
+                      {agent.foto_url && !avatarLoadFailed ? (
+                        <Image
+                          src={agent.foto_url}
                           alt={agent.nama}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
+                          fill
+                          unoptimized
+                          sizes="96px"
+                          className="object-cover"
+                          onError={() => setAvatarLoadFailed(true)}
                         />
                       ) : (
                         <div className="text-4xl font-black text-primary opacity-20 uppercase">{agent.nama.charAt(0)}</div>

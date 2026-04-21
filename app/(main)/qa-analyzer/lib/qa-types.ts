@@ -81,6 +81,8 @@ export interface QATemuan {
   peserta_id: string;
   period_id: string;
   indicator_id: string;
+  rule_version_id?: string | null;
+  rule_indicator_id?: string | null;
   service_type: ServiceType;
   no_tiket?: string | null;
   is_phantom_padding?: boolean;
@@ -90,14 +92,49 @@ export interface QATemuan {
   sebaiknya?: string | null;
   created_at?: string;
   tahun?: number;
-  qa_indicators?: QAIndicator | QAIndicator[];
+  qa_indicators?: QAIndicator | QAIndicator[] | QARuleIndicatorSnapshot | QARuleIndicatorSnapshot[];
   qa_periods?: QAPeriod | QAPeriod[];
   profiler_peserta?: Agent | Agent[];
 }
 
-export function unwrapIndicator(value: QAIndicator | QAIndicator[] | Partial<QAIndicator> | Partial<QAIndicator>[] | null | undefined): QAIndicator | Partial<QAIndicator> | null {
+export interface QARuleVersion {
+  id: string;
+  service_type: ServiceType;
+  effective_period_id: string;
+  status: 'draft' | 'published';
+  critical_weight: number;
+  non_critical_weight: number;
+  scoring_mode: ScoringMode;
+  created_by?: string | null;
+  published_by?: string | null;
+  created_at: string;
+  updated_at: string;
+  published_at?: string | null;
+}
+
+export interface QARuleIndicatorSnapshot {
+  id: string;
+  rule_version_id: string;
+  legacy_indicator_id?: string | null;
+  service_type: ServiceType;
+  name: string;
+  category: Category;
+  bobot: number;
+  has_na: boolean;
+  threshold?: number | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ResolvedQARule {
+  version: QARuleVersion;
+  indicators: QARuleIndicatorSnapshot[];
+}
+
+export function unwrapIndicator(value: QAIndicator | QAIndicator[] | QARuleIndicatorSnapshot | QARuleIndicatorSnapshot[] | Partial<QAIndicator> | Partial<QAIndicator>[] | null | undefined): QAIndicator | QARuleIndicatorSnapshot | Partial<QAIndicator> | null {
   if (Array.isArray(value)) return value[0] ?? null;
-  return value ?? null;
+  return value as QAIndicator | QARuleIndicatorSnapshot | Partial<QAIndicator> | null;
 }
 
 export function unwrapPeriod(value: QAPeriod | QAPeriod[] | Partial<QAPeriod> | Partial<QAPeriod>[] | null | undefined): QAPeriod | Partial<QAPeriod> | null {

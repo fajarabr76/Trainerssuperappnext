@@ -31,7 +31,9 @@ import {
   updateTemuanAction, 
   deleteTemuanAction,
   getAgentsByFolderAction,
-  createPerfectScoreSessionAction
+  createPerfectScoreSessionAction,
+  getResolvedIndicatorsAction,
+  getResolvedWeightsAction
 } from '../actions';
 import QaStatePanel from '../components/QaStatePanel';
 
@@ -454,24 +456,36 @@ export default function QaInputClient({
     setSelectedService(defaultService);
     setSelectedTeam(agent.tim || '');
     
-    const { data: inds } = await supabase.from('qa_indicators').select('*').eq('service_type', defaultService).order('category').order('bobot', { ascending: false });
-    setIndicators(inds || []);
+    // Fetch latest published indicators for this service (no period selected yet)
+    const inds = await getResolvedIndicatorsAction(defaultService, '');
+    setIndicators(inds as QAIndicator[]);
     setStep('period');
   };
 
   const handleServiceChange = async (newService: ServiceType) => {
     setSelectedService(newService);
-    const { data: inds } = await supabase.from('qa_indicators').select('*').eq('service_type', newService).order('category').order('bobot', { ascending: false });
-    setIndicators(inds || []);
-    setEntries([newEntry()]); // reset form to avoid invalid indicator ids
     
-    // Bug 2 Fix: If a period is already selected, re-fetch temuan for the new service to ensure accurate score calculation
-    if (selectedAgent && selectedPeriod) {
-      setLoading(true);
-      try {
+    setLoading(true);
+    try {
+      if (selectedPeriod) {
+        const [inds, wMap] = await Promise.all([
+          getResolvedIndicatorsAction(newService, selectedPeriod.id),
+          getResolvedWeightsAction(newService, selectedPeriod.id)
+        ]);
+        setIndicators(inds as QAIndicator[]);
+        _setWeights(prev => ({ ...prev, ...wMap }));
+      } else {
+        const inds = await getResolvedIndicatorsAction(newService, '');
+        setIndicators(inds as QAIndicator[]);
+      }
+      
+      setEntries([newEntry()]); // reset form to avoid invalid indicator ids
+      
+      // Bug 2 Fix: If a period is already selected, re-fetch temuan for the new service to ensure accurate score calculation
+      if (selectedAgent && selectedPeriod) {
         const query = supabase
           .from('qa_temuan')
-          .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
+          .select('*, qa_indicators:qa_service_rule_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
           .eq('peserta_id', selectedAgent.id)
           .eq('period_id', selectedPeriod.id)
           .eq('service_type', newService);
@@ -485,11 +499,11 @@ export default function QaInputClient({
         }
         if (error) throw error;
         setTemuan(found || []);
-      } catch (err: unknown) { 
-        setErrorMsg((err as Error).message); 
-      } finally { 
-        setLoading(false); 
       }
+    } catch (err: unknown) { 
+      setErrorMsg((err as Error).message); 
+    } finally { 
+      setLoading(false); 
     }
   };
 
@@ -497,9 +511,17 @@ export default function QaInputClient({
     if (!selectedAgent) return;
     setSelectedPeriod(period); setLoading(true); setErrorMsg(null);
     try { 
+      // Fetch resolved rules for this period
+      const [inds, wMap] = await Promise.all([
+        getResolvedIndicatorsAction(selectedService, period.id),
+        getResolvedWeightsAction(selectedService, period.id)
+      ]);
+      setIndicators(inds as QAIndicator[]);
+      _setWeights(prev => ({ ...prev, ...wMap }));
+
       const query = supabase
         .from('qa_temuan')
-        .select('*, qa_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
+        .select('*, qa_indicators:qa_service_rule_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
         .eq('peserta_id', selectedAgent.id)
         .eq('period_id', period.id)
         .eq('service_type', selectedService); // Bug 2 Fix: Only fetch temuan for the relevant service
