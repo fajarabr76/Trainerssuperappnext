@@ -114,6 +114,22 @@ export function useAgentDetail({
       .sort((a, b) => a.month - b.month);
   }, [periodSummaries, selectedServiceType]);
 
+  useEffect(() => {
+    if (monthlySummaries.length === 0) {
+      if (selectedMonth !== null) {
+        setSelectedMonth(null);
+      }
+      return;
+    }
+
+    const hasActiveMonth = selectedMonth !== null
+      && monthlySummaries.some((summary) => summary.month === selectedMonth);
+
+    if (!hasActiveMonth) {
+      setSelectedMonth(monthlySummaries[monthlySummaries.length - 1].month);
+    }
+  }, [monthlySummaries, selectedMonth]);
+
   const topTickets = useMemo(() => {
     if (!selectedMonth) return [];
 

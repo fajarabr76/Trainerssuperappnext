@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/app/lib/supabase/server';
+import { getCurrentUserContext, hasRole } from '@/app/lib/authz';
 import {
   ServiceType, Category, ScoringMode, ServiceWeight, DEFAULT_SERVICE_WEIGHTS,
   TopAgentData, ExportData
@@ -54,18 +55,47 @@ async function hasPhantomPaddingSupport(
   return true;
 }
 
+async function assertCanAccessAgentDetail(agentId: string) {
+  const { user, profile, role } = await getCurrentUserContext();
+  if (!user || !profile) {
+    throw new Error('Tidak terautentikasi');
+  }
+
+  if (!hasRole(role, ['agent', 'leader', 'trainer', 'admin'])) {
+    throw new Error('Akses ditolak');
+  }
+
+  if (role !== 'agent') {
+    return;
+  }
+
+  const supabase = await createClient();
+  const { data: ownPeserta, error } = await supabase
+    .from('profiler_peserta')
+    .select('id')
+    .eq('email_ojk', user.email)
+    .single();
+
+  if (error || !ownPeserta || ownPeserta.id !== agentId) {
+    throw new Error('Akses ditolak');
+  }
+}
+
 
 export async function getAgentExportDataAction(agentId: string): Promise<ExportData> {
+  await assertCanAccessAgentDetail(agentId);
   const { qaServiceServer } = await import('./services/qaService.server');
   return await qaServiceServer.getAgentExportData(agentId);
 }
 
 export async function getPersonalTrendAction(agentId: string, year: number, startMonth: number, endMonth: number, serviceType?: string) {
+  await assertCanAccessAgentDetail(agentId);
   const { qaServiceServer } = await import('./services/qaService.server');
   return await qaServiceServer.getPersonalTrendWithParameters(agentId, year, startMonth, endMonth, serviceType);
 }
 
 export async function getLastAuditedMonthAction(agentId: string, year: number, serviceType?: string) {
+  await assertCanAccessAgentDetail(agentId);
   const { createClient } = await import('@/app/lib/supabase/server');
   const supabase = await createClient();
   const { data: periods } = await supabase
@@ -535,11 +565,13 @@ export async function createPerfectScoreSessionAction(
 }
 
 export async function getAgentPeriodsAction(agentId: string, year: number) {
+  await assertCanAccessAgentDetail(agentId);
   const { qaServiceServer } = await import('./services/qaService.server');
   return await qaServiceServer.getAgentPeriodSummaries(agentId, year);
 }
 
 export async function getAgentTemuanRangeAction(agentId: string, year: number, startMonth: number, endMonth: number, serviceType: string) {
+  await assertCanAccessAgentDetail(agentId);
   const { qaServiceServer } = await import('./services/qaService.server');
   return await qaServiceServer.getAgentTemuanRange(agentId, year, startMonth, endMonth, serviceType);
 }
@@ -551,6 +583,7 @@ export async function getAgentTemuanPageAction(
   serviceType: string,
   page: number
 ) {
+  await assertCanAccessAgentDetail(agentId);
   const { qaServiceServer } = await import('./services/qaService.server');
   return await qaServiceServer.getAgentTemuanPage(agentId, year, periodId, serviceType, page);
 }
