@@ -114,82 +114,87 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', init
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
-    if (mode === 'login') {
-      const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+      if (mode === 'login') {
+        const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
 
-      if (loginError) {
-        setError(loginError.message);
-        setLoading(false);
-        return;
-      }
+        if (loginError) {
+          setError(loginError.message);
+          setLoading(false);
+          return;
+        }
 
-      const session = await waitForActiveSession();
+        const session = await waitForActiveSession();
 
-      if (!session?.user) {
-        setError('Sesi login belum siap. Silakan coba sekali lagi.');
-        setLoading(false);
-        return;
-      }
+        if (!session?.user) {
+          setError('Sesi login belum siap. Silakan coba sekali lagi.');
+          setLoading(false);
+          return;
+        }
 
-      try {
         const nextPath = await resolvePostLoginPath(session.user.id);
         window.location.assign(nextPath);
-      } catch (postLoginError) {
-        setError(postLoginError instanceof Error ? postLoginError.message : 'Login berhasil, tetapi status akun belum dapat diverifikasi.');
-        setLoading(false);
+        return;
       }
-      return;
-    }
 
-    const role = formData.get('role') as string;
-    const { data: existingProfile } = await supabase
-      .from('profiles')
-      .select('id, status')
-      .eq('email', email)
-      .maybeSingle();
+      const role = formData.get('role') as string;
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id, status')
+        .eq('email', email)
+        .maybeSingle();
 
-    if (existingProfile?.status === 'pending') {
-      setError('Pengajuan Anda telah kami terima dan saat ini sedang menunggu persetujuan administrator.');
-      setLoading(false);
-      return;
-    }
-
-    if (existingProfile?.status === 'rejected') {
-      setError('Pengajuan Anda sebelumnya belum dapat disetujui. Silakan hubungi administrator Anda.');
-      setLoading(false);
-      return;
-    }
-
-    const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
-
-    if (signUpError) {
-      setError(signUpError.message);
-      setLoading(false);
-      return;
-    }
-
-    if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').upsert(
-        [
-          {
-            id: data.user.id,
-            email,
-            role,
-            status: 'pending',
-          },
-        ],
-        { onConflict: 'id' }
-      );
-
-      if (profileError) {
-        setError('Terjadi masalah jaringan saat mendaftar. Silakan coba lagi.');
+      if (existingProfile?.status === 'pending') {
+        setError('Pengajuan Anda telah kami terima dan saat ini sedang menunggu persetujuan administrator.');
         setLoading(false);
         return;
       }
-    }
 
-    setSuccessMessage('Permintaan akses berhasil dikirim! Anda bisa masuk setelah akun Anda disetujui.');
-    setLoading(false);
+      if (existingProfile?.status === 'rejected') {
+        setError('Pengajuan Anda sebelumnya belum dapat disetujui. Silakan hubungi administrator Anda.');
+        setLoading(false);
+        return;
+      }
+
+      const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
+
+      if (signUpError) {
+        setError(signUpError.message);
+        setLoading(false);
+        return;
+      }
+
+      if (data.user) {
+        const { error: profileError } = await supabase.from('profiles').upsert(
+          [
+            {
+              id: data.user.id,
+              email,
+              role,
+              status: 'pending',
+            },
+          ],
+          { onConflict: 'id' }
+        );
+
+        if (profileError) {
+          setError('Terjadi masalah jaringan saat mendaftar. Silakan coba lagi.');
+          setLoading(false);
+          return;
+        }
+      }
+
+      setSuccessMessage('Permintaan akses berhasil dikirim! Anda bisa masuk setelah akun Anda disetujui.');
+    } catch (err: any) {
+      console.error('[AuthModal] Submission error:', err);
+      if (err instanceof TypeError && err.message === 'Failed to fetch') {
+        setError('Gagal menghubungkan ke server. Periksa koneksi internet Anda atau hubungi admin jika masalah berlanjut.');
+      } else {
+        setError(err.message || 'Terjadi kesalahan sistem saat memproses permintaan Anda.');
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleForgotPassword(e: FormEvent<HTMLFormElement>) {
@@ -201,17 +206,26 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', init
     const formData = new FormData(e.currentTarget);
     const email = formData.get('email') as string;
 
-    const { error: forgotError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
+    try {
+      const { error: forgotError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
 
-    if (forgotError) {
-      setError(forgotError.message);
-    } else {
-      setSuccessMessage('Tautan untuk mengatur ulang kata sandi sudah dikirim ke email Anda.');
+      if (forgotError) {
+        setError(forgotError.message);
+      } else {
+        setSuccessMessage('Tautan untuk mengatur ulang kata sandi sudah dikirim ke email Anda.');
+      }
+    } catch (err: any) {
+      console.error('[AuthModal] Forgot password error:', err);
+      if (err instanceof TypeError && err.message === 'Failed to fetch') {
+        setError('Gagal menghubungkan ke server. Silakan periksa koneksi internet Anda.');
+      } else {
+        setError(err.message || 'Gagal memproses permintaan pemulihan kata sandi.');
+      }
+    } finally {
+      setForgotLoading(false);
     }
-
-    setForgotLoading(false);
   }
 
   const content = AUTH_COPY[mode];
