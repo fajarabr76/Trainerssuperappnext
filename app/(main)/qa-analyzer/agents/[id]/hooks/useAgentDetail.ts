@@ -388,7 +388,11 @@ export function useAgentDetail({
     if (!editingTemuan) return;
     setIsSubmitting(true);
     try {
-      await updateTemuanAction(editingTemuan.id, editForm);
+      const { data: updated, error } = await updateTemuanAction(editingTemuan.id, editForm);
+      if (error || !updated) {
+        alert(error || 'Gagal memperbarui temuan');
+        return;
+      }
       setEditingTemuan(null);
       await refreshData();
     } catch (err) { console.error('Gagal simpan:', err); } finally { setIsSubmitting(false); }
@@ -441,7 +445,11 @@ export function useAgentDetail({
     if (!confirm('Hapus temuan ini?')) return;
     setDeletingId(id);
     try {
-      await deleteTemuanAction(id);
+      const { success, error } = await deleteTemuanAction(id);
+      if (error || !success) {
+        alert(error || 'Gagal menghapus temuan');
+        return;
+      }
       await refreshData();
     } catch (err) { console.error('Gagal hapus:', err); } finally { setDeletingId(null); }
   };

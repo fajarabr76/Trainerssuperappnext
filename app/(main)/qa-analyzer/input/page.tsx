@@ -62,47 +62,57 @@ export default async function QaInputPage({ searchParams }: PageProps) {
   // Selective pre-fetching based on params
   let initialAgents: Agent[] = [];
   let initialAgent = null;
-  let initialIndicators = [];
-  let initialTemuan = [];
+  let initialIndicators: any[] = [];
+  let initialTemuan: any[] = [];
   let initialStep: 'folder' | 'agent' | 'period' | 'list' = 'folder';
   let initialService: ServiceType | undefined;
   let initialTeam: string | undefined;
   let initialPeriod: QAPeriod | null = null;
 
   if (folderParam) {
+    initialStep = 'agent';
     try {
       initialAgents = await qaServiceServer.getAgentsByFolder(folderParam);
     } catch (e) {
       console.error("Error pre-fetching agents list:", e);
     }
     
-    initialStep = 'agent';
     if (agentIdParam) {
       try {
         initialAgent = await qaServiceServer.getAgentMiniProfile(agentIdParam);
-        let defaultService: ServiceType = 'call';
-        const team = initialAgent.tim || '';
-        const normalizedTim = team.toLowerCase().trim();
-        if (normalizedTim.includes('mix')) defaultService = 'cso';
-        else if (normalizedTim.includes('chat')) defaultService = 'chat';
-        else if (normalizedTim.includes('email')) defaultService = 'email';
-        else if (normalizedTim.includes('bko')) defaultService = 'bko';
-        else if (normalizedTim.includes('slik')) defaultService = 'slik';
-        
-        initialIndicators = await qaServiceServer.getIndicators(defaultService);
-        initialStep = 'period';
-        
-        // Pass these to client for initialization
-        initialService = defaultService;
-        initialTeam = team;
+        if (initialAgent) {
+          let defaultService: ServiceType = 'call';
+          const team = initialAgent.tim || '';
+          const normalizedTim = team.toLowerCase().trim();
+          if (normalizedTim.includes('mix')) defaultService = 'cso';
+          else if (normalizedTim.includes('chat')) defaultService = 'chat';
+          else if (normalizedTim.includes('email')) defaultService = 'email';
+          else if (normalizedTim.includes('bko')) defaultService = 'bko';
+          else if (normalizedTim.includes('slik')) defaultService = 'slik';
+          
+          initialService = defaultService;
+          initialTeam = team;
+          initialStep = 'period';
 
-        if (periodIdParam) {
-          initialPeriod = initialPeriods.find(p => p.id === periodIdParam) || null;
-          initialTemuan = await qaServiceServer.getTemuanByAgentPeriod(agentIdParam, periodIdParam);
-          initialStep = 'list';
+          // Pre-fetch indicators for the default service
+          try {
+            initialIndicators = await qaServiceServer.getIndicators(defaultService, periodIdParam);
+          } catch (indsErr) {
+            console.error("Error pre-fetching indicators:", indsErr);
+          }
+
+          if (periodIdParam) {
+            initialPeriod = allPeriods.find(p => p.id === periodIdParam) || null;
+            try {
+              initialTemuan = await qaServiceServer.getTemuanByAgentPeriod(agentIdParam, periodIdParam);
+              initialStep = 'list';
+            } catch (temuanErr) {
+              console.error("Error pre-fetching temuan:", temuanErr);
+            }
+          }
         }
       } catch (e) {
-        console.error("Error pre-fetching QA input data:", e);
+        console.error("Error pre-fetching QA agent profile:", e);
       }
     }
   }

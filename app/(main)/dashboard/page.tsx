@@ -6,7 +6,9 @@ import Link from 'next/link';
 import { ArrowRight, Sparkles, PlusCircle, Users, Trophy, UserCog, Shield, Activity, History } from 'lucide-react';
 import { APP_MODULES, isRoleAllowed, normalizeRoleLabel } from '@/app/lib/app-config';
 import { ThemeToggle } from '@/app/components/ThemeToggle';
-import { DashboardShortcutLink, DashboardActivityClient, DashboardTrendClient } from './DashboardClientComponents';
+import { DashboardShortcutLink } from './DashboardShortcutLink';
+import { DashboardTrendClientLoader } from './DashboardTrendClientLoader';
+import { DashboardActivityClient } from './DashboardActivityClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -236,7 +238,7 @@ export default async function DashboardPage() {
 
         {/* Analytics shell split */}
         {['trainer', 'leader', 'admin'].includes(role?.toLowerCase() || '') && (
-          <DashboardTrendClient 
+          <DashboardTrendClientLoader 
             role={role}
             serviceTrendMap={serviceTrendMap}
             availableYears={availableYears}

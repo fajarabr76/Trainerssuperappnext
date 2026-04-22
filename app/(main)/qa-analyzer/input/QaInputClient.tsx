@@ -578,7 +578,11 @@ export default function QaInputClient({
         service_type: selectedService,
       }));
 
-      const created = await createTemuanBatchAction(selectedAgent.id, selectedPeriod.id, temuanList);
+      const { data: created, error } = await createTemuanBatchAction(selectedAgent.id, selectedPeriod.id, temuanList);
+      if (error) {
+        setErrorMsg(error);
+        return;
+      }
       
       setTemuan(prev => [...(created as QATemuan[]).reverse(), ...prev]);
       resetForm();
@@ -596,7 +600,11 @@ export default function QaInputClient({
   const handleSaveEdit = async (id: string) => {
     setSavingEdit(true); setErrorMsg(null);
     try {
-      const updated = await updateTemuanAction(id, { nilai: editNilai, ketidaksesuaian: editKetidaksesuaian || undefined, sebaiknya: editSebaiknya || undefined });
+      const { data: updated, error } = await updateTemuanAction(id, { nilai: editNilai, ketidaksesuaian: editKetidaksesuaian || undefined, sebaiknya: editSebaiknya || undefined });
+      if (error) {
+        setErrorMsg(error);
+        return;
+      }
       setTemuan(prev => prev.map(t => t.id === id ? updated : t));
       setEditingId(null);
       setSuccessMsg('Temuan berhasil diperbarui!'); setTimeout(() => setSuccessMsg(null), 3000);
@@ -605,7 +613,16 @@ export default function QaInputClient({
 
   const handleDelete = async (id: string) => {
     if (deletingId !== id) { setDeletingId(id); setEditingId(null); return; }
-    try { await deleteTemuanAction(id); setTemuan(prev => prev.filter(t => t.id !== id)); setDeletingId(null); }
+    try { 
+      const { success, error } = await deleteTemuanAction(id); 
+      if (error || !success) {
+        setErrorMsg(error || 'Gagal menghapus temuan');
+        setDeletingId(null);
+        return;
+      }
+      setTemuan(prev => prev.filter(t => t.id !== id)); 
+      setDeletingId(null); 
+    }
     catch (err: unknown) { setErrorMsg((err as Error).message); setDeletingId(null); }
   };
 
@@ -645,7 +662,11 @@ export default function QaInputClient({
         service_type: selectedService,
       }));
 
-      const created = await createTemuanBatchAction(selectedAgent.id, selectedPeriod.id, temuanList);
+      const { data: created, error } = await createTemuanBatchAction(selectedAgent.id, selectedPeriod.id, temuanList);
+      if (error) {
+        setErrorMsg(error);
+        return;
+      }
 
       setTemuan(prev => [...(created as QATemuan[]).reverse(), ...prev]);
       setShowImport(false); setImportRows([]); setImportFile(null);
@@ -659,7 +680,11 @@ export default function QaInputClient({
 
     setSaving(true); setErrorMsg(null);
     try {
-      await createPerfectScoreSessionAction(selectedAgent.id, selectedPeriod.id, selectedService as ServiceType);
+      const { error } = await createPerfectScoreSessionAction(selectedAgent.id, selectedPeriod.id, selectedService as ServiceType);
+      if (error) {
+        setErrorMsg(error);
+        return;
+      }
       setSuccessMsg('Sesi Tanpa Temuan berhasil ditambahkan (phantom padding 5 sesi).');
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err: unknown) {

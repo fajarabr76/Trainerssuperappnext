@@ -105,6 +105,32 @@ async function assertCanAccessAgentDetail(agentId: string) {
 }
 
 
+function normalizeQaActionError(error: any, fallbackMessage: string): Error {
+  console.error('[SIDAK][action] error:', error);
+  
+  // If it's already a clean string or we have a known safe message
+  if (typeof error === 'string') return new Error(error);
+
+  const rawMessage = error?.message || '';
+  const errorCode = error?.code || '';
+
+  // Detect sensitive database/infrastructure errors
+  const isInternal = 
+    errorCode.startsWith('PGRST') || 
+    /supabase|postgrest|postgres|database|schema|connection|timeout|fetch/i.test(rawMessage) ||
+    errorCode === '42703' || // missing column
+    errorCode === '23505';   // unique constraint (usually handled specifically, but fallback here)
+
+  if (isInternal) {
+    return new Error(fallbackMessage);
+  }
+
+  if (error instanceof Error) return error;
+  if (rawMessage) return new Error(rawMessage);
+  
+  return new Error(fallbackMessage);
+}
+
 export async function getAgentExportDataAction(agentId: string): Promise<ExportData> {
   await assertCanAccessAgentDetail(agentId);
   const { qaServiceServer } = await import('./services/qaService.server');
@@ -330,165 +356,188 @@ export async function createTemuanBatchAction(
     sebaiknya?: string;
     service_type: ServiceType;
   }[]
-) {
-  const { createClient } = await import('@/app/lib/supabase/server');
-  const supabase = await createClient();
+): Promise<{ data: any[]; error?: string }> {
+  try {
+    const { createClient } = await import('@/app/lib/supabase/server');
+    const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Tidak terautentikasi');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: [], error: 'Tidak terautentikasi' };
 
-  // RBAC Check for mutation
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
+    // RBAC Check for mutation
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
 
-  const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
-  if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
-    throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
-  }
-
-  // 1. Validate period exists
-  const { data: period, error: pErr } = await supabase
-    .from('qa_periods')
-    .select('id')
-    .eq('id', period_id)
-    .single();
-  
-  if (pErr || !period) {
-    throw new Error('Periode tidak valid atau tidak ditemukan.');
-  }
-
-  const { qaServiceServer } = await import('./services/qaService.server');
-  const resolvedRuleByService = new Map<ServiceType, Awaited<ReturnType<typeof qaServiceServer.resolveRuleVersion>>>();
-
-  const insertData = await Promise.all(temuanList.map(async (t) => {
-    if (!resolvedRuleByService.has(t.service_type)) {
-      const resolved = await qaServiceServer.resolveRuleVersion(period_id, t.service_type);
-      resolvedRuleByService.set(t.service_type, resolved);
+    const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
+    if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
+      return { data: [], error: 'Akses ditolak: Role tidak memiliki izin untuk aksi ini' };
     }
-    const resolved = resolvedRuleByService.get(t.service_type) ?? null;
-    const matchedIndicator = resolved?.indicators.find((indicator) =>
-      indicator.id === t.indicator_id || indicator.legacy_indicator_id === t.indicator_id
-    ) ?? null;
 
-    if (resolved && !matchedIndicator) {
-      console.warn('[SIDAK][input] unresolved rule indicator mapping', {
+    // 1. Validate period exists
+    const { data: period, error: pErr } = await supabase
+      .from('qa_periods')
+      .select('id')
+      .eq('id', period_id)
+      .single();
+    
+    if (pErr || !period) {
+      return { data: [], error: 'Periode tidak valid atau tidak ditemukan.' };
+    }
+
+    const { qaServiceServer } = await import('./services/qaService.server');
+    const resolvedRuleByService = new Map<ServiceType, Awaited<ReturnType<typeof qaServiceServer.resolveRuleVersion>>>();
+
+    const insertData = await Promise.all(temuanList.map(async (t) => {
+      if (!resolvedRuleByService.has(t.service_type)) {
+        const resolved = await qaServiceServer.resolveRuleVersion(period_id, t.service_type);
+        resolvedRuleByService.set(t.service_type, resolved);
+      }
+      const resolved = resolvedRuleByService.get(t.service_type) ?? null;
+      const matchedIndicator = resolved?.indicators.find((indicator) =>
+        indicator.id === t.indicator_id || indicator.legacy_indicator_id === t.indicator_id
+      ) ?? null;
+
+      if (resolved && !matchedIndicator) {
+        console.warn('[SIDAK][input] unresolved rule indicator mapping', {
+          peserta_id,
+          period_id,
+          service_type: t.service_type,
+          indicator_id: t.indicator_id,
+        });
+      }
+
+      return {
         peserta_id,
         period_id,
-        service_type: t.service_type,
-        indicator_id: t.indicator_id,
-      });
-    }
+        rule_version_id: resolved?.version.id ?? null,
+        rule_indicator_id: matchedIndicator?.id ?? null,
+        ...t
+      };
+    }));
 
-    return {
-      peserta_id,
-      period_id,
-      rule_version_id: resolved?.version.id ?? null,
-      rule_indicator_id: matchedIndicator?.id ?? null,
-      ...t
-    };
-  }));
+    const { data, error } = await supabase
+      .from('qa_temuan')
+      .insert(insertData)
+      .select('*, qa_indicators:qa_service_rule_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)');
+    
+    if (error) {
+      if (error.code === '23505' && error.message.includes('uq_qa_temuan_single_phantom_batch_per_period')) {
+        return { data: [], error: 'Sesi tanpa temuan gagal dibuat karena constraint database lama. Jalankan migration fix index terbaru terlebih dahulu.' };
+      }
+      if (isMissingVersionedRuleColumnError(error)) {
+        return { data: [], error: 'Skema SIDAK belum mendukung versioned QA rules. Jalankan migration database terbaru (kolom rule_version_id/rule_indicator_id) lalu coba lagi.' };
+      }
+      const norm = normalizeQaActionError(error, 'Gagal menyimpan temuan batch.');
+      return { data: [], error: norm.message };
+    }
+    
+    // Log Activity once for the batch
+    await supabase.from('activity_logs').insert({
+      user_id: user.id,
+      user_name: user.email,
+      action: `Input ${temuanList.length} Temuan SIDAK untuk Peserta ID: ${peserta_id}`,
+      module: 'SIDAK',
+      type: 'add'
+    });
 
-  const { data, error } = await supabase
-    .from('qa_temuan')
-    .insert(insertData)
-    .select('*, qa_indicators:qa_service_rule_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)');
-  
-  if (error) {
-    if (error.code === '23505' && error.message.includes('uq_qa_temuan_single_phantom_batch_per_period')) {
-      throw new Error('Sesi tanpa temuan gagal dibuat karena constraint database lama. Jalankan migration fix index terbaru terlebih dahulu.');
-    }
-    if (isMissingVersionedRuleColumnError(error)) {
-      throw new Error('Skema SIDAK belum mendukung versioned QA rules. Jalankan migration database terbaru (kolom rule_version_id/rule_indicator_id) lalu coba lagi.');
-    }
-    throw error;
+    revalidateQaTemuanCaches(peserta_id);
+    
+    return { data: data ?? [] };
+  } catch (err: any) {
+    const norm = normalizeQaActionError(err, 'Gagal menyimpan temuan batch.');
+    return { data: [], error: norm.message };
   }
-  
-  // Log Activity once for the batch
-  await supabase.from('activity_logs').insert({
-    user_id: user.id,
-    user_name: user.email,
-    action: `Input ${temuanList.length} Temuan SIDAK untuk Peserta ID: ${peserta_id}`,
-    module: 'SIDAK',
-    type: 'add'
-  });
-
-  revalidateQaTemuanCaches(peserta_id);
-  
-  return data ?? [];
 }
 
 export async function updateTemuanAction(
   id: string,
   patch: { nilai: number; ketidaksesuaian?: string; sebaiknya?: string }
-) {
-  const { createClient } = await import('@/app/lib/supabase/server');
-  const supabase = await createClient();
+): Promise<{ data: any | null; error?: string }> {
+  try {
+    const { createClient } = await import('@/app/lib/supabase/server');
+    const supabase = await createClient();
 
-  // Authentication Check
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Tidak terautentikasi');
+    // Authentication Check
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: 'Tidak terautentikasi' };
 
-  // RBAC Check for mutation
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
+    // RBAC Check for mutation
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
 
-  const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
-  if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
-    throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
+    const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
+    if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
+      return { data: null, error: 'Akses ditolak: Role tidak memiliki izin untuk aksi ini' };
+    }
+    const { data, error } = await supabase
+      .from('qa_temuan')
+      .update(patch)
+      .eq('id', id)
+      .select('*, qa_indicators:qa_service_rule_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
+      .single();
+    if (error) {
+      const norm = normalizeQaActionError(error, 'Gagal memperbarui temuan.');
+      return { data: null, error: norm.message };
+    }
+    
+    revalidateQaTemuanCaches(data?.peserta_id);
+    
+    return { data };
+  } catch (err: any) {
+    const norm = normalizeQaActionError(err, 'Gagal memperbarui temuan.');
+    return { data: null, error: norm.message };
   }
-  const { data, error } = await supabase
-    .from('qa_temuan')
-    .update(patch)
-    .eq('id', id)
-    .select('*, qa_indicators:qa_service_rule_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
-    .single();
-  if (error) throw error;
-  
-  revalidateQaTemuanCaches(data?.peserta_id);
-  
-  return data;
 }
 
-export async function deleteTemuanAction(id: string) {
-  const { createClient } = await import('@/app/lib/supabase/server');
-  const supabase = await createClient();
+export async function deleteTemuanAction(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { createClient } = await import('@/app/lib/supabase/server');
+    const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Tidak terautentikasi');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Tidak terautentikasi' };
 
-  // RBAC Check for mutation
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
+    // RBAC Check for mutation
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
 
-  const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
-  if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
-    throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
+    const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
+    if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
+      return { success: false, error: 'Akses ditolak: Role tidak memiliki izin untuk aksi ini' };
+    }
+    
+    const { data: current } = await supabase.from('qa_temuan').select('peserta_id').eq('id', id).single();
+    
+    const { error } = await supabase.from('qa_temuan').delete().eq('id', id);
+    if (error) {
+      const norm = normalizeQaActionError(error, 'Gagal menghapus temuan.');
+      return { success: false, error: norm.message };
+    }
+
+    // Log Activity
+    await supabase.from('activity_logs').insert({
+      user_id: user.id,
+      user_name: user.email,
+      action: `Menghapus Temuan SIDAK ID: ${id}`,
+      module: 'SIDAK',
+      type: 'delete'
+    });
+    
+    revalidateQaTemuanCaches(current?.peserta_id);
+    return { success: true };
+  } catch (err: any) {
+    const norm = normalizeQaActionError(err, 'Gagal menghapus temuan.');
+    return { success: false, error: norm.message };
   }
-  
-  const { data: current } = await supabase.from('qa_temuan').select('peserta_id').eq('id', id).single();
-  
-  const { error } = await supabase.from('qa_temuan').delete().eq('id', id);
-  if (error) throw error;
-
-  // Log Activity
-  await supabase.from('activity_logs').insert({
-    user_id: user.id,
-    user_name: user.email,
-    action: `Menghapus Temuan SIDAK ID: ${id}`,
-    module: 'SIDAK',
-    type: 'delete'
-  });
-  
-  revalidateQaTemuanCaches(current?.peserta_id);
 }
 
 export async function getAgentsByFolderAction(batch: string) {
@@ -508,102 +557,111 @@ export async function createPerfectScoreSessionAction(
   period_id: string,
   service_type: ServiceType,
   _no_tiket?: string
-) {
-  const { createClient } = await import('@/app/lib/supabase/server');
-  const supabase = await createClient();
+): Promise<{ data: any[]; error?: string }> {
+  try {
+    const { createClient } = await import('@/app/lib/supabase/server');
+    const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Tidak terautentikasi');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: [], error: 'Tidak terautentikasi' };
 
-  // RBAC Check for mutation
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
+    // RBAC Check for mutation
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
 
-  const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
-  if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
-    throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
-  }
-  const supportsPhantom = await hasPhantomPaddingSupport(supabase);
-  if (!supportsPhantom) {
-    throw new Error('Fitur sesi tanpa temuan belum aktif. Jalankan migration database terbaru terlebih dahulu.');
-  }
-
-  const { count: existingPhantomCount, error: existingErr } = await supabase
-    .from('qa_temuan')
-    .select('id', { count: 'exact', head: true })
-    .eq('peserta_id', peserta_id)
-    .eq('period_id', period_id)
-    .eq('service_type', service_type)
-    .eq('is_phantom_padding', true);
-  if (existingErr) throw existingErr;
-  if ((existingPhantomCount ?? 0) > 0) {
-    throw new Error('Sesi tanpa temuan untuk periode ini sudah pernah dibuat.');
-  }
-
-  // get indicators from resolved rule if possible, else fallback
-  const { qaServiceServer } = await import('./services/qaService.server');
-  const resolved = await qaServiceServer.resolveRuleVersion(period_id, service_type);
-  
-  let indicators;
-  let rule_version_id = null;
-  
-  if (resolved) {
-    indicators = resolved.indicators.map(i => ({ id: i.legacy_indicator_id || i.id, rule_indicator_id: i.id }));
-    rule_version_id = resolved.version.id;
-  } else {
-    const { data: inds, error: indsErr } = await supabase
-      .from('qa_indicators')
-      .select('id')
-      .eq('service_type', service_type);
-    if (indsErr || !inds) throw new Error('Gagal mengambil parameter untuk agent ini');
-    indicators = inds.map(i => ({ id: i.id, rule_indicator_id: null }));
-  }
-
-  if (indicators.length === 0) throw new Error('Tidak ada parameter untuk tim agent ini');
-
-  const phantomBatchId = crypto.randomUUID();
-  const PADDING_COUNT = 5;
-  const insertData = Array.from({ length: PADDING_COUNT }).flatMap((_, sessionIdx) =>
-    indicators.map((ind: { id: string, rule_indicator_id: string | null }) => ({
-      peserta_id,
-      period_id,
-      indicator_id: ind.id,
-      rule_version_id,
-      rule_indicator_id: ind.rule_indicator_id,
-      no_tiket: `__PHANTOM__${phantomBatchId}_${sessionIdx + 1}`,
-      nilai: 3,
-      service_type,
-      is_phantom_padding: true,
-      phantom_batch_id: phantomBatchId,
-    }))
-  );
-
-  const { data, error } = await supabase
-    .from('qa_temuan')
-    .insert(insertData)
-    .select('*, qa_indicators:qa_service_rule_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)');
-  
-  if (error) {
-    if (error.code === '23505' && error.message.includes('uq_qa_temuan_single_phantom_batch_per_period')) {
-      throw new Error('Sesi tanpa temuan gagal dibuat karena constraint database lama. Jalankan migration fix index terbaru terlebih dahulu.');
+    const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
+    if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
+      return { data: [], error: 'Akses ditolak: Role tidak memiliki izin untuk aksi ini' };
     }
-    throw error;
+    const supportsPhantom = await hasPhantomPaddingSupport(supabase);
+    if (!supportsPhantom) {
+      return { data: [], error: 'Fitur sesi tanpa temuan belum aktif. Jalankan migration database terbaru terlebih dahulu.' };
+    }
+
+    const { count: existingPhantomCount, error: existingErr } = await supabase
+      .from('qa_temuan')
+      .select('id', { count: 'exact', head: true })
+      .eq('peserta_id', peserta_id)
+      .eq('period_id', period_id)
+      .eq('service_type', service_type)
+      .eq('is_phantom_padding', true);
+    if (existingErr) {
+      const norm = normalizeQaActionError(existingErr, 'Gagal memeriksa sesi tanpa temuan.');
+      return { data: [], error: norm.message };
+    }
+    if ((existingPhantomCount ?? 0) > 0) {
+      return { data: [], error: 'Sesi tanpa temuan untuk periode ini sudah pernah dibuat.' };
+    }
+
+    // get indicators from resolved rule if possible, else fallback
+    const { qaServiceServer } = await import('./services/qaService.server');
+    const resolved = await qaServiceServer.resolveRuleVersion(period_id, service_type);
+    
+    let indicators;
+    let rule_version_id = null;
+    
+    if (resolved) {
+      indicators = resolved.indicators.map(i => ({ id: i.legacy_indicator_id || i.id, rule_indicator_id: i.id }));
+      rule_version_id = resolved.version.id;
+    } else {
+      const { data: inds, error: indsErr } = await supabase
+        .from('qa_indicators')
+        .select('id')
+        .eq('service_type', service_type);
+      if (indsErr || !inds) return { data: [], error: 'Gagal mengambil parameter untuk agent ini' };
+      indicators = inds.map(i => ({ id: i.id, rule_indicator_id: null }));
+    }
+
+    if (indicators.length === 0) return { data: [], error: 'Tidak ada parameter untuk tim agent ini' };
+
+    const phantomBatchId = crypto.randomUUID();
+    const PADDING_COUNT = 5;
+    const insertData = Array.from({ length: PADDING_COUNT }).flatMap((_, sessionIdx) =>
+      indicators.map((ind: { id: string, rule_indicator_id: string | null }) => ({
+        peserta_id,
+        period_id,
+        indicator_id: ind.id,
+        rule_version_id,
+        rule_indicator_id: ind.rule_indicator_id,
+        no_tiket: `__PHANTOM__${phantomBatchId}_${sessionIdx + 1}`,
+        nilai: 3,
+        service_type,
+        is_phantom_padding: true,
+        phantom_batch_id: phantomBatchId,
+      }))
+    );
+
+    const { data, error } = await supabase
+      .from('qa_temuan')
+      .insert(insertData)
+      .select('*, qa_indicators:qa_service_rule_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)');
+    
+    if (error) {
+      if (error.code === '23505' && error.message.includes('uq_qa_temuan_single_phantom_batch_per_period')) {
+        return { data: [], error: 'Sesi tanpa temuan gagal dibuat karena constraint database lama. Jalankan migration fix index terbaru terlebih dahulu.' };
+      }
+      const norm = normalizeQaActionError(error, 'Gagal membuat sesi tanpa temuan.');
+      return { data: [], error: norm.message };
+    }
+
+    await supabase.from('activity_logs').insert({
+      user_id: user.id,
+      user_name: user.email,
+      action: `Input Sesi Tanpa Temuan SIDAK (phantom x5) untuk Peserta ID: ${peserta_id}`,
+      module: 'SIDAK',
+      type: 'add'
+    });
+
+    revalidateQaTemuanCaches(peserta_id);
+    
+    return { data: data ?? [] };
+  } catch (err: any) {
+    const norm = normalizeQaActionError(err, 'Gagal membuat sesi tanpa temuan.');
+    return { data: [], error: norm.message };
   }
-
-  await supabase.from('activity_logs').insert({
-    user_id: user.id,
-    user_name: user.email,
-    action: `Input Sesi Tanpa Temuan SIDAK (phantom x5) untuk Peserta ID: ${peserta_id}`,
-    module: 'SIDAK',
-    type: 'add'
-  });
-
-  revalidateQaTemuanCaches(peserta_id);
-  
-  return data ?? [];
 }
 
 export async function getAgentPeriodsAction(agentId: string, year: number) {
