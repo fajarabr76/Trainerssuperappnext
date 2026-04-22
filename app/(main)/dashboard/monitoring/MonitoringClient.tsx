@@ -2,27 +2,11 @@
 
 import { motion, AnimatePresence } from "motion/react";
 import { Search, Filter, Download, X, Clock, Eye, FileText } from "lucide-react";
-import { createClient } from '@/app/lib/supabase/client';
-import { useEffect, useState, useMemo } from "react";
+import { useState } from "react";
 import PageHeroHeader from "@/app/components/PageHeroHeader";
-import { User } from "@supabase/supabase-js";
-import { Profile } from "@/app/types/auth";
 import { ChatMessage } from "@/app/types";
-import { EmailMessage, SessionConfig as PdktSessionConfig, EvaluationResult as PdktEvaluationResult } from "@/app/(main)/pdkt/types";
-
-// Types for unified history
-interface UnifiedHistory {
-  id: string;
-  user_id: string;
-  module: 'ketik' | 'pdkt' | 'telefun';
-  scenario_title: string;
-  created_at: string;
-  duration_seconds: number;
-  score: number | null;
-  history: ChatMessage[] | EmailMessage[] | string; // raw messages/emails/recording
-  user_email?: string;
-  user_role?: string;
-}
+import type { EmailMessage } from "@/app/(main)/pdkt/types";
+import type { UnifiedHistory } from "./types";
 
 // Modal Component for Viewing Transcript
 const TranscriptModal = ({ isOpen, onClose, result }: { isOpen: boolean, onClose: () => void, result: UnifiedHistory | null }) => {
@@ -145,186 +129,12 @@ const TranscriptModal = ({ isOpen, onClose, result }: { isOpen: boolean, onClose
   );
 };
 
-export default function MonitoringClient({ user: _user, role: _role, profile: _profile }: { user: User | null, role: string, profile: Profile | null }) {
-  const supabase = useMemo(() => createClient(), []);
-  const [results, setResults] = useState<UnifiedHistory[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function MonitoringClient({ initialResults }: { initialResults: UnifiedHistory[] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterModule, setFilterModule] = useState("all");
   const [selectedResult, setSelectedResult] = useState<UnifiedHistory | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function fetchAllHistory() {
-      try {
-        // Fetch from all legacy history tables + modern results table in parallel
-        const [ketikRes, pdktRes, telefunRes, resultsRes] = await Promise.all([
-          supabase.from('ketik_history').select('*').order('date', { ascending: false }),
-          supabase.from('pdkt_history').select('*').order('timestamp', { ascending: false }),
-          supabase.from('telefun_history').select('*').order('date', { ascending: false }),
-          supabase.from('results').select('*').order('created_at', { ascending: false }),
-        ]);
-
-        if (ketikRes.error) console.error('Error fetching ketik_history:', ketikRes.error);
-        if (pdktRes.error) console.error('Error fetching pdkt_history:', pdktRes.error);
-        if (telefunRes.error) console.error('Error fetching telefun_history:', telefunRes.error);
-        if (resultsRes.error) console.error('Error fetching results:', resultsRes.error);
-
-        // Fetch user profiles for mapping user_id -> email
-        const allUserIds = new Set<string>();
-        (ketikRes.data || []).forEach(r => allUserIds.add(r.user_id));
-        (pdktRes.data || []).forEach(r => allUserIds.add(r.user_id));
-        (telefunRes.data || []).forEach(r => allUserIds.add(r.user_id));
-        (resultsRes.data || []).forEach(r => allUserIds.add(r.user_id));
-
-        const profilesMap: Record<string, { email: string; role: string }> = {};
-        if (allUserIds.size > 0) {
-          const { data: profilesData, error: profilesError } = await supabase
-            .from('profiles')
-            .select('id, email, role')
-            .in('id', [...allUserIds]);
-
-          if (profilesError) {
-            console.error('Error fetching profiles:', profilesError);
-          }
-          
-          (profilesData || []).forEach(p => {
-            profilesMap[p.id] = { email: p.email || '', role: p.role || '' };
-          });
-        }
-
-        const unified: UnifiedHistory[] = [];
-
-        // Transform ketik_history
-        (ketikRes.data || []).forEach(r => {
-          const messages = (Array.isArray(r.messages) ? r.messages : []) as ChatMessage[];
-          let durationSeconds = 0;
-          const timestamps = messages.filter((m) => m.timestamp).map((m) => new Date(m.timestamp).getTime());
-          if (timestamps.length >= 2) {
-            durationSeconds = Math.floor((Math.max(...timestamps) - Math.min(...timestamps)) / 1000);
-          }
-
-          unified.push({
-            id: r.id,
-            user_id: r.user_id,
-            module: 'ketik',
-            scenario_title: r.scenario_title || 'Simulasi Chat',
-            created_at: r.date,
-            duration_seconds: durationSeconds,
-            score: null,
-            history: messages,
-            user_email: profilesMap[r.user_id]?.email,
-            user_role: profilesMap[r.user_id]?.role,
-          });
-        });
-
-        // Transform pdkt_history
-        (pdktRes.data || []).forEach(r => {
-          const config = (r.config || {}) as PdktSessionConfig;
-          const evaluation = (r.evaluation || {}) as PdktEvaluationResult;
-          unified.push({
-            id: r.id,
-            user_id: r.user_id,
-            module: 'pdkt',
-            scenario_title: config?.scenarios?.[0]?.title || 'Simulasi Email',
-            created_at: r.timestamp,
-            duration_seconds: r.time_taken || 0,
-            score: evaluation?.score ?? null,
-            history: (r.emails || []) as EmailMessage[],
-            user_email: profilesMap[r.user_id]?.email,
-            user_role: profilesMap[r.user_id]?.role,
-          });
-        });
-
-        // Transform telefun_history
-        (telefunRes.data || []).forEach(r => {
-          unified.push({
-            id: r.id,
-            user_id: r.user_id,
-            module: 'telefun',
-            scenario_title: r.scenario_title || 'Simulasi Telepon',
-            created_at: r.date,
-            duration_seconds: r.duration || 0,
-            score: null,
-            history: r.recording_url || '',
-            user_email: profilesMap[r.user_id]?.email,
-            user_role: profilesMap[r.user_id]?.role,
-          });
-        });
-
-        // Transform modern results table (dual-source for all modules)
-        (resultsRes.data || []).forEach(r => {
-          const payload = r.details || r.history || {};
-          const moduleType = r.module as 'ketik' | 'pdkt' | 'telefun';
-
-          if (moduleType === 'ketik') {
-            const messages = (Array.isArray(payload.messages) ? payload.messages : []) as ChatMessage[];
-            let durationSeconds = 0;
-            const timestamps = messages.filter((m: ChatMessage) => m.timestamp).map((m: ChatMessage) => new Date(m.timestamp).getTime());
-            if (timestamps.length >= 2) {
-              durationSeconds = Math.floor((Math.max(...timestamps) - Math.min(...timestamps)) / 1000);
-            }
-
-            unified.push({
-              id: r.id,
-              user_id: r.user_id,
-              module: 'ketik',
-              scenario_title: payload.scenario_title || payload.scenario || payload.subject || 'Simulasi Chat',
-              created_at: r.created_at,
-              duration_seconds: durationSeconds,
-              score: r.score ?? null,
-              history: messages,
-              user_email: profilesMap[r.user_id]?.email,
-              user_role: profilesMap[r.user_id]?.role,
-            });
-          } else if (moduleType === 'pdkt') {
-            unified.push({
-              id: r.id,
-              user_id: r.user_id,
-              module: 'pdkt',
-              scenario_title: payload.subject || payload.scenario_title || 'Simulasi Email',
-              created_at: r.created_at,
-              duration_seconds: payload.timeTaken || 0,
-              score: r.score ?? null,
-              history: (payload.emails || []) as EmailMessage[],
-              user_email: profilesMap[r.user_id]?.email,
-              user_role: profilesMap[r.user_id]?.role,
-            });
-          } else if (moduleType === 'telefun') {
-            unified.push({
-              id: r.id,
-              user_id: r.user_id,
-              module: 'telefun',
-              scenario_title: payload.scenario || payload.scenario_title || 'Simulasi Telepon',
-              created_at: r.created_at,
-              duration_seconds: payload.duration || 0,
-              score: r.score ?? null,
-              history: payload.recordingUrl || '',
-              user_email: profilesMap[r.user_id]?.email,
-              user_role: profilesMap[r.user_id]?.role,
-            });
-          }
-        });
-
-        // Sort by date descending
-        unified.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-        if (isMounted) {
-          setResults(unified);
-        }
-      } catch (err: unknown) {
-        console.error("Error fetching history:", err);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    }
-
-    fetchAllHistory();
-    return () => { isMounted = false; };
-  }, [supabase]);
+  const results = initialResults;
+  const loading = false;
 
   const filteredResults = results.filter(r => {
     const email = r.user_email || "";
