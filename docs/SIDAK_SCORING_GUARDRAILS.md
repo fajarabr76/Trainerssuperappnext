@@ -53,6 +53,24 @@ Checklist review:
 - [ ] `totalDefects`, `findingsCount`, pareto, donut, dan ranking defect hanya memakai `findingRows`.
 - [ ] Mixed real + phantom tetap menghasilkan skor/defect yang sama dengan row real saja.
 
+### 4) Service Inference Harus Lewat Helper Tunggal
+
+- Inferensi default service dari `tim` wajib menggunakan `resolveServiceTypeFromTeam(team?)` di `qa-types.ts`.
+- Dilarang menulis chain `includes()` terpisah atau exact-match `TIM_TO_DEFAULT_SERVICE[agent.tim] ?? 'call'` di luar helper.
+- Helper menangani: trim + lowercase, passthrough service code langsung (`call`, `cso`, dll), alias tim (`mix`/`cso` → `cso`, `telepon`/`call` → `call`), dan fallback akhir ke `call`.
+- Jika UI sudah mengetahui service aktif, query prefetch temuan per `agent + period` wajib ikut filter `service_type` (via `getTemuanByAgentPeriod` argumen ketiga).
+
+Rute terdampak:
+- `/qa-analyzer/input` — prefetch `initialIndicators` dan `initialTemuan` harus scoped ke service yang sama.
+- `/qa-analyzer/agents/[id]` — canonical redirect `service=` harus memakai `resolveServiceTypeFromTeam`.
+- Service-layer fallback di `qaService.server.ts` — `getAgentListWithScores` dan sejenisnya harus memakai helper, bukan lookup `TIM_TO_DEFAULT_SERVICE` langsung.
+
+Checklist review:
+- [ ] Tidak ada `includes('mix')`, `includes('chat')`, atau chain serupa di luar `resolveServiceTypeFromTeam`.
+- [ ] Tidak ada `TIM_TO_DEFAULT_SERVICE[...] ?? 'call'` di luar helper.
+- [ ] Prefetch temuan di input page membawa argumen `serviceType` ke `getTemuanByAgentPeriod`.
+- [ ] Agent detail page memakai `resolveServiceTypeFromTeam` untuk menentukan `defaultSvc`.
+
 ## Deployment Checklist
 
 1. Apply migration terbaru SIDAK (termasuk fix scoring/dashboard):

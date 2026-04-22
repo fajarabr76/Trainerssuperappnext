@@ -1,6 +1,6 @@
 import nextDynamic from 'next/dynamic';
 import { qaServiceServer } from '../services/qaService.server';
-import { ServiceType, QAPeriod, EXCLUDED_FOLDERS, Agent, DEFAULT_SERVICE_WEIGHTS } from '../lib/qa-types';
+import { ServiceType, QAPeriod, EXCLUDED_FOLDERS, Agent, DEFAULT_SERVICE_WEIGHTS, resolveServiceTypeFromTeam } from '../lib/qa-types';
 import { Profile } from '@/app/types/auth';
 import { requirePageAccess } from '@/app/lib/authz';
 
@@ -81,17 +81,9 @@ export default async function QaInputPage({ searchParams }: PageProps) {
       try {
         initialAgent = await qaServiceServer.getAgentMiniProfile(agentIdParam);
         if (initialAgent) {
-          let defaultService: ServiceType = 'call';
-          const team = initialAgent.tim || '';
-          const normalizedTim = team.toLowerCase().trim();
-          if (normalizedTim.includes('mix')) defaultService = 'cso';
-          else if (normalizedTim.includes('chat')) defaultService = 'chat';
-          else if (normalizedTim.includes('email')) defaultService = 'email';
-          else if (normalizedTim.includes('bko')) defaultService = 'bko';
-          else if (normalizedTim.includes('slik')) defaultService = 'slik';
-          
+          const defaultService: ServiceType = resolveServiceTypeFromTeam(initialAgent.tim);
           initialService = defaultService;
-          initialTeam = team;
+          initialTeam = initialAgent.tim || '';
           initialStep = 'period';
 
           // Pre-fetch indicators for the default service
@@ -104,7 +96,7 @@ export default async function QaInputPage({ searchParams }: PageProps) {
           if (periodIdParam) {
             initialPeriod = allPeriods.find(p => p.id === periodIdParam) || null;
             try {
-              initialTemuan = await qaServiceServer.getTemuanByAgentPeriod(agentIdParam, periodIdParam);
+              initialTemuan = await qaServiceServer.getTemuanByAgentPeriod(agentIdParam, periodIdParam, defaultService);
               initialStep = 'list';
             } catch (temuanErr) {
               console.error("Error pre-fetching temuan:", temuanErr);

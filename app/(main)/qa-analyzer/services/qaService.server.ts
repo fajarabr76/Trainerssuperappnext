@@ -17,7 +17,6 @@ import {
   ScoringMode,
   Category,
   DEFAULT_SERVICE_WEIGHTS,
-  TIM_TO_DEFAULT_SERVICE,
   SharedContext,
   SERVICE_LABELS,
   ServiceComparisonData,
@@ -30,6 +29,7 @@ import {
   unwrapIndicator,
   unwrapPeriod,
   unwrapAgent,
+  resolveServiceTypeFromTeam,
   QARuleVersion,
   QARuleIndicatorSnapshot,
   ResolvedQARule
@@ -917,7 +917,7 @@ export const qaServiceServer = {
 
   // ── QA Temuan CRUD ────────────────────────────────────────────
   async getTemuanByAgentPeriod(
-    peserta_id: string, period_id: string
+    peserta_id: string, period_id: string, serviceType?: ServiceType
   ): Promise<QATemuan[]> {
     const supabase = await createClient();
     const queryClient = getServiceSupabase() || supabase;
@@ -927,6 +927,9 @@ export const qaServiceServer = {
       .select('*, qa_indicators:qa_service_rule_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
       .eq('peserta_id', peserta_id)
       .eq('period_id', period_id);
+    if (serviceType) {
+      query = query.eq('service_type', serviceType);
+    }
     if (supportsPhantom) {
       query = query.eq('is_phantom_padding', false);
     }
@@ -1109,7 +1112,7 @@ export const qaServiceServer = {
       try {
         const pSvcMap = new Map<string, QATemuan[]>();
         agentTemuan.forEach(t => {
-          const activeService = (t.service_type || TIM_TO_DEFAULT_SERVICE[agentObj.tim] || 'call').toLowerCase();
+          const activeService = (t.service_type || resolveServiceTypeFromTeam(agentObj.tim)).toLowerCase();
           const period = t.qa_periods as QAPeriod;
           const psk = periodServiceKey(period.month, period.year, activeService);
           if (!pSvcMap.has(psk)) pSvcMap.set(psk, []);
@@ -1123,7 +1126,7 @@ export const qaServiceServer = {
         const latestTemuan = pSvcMap.get(latestPsk);
         if (!latestTemuan || latestTemuan.length === 0) continue;
 
-        const activeService = (latestTemuan[0]?.service_type || TIM_TO_DEFAULT_SERVICE[agentObj.tim] || 'call').toLowerCase();
+        const activeService = (latestTemuan[0]?.service_type || resolveServiceTypeFromTeam(agentObj.tim)).toLowerCase();
 
         // Resolve versioned rules
         const latestContext = await loadScoringContext(activeService as ServiceType, latestTemuan[0].period_id);

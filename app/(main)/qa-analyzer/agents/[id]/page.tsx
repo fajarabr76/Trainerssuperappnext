@@ -2,7 +2,7 @@ import { createClient } from '@/app/lib/supabase/server';
 import { notFound, redirect } from 'next/navigation';
 import QaAgentDetailClient from './QaAgentDetailClient';
 import { qaServiceServer } from '../../services/qaService.server';
-import { TIM_TO_DEFAULT_SERVICE, AgentDetailData, isServiceType, ServiceType } from '../../lib/qa-types';
+import { resolveServiceTypeFromTeam, AgentDetailData, isServiceType, ServiceType } from '../../lib/qa-types';
 import { requirePageAccess } from '@/app/lib/authz';
 
 export const dynamic = 'force-dynamic';
@@ -73,7 +73,7 @@ export default async function QaAgentDetailPage({
     const availableServices = new Set<ServiceType>(periodSummary.periods.map((period) => period.serviceType));
     
     // Logic: Fallback sequence if qService is missing or invalid
-    const defaultSvc = agent.tim ? (TIM_TO_DEFAULT_SERVICE[agent.tim] ?? 'call') : 'call';
+    const defaultSvc = resolveServiceTypeFromTeam(agent.tim);
     const requestedService = isServiceType(qService) ? qService : null;
     let initialService: ServiceType = requestedService || periodSummary.periods[0]?.serviceType || defaultSvc;
 

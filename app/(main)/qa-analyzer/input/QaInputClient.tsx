@@ -23,6 +23,7 @@ import {
   NILAI_LABELS,
   Agent,
   unwrapIndicator,
+  resolveServiceTypeFromTeam,
 } from '../lib/qa-types';
 import type { QAIndicator, QAPeriod, QATemuan, ServiceType, ServiceWeight } from '../lib/qa-types';
 import { TIM_TO_DEFAULT_SERVICE, SERVICE_LABELS, DEFAULT_SERVICE_WEIGHTS } from '../lib/qa-types';
@@ -452,20 +453,7 @@ export default function QaInputClient({
     setLoading(true); setErrorMsg(null);
     
     try {
-      // Default service for the team
-      let defaultService: ServiceType = 'call';
-      const normalizedTim = agent.tim?.toLowerCase()?.trim() || '';
-      if (normalizedTim.includes('mix')) {
-        defaultService = 'cso';
-      } else if (normalizedTim.includes('chat')) {
-        defaultService = 'chat';
-      } else if (normalizedTim.includes('email')) {
-        defaultService = 'email';
-      } else if (normalizedTim.includes('bko')) {
-        defaultService = 'bko';
-      } else if (normalizedTim.includes('slik')) {
-        defaultService = 'slik';
-      }
+      const defaultService: ServiceType = resolveServiceTypeFromTeam(agent.tim);
       setSelectedService(defaultService);
       setSelectedTeam(agent.tim || '');
       

@@ -45,6 +45,35 @@ export const TIM_TO_DEFAULT_SERVICE: Record<string, ServiceType> = {
   'SLIK': 'slik'
 };
 
+export function resolveServiceTypeFromTeam(team?: string | null): ServiceType {
+  if (!team) return 'call';
+  const raw = team.trim().toLowerCase();
+
+  if (isServiceType(raw)) return raw;
+
+  const ALIAS_MAP: Record<string, ServiceType> = {
+    mix: 'cso',
+    cso: 'cso',
+    telepon: 'call',
+    call: 'call',
+    chat: 'chat',
+    email: 'email',
+    bko: 'bko',
+    slik: 'slik',
+    pencatatan: 'pencatatan',
+  };
+
+  for (const [alias, service] of Object.entries(ALIAS_MAP)) {
+    if (raw.includes(alias)) return service;
+  }
+
+  for (const [key, value] of Object.entries(TIM_TO_DEFAULT_SERVICE)) {
+    if (raw === key.trim().toLowerCase()) return value;
+  }
+
+  return 'call';
+}
+
 // ── Interfaces ────────────────────────────────────────────────
 export interface QAIndicator {
   id: string;

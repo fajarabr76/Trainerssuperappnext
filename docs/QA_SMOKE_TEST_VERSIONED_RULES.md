@@ -72,3 +72,11 @@ Checklist ini dipakai setelah migration:
 - [ ] Buka `/qa-analyzer/agents/[id]` untuk minimal 1 agent yang punya temuan real dan pastikan panel skor detail tidak mentok di `100%`.
 - [ ] Bandingkan skor detail agent dengan directory `/qa-analyzer/agents` untuk agent/service yang sama.
 - [ ] Jika mismatch muncul lagi, blok release dan rujuk `docs/SIDAK_KNOWN_ISSUE_AGENT_DETAIL_SCORE.md`.
+
+## K. Service Default CSO/Call Regression Check
+- [ ] Pilih agent dengan tim `Mix` atau `CSO` di `/qa-analyzer/input`; pastikan layanan default yang terpilih adalah `CSO`, bukan `Call`.
+- [ ] Pilih periode yang sudah punya data temuan multi-service; pastikan parameter dan daftar temuan yang muncul hanya milik `cso`, tidak bocor dari `call`.
+- [ ] Buka `/qa-analyzer/agents/[id]` untuk agent yang sama tanpa query `service` di URL; pastikan canonical redirect memilih `service=cso` (bukan `service=call`).
+- [ ] Ulangi poin di atas pada agent dengan tim `Telepon` sebagai kontrol; default harus tetap `call`.
+- [ ] Verifikasi bahwa semua jalur code memakai `resolveServiceTypeFromTeam()` dari `qa-types.ts`, bukan chain `includes()` atau `TIM_TO_DEFAULT_SERVICE[...] ?? 'call'` inline.
+- [ ] Verifikasi bahwa `getTemuanByAgentPeriod(...)` dipanggil dengan argumen `serviceType` ketika service sudah diketahui, sehingga prefetch tidak mengambil semua service sekaligus.
