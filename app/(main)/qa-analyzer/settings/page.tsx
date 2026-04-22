@@ -11,18 +11,18 @@ export default async function QaSettingsPage() {
   });
 
   // Fetch initial data
-  const [indicators, weights, periods] = await Promise.all([
+  const [indicators, weightsRes, periods] = await Promise.all([
     qaServiceServer.getIndicators(),
     getAllServiceWeightsAction(),
     qaServiceServer.getPeriods(),
   ]);
 
   return (
-    <QaVersionedSettings 
-      user={user} 
-      role={role} 
+    <QaVersionedSettings
+      user={user}
+      role={role}
       initialIndicators={indicators}
-      initialWeights={weights}
+      initialWeights={weightsRes.data}
       periods={periods}
     />
   );

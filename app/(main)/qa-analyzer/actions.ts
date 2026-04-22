@@ -131,16 +131,28 @@ function normalizeQaActionError(error: any, fallbackMessage: string): Error {
   return new Error(fallbackMessage);
 }
 
-export async function getAgentExportDataAction(agentId: string): Promise<ExportData> {
-  await assertCanAccessAgentDetail(agentId);
-  const { qaServiceServer } = await import('./services/qaService.server');
-  return await qaServiceServer.getAgentExportData(agentId);
+export async function getAgentExportDataAction(agentId: string): Promise<{ data: ExportData | null; error?: string }> {
+  try {
+    await assertCanAccessAgentDetail(agentId);
+    const { qaServiceServer } = await import('./services/qaService.server');
+    const data = await qaServiceServer.getAgentExportData(agentId);
+    return { data };
+  } catch (err) {
+    const norm = normalizeQaActionError(err, 'Gagal menyiapkan data export.');
+    return { data: null, error: norm.message };
+  }
 }
 
-export async function getPersonalTrendAction(agentId: string, year: number, startMonth: number, endMonth: number, serviceType?: string) {
-  await assertCanAccessAgentDetail(agentId);
-  const { qaServiceServer } = await import('./services/qaService.server');
-  return await qaServiceServer.getPersonalTrendWithParameters(agentId, year, startMonth, endMonth, serviceType);
+export async function getPersonalTrendAction(agentId: string, year: number, startMonth: number, endMonth: number, serviceType?: string): Promise<{ data: any | null; error?: string }> {
+  try {
+    await assertCanAccessAgentDetail(agentId);
+    const { qaServiceServer } = await import('./services/qaService.server');
+    const data = await qaServiceServer.getPersonalTrendWithParameters(agentId, year, startMonth, endMonth, serviceType);
+    return { data };
+  } catch (err) {
+    const norm = normalizeQaActionError(err, 'Gagal memproses data tren agent.');
+    return { data: null, error: norm.message };
+  }
 }
 
 export async function getLastAuditedMonthAction(agentId: string, year: number, serviceType?: string) {
@@ -177,68 +189,86 @@ export async function getLastAuditedMonthAction(agentId: string, year: number, s
   return latestPeriod ? latestPeriod.month : null;
 }
 
-export async function createPeriodAction(month: number, year: number) {
-  const { createClient } = await import('@/app/lib/supabase/server');
-  const supabase = await createClient();
+export async function createPeriodAction(month: number, year: number): Promise<{ data: any | null; error?: string }> {
+  try {
+    const { createClient } = await import('@/app/lib/supabase/server');
+    const supabase = await createClient();
 
-  // Authentication Check
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Tidak terautentikasi');
+    // Authentication Check
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: 'Tidak terautentikasi' };
 
-  // RBAC Check for mutation
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
+    // RBAC Check for mutation
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
 
-  const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
-  if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
-    throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
+    const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
+    if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
+      return { data: null, error: 'Akses ditolak: Role tidak memiliki izin untuk aksi ini' };
+    }
+
+    const { data, error } = await supabase.from('qa_periods').insert({ month, year }).select().single();
+    if (error) {
+      if (error.code === '23505') return { data: null, error: 'Periode ini sudah ada.' };
+      const norm = normalizeQaActionError(error, 'Gagal membuat periode.');
+      return { data: null, error: norm.message };
+    }
+    revalidatePath('/qa-analyzer/periods');
+    revalidateQaPerformanceCaches();
+    revalidateTag('periods');
+    return { data };
+  } catch (err) {
+    const norm = normalizeQaActionError(err, 'Gagal membuat periode.');
+    return { data: null, error: norm.message };
   }
-
-  const { data, error } = await supabase.from('qa_periods').insert({ month, year }).select().single();
-  if (error) {
-    if (error.code === '23505') throw new Error('Periode ini sudah ada.');
-    throw error;
-  }
-  revalidatePath('/qa-analyzer/periods');
-  revalidateQaPerformanceCaches();
-  revalidateTag('periods');
-  return data;
 }
 
-export async function deletePeriodAction(id: string) {
-  const { createClient } = await import('@/app/lib/supabase/server');
-  const supabase = await createClient();
-  
-  // Authentication Check
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Tidak terautentikasi');
+export async function deletePeriodAction(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { createClient } = await import('@/app/lib/supabase/server');
+    const supabase = await createClient();
+    
+    // Authentication Check
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Tidak terautentikasi' };
 
-  // RBAC Check for mutation
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
+    // RBAC Check for mutation
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
 
-  const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
-  if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
-    throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
+    const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
+    if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
+      return { success: false, error: 'Akses ditolak: Role tidak memiliki izin untuk aksi ini' };
+    }
+
+    const { count, error: checkError } = await supabase
+      .from('qa_temuan').select('*', { count: 'exact', head: true }).eq('period_id', id);
+    if (checkError) {
+      const norm = normalizeQaActionError(checkError, 'Gagal memverifikasi status periode.');
+      return { success: false, error: norm.message };
+    }
+    if ((count ?? 0) > 0) return { success: false, error: 'Periode ini sudah memiliki data temuan dan tidak bisa dihapus.' };
+    
+    const { error } = await supabase.from('qa_periods').delete().eq('id', id);
+    if (error) {
+      const norm = normalizeQaActionError(error, 'Gagal menghapus periode.');
+      return { success: false, error: norm.message };
+    }
+    
+    revalidatePath('/qa-analyzer/periods');
+    revalidateQaPerformanceCaches();
+    revalidateTag('periods');
+    return { success: true };
+  } catch (err) {
+    const norm = normalizeQaActionError(err, 'Gagal menghapus periode.');
+    return { success: false, error: norm.message };
   }
-
-  const { count, error: checkError } = await supabase
-    .from('qa_temuan').select('*', { count: 'exact', head: true }).eq('period_id', id);
-  if (checkError) throw checkError;
-  if ((count ?? 0) > 0) throw new Error('Periode ini sudah memiliki data temuan dan tidak bisa dihapus.');
-  
-  const { error } = await supabase.from('qa_periods').delete().eq('id', id);
-  if (error) throw error;
-  
-  revalidatePath('/qa-analyzer/periods');
-  revalidateQaPerformanceCaches();
-  revalidateTag('periods');
 }
 
 export async function createIndicatorAction(
@@ -540,16 +570,28 @@ export async function deleteTemuanAction(id: string): Promise<{ success: boolean
   }
 }
 
-export async function getAgentsByFolderAction(batch: string) {
-  await assertQaActionAccess(['trainer', 'admin']);
-  const { qaServiceServer } = await import('./services/qaService.server');
-  return await qaServiceServer.getAgentsByFolder(batch);
+export async function getAgentsByFolderAction(batch: string): Promise<{ data: any[]; error?: string }> {
+  try {
+    await assertQaActionAccess(['trainer', 'admin']);
+    const { qaServiceServer } = await import('./services/qaService.server');
+    const data = await qaServiceServer.getAgentsByFolder(batch);
+    return { data };
+  } catch (err) {
+    const norm = normalizeQaActionError(err, 'Gagal mengambil daftar agent.');
+    return { data: [], error: norm.message };
+  }
 }
 
-export async function getFoldersAction() {
-  await assertQaActionAccess(['trainer', 'admin']);
-  const { qaServiceServer } = await import('./services/qaService.server');
-  return await qaServiceServer.getFolders();
+export async function getFoldersAction(): Promise<{ data: string[]; error?: string }> {
+  try {
+    await assertQaActionAccess(['trainer', 'admin']);
+    const { qaServiceServer } = await import('./services/qaService.server');
+    const data = await qaServiceServer.getFolders();
+    return { data };
+  } catch (err) {
+    const norm = normalizeQaActionError(err, 'Gagal mengambil daftar folder.');
+    return { data: [], error: norm.message };
+  }
 }
 
 export async function createPerfectScoreSessionAction(
@@ -664,16 +706,28 @@ export async function createPerfectScoreSessionAction(
   }
 }
 
-export async function getAgentPeriodsAction(agentId: string, year: number) {
-  await assertCanAccessAgentDetail(agentId);
-  const { qaServiceServer } = await import('./services/qaService.server');
-  return await qaServiceServer.getAgentPeriodSummaries(agentId, year);
+export async function getAgentPeriodsAction(agentId: string, year: number): Promise<{ periods: any[]; error?: string }> {
+  try {
+    await assertCanAccessAgentDetail(agentId);
+    const { qaServiceServer } = await import('./services/qaService.server');
+    const result = await qaServiceServer.getAgentPeriodSummaries(agentId, year);
+    return { periods: result.periods };
+  } catch (err) {
+    const norm = normalizeQaActionError(err, 'Gagal mengambil riwayat periode agent.');
+    return { periods: [], error: norm.message };
+  }
 }
 
-export async function getAgentTemuanRangeAction(agentId: string, year: number, startMonth: number, endMonth: number, serviceType: string) {
-  await assertCanAccessAgentDetail(agentId);
-  const { qaServiceServer } = await import('./services/qaService.server');
-  return await qaServiceServer.getAgentTemuanRange(agentId, year, startMonth, endMonth, serviceType);
+export async function getAgentTemuanRangeAction(agentId: string, year: number, startMonth: number, endMonth: number, serviceType: string): Promise<{ data: any[]; error?: string }> {
+  try {
+    await assertCanAccessAgentDetail(agentId);
+    const { qaServiceServer } = await import('./services/qaService.server');
+    const data = await qaServiceServer.getAgentTemuanRange(agentId, year, startMonth, endMonth, serviceType);
+    return { data };
+  } catch (err) {
+    const norm = normalizeQaActionError(err, 'Gagal mengambil data temuan audit.');
+    return { data: [], error: norm.message };
+  }
 }
 
 export async function getAgentTemuanPageAction(
@@ -682,10 +736,16 @@ export async function getAgentTemuanPageAction(
   periodId: string,
   serviceType: string,
   page: number
-) {
-  await assertCanAccessAgentDetail(agentId);
-  const { qaServiceServer } = await import('./services/qaService.server');
-  return await qaServiceServer.getAgentTemuanPage(agentId, year, periodId, serviceType, page);
+): Promise<{ data: any; error?: string }> {
+  try {
+    await assertCanAccessAgentDetail(agentId);
+    const { qaServiceServer } = await import('./services/qaService.server');
+    const data = await qaServiceServer.getAgentTemuanPage(agentId, year, periodId, serviceType, page);
+    return { data };
+  } catch (err) {
+    const norm = normalizeQaActionError(err, 'Gagal mengambil halaman temuan audit.');
+    return { data: null, error: norm.message };
+  }
 }
 
 export async function getRankingAgenAction(
@@ -711,23 +771,31 @@ export async function getRankingAgenAction(
   }
 }
 
-export async function getAllServiceWeightsAction(): Promise<Record<ServiceType, ServiceWeight>> {
-  await assertQaActionAccess(['trainer', 'admin']);
-  const { createClient } = await import('@/app/lib/supabase/server');
-  const supabase = await createClient();
-  const { data, error } = await supabase.from('qa_service_weights').select('*');
-  if (error) throw new Error(error.message);
+export async function getAllServiceWeightsAction(): Promise<{ data: Record<ServiceType, ServiceWeight>; error?: string }> {
+  try {
+    await assertQaActionAccess(['trainer', 'admin']);
+    const { createClient } = await import('@/app/lib/supabase/server');
+    const supabase = await createClient();
+    const { data, error } = await supabase.from('qa_service_weights').select('*');
+    if (error) {
+      const norm = normalizeQaActionError(error, 'Gagal mengambil konfigurasi bobot.');
+      return { data: { ...DEFAULT_SERVICE_WEIGHTS }, error: norm.message };
+    }
 
-  const result = { ...DEFAULT_SERVICE_WEIGHTS };
-  data?.forEach(row => {
-    result[row.service_type as ServiceType] = {
-      service_type:        row.service_type,
-      critical_weight:     Number(row.critical_weight),
-      non_critical_weight: Number(row.non_critical_weight),
-      scoring_mode:        row.scoring_mode as ScoringMode,
-    };
-  });
-  return result;
+    const result = { ...DEFAULT_SERVICE_WEIGHTS };
+    data?.forEach(row => {
+      result[row.service_type as ServiceType] = {
+        service_type:        row.service_type,
+        critical_weight:     Number(row.critical_weight),
+        non_critical_weight: Number(row.non_critical_weight),
+        scoring_mode:        row.scoring_mode as ScoringMode,
+      };
+    });
+    return { data: result };
+  } catch (err) {
+    const norm = normalizeQaActionError(err, 'Gagal mengambil konfigurasi bobot.');
+    return { data: { ...DEFAULT_SERVICE_WEIGHTS }, error: norm.message };
+  }
 }
 
 export async function updateServiceWeightAction(
@@ -735,61 +803,82 @@ export async function updateServiceWeightAction(
   criticalWeight: number,
   nonCriticalWeight: number,
   scoringMode: ScoringMode
-): Promise<ServiceWeight> {
-  if (Math.abs(criticalWeight + nonCriticalWeight - 1) > 0.001)
-    throw new Error('Total bobot critical + non-critical harus 100%.');
+): Promise<{ data: ServiceWeight | null; error?: string }> {
+  try {
+    if (Math.abs(criticalWeight + nonCriticalWeight - 1) > 0.001) {
+      return { data: null, error: 'Total bobot critical + non-critical harus 100%.' };
+    }
 
-  const { createClient } = await import('@/app/lib/supabase/server');
-  const supabase = await createClient();
+    const { createClient } = await import('@/app/lib/supabase/server');
+    const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Tidak terautentikasi');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: 'Tidak terautentikasi' };
 
-  // RBAC Check for mutation
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
+    // RBAC Check for mutation
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
 
-  const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
-  if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
-    throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
+    const allowedMutationRoles = ['trainer', 'trainers', 'admin'];
+    if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
+      return { data: null, error: 'Akses ditolak: Role tidak memiliki izin untuk aksi ini' };
+    }
+
+    const { data, error } = await supabase
+      .from('qa_service_weights')
+      .upsert({
+        service_type:        serviceType,
+        critical_weight:     criticalWeight,
+        non_critical_weight: nonCriticalWeight,
+        scoring_mode:        scoringMode,
+        updated_at:          new Date().toISOString(),
+        updated_by:          user.id
+      }, { onConflict: 'service_type' })
+      .select().single();
+
+    if (error) {
+      const norm = normalizeQaActionError(error, 'Gagal memperbarui bobot.');
+      return { data: null, error: norm.message };
+    }
+
+    revalidatePath('/qa-analyzer/settings');
+    revalidatePath('/qa-analyzer/input');
+    revalidateQaPerformanceCaches();
+    revalidateTag('indicators');
+
+    return { data };
+  } catch (err) {
+    const norm = normalizeQaActionError(err, 'Gagal memperbarui bobot.');
+    return { data: null, error: norm.message };
   }
-
-  const { data, error } = await supabase
-    .from('qa_service_weights')
-    .upsert({
-      service_type:        serviceType,
-      critical_weight:     criticalWeight,
-      non_critical_weight: nonCriticalWeight,
-      scoring_mode:        scoringMode,
-      updated_at:          new Date().toISOString(),
-      updated_by:          user.id
-    }, { onConflict: 'service_type' })
-    .select().single();
-
-  if (error) throw new Error(error.message);
-
-  revalidatePath('/qa-analyzer/settings');
-  revalidatePath('/qa-analyzer/input');
-  revalidateQaPerformanceCaches();
-  revalidateTag('indicators');
-
-  return data;
 }
 
 // ── Rule Versioning Actions ──────────────────────────────────
-export async function getRuleVersionsAction(serviceType: ServiceType) {
-  await assertQaActionAccess(['trainer', 'admin']);
-  const { qaServiceServer } = await import('./services/qaService.server');
-  return await qaServiceServer.getRuleVersions(serviceType);
+export async function getRuleVersionsAction(serviceType: ServiceType): Promise<{ data: any[]; error?: string }> {
+  try {
+    await assertQaActionAccess(['trainer', 'admin']);
+    const { qaServiceServer } = await import('./services/qaService.server');
+    const data = await qaServiceServer.getRuleVersions(serviceType);
+    return { data };
+  } catch (err) {
+    const norm = normalizeQaActionError(err, 'Gagal mengambil versi parameter.');
+    return { data: [], error: norm.message };
+  }
 }
 
-export async function getIndicatorsByVersionAction(versionId: string) {
-  await assertQaActionAccess(['trainer', 'admin']);
-  const { qaServiceServer } = await import('./services/qaService.server');
-  return await qaServiceServer.getIndicatorsByVersion(versionId);
+export async function getIndicatorsByVersionAction(versionId: string): Promise<{ data: any[]; error?: string }> {
+  try {
+    await assertQaActionAccess(['trainer', 'admin']);
+    const { qaServiceServer } = await import('./services/qaService.server');
+    const data = await qaServiceServer.getIndicatorsByVersion(versionId);
+    return { data };
+  } catch (err) {
+    const norm = normalizeQaActionError(err, 'Gagal mengambil detail parameter versi ini.');
+    return { data: [], error: norm.message };
+  }
 }
 
 export async function createRuleDraftAction(serviceType: ServiceType, sourceVersionId?: string) {
@@ -855,14 +944,26 @@ export async function deleteDraftIndicatorAction(id: string) {
   revalidatePath('/qa-analyzer/settings');
 }
 
-export async function getResolvedIndicatorsAction(serviceType: ServiceType, periodId: string) {
-  await assertQaActionAccess(['trainer', 'admin']);
-  const { qaServiceServer } = await import('./services/qaService.server');
-  return await qaServiceServer.getIndicators(serviceType, periodId);
+export async function getResolvedIndicatorsAction(serviceType: ServiceType, periodId: string): Promise<{ data: any[]; error?: string }> {
+  try {
+    await assertQaActionAccess(['trainer', 'admin']);
+    const { qaServiceServer } = await import('./services/qaService.server');
+    const data = await qaServiceServer.getIndicators(serviceType, periodId);
+    return { data: data as any[] };
+  } catch (err) {
+    const norm = normalizeQaActionError(err, 'Gagal mengambil parameter audit.');
+    return { data: [], error: norm.message };
+  }
 }
 
-export async function getResolvedWeightsAction(serviceType: ServiceType, periodId: string) {
-  await assertQaActionAccess(['trainer', 'admin']);
-  const { qaServiceServer } = await import('./services/qaService.server');
-  return await qaServiceServer.getServiceWeights(serviceType, periodId);
+export async function getResolvedWeightsAction(serviceType: ServiceType, periodId: string): Promise<{ data: any | null; error?: string }> {
+  try {
+    await assertQaActionAccess(['trainer', 'admin']);
+    const { qaServiceServer } = await import('./services/qaService.server');
+    const data = await qaServiceServer.getServiceWeights(serviceType, periodId);
+    return { data };
+  } catch (err) {
+    const norm = normalizeQaActionError(err, 'Gagal mengambil bobot layanan.');
+    return { data: null, error: norm.message };
+  }
 }

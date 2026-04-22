@@ -143,7 +143,11 @@ export default function QaSettingsClient({ initialIndicators, initialWeights }: 
     setSavingWeight(true);
     setErrorMsg(null);
     try {
-      const updated = await updateServiceWeightAction(activeTeam, crVal, ncVal, activeWeight.scoring_mode);
+      const { data: updated, error } = await updateServiceWeightAction(activeTeam, crVal, ncVal, activeWeight.scoring_mode);
+      if (error || !updated) {
+        setErrorMsg(error || 'Gagal memperbarui bobot.');
+        return;
+      }
       setWeights(prev => ({ ...prev, [activeTeam]: updated }));
       setEditingWeight(false);
       flash('Bobot kontribusi berhasil diperbarui!');

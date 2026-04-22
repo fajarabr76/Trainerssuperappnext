@@ -39,7 +39,11 @@ export default function QaPeriodsClient({ role, initialPeriods }: QaPeriodsClien
     setSaving(true);
     setErrorMsg(null);
     try {
-      const created = await createPeriodAction(selectedMonth, selectedYear);
+      const { data: created, error } = await createPeriodAction(selectedMonth, selectedYear);
+      if (error || !created) {
+        setErrorMsg(error || 'Gagal membuat periode.');
+        return;
+      }
       setPeriods(prev => [created, ...prev]);
       setShowForm(false);
     } catch (err: unknown) {
@@ -54,7 +58,12 @@ export default function QaPeriodsClient({ role, initialPeriods }: QaPeriodsClien
     setDeleting(true);
     setErrorMsg(null);
     try {
-      await deletePeriodAction(confirmDelete.id);
+      const { success, error } = await deletePeriodAction(confirmDelete.id);
+      if (error || !success) {
+        setErrorMsg(error || 'Gagal menghapus periode.');
+        setConfirmDelete(null);
+        return;
+      }
       setPeriods(prev => prev.filter(p => p.id !== confirmDelete.id));
       setConfirmDelete(null);
     } catch (err: unknown) {

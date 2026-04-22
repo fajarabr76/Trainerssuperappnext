@@ -436,8 +436,12 @@ export default function QaInputClient({
   const handleSelectFolder = async (folder: string) => {
     setSelectedFolder(folder); setSelectedAgent(null); setSelectedPeriod(null); setTemuan([]); setLoading(true);
     try {
-      const agentList = await getAgentsByFolderAction(folder);
-      setAgents(agentList);
+      const { data: agentList, error } = await getAgentsByFolderAction(folder);
+      if (error) {
+        setErrorMsg(error);
+        return;
+      }
+      setAgents(agentList as Agent[]);
       setStep('agent');
     } catch (err: unknown) { setErrorMsg((err as Error).message); } finally { setLoading(false); }
   };
@@ -466,7 +470,11 @@ export default function QaInputClient({
       setSelectedTeam(agent.tim || '');
       
       // Fetch latest published indicators for this service (no period selected yet)
-      const inds = await getResolvedIndicatorsAction(defaultService, '');
+      const { data: inds, error } = await getResolvedIndicatorsAction(defaultService, '');
+      if (error) {
+        setErrorMsg(error);
+        return;
+      }
       setIndicators(inds as QAIndicator[]);
       setStep('period');
     } catch (err: unknown) {
@@ -482,14 +490,18 @@ export default function QaInputClient({
     setLoading(true);
     try {
       if (selectedPeriod) {
-        const [inds, wMap] = await Promise.all([
+        const [indsRes, wRes] = await Promise.all([
           getResolvedIndicatorsAction(newService, selectedPeriod.id),
           getResolvedWeightsAction(newService, selectedPeriod.id)
         ]);
-        setIndicators(inds as QAIndicator[]);
-        _setWeights(prev => ({ ...prev, ...wMap }));
+        if (indsRes.error) { setErrorMsg(indsRes.error); return; }
+        if (wRes.error) { setErrorMsg(wRes.error); return; }
+
+        setIndicators(indsRes.data as QAIndicator[]);
+        _setWeights(prev => ({ ...prev, ...wRes.data }));
       } else {
-        const inds = await getResolvedIndicatorsAction(newService, '');
+        const { data: inds, error } = await getResolvedIndicatorsAction(newService, '');
+        if (error) { setErrorMsg(error); return; }
         setIndicators(inds as QAIndicator[]);
       }
       
@@ -526,12 +538,15 @@ export default function QaInputClient({
     setSelectedPeriod(period); setLoading(true); setErrorMsg(null);
     try { 
       // Fetch resolved rules for this period
-      const [inds, wMap] = await Promise.all([
+      const [indsRes, wRes] = await Promise.all([
         getResolvedIndicatorsAction(selectedService, period.id),
         getResolvedWeightsAction(selectedService, period.id)
       ]);
-      setIndicators(inds as QAIndicator[]);
-      _setWeights(prev => ({ ...prev, ...wMap }));
+      if (indsRes.error) { setErrorMsg(indsRes.error); return; }
+      if (wRes.error) { setErrorMsg(wRes.error); return; }
+
+      setIndicators(indsRes.data as QAIndicator[]);
+      _setWeights(prev => ({ ...prev, ...wRes.data }));
 
       const query = supabase
         .from('qa_temuan')

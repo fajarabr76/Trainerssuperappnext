@@ -272,12 +272,15 @@ export function useAgentDetail({
     async function loadSwitcherData() {
       setLoadingAgents(true);
       try {
-        const [allTeams, teamAgents] = await Promise.all([
+        const [fRes, aRes] = await Promise.all([
           getFoldersAction(),
-          selectedTeam ? getAgentsByFolderAction(selectedTeam) : Promise.resolve([])
+          selectedTeam ? getAgentsByFolderAction(selectedTeam) : Promise.resolve({ data: [] as any[], error: undefined as string | undefined })
         ]);
-        setTeams(allTeams);
-        setAgentsInTeam(teamAgents as Agent[]);
+        if (fRes.error) console.error(fRes.error);
+        if (aRes.error) console.error(aRes.error);
+
+        setTeams(fRes.data || []);
+        setAgentsInTeam((aRes.data || []) as Agent[]);
       } catch (err) { console.error('Gagal memuat switcher data:', err); } finally { setLoadingAgents(false); }
     }
     loadSwitcherData();
@@ -304,7 +307,11 @@ export function useAgentDetail({
     syncUrl(selectedYear, start, end, selectedServiceType);
     setLoadingTrend(true);
     try {
-      const trendResult = await getPersonalTrendAction(agentId, selectedYear, start, end, selectedServiceType);
+      const { data: trendResult, error } = await getPersonalTrendAction(agentId, selectedYear, start, end, selectedServiceType);
+      if (error || !trendResult) {
+        console.error(error || 'Gagal memuat tren');
+        return;
+      }
       setData(prev => ({ ...prev, personalTrend: trendResult }));
       validateTrendFilter(trendResult);
     } catch (err) { console.error('Gagal memuat tren:', err); } finally { setLoadingTrend(false); }
@@ -316,12 +323,19 @@ export function useAgentDetail({
     setLoadingTemuan(true);
     setLoadingTrend(true);
     try {
-      const [trendResult, allTemuan] = await Promise.all([
+      const [trendRes, temuanRes] = await Promise.all([
         getPersonalTrendAction(agentId, selectedYear, trendStartMonth, trendEndMonth, service),
         getAgentTemuanRangeAction(agentId, selectedYear, 1, 12, service)
       ]);
-      setData(prev => ({ ...prev, personalTrend: trendResult, temuan: allTemuan }));
-      validateTrendFilter(trendResult);
+      if (trendRes.error) console.error(trendRes.error);
+      if (temuanRes.error) console.error(temuanRes.error);
+
+      setData(prev => ({ 
+        ...prev, 
+        personalTrend: trendRes.data || prev.personalTrend, 
+        temuan: temuanRes.data || prev.temuan 
+      }));
+      if (trendRes.data) validateTrendFilter(trendRes.data);
     } catch (err) { console.error('Gagal ganti layanan:', err); } finally {
       setLoadingTemuan(false);
       setLoadingTrend(false);
@@ -333,27 +347,36 @@ export function useAgentDetail({
     setLoadingTemuan(true);
     setLoadingTrend(true);
     try {
-      const periodsResult = await getAgentPeriodsAction(agentId, year);
+      const { periods: periods, error: pErr } = await getAgentPeriodsAction(agentId, year);
+      if (pErr) {
+        alert(pErr);
+        return;
+      }
       let targetService = selectedServiceType;
-      const isSvcValid = periodsResult.periods.some(p => p.serviceType === selectedServiceType);
-      if (!isSvcValid && periodsResult.periods.length > 0) targetService = periodsResult.periods[0].serviceType as ServiceType;
+      const isSvcValid = periods.some(p => p.serviceType === selectedServiceType);
+      if (!isSvcValid && periods.length > 0) targetService = periods[0].serviceType as ServiceType;
       setSelectedServiceType(targetService);
 
       const isCurrentYear = year === new Date().getFullYear();
       const start = 1;
-      const end = isCurrentYear ? new Date().getMonth() + 1 : (periodsResult.periods.find(p => p.serviceType === targetService)?.month || 12);
+      const end = isCurrentYear ? new Date().getMonth() + 1 : (periods.find(p => p.serviceType === targetService)?.month || 12);
       
       setTrendStartMonth(start);
       setTrendEndMonth(end);
       syncUrl(year, start, end, targetService);
 
-      const [allTemuan, trendResult] = await Promise.all([
+      const [temuanRes, trendRes] = await Promise.all([
         getAgentTemuanRangeAction(agentId, year, 1, 12, targetService),
         getPersonalTrendAction(agentId, year, start, end, targetService),
       ]);
 
-      setData((prev) => ({ ...prev, periodSummaries: periodsResult.periods, temuan: allTemuan, personalTrend: trendResult }));
-      validateTrendFilter(trendResult);
+      setData((prev) => ({ 
+        ...prev, 
+        periodSummaries: periods, 
+        temuan: temuanRes.data || prev.temuan, 
+        personalTrend: trendRes.data || prev.personalTrend 
+      }));
+      if (trendRes.data) validateTrendFilter(trendRes.data);
       setSelectedYear(year);
     } catch (err) { console.error(`Gagal ganti tahun:`, err); } finally {
       setLoadingTemuan(false);
@@ -371,13 +394,18 @@ export function useAgentDetail({
     setLoadingTrend(true);
     setLoadingTemuan(true);
     try {
-      const [pResult, tResult, trendResult] = await Promise.all([
+      const [pRes, tRes, trendRes] = await Promise.all([
         getAgentPeriodsAction(agentId, selectedYear),
         getAgentTemuanRangeAction(agentId, selectedYear, 1, 12, selectedServiceType),
         getPersonalTrendAction(agentId, selectedYear, trendStartMonth, trendEndMonth, selectedServiceType)
       ]);
-      setData((prev) => ({ ...prev, periodSummaries: pResult.periods, temuan: tResult, personalTrend: trendResult }));
-      validateTrendFilter(trendResult);
+      setData((prev) => ({ 
+        ...prev, 
+        periodSummaries: pRes.periods || prev.periodSummaries, 
+        temuan: tRes.data || prev.temuan, 
+        personalTrend: trendRes.data || prev.personalTrend 
+      }));
+      if (trendRes.data) validateTrendFilter(trendRes.data);
     } catch (err) { console.error('Gagal menyegarkan data:', err); } finally {
       setLoadingTrend(false);
       setLoadingTemuan(false);
@@ -401,7 +429,11 @@ export function useAgentDetail({
   const handleExport = async () => {
     setExporting(true);
     try {
-      const exportData = await getAgentExportDataAction(agentId);
+      const { data: exportData, error } = await getAgentExportDataAction(agentId);
+      if (error || !exportData) {
+        alert(error || 'Gagal menyiapkan data export');
+        return;
+      }
       const XLSX = await import('xlsx');
       const wb = XLSX.utils.book_new();
 

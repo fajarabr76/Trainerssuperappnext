@@ -86,8 +86,12 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
   const fetchVersions = useCallback(async (team: ServiceType) => {
     setLoading(true);
     try {
-      const data = await getRuleVersionsAction(team);
-      setVersions(data);
+      const { data, error } = await getRuleVersionsAction(team);
+      if (error) {
+        setErrorMsg(error);
+        return;
+      }
+      setVersions(data as QARuleVersion[]);
       if (data.length > 0) {
         // Select the latest published version by default if no draft exists
         const draft = data.find(v => v.status === 'draft');
@@ -111,7 +115,13 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
     if (selectedVersion) {
       setLoadingIndicators(true);
       getIndicatorsByVersionAction(selectedVersion.id)
-        .then(setDraftIndicators)
+        .then(res => {
+          if (res.error) {
+            setErrorMsg(res.error);
+          } else {
+            setDraftIndicators(res.data as QARuleIndicatorSnapshot[]);
+          }
+        })
         .catch(() => setErrorMsg('Gagal mengambil detail parameter.'))
         .finally(() => setLoadingIndicators(false));
     } else {
