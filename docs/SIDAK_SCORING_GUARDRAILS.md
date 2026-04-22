@@ -68,6 +68,15 @@ Checklist review:
 
 ## Minimal Verification Setelah Perubahan
 
+- `npm run test:sidak`
 - `npm run lint`
 - `npm run type-check`
 - Smoke UI: `/qa-analyzer/settings`, `/qa-analyzer/input`, `/qa-analyzer/dashboard`, `/qa-analyzer/ranking`
+
+Gunakan `npm run test:sidak` sebagai verifikasi wajib setiap ada perubahan clean-session semantics, ranking/top agents, fallback dashboard/trend, atau migration RPC SIDAK terkait audited population.
+
+## Catatan Harness
+
+- Harness `npm run test:sidak` adalah contract test berbasis fixture dan SQL-string guard, bukan eksekusi database lokal.
+- Menjalankan harness ini tidak mengubah data historis, tidak menjalankan migration, dan tidak menulis apa pun ke tabel Supabase.
+- Refactor TypeScript yang menyertai harness hanya memindahkan kalkulasi fallback internal agar kontraknya bisa diuji; snapshot data periode lama tetap bergantung pada migration dan data yang sudah ada di database.

@@ -9,7 +9,9 @@
     "start": "next start",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
-    "type-check": "next build"
+    "type-check": "next build",
+    "test:sidak": "vitest run tests/sidak",
+    "test:sidak:watch": "vitest tests/sidak"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
@@ -41,6 +43,7 @@
     "eslint-config-next": "15.1.11",
     "postcss": "^8.5.2",
     "tailwindcss": "^4.0.7",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.4"
   }
 }

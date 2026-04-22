@@ -41,6 +41,8 @@ Checklist ini dipakai setelah migration:
 - [ ] Verifikasi split `NC/CR` di export konsisten dengan kategori snapshot.
 
 ## F. Regression Ringan
+- [ ] Jalankan `npm run test:sidak` untuk lock clean-session semantics, ranking, dashboard fallback, trend fallback, dan SQL contract migration aktif.
+- [ ] Pastikan semua orang paham bahwa `npm run test:sidak` tidak menjalankan migration dan tidak mengubah data historis; ini hanya harness verifikasi kontrak.
 - [ ] Jalankan `npm run lint` (expected: 0 error, warning existing boleh jika unrelated).
 - [ ] Jalankan `npm run type-check` (expected: build sukses).
 - [ ] Smoke check cepat halaman: `settings`, `input`, `dashboard`, `reports/data`.
