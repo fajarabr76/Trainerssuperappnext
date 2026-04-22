@@ -1,7 +1,6 @@
 import nextDynamic from 'next/dynamic';
 import { qaServiceServer } from '../services/qaService.server';
-import { getAllServiceWeightsAction } from '../actions';
-import { ServiceType, QAPeriod, EXCLUDED_FOLDERS, Agent } from '../lib/qa-types';
+import { ServiceType, QAPeriod, EXCLUDED_FOLDERS, Agent, DEFAULT_SERVICE_WEIGHTS } from '../lib/qa-types';
 import { Profile } from '@/app/types/auth';
 import { requirePageAccess } from '@/app/lib/authz';
 
@@ -33,12 +32,26 @@ export default async function QaInputPage({ searchParams }: PageProps) {
   const agentIdParam = typeof sParams.agentId === 'string' ? sParams.agentId : undefined;
   const periodIdParam = typeof sParams.periodId === 'string' ? sParams.periodId : undefined;
 
-  // Initial common data
-  const [allFolders, allPeriods, allWeights] = await Promise.all([
+  // Initial common data. Keep the RSC render resilient after submit revalidation.
+  const [foldersResult, periodsResult, weightsResult] = await Promise.allSettled([
     qaServiceServer.getFolders(),
     qaServiceServer.getPeriods(),
-    getAllServiceWeightsAction(),
+    qaServiceServer.getServiceWeights(),
   ]);
+
+  if (foldersResult.status === 'rejected') {
+    console.error("Error pre-fetching QA folders:", foldersResult.reason);
+  }
+  if (periodsResult.status === 'rejected') {
+    console.error("Error pre-fetching QA periods:", periodsResult.reason);
+  }
+  if (weightsResult.status === 'rejected') {
+    console.error("Error pre-fetching QA service weights:", weightsResult.reason);
+  }
+
+  const allFolders = foldersResult.status === 'fulfilled' ? foldersResult.value : [];
+  const allPeriods = periodsResult.status === 'fulfilled' ? periodsResult.value : [];
+  const allWeights = weightsResult.status === 'fulfilled' ? weightsResult.value : DEFAULT_SERVICE_WEIGHTS;
 
   const priorityQaTeams = ['BKO', 'SLIK'];
   const initialFolders = Array.from(

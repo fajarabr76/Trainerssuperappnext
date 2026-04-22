@@ -6,8 +6,10 @@ import { Menu } from 'lucide-react';
 import { TelefunWarningProvider, useTelefunWarning } from '@/app/context/TelefunWarningContext';
 import { AccessDeniedProvider, useAccessDenied } from '@/app/context/AccessDeniedContext';
 import { SessionTimeoutProvider } from '@/app/context/SessionTimeoutContext';
-import { MaintenanceModal } from '@/app/(main)/telefun/components/MaintenanceModal';
-import { AccessDeniedModal } from '@/app/components/AccessDeniedModal';
+import dynamic from 'next/dynamic';
+
+const MaintenanceModal = dynamic(() => import('@/app/(main)/telefun/components/MaintenanceModal').then(mod => mod.MaintenanceModal), { ssr: false });
+const AccessDeniedModal = dynamic(() => import('@/app/components/AccessDeniedModal').then(mod => mod.AccessDeniedModal), { ssr: false });
 
 import { usePathname, useRouter } from 'next/navigation';
 import { User } from '@supabase/supabase-js';

@@ -445,28 +445,35 @@ export default function QaInputClient({
 
   const handleSelectAgent = async (agent: Agent) => {
     setSelectedAgent(agent); setSelectedPeriod(null); setTemuan([]);
+    setLoading(true); setErrorMsg(null);
     
-    // Default service for the team
-    let defaultService: ServiceType = 'call';
-    const normalizedTim = agent.tim?.toLowerCase()?.trim() || '';
-    if (normalizedTim.includes('mix')) {
-      defaultService = 'cso';
-    } else if (normalizedTim.includes('chat')) {
-      defaultService = 'chat';
-    } else if (normalizedTim.includes('email')) {
-      defaultService = 'email';
-    } else if (normalizedTim.includes('bko')) {
-      defaultService = 'bko';
-    } else if (normalizedTim.includes('slik')) {
-      defaultService = 'slik';
+    try {
+      // Default service for the team
+      let defaultService: ServiceType = 'call';
+      const normalizedTim = agent.tim?.toLowerCase()?.trim() || '';
+      if (normalizedTim.includes('mix')) {
+        defaultService = 'cso';
+      } else if (normalizedTim.includes('chat')) {
+        defaultService = 'chat';
+      } else if (normalizedTim.includes('email')) {
+        defaultService = 'email';
+      } else if (normalizedTim.includes('bko')) {
+        defaultService = 'bko';
+      } else if (normalizedTim.includes('slik')) {
+        defaultService = 'slik';
+      }
+      setSelectedService(defaultService);
+      setSelectedTeam(agent.tim || '');
+      
+      // Fetch latest published indicators for this service (no period selected yet)
+      const inds = await getResolvedIndicatorsAction(defaultService, '');
+      setIndicators(inds as QAIndicator[]);
+      setStep('period');
+    } catch (err: unknown) {
+      setErrorMsg((err as Error).message);
+    } finally {
+      setLoading(false);
     }
-    setSelectedService(defaultService);
-    setSelectedTeam(agent.tim || '');
-    
-    // Fetch latest published indicators for this service (no period selected yet)
-    const inds = await getResolvedIndicatorsAction(defaultService, '');
-    setIndicators(inds as QAIndicator[]);
-    setStep('period');
   };
 
   const handleServiceChange = async (newService: ServiceType) => {
