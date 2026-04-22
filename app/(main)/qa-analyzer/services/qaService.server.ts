@@ -229,6 +229,12 @@ type PhantomFindingLike = {
   is_phantom_padding?: boolean | null;
 };
 
+type AuditRowPartition<T> = {
+  auditPresenceRows: T[];
+  scoreRows: T[];
+  findingRows: T[];
+};
+
 function hasMeaningfulNote(value: string | null | undefined) {
   return typeof value === 'string' && value.trim().length > 0;
 }
@@ -248,6 +254,52 @@ function countCountableFindings<T extends CountableFindingLike>(items: T[]): num
 
 function filterRealAuditRows<T extends PhantomFindingLike>(items: T[]): T[] {
   return items.filter((item): item is T => item.is_phantom_padding !== true);
+}
+
+// SIDAK invariant:
+// - auditPresenceRows: semua audit valid untuk populasi audited agent
+// - scoreRows: pakai row real bila ada, fallback ke phantom-only clean session
+// - findingRows: hanya defect nyata yang boleh memengaruhi total temuan/pareto/ranking
+function partitionAuditRows<T extends PhantomFindingLike & CountableFindingLike>(items: T[]): AuditRowPartition<T> {
+  const auditPresenceRows = [...items];
+  const realRows = filterRealAuditRows(auditPresenceRows);
+
+  return {
+    auditPresenceRows,
+    scoreRows: realRows.length > 0 ? realRows : auditPresenceRows,
+    findingRows: filterCountableFindings(realRows),
+  };
+}
+
+function buildPartitionedAuditRows<T extends PhantomFindingLike & CountableFindingLike>(
+  items: T[],
+  getKey: (item: T) => string | null | undefined
+): Map<string, AuditRowPartition<T>> {
+  const grouped = new Map<string, T[]>();
+
+  items.forEach((item) => {
+    const key = getKey(item);
+    if (!key) return;
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key)!.push(item);
+  });
+
+  return new Map(
+    [...grouped.entries()].map(([key, group]) => [key, partitionAuditRows(group)])
+  );
+}
+
+function collectPartitionRows<T>(
+  partitions: Iterable<AuditRowPartition<T>>,
+  bucket: 'auditPresenceRows' | 'scoreRows' | 'findingRows'
+): T[] {
+  const rows: T[] = [];
+
+  for (const partition of partitions) {
+    rows.push(...partition[bucket]);
+  }
+
+  return rows;
 }
 
 function normalizeAgentDirectoryEntry(raw: Record<string, unknown>): AgentDirectoryEntry {
@@ -308,6 +360,18 @@ type ScoringTemuanLike = {
   sebaiknya?: string | null;
   qa_indicators?: unknown;
   is_phantom_padding?: boolean;
+};
+
+type ScopedAuditFindingLike = CountableFindingLike & PhantomFindingLike & {
+  peserta_id?: string | null;
+  indicator_id?: string | null;
+  rule_indicator_id?: string | null;
+  no_tiket?: string | null;
+  service_type?: string | null;
+  created_at?: string;
+  period_id?: string | null;
+  qa_indicators?: unknown;
+  profiler_peserta?: unknown;
 };
 
 type ScoringContext = {
@@ -455,6 +519,22 @@ function normalizeTemuanForScoring(
     created_at: item.created_at,
     period_id: item.period_id,
   }));
+}
+
+function normalizeScopedFindingForScoring(item: ScopedAuditFindingLike): ScoringTemuanLike {
+  return {
+    indicator_id: item.indicator_id ?? '',
+    rule_indicator_id: item.rule_indicator_id ?? null,
+    nilai: Number(item.nilai ?? 0),
+    no_tiket: item.no_tiket ?? null,
+    service_type: item.service_type ?? null,
+    created_at: item.created_at,
+    period_id: item.period_id ?? undefined,
+    ketidaksesuaian: item.ketidaksesuaian ?? null,
+    sebaiknya: item.sebaiknya ?? null,
+    qa_indicators: item.qa_indicators,
+    is_phantom_padding: item.is_phantom_padding === true,
+  };
 }
 
 async function calculateScopedScoreAcrossPeriods(
@@ -702,21 +782,13 @@ const cachedFetchAgentPeriodSummaries = unstable_cache(
       qa_periods: unwrapPeriod(item.qa_periods) as QAPeriod,
     }));
 
-    const temuanForScoring = filterRealAuditRows(temuan);
-
-    const periodsMap = new Map<string, AgentPeriodSummary>();
-    const grouped = new Map<string, typeof temuanForScoring>();
-
-    temuanForScoring.forEach((item) => {
-      if (!item.qa_periods) return;
-      const serviceType = item.service_type;
-      const key = `${item.period_id}:${serviceType}`;
-      if (!grouped.has(key)) grouped.set(key, []);
-      grouped.get(key)!.push(item);
+    const grouped = buildPartitionedAuditRows(temuan, (item) => {
+      if (!item.qa_periods) return null;
+      return `${item.period_id}:${item.service_type}`;
     });
 
-    const periodResults = await Promise.all([...grouped.entries()].map(async ([key, items]) => {
-      const sample = items[0];
+    const periodResults = await Promise.all([...grouped.values()].map(async ({ auditPresenceRows, scoreRows, findingRows }) => {
+      const sample = auditPresenceRows[0];
       const period = sample.qa_periods as QAPeriod;
       if (!period) return null;
 
@@ -732,11 +804,11 @@ const cachedFetchAgentPeriodSummaries = unstable_cache(
 
       const score = calculateQAScoreFromTemuan(
         context.indicators,
-        normalizeTemuanForScoring(items, context),
+        normalizeTemuanForScoring(scoreRows, context),
         context.activeWeight
       );
 
-      periodsMap.set(key, {
+      return {
         id: sample.period_id,
         month: period.month,
         year: period.year,
@@ -746,9 +818,8 @@ const cachedFetchAgentPeriodSummaries = unstable_cache(
         nonCriticalScore: score.nonCriticalScore,
         criticalScore: score.criticalScore,
         sessionCount: score.sessionCount,
-        findingsCount: countCountableFindings(items),
-      });
-      return periodsMap.get(key) ?? null;
+        findingsCount: findingRows.length,
+      };
     }));
 
     return periodResults
@@ -1225,18 +1296,13 @@ export const qaServiceServer = {
       qa_periods: unwrapPeriod(item.qa_periods) as QAPeriod,
     }));
 
-    const temuanForScoring = filterRealAuditRows(temuan);
-
-    const grouped = new Map<string, typeof temuanForScoring>();
-    temuanForScoring.forEach((item) => {
-      if (!item.qa_periods) return;
-      const key = `${item.period_id}:${item.service_type}`;
-      if (!grouped.has(key)) grouped.set(key, []);
-      grouped.get(key)!.push(item);
+    const grouped = buildPartitionedAuditRows(temuan, (item) => {
+      if (!item.qa_periods) return null;
+      return `${item.period_id}:${item.service_type}`;
     });
 
-    const periodResults = await Promise.all([...grouped.entries()].map(async ([, items]) => {
-      const sample = items[0];
+    const periodResults = await Promise.all([...grouped.values()].map(async ({ auditPresenceRows, scoreRows, findingRows }) => {
+      const sample = auditPresenceRows[0];
       const period = sample.qa_periods as QAPeriod;
       if (!period) return null;
 
@@ -1252,7 +1318,7 @@ export const qaServiceServer = {
 
       const score = calculateQAScoreFromTemuan(
         context.indicators,
-        normalizeTemuanForScoring(items, context),
+        normalizeTemuanForScoring(scoreRows, context),
         context.activeWeight
       );
 
@@ -1266,7 +1332,7 @@ export const qaServiceServer = {
         nonCriticalScore: score.nonCriticalScore,
         criticalScore: score.criticalScore,
         sessionCount: score.sessionCount,
-        findingsCount: countCountableFindings(items),
+        findingsCount: findingRows.length,
       };
     }));
 
@@ -1855,7 +1921,6 @@ export const qaServiceServer = {
   async getTrendWithParameters(periodId: string, serviceType: string, folderIds: string[] = [], timeframe: '3m' | '6m' | 'all' = '3m', context?: SharedContext, year?: number) {
     const supabase = await createClient();
     const loadScoringContext = createScoringContextLoader();
-    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     const limitMap = { '3m': 3, '6m': 6, 'all': 12 };
     const limit = limitMap[timeframe] || 3;
 
@@ -1879,7 +1944,6 @@ export const qaServiceServer = {
       .eq('service_type', serviceType);
 
     if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
-    if (hasPhantomSupport) query = query.eq('is_phantom_padding', false);
 
     const { data: temuan } = await query;
     if (!temuan) return { labels, datasets: [] };
@@ -1916,7 +1980,6 @@ export const qaServiceServer = {
 
   async getServiceComparison(periodId: string, folderIds: string[] = [], _context?: SharedContext): Promise<ServiceComparisonData[]> {
     const supabase = await createClient();
-    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     const pIds = await this.resolvePeriodIds(periodId);
     let query = supabase
       .from('qa_temuan')
@@ -1924,7 +1987,6 @@ export const qaServiceServer = {
       .in('period_id', pIds);
 
     if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
-    if (hasPhantomSupport) query = query.eq('is_phantom_padding', false);
 
     const { data, error } = await query;
     if (error || !data) return [];
@@ -1962,7 +2024,6 @@ export const qaServiceServer = {
       .eq('service_type', serviceType);
 
     if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
-    if (hasPhantomSupport) query = query.eq('is_phantom_padding', false);
 
     const { data, error } = await query;
     if (error || !data) return [];
@@ -1993,18 +2054,18 @@ export const qaServiceServer = {
     const agentStats = (await Promise.all(Object.keys(agentTemuanMap).map(async (id) => {
       const info = agentInfoMap[id];
       const temuanList = agentTemuanMap[id];
-      const scoreInput = hasPhantomSupport
-        ? temuanList.filter((t) => !t.is_phantom_padding)
-        : temuanList;
+      const scopedPartitions = buildPartitionedAuditRows(temuanList, (item) => item.period_id || null);
+      const scoreInput = collectPartitionRows(scopedPartitions.values(), 'scoreRows');
+      const findingInput = collectPartitionRows(scopedPartitions.values(), 'findingRows');
       const result = await calculateScopedScoreAcrossPeriods(
         serviceType as ServiceType,
         scoreInput,
         loadScoringContext
       );
-      const defects = countCountableFindings(scoreInput);
+      const defects = findingInput.length;
       const hasCritical = await hasCriticalDefectAcrossPeriods(
         serviceType as ServiceType,
-        scoreInput,
+        findingInput,
         loadScoringContext
       );
 
@@ -2033,7 +2094,6 @@ export const qaServiceServer = {
       .eq('service_type', serviceType);
 
     if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
-    if (hasPhantomSupport) query = query.eq('is_phantom_padding', false);
 
     const { data, error } = await query;
     if (error || !data) return [];
@@ -2064,18 +2124,18 @@ export const qaServiceServer = {
     const agentStats = (await Promise.all(Object.keys(agentTemuanMap).map(async (id) => {
       const info = agentInfoMap[id];
       const temuanList = agentTemuanMap[id];
-      const scoreInput = hasPhantomSupport
-        ? temuanList.filter((t) => !t.is_phantom_padding)
-        : temuanList;
+      const scopedPartitions = buildPartitionedAuditRows(temuanList, (item) => item.period_id || null);
+      const scoreInput = collectPartitionRows(scopedPartitions.values(), 'scoreRows');
+      const findingInput = collectPartitionRows(scopedPartitions.values(), 'findingRows');
       const result = await calculateScopedScoreAcrossPeriods(
         serviceType as ServiceType,
         scoreInput,
         loadScoringContext
       );
-      const defects = countCountableFindings(scoreInput);
+      const defects = findingInput.length;
       const hasCritical = await hasCriticalDefectAcrossPeriods(
         serviceType as ServiceType,
-        scoreInput,
+        findingInput,
         loadScoringContext
       );
 
@@ -2179,7 +2239,6 @@ export const qaServiceServer = {
   ) {
     const supabase = await createClient();
     const loadScoringContext = createScoringContextLoader();
-    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     const pIds = await this.resolvePeriodIds(periodId, year);
     const currentYear = year || new Date().getFullYear();
 
@@ -2194,9 +2253,6 @@ export const qaServiceServer = {
     if (folderIds.length > 0) {
       query = query.in('profiler_peserta.batch_name', folderIds);
     }
-    if (hasPhantomSupport) {
-      query = query.eq('is_phantom_padding', false);
-    }
 
     const { data, error } = await query;
     console.log('[DEBUG] getConsolidatedPeriodData fetched rows:', data?.length);
@@ -2209,36 +2265,41 @@ export const qaServiceServer = {
       const agentProfile = unwrapAgent(entry.profiler_peserta) as Agent;
       return !isAgentExcluded(agentProfile?.tim, agentProfile?.batch_name, agentProfile?.jabatan);
     });
-    const currentServiceData = eligibleData.filter(d => d.service_type === serviceType);
-    const serviceFindings = filterCountableFindings(currentServiceData as QATemuan[]);
+    const currentServiceData = eligibleData.filter(
+      (entry) => entry.service_type === serviceType
+    ) as Array<ScopedAuditFindingLike & { peserta_id: string; period_id: string; service_type: ServiceType }>;
+    const currentServicePartitions = buildPartitionedAuditRows(
+      currentServiceData,
+      (entry) => `${entry.peserta_id}:${entry.period_id}:${entry.service_type}`
+    );
+    const serviceFindings = collectPartitionRows(currentServicePartitions.values(), 'findingRows')
+      .map((finding) => normalizeScopedFindingForScoring(finding));
 
     // ── 1. Calculate Summary ──
-    const agentTemuanMap: Record<string, ScoringTemuanLike[]> = {};
-    const auditedAgentsList: { id: string; batch_name: string | null; tim: string | null; jabatan: string | null }[] = [];
+    const agentScoreRowsMap: Record<string, ScoringTemuanLike[]> = {};
+    const agentFindingRowsMap: Record<string, ScoringTemuanLike[]> = {};
+    const auditedAgentsList: { id: string; nama: string; batch_name: string | null; tim: string | null; jabatan: string | null }[] = [];
     const seenAgents = new Set<string>();
-    
-    currentServiceData.forEach(d => {
-      if (!agentTemuanMap[d.peserta_id]) agentTemuanMap[d.peserta_id] = [];
-      agentTemuanMap[d.peserta_id].push({
-        period_id: d.period_id,
-        indicator_id: d.indicator_id || '',
-        rule_indicator_id: d.rule_indicator_id || null,
-        nilai: d.nilai || 0,
-        no_tiket: d.no_tiket || null,
-        service_type: d.service_type,
-        ketidaksesuaian: d.ketidaksesuaian,
-        sebaiknya: d.sebaiknya,
-        qa_indicators: d.qa_indicators as QATemuan['qa_indicators'],
-      });
 
-      if (!seenAgents.has(d.peserta_id)) {
-        seenAgents.add(d.peserta_id);
-        const p = unwrapAgent(d.profiler_peserta) as Agent;
-        auditedAgentsList.push({ 
-          id: d.peserta_id, 
-          batch_name: p?.batch_name || null, 
-          tim: p?.tim || null,
-          jabatan: p?.jabatan || null
+    currentServicePartitions.forEach(({ auditPresenceRows, scoreRows, findingRows }) => {
+      const sample = auditPresenceRows[0];
+      const agentId = sample?.peserta_id;
+      if (!agentId) return;
+
+      if (!agentScoreRowsMap[agentId]) agentScoreRowsMap[agentId] = [];
+      if (!agentFindingRowsMap[agentId]) agentFindingRowsMap[agentId] = [];
+      agentScoreRowsMap[agentId].push(...scoreRows.map((row) => normalizeScopedFindingForScoring(row)));
+      agentFindingRowsMap[agentId].push(...findingRows.map((row) => normalizeScopedFindingForScoring(row)));
+
+      if (!seenAgents.has(agentId)) {
+        seenAgents.add(agentId);
+        const profile = unwrapAgent(sample.profiler_peserta) as Agent;
+        auditedAgentsList.push({
+          id: agentId,
+          nama: profile?.nama || '',
+          batch_name: profile?.batch_name || null,
+          tim: profile?.tim || null,
+          jabatan: profile?.jabatan || null,
         });
       }
     });
@@ -2247,12 +2308,13 @@ export const qaServiceServer = {
     let agentsWithPassScore = 0;
     let totalScore = 0;
     const summaryScores = await Promise.all(auditedAgentsList.map(async (agent) => {
-      const temuanList = agentTemuanMap[agent.id] || [];
+      const scoreRows = agentScoreRowsMap[agent.id] || [];
+      const findingRows = agentFindingRowsMap[agent.id] || [];
       return {
-        hasDefect: temuanList.some(t => t.nilai < 3),
+        hasDefect: findingRows.length > 0,
         score: await calculateScopedScoreAcrossPeriods(
           serviceType as ServiceType,
-          temuanList,
+          scoreRows,
           loadScoringContext
         ),
       };
@@ -2304,19 +2366,16 @@ export const qaServiceServer = {
       });
 
     // ── 3. Calculate Service Comparison ──
-    const serviceSummary: Record<string, { totalDefects: number, auditedAgents: number }> = {};
-    const serviceAgentsMap: Record<string, Set<string>> = {};
-    const activeServicesSet = new Set<string>();
+    const serviceSummary: Record<string, { totalDefects: number }> = {};
+    const servicePartitions = buildPartitionedAuditRows(
+      eligibleData as Array<ScopedAuditFindingLike & { peserta_id: string; period_id: string; service_type: string }>,
+      (entry) => `${entry.peserta_id}:${entry.period_id}:${entry.service_type}`
+    );
 
-    eligibleData.forEach(d => {
-      const sType = d.service_type || 'unknown';
-      activeServicesSet.add(sType);
-      if (!serviceAgentsMap[sType]) serviceAgentsMap[sType] = new Set<string>();
-      serviceAgentsMap[sType].add(d.peserta_id);
-
-      if (!isCountableFinding(d)) return;
-      if (!serviceSummary[sType]) serviceSummary[sType] = { totalDefects: 0, auditedAgents: 0 };
-      serviceSummary[sType].totalDefects++;
+    servicePartitions.forEach(({ auditPresenceRows, findingRows }) => {
+      const serviceKey = auditPresenceRows[0]?.service_type || 'unknown';
+      if (!serviceSummary[serviceKey]) serviceSummary[serviceKey] = { totalDefects: 0 };
+      serviceSummary[serviceKey].totalDefects += findingRows.length;
     });
 
     const results: ServiceComparisonData[] = Object.keys(serviceSummary).map(sType => {
@@ -2350,18 +2409,17 @@ export const qaServiceServer = {
     // ── 5. Top Agents ──
     // Use auditedAgentsList which only contains agents for the current serviceType now
     const agentStats = (await Promise.all(auditedAgentsList.map(async (agent) => {
-        const temuans = agentTemuanMap[agent.id] || [];
+        const scoreRows = agentScoreRowsMap[agent.id] || [];
+        const findingRows = agentFindingRowsMap[agent.id] || [];
         const res = await calculateScopedScoreAcrossPeriods(
           serviceType as ServiceType,
-          temuans,
+          scoreRows,
           loadScoringContext
         );
-        const agentDefects = countCountableFindings(temuans);
-        const agentRow = currentServiceData.find(d => d.peserta_id === agent.id);
-        const p = unwrapAgent(agentRow?.profiler_peserta) as Agent;
+        const agentDefects = findingRows.length;
         return { 
           agentId: agent.id, 
-          nama: p?.nama || '', 
+          nama: agent.nama,
           batch: agent.batch_name || '', 
           tim: agent.tim || '',
           jabatan: agent.jabatan || '',
@@ -2369,7 +2427,7 @@ export const qaServiceServer = {
           score: res.finalScore, 
           hasCritical: await hasCriticalDefectAcrossPeriods(
             serviceType as ServiceType,
-            temuans,
+            findingRows,
             loadScoringContext
           )
         };
@@ -2515,6 +2573,7 @@ export const qaServiceServer = {
   ) {
     const supabase = await createClient();
     const loadScoringContext = createScoringContextLoader();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     const limitMap = { '3m': 3, '6m': 6, 'all': 24 };
     const limit = limitMap[timeframe] || 3;
     
@@ -2525,11 +2584,17 @@ export const qaServiceServer = {
     
     if (pIds.length === 0) return null;
 
-    let query = supabase
-      .from('qa_temuan')
-      .select('nilai, ketidaksesuaian, sebaiknya, period_id, peserta_id, indicator_id, rule_indicator_id, qa_indicators:qa_service_rule_indicators(id, name, category), profiler_peserta!inner(batch_name)', { count: 'exact' })
-      .in('period_id', pIds)
-      .eq('service_type', serviceType);
+    let query = hasPhantomSupport
+      ? supabase
+          .from('qa_temuan')
+          .select('nilai, ketidaksesuaian, sebaiknya, period_id, peserta_id, indicator_id, rule_indicator_id, is_phantom_padding, qa_indicators:qa_service_rule_indicators(id, name, category), profiler_peserta!inner(batch_name)', { count: 'exact' })
+          .in('period_id', pIds)
+          .eq('service_type', serviceType)
+      : supabase
+          .from('qa_temuan')
+          .select('nilai, ketidaksesuaian, sebaiknya, period_id, peserta_id, indicator_id, rule_indicator_id, qa_indicators:qa_service_rule_indicators(id, name, category), profiler_peserta!inner(batch_name)', { count: 'exact' })
+          .in('period_id', pIds)
+          .eq('service_type', serviceType);
 
     if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
 
@@ -2542,25 +2607,34 @@ export const qaServiceServer = {
 
     if (!temuan) return null;
 
+    const scopedTemuan = temuan as Array<ScopedAuditFindingLike & { peserta_id: string; period_id: string }>;
+    const allScopedPartitions = buildPartitionedAuditRows(
+      scopedTemuan,
+      (entry) => `${entry.peserta_id}:${entry.period_id}`
+    );
+
     // Grouping data by period for sparklines and trends
     const dataByPeriod = await Promise.all(sortedPeriods.map(async (p) => {
-      const pTemuan = temuan.filter(t => t.period_id === p.id);
-      const auditedAgents = new Set(pTemuan.map(t => t.peserta_id));
-      const totalAudited = auditedAgents.size;
-      const totalFindings = countCountableFindings(pTemuan);
+      const scopedPartitions = [...allScopedPartitions.values()].filter(
+        (partition) => partition.auditPresenceRows[0]?.period_id === p.id
+      );
+      const totalAudited = scopedPartitions.length;
+      const totalFindings = collectPartitionRows(scopedPartitions, 'findingRows').length;
 
       // Compliance calculation
       let passCount = 0;
+      let zeroCount = 0;
       let totalScoreForPeriod = 0;
       if (totalAudited > 0) {
         const scoringContext = await loadScoringContext(serviceType as ServiceType, p.id);
-        auditedAgents.forEach(aid => {
-          const agentTemuans = pTemuan.filter(t => t.peserta_id === aid);
+        scopedPartitions.forEach(({ scoreRows, findingRows }) => {
+          const agentTemuans = scoreRows.map((row) => normalizeScopedFindingForScoring(row));
           const res = calculateQAScoreFromTemuan(
             scoringContext.indicators,
-            normalizeTemuanForScoring(agentTemuans as ScoringTemuanLike[], scoringContext),
+            normalizeTemuanForScoring(agentTemuans, scoringContext),
             scoringContext.activeWeight
           );
+          if (findingRows.length === 0) zeroCount++;
           if (res.finalScore >= 95) passCount++;
           totalScoreForPeriod += res.finalScore;
         });
@@ -2570,7 +2644,7 @@ export const qaServiceServer = {
         label: `${MONTHS_SHORT[p.month - 1]} ${String(p.year).slice(-2)}`,
         total: totalFindings,
         avg: totalAudited > 0 ? totalFindings / totalAudited : 0,
-        zero: totalAudited > 0 ? (Array.from(auditedAgents).filter(aid => !pTemuan.some(t => t.peserta_id === aid && t.nilai < 3)).length / totalAudited) * 100 : 0,
+        zero: totalAudited > 0 ? (zeroCount / totalAudited) * 100 : 0,
         compliance: passCount,
         avgAgentScore: totalAudited > 0 ? totalScoreForPeriod / totalAudited : 0
       };
@@ -2580,8 +2654,10 @@ export const qaServiceServer = {
     const paramCounts: Record<string, Record<string, number>> = {};
     const totalFindingsByPeriod: Record<string, number> = {};
 
-    for (const finding of temuan as ScoringTemuanLike[]) {
-      if (!isCountableFinding(finding)) continue;
+    const findingRows = collectPartitionRows(allScopedPartitions.values(), 'findingRows');
+
+    for (const rawFinding of findingRows) {
+      const finding = normalizeScopedFindingForScoring(rawFinding);
       const pName = (await resolveFindingIndicatorMeta(
         { ...finding, service_type: serviceType },
         loadScoringContext,
@@ -2645,16 +2721,23 @@ export const qaServiceServer = {
     let hasMore = true;
 
     while (hasMore) {
-      let query = supabase
-        .from('qa_temuan')
-        .select('nilai, ketidaksesuaian, sebaiknya, period_id, peserta_id, indicator_id, rule_indicator_id, qa_indicators:qa_service_rule_indicators(id, name, category), profiler_peserta!inner(batch_name)')
-        .in('period_id', pIds)
-        .eq('service_type', serviceType)
-        .order('id', { ascending: true }) // Stable ordering for pagination
-        .range(from, from + PAGE_SIZE - 1);
+      let query = hasPhantomSupport
+        ? supabase
+            .from('qa_temuan')
+            .select('nilai, ketidaksesuaian, sebaiknya, period_id, peserta_id, indicator_id, rule_indicator_id, is_phantom_padding, qa_indicators:qa_service_rule_indicators(id, name, category), profiler_peserta!inner(batch_name)')
+            .in('period_id', pIds)
+            .eq('service_type', serviceType)
+            .order('id', { ascending: true }) // Stable ordering for pagination
+            .range(from, from + PAGE_SIZE - 1)
+        : supabase
+            .from('qa_temuan')
+            .select('nilai, ketidaksesuaian, sebaiknya, period_id, peserta_id, indicator_id, rule_indicator_id, qa_indicators:qa_service_rule_indicators(id, name, category), profiler_peserta!inner(batch_name)')
+            .in('period_id', pIds)
+            .eq('service_type', serviceType)
+            .order('id', { ascending: true }) // Stable ordering for pagination
+            .range(from, from + PAGE_SIZE - 1);
 
       if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
-      if (hasPhantomSupport) query = query.eq('is_phantom_padding', false);
 
       const { data, error } = await (query as any);
       if (error) throw error;
@@ -2668,25 +2751,33 @@ export const qaServiceServer = {
       }
     }
 
-    const temuan = allTemuan;
+    const temuan = allTemuan as Array<ScopedAuditFindingLike & { peserta_id: string; period_id: string }>;
+    const allScopedPartitions = buildPartitionedAuditRows(
+      temuan,
+      (entry) => `${entry.peserta_id}:${entry.period_id}`
+    );
+
     // Grouping data by period
     const dataByPeriod = await Promise.all(sortedPeriods.map(async (p) => {
-      const pTemuan = temuan.filter(t => t.period_id === p.id);
-      const auditedAgents = new Set(pTemuan.map(t => t.peserta_id));
-      const totalAudited = auditedAgents.size;
-      const totalFindings = countCountableFindings(pTemuan);
+      const scopedPartitions = [...allScopedPartitions.values()].filter(
+        (partition) => partition.auditPresenceRows[0]?.period_id === p.id
+      );
+      const totalAudited = scopedPartitions.length;
+      const totalFindings = collectPartitionRows(scopedPartitions, 'findingRows').length;
 
       let passCount = 0;
+      let zeroCount = 0;
       let totalScoreForPeriod = 0;
       if (totalAudited > 0) {
         const scoringContext = await loadScoringContext(serviceType as ServiceType, p.id);
-        auditedAgents.forEach(aid => {
-          const agentTemuans = pTemuan.filter(t => t.peserta_id === aid);
+        scopedPartitions.forEach(({ scoreRows, findingRows }) => {
+          const agentTemuans = scoreRows.map((row) => normalizeScopedFindingForScoring(row));
           const res = calculateQAScoreFromTemuan(
             scoringContext.indicators,
-            normalizeTemuanForScoring(agentTemuans as ScoringTemuanLike[], scoringContext),
+            normalizeTemuanForScoring(agentTemuans, scoringContext),
             scoringContext.activeWeight
           );
+          if (findingRows.length === 0) zeroCount++;
           if (res.finalScore >= 95) passCount++;
           totalScoreForPeriod += res.finalScore;
         });
@@ -2696,7 +2787,7 @@ export const qaServiceServer = {
         label: `${MONTHS_SHORT[p.month - 1]} ${String(p.year).slice(-2)}`,
         total: totalFindings,
         avg: totalAudited > 0 ? totalFindings / totalAudited : 0,
-        zero: totalAudited > 0 ? (Array.from(auditedAgents).filter(aid => !pTemuan.some(t => t.peserta_id === aid && t.nilai < 3)).length / totalAudited) * 100 : 0,
+        zero: totalAudited > 0 ? (zeroCount / totalAudited) * 100 : 0,
         compliance: passCount,
         avgAgentScore: totalAudited > 0 ? totalScoreForPeriod / totalAudited : 0
       };
@@ -2706,8 +2797,10 @@ export const qaServiceServer = {
     const paramCounts: Record<string, Record<string, number>> = {};
     const totalFindingsByPeriod: Record<string, number> = {};
 
-    for (const finding of temuan as ScoringTemuanLike[]) {
-      if (!isCountableFinding(finding)) continue;
+    const findingRows = collectPartitionRows(allScopedPartitions.values(), 'findingRows');
+
+    for (const rawFinding of findingRows) {
+      const finding = normalizeScopedFindingForScoring(rawFinding);
       const pName = (await resolveFindingIndicatorMeta(
         { ...finding, service_type: serviceType },
         loadScoringContext,
@@ -2751,7 +2844,6 @@ export const qaServiceServer = {
   ) {
     const supabase = await createClient();
     const loadScoringContext = createScoringContextLoader();
-    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
     
     // 1. Resolve period IDs
     const allPeriods = context?.periods || (await this.getPeriods());
@@ -2777,7 +2869,6 @@ export const qaServiceServer = {
         .range(from, from + PAGE_SIZE - 1);
 
       if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
-      if (hasPhantomSupport) query = query.eq('is_phantom_padding', false);
 
       const { data, error } = await query;
       if (error) throw error;
@@ -2798,35 +2889,38 @@ export const qaServiceServer = {
     });
 
     const currentServiceData = eligibleData.filter(d => d.service_type === serviceType);
-    const serviceFindings = filterCountableFindings(currentServiceData as QATemuan[]);
+    const currentServicePartitions = buildPartitionedAuditRows(
+      currentServiceData as Array<ScopedAuditFindingLike & { peserta_id: string; period_id: string; service_type: ServiceType }>,
+      (entry) => `${entry.peserta_id}:${entry.period_id}:${entry.service_type}`
+    );
+    const serviceFindings = collectPartitionRows(currentServicePartitions.values(), 'findingRows')
+      .map((finding) => normalizeScopedFindingForScoring(finding));
 
     // ── 1. Calculate Summary ──
-    const agentTemuanMap: Record<string, ScoringTemuanLike[]> = {};
-    const auditedAgentsList: { id: string; batch_name: string | null; tim: string | null; jabatan: string | null }[] = [];
+    const agentScoreRowsMap: Record<string, ScoringTemuanLike[]> = {};
+    const agentFindingRowsMap: Record<string, ScoringTemuanLike[]> = {};
+    const auditedAgentsList: { id: string; nama: string; batch_name: string | null; tim: string | null; jabatan: string | null }[] = [];
     const seenAgents = new Set<string>();
     
-    currentServiceData.forEach(d => {
-      if (!d.peserta_id) return;
-      if (!agentTemuanMap[d.peserta_id]) agentTemuanMap[d.peserta_id] = [];
-      agentTemuanMap[d.peserta_id].push({
-        period_id: d.period_id,
-        indicator_id: d.indicator_id || '',
-        rule_indicator_id: d.rule_indicator_id || null,
-        nilai: d.nilai || 0,
-        no_tiket: d.no_tiket || null,
-        ketidaksesuaian: d.ketidaksesuaian,
-        sebaiknya: d.sebaiknya,
-        qa_indicators: d.qa_indicators as QATemuan['qa_indicators'],
-      });
+    currentServicePartitions.forEach(({ auditPresenceRows, scoreRows, findingRows }) => {
+      const sample = auditPresenceRows[0];
+      const agentId = sample?.peserta_id;
+      if (!agentId) return;
 
-      if (!seenAgents.has(d.peserta_id)) {
-        seenAgents.add(d.peserta_id);
-        const p = d.profiler_peserta as unknown as { id: string; batch_name: string; tim: string; jabatan: string };
-        auditedAgentsList.push({ 
-          id: d.peserta_id, 
-          batch_name: p?.batch_name || null, 
-          tim: p?.tim || null,
-          jabatan: p?.jabatan || null
+      if (!agentScoreRowsMap[agentId]) agentScoreRowsMap[agentId] = [];
+      if (!agentFindingRowsMap[agentId]) agentFindingRowsMap[agentId] = [];
+      agentScoreRowsMap[agentId].push(...scoreRows.map((row) => normalizeScopedFindingForScoring(row)));
+      agentFindingRowsMap[agentId].push(...findingRows.map((row) => normalizeScopedFindingForScoring(row)));
+
+      if (!seenAgents.has(agentId)) {
+        seenAgents.add(agentId);
+        const profile = sample.profiler_peserta as unknown as { nama: string; batch_name: string; tim: string; jabatan: string };
+        auditedAgentsList.push({
+          id: agentId,
+          nama: profile?.nama || '',
+          batch_name: profile?.batch_name || null,
+          tim: profile?.tim || null,
+          jabatan: profile?.jabatan || null,
         });
       }
     });
@@ -2835,12 +2929,13 @@ export const qaServiceServer = {
     let agentsWithPassScore = 0;
     let totalScore = 0;
     const summaryScores = await Promise.all(auditedAgentsList.map(async (agent) => {
-      const temuanList = agentTemuanMap[agent.id] || [];
+      const scoreRows = agentScoreRowsMap[agent.id] || [];
+      const findingRows = agentFindingRowsMap[agent.id] || [];
       return {
-        hasDefect: temuanList.some(t => t.nilai < 3),
+        hasDefect: findingRows.length > 0,
         score: await calculateScopedScoreAcrossPeriods(
           serviceType as ServiceType,
-          temuanList,
+          scoreRows,
           loadScoringContext
         ),
       };
@@ -2894,17 +2989,16 @@ export const qaServiceServer = {
       });
 
     // ── 3. Calculate Service Comparison ──
-    const serviceSummary: Record<string, { totalDefects: number, auditedAgents: number }> = {};
-    const serviceAgentsMap: Record<string, Set<string>> = {};
+    const serviceSummary: Record<string, { totalDefects: number }> = {};
+    const servicePartitions = buildPartitionedAuditRows(
+      eligibleData as Array<ScopedAuditFindingLike & { peserta_id: string; period_id: string; service_type: string }>,
+      (entry) => `${entry.peserta_id}:${entry.period_id}:${entry.service_type}`
+    );
 
-    eligibleData.forEach(d => {
-      const sType = d.service_type || 'unknown';
-      if (!serviceAgentsMap[sType]) serviceAgentsMap[sType] = new Set<string>();
-      if (d.peserta_id) serviceAgentsMap[sType].add(d.peserta_id);
-
-      if (!isCountableFinding(d)) return;
-      if (!serviceSummary[sType]) serviceSummary[sType] = { totalDefects: 0, auditedAgents: 0 };
-      serviceSummary[sType].totalDefects++;
+    servicePartitions.forEach(({ auditPresenceRows, findingRows }) => {
+      const serviceKey = auditPresenceRows[0]?.service_type || 'unknown';
+      if (!serviceSummary[serviceKey]) serviceSummary[serviceKey] = { totalDefects: 0 };
+      serviceSummary[serviceKey].totalDefects += findingRows.length;
     });
 
     const results: ServiceComparisonData[] = Object.keys(serviceSummary).map(sType => {
@@ -2936,18 +3030,17 @@ export const qaServiceServer = {
     // ── 5. Top Agents ──
     const agentStats = (await Promise.all(auditedAgentsList
       .map(async (agent) => {
-        const temuans = agentTemuanMap[agent.id] || [];
+        const scoreRows = agentScoreRowsMap[agent.id] || [];
+        const findingRows = agentFindingRowsMap[agent.id] || [];
         const res = await calculateScopedScoreAcrossPeriods(
           serviceType as ServiceType,
-          temuans,
+          scoreRows,
           loadScoringContext
         );
-        const agentDefects = countCountableFindings(temuans);
-        const agentRow = currentServiceData.find(d => d.peserta_id === agent.id);
-        const p = agentRow?.profiler_peserta as unknown as { nama: string };
+        const agentDefects = findingRows.length;
         return { 
           agentId: agent.id, 
-          nama: p?.nama || '', 
+          nama: agent.nama,
           batch: agent.batch_name || '', 
           tim: agent.tim || '',
           jabatan: agent.jabatan || '',
@@ -2955,7 +3048,7 @@ export const qaServiceServer = {
           score: res.finalScore, 
           hasCritical: await hasCriticalDefectAcrossPeriods(
             serviceType as ServiceType,
-            temuans,
+            findingRows,
             loadScoringContext
           )
         };

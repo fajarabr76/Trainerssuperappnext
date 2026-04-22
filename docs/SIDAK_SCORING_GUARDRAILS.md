@@ -1,12 +1,14 @@
 # SIDAK Scoring Guardrails
 
-Dokumen ini dibuat untuk mencegah regresi kasus dashboard SIDAK yang menampilkan rata-rata skor dan kepatuhan selalu `100%`.
+Dokumen ini dibuat untuk mencegah regresi SIDAK pada scoring, audited population, dan clean-session handling.
+
+Status issue detail agent: `resolved`. Ringkasan penutupan ada di `docs/SIDAK_KNOWN_ISSUE_AGENT_DETAIL_SCORE.md`.
 
 ## Ringkasan Akar Masalah
 
 1. Cache server untuk indikator memakai pola key global sehingga hasil indikator bisa tertukar antar konteks periode/service.
 2. Fungsi scoring/agregasi SQL belum sepenuhnya siap untuk data Versioned QA Rules (`rule_indicator_id`).
-3. Data phantom padding ikut dihitung sebagai audit nyata pada beberapa agregasi.
+3. Row phantom/clean session pernah difilter terlalu awal, sehingga period clean hilang dari audited population dan jalur detail agent.
 
 ## Guardrails Wajib Saat Ubah SIDAK
 
@@ -31,14 +33,25 @@ Checklist review:
 - [ ] `qa_score_agent` masih mendukung `rule_indicator_id` + fallback `indicator_id`.
 - [ ] Join/lookup indikator tidak hard-code ke tabel legacy saja.
 
-### 3) Phantom Padding Tidak Boleh Masuk Metrik Audit Nyata
+### 3) Clean Session Harus Pakai 3 Bucket Data
 
-- Untuk semua agregasi dashboard (summary, trend, ranking), filter `is_phantom_padding = false` wajib dipertahankan.
-- Phantom hanya untuk padding sampling, bukan representasi audit nyata.
+Jangan pakai satu filter global `is_phantom_padding = false` untuk semua jalur SIDAK. Gunakan tiga bucket berikut:
+
+- `auditPresenceRows`: semua row agent-period-service, termasuk phantom-only clean session.
+- `scoreRows`: pakai row real jika ada; jika satu agent-period-service hanya punya phantom, pakai phantom agar skor periode tetap `100`.
+- `findingRows`: hanya row real yang countable (`nilai < 3` atau ada catatan).
+
+Aturan turunannya:
+
+- Phantom-only clean session adalah audit valid untuk `totalAgents`, `zeroErrorRate`, `complianceRate`, `avgAgentScore`, rail period detail, dan ranking audited agents.
+- Phantom tidak boleh menambah `totalDefects`, `findingsCount`, pareto, donut, `hasCritical`, atau defect sorting.
+- Jika satu agent-period-service punya row real + phantom sekaligus, scoring dan defect aggregation wajib identik dengan memakai row real saja.
 
 Checklist review:
-- [ ] Semua query agregasi utama memfilter `is_phantom_padding = false`.
-- [ ] Jumlah agent terhitung dari data real (bukan phantom).
+- [ ] Tidak ada filter phantom global yang dijalankan sebelum data dipartisi ke `auditPresenceRows/scoreRows/findingRows`.
+- [ ] `totalAgents`, `zeroErrorRate`, `complianceRate`, dan `avgAgentScore` memakai populasi audit presence.
+- [ ] `totalDefects`, `findingsCount`, pareto, donut, dan ranking defect hanya memakai `findingRows`.
+- [ ] Mixed real + phantom tetap menghasilkan skor/defect yang sama dengan row real saja.
 
 ## Deployment Checklist
 
@@ -48,8 +61,10 @@ Checklist review:
    - `20260421090000_fix_qa_scoring_and_dashboard.sql`
    - `20260421103000_fix_qa_score_agent_uuid_session_grouping.sql`
    - `20260421105000_fix_qa_dashboard_range_category_alias.sql`
+   - `20260422103000_fix_sidak_clean_session_audit_presence.sql`
 2. Jalankan smoke test di `docs/QA_SMOKE_TEST_VERSIONED_RULES.md`.
 3. Verifikasi manual dashboard untuk 2 periode berbeda (lama vs baru) agar skor/tren tidak collapse ke `100%` tanpa alasan data.
+4. Verifikasi minimal 1 agent dengan bulan phantom-only agar rail/detail/ranking tetap menampilkan audited session `100` tanpa menaikkan defect count.
 
 ## Minimal Verification Setelah Perubahan
 
