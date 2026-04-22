@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
       default-src 'self';
       script-src 'self' 'unsafe-eval' 'unsafe-inline';
       style-src 'self' 'unsafe-inline';
-      img-src 'self' blob: data: https://picsum.photos https://*.supabase.co;
+      img-src 'self' blob: data: https://picsum.photos https://*.supabase.co https://api.dicebear.com;
       font-src 'self' data:;
       object-src 'none';
       base-uri 'self';
@@ -57,6 +57,12 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'picsum.photos',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.dicebear.com',
         port: '',
         pathname: '/**',
       },

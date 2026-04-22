@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Send, Phone, X, Check, CheckCheck, Sparkles, Lock, ArrowLeft, Download } from 'lucide-react';
 import { ChatMessage, SessionConfig, Scenario } from '@/app/types';
 import { generateConsumerResponse } from '../services/geminiService';
+import DiceBearAvatar from '@/app/components/DiceBearAvatar';
 
 interface ChatInterfaceProps {
   config: SessionConfig;
@@ -429,13 +430,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             )}
             {!isReviewMode && (
                  <div className="module-clean-panel w-12 h-12 rounded-2xl overflow-hidden shrink-0 relative">
-                    <Image 
-                        src={`https://picsum.photos/seed/${config.identity.name}/200`} 
-                        alt="Avatar" 
-                        fill
-                        className="object-cover" 
-                        referrerPolicy="no-referrer"
-                    />
+                    <DiceBearAvatar name={config.identity.name} size={48} className="w-full h-full rounded-2xl" />
                 </div>
             )}
         </div>

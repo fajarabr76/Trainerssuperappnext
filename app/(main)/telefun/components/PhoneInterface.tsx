@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import Image from 'next/image';
 import { SessionConfig } from '../types';
 import { LiveSession } from '../services/geminiService';
+import DiceBearAvatar from '@/app/components/DiceBearAvatar';
 
 interface PhoneInterfaceProps {
   config: SessionConfig;
@@ -404,16 +404,8 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
                 {/* Voice Visualizer Ring */}
                 <div className={`absolute inset-0 rounded-full bg-foreground/5 scale-110 transition-transform duration-300 ${isAiSpeaking && !isOnHold ? 'animate-ping opacity-30' : 'opacity-0'}`}></div>
                 
-                <div className="w-48 h-48 md:w-72 md:h-72 rounded-full overflow-hidden bg-foreground/5 shadow-2xl border border-border relative z-10">
-                    <div className="relative w-full h-full">
-                        <Image 
-                            src={`https://picsum.photos/seed/${config.identity.name}/500`} 
-                            alt="Avatar" 
-                            fill
-                            className={`object-cover transition-all ${isOnHold ? 'grayscale blur-sm' : 'grayscale-[0.2]'}`} 
-                            referrerPolicy="no-referrer"
-                        />
-                    </div>
+                <div className={`w-48 h-48 md:w-72 md:h-72 rounded-full overflow-hidden bg-foreground/5 shadow-2xl border border-border relative z-10 flex items-center justify-center transition-all ${isOnHold ? 'grayscale blur-sm' : 'grayscale-[0.2]'}`}>
+                    <DiceBearAvatar name={config.identity.name} size={288} className="w-full h-full rounded-full" />
                 </div>
             </div>
 

@@ -158,25 +158,36 @@ export default function MonitoringClient({ user: _user, role: _role, profile: _p
 
     async function fetchAllHistory() {
       try {
-        // Fetch from all 3 history tables in parallel
-        const [ketikRes, pdktRes, telefunRes] = await Promise.all([
+        // Fetch from all legacy history tables + modern results table in parallel
+        const [ketikRes, pdktRes, telefunRes, resultsRes] = await Promise.all([
           supabase.from('ketik_history').select('*').order('date', { ascending: false }),
           supabase.from('pdkt_history').select('*').order('timestamp', { ascending: false }),
           supabase.from('telefun_history').select('*').order('date', { ascending: false }),
+          supabase.from('results').select('*').order('created_at', { ascending: false }),
         ]);
+
+        if (ketikRes.error) console.error('Error fetching ketik_history:', ketikRes.error);
+        if (pdktRes.error) console.error('Error fetching pdkt_history:', pdktRes.error);
+        if (telefunRes.error) console.error('Error fetching telefun_history:', telefunRes.error);
+        if (resultsRes.error) console.error('Error fetching results:', resultsRes.error);
 
         // Fetch user profiles for mapping user_id -> email
         const allUserIds = new Set<string>();
         (ketikRes.data || []).forEach(r => allUserIds.add(r.user_id));
         (pdktRes.data || []).forEach(r => allUserIds.add(r.user_id));
         (telefunRes.data || []).forEach(r => allUserIds.add(r.user_id));
+        (resultsRes.data || []).forEach(r => allUserIds.add(r.user_id));
 
         const profilesMap: Record<string, { email: string; role: string }> = {};
         if (allUserIds.size > 0) {
-          const { data: profilesData } = await supabase
+          const { data: profilesData, error: profilesError } = await supabase
             .from('profiles')
             .select('id, email, role')
             .in('id', [...allUserIds]);
+
+          if (profilesError) {
+            console.error('Error fetching profiles:', profilesError);
+          }
           
           (profilesData || []).forEach(p => {
             profilesMap[p.id] = { email: p.email || '', role: p.role || '' };
@@ -240,6 +251,60 @@ export default function MonitoringClient({ user: _user, role: _role, profile: _p
             user_email: profilesMap[r.user_id]?.email,
             user_role: profilesMap[r.user_id]?.role,
           });
+        });
+
+        // Transform modern results table (dual-source for all modules)
+        (resultsRes.data || []).forEach(r => {
+          const payload = r.details || r.history || {};
+          const moduleType = r.module as 'ketik' | 'pdkt' | 'telefun';
+
+          if (moduleType === 'ketik') {
+            const messages = (Array.isArray(payload.messages) ? payload.messages : []) as ChatMessage[];
+            let durationSeconds = 0;
+            const timestamps = messages.filter((m: ChatMessage) => m.timestamp).map((m: ChatMessage) => new Date(m.timestamp).getTime());
+            if (timestamps.length >= 2) {
+              durationSeconds = Math.floor((Math.max(...timestamps) - Math.min(...timestamps)) / 1000);
+            }
+
+            unified.push({
+              id: r.id,
+              user_id: r.user_id,
+              module: 'ketik',
+              scenario_title: payload.scenario_title || payload.scenario || payload.subject || 'Simulasi Chat',
+              created_at: r.created_at,
+              duration_seconds: durationSeconds,
+              score: r.score ?? null,
+              history: messages,
+              user_email: profilesMap[r.user_id]?.email,
+              user_role: profilesMap[r.user_id]?.role,
+            });
+          } else if (moduleType === 'pdkt') {
+            unified.push({
+              id: r.id,
+              user_id: r.user_id,
+              module: 'pdkt',
+              scenario_title: payload.subject || payload.scenario_title || 'Simulasi Email',
+              created_at: r.created_at,
+              duration_seconds: payload.timeTaken || 0,
+              score: r.score ?? null,
+              history: (payload.emails || []) as EmailMessage[],
+              user_email: profilesMap[r.user_id]?.email,
+              user_role: profilesMap[r.user_id]?.role,
+            });
+          } else if (moduleType === 'telefun') {
+            unified.push({
+              id: r.id,
+              user_id: r.user_id,
+              module: 'telefun',
+              scenario_title: payload.scenario || payload.scenario_title || 'Simulasi Telepon',
+              created_at: r.created_at,
+              duration_seconds: payload.duration || 0,
+              score: r.score ?? null,
+              history: payload.recordingUrl || '',
+              user_email: profilesMap[r.user_id]?.email,
+              user_role: profilesMap[r.user_id]?.role,
+            });
+          }
         });
 
         // Sort by date descending

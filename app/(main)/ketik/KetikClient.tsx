@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Settings, History, Play, MessageSquare } from 'lucide-react';
-import { AppSettings, ChatSession, SessionConfig, Scenario, ConsumerType, Identity } from '@/app/types';
+import { AppSettings, ChatSession, SessionConfig, Scenario, ConsumerType, Identity, ChatMessage } from '@/app/types';
 import { defaultSettings } from './data';
 import { SettingsModal } from './components/SettingsModal';
 import { HistoryModal } from './components/HistoryModal';
@@ -12,13 +12,20 @@ import { createClient } from '@/app/lib/supabase/client';
 import { loadSettings, saveSettings } from './services/settingService';
 import { moduleTheme } from '@/app/components/ui/moduleTheme';
 import ModuleWorkspaceIntro from '@/app/components/ModuleWorkspaceIntro';
+import { User } from '@supabase/supabase-js';
 
 const supabase = createClient();
+
+function safeDate(value: unknown): Date {
+  if (!value) return new Date();
+  const d = new Date(value as string);
+  return isNaN(d.getTime()) ? new Date() : d;
+}
 
 export default function AppKetik() {
   const theme = moduleTheme.ketik;
   const [view, setView] = useState<'home' | 'chat'>('home');
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
 
@@ -28,7 +35,7 @@ export default function AppKetik() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentConfig, setCurrentConfig] = useState<SessionConfig | null>(null);
   const [currentScenario, setCurrentScenario] = useState<Scenario | null>(null);
-  const [reviewMessages, setReviewMessages] = useState<any[]>([]);
+  const [reviewMessages, setReviewMessages] = useState<ChatMessage[]>([]);
 
   // Get user on mount
   useEffect(() => {
@@ -54,33 +61,58 @@ export default function AppKetik() {
     if (!user) return;
 
     const fetchHistory = async () => {
-      const { data, error } = await supabase
-        .from('ketik_history')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('date', { ascending: false });
+      // Safe check for user before continuing
+      if (!user?.id) return;
 
-      if (error) { 
-        console.error('Error fetching history:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        }); 
-        return; 
+      // Fetch from both tables to ensure legacy and modern data are included
+      const [ketikRes, resultsRes] = await Promise.all([
+        supabase.from('ketik_history').select('*').eq('user_id', user.id).order('date', { ascending: false }),
+        supabase.from('results').select('*').eq('user_id', user.id).eq('module', 'ketik').order('created_at', { ascending: false })
+      ]);
+
+      if (ketikRes.error) {
+        console.error('Error fetching ketik_history:', ketikRes.error);
+      }
+      if (resultsRes.error) {
+        console.error('Error fetching results:', resultsRes.error);
       }
 
-      if (data) {
-        setHistory(data.map(item => ({
-          id: item.id,
-          date: new Date(item.date),
-          scenarioTitle: item.scenario_title,
-          consumerName: item.consumer_name,
-          consumerPhone: item.consumer_phone,
-          consumerCity: item.consumer_city,
-          messages: item.messages,
-        })));
+      const unified: ChatSession[] = [];
+
+      // 1. Map legacy ketik_history
+      if (ketikRes.data) {
+        ketikRes.data.forEach(item => {
+          unified.push({
+            id: item.id,
+            date: safeDate(item.date ?? item.created_at),
+            scenarioTitle: item.scenario_title || 'Simulation Chat',
+            consumerName: item.consumer_name || 'Consumer',
+            consumerPhone: item.consumer_phone,
+            consumerCity: item.consumer_city,
+            messages: Array.isArray(item.messages) ? item.messages : [],
+          });
+        });
       }
+
+      // 2. Map modern results table (handling both 'history' and 'details' column variants)
+      if (resultsRes.data) {
+        resultsRes.data.forEach(item => {
+          const payload = item.history || item.details || {};
+          unified.push({
+            id: item.id,
+            date: safeDate(item.created_at ?? item.date),
+            scenarioTitle: payload.scenario_title || payload.subject || payload.scenario || 'Simulation Chat',
+            consumerName: payload.consumer_name || payload.consumer || 'Consumer',
+            consumerPhone: payload.consumer_phone,
+            consumerCity: payload.consumer_city,
+            messages: Array.isArray(payload.messages) ? payload.messages : [],
+          });
+        });
+      }
+
+      // Sort unified history by date descending
+      unified.sort((a, b) => b.date.getTime() - a.date.getTime());
+      setHistory(unified);
     };
 
     fetchHistory();
@@ -93,16 +125,34 @@ export default function AppKetik() {
   };
 
   const handleClearHistory = async () => {
-    if (!user) return;
-    const { error } = await supabase.from('ketik_history').delete().eq('user_id', user.id);
-    if (!error) setHistory([]);
-    else alert('Gagal menghapus riwayat.');
+    if (!user?.id) return;
+    const [res1, res2] = await Promise.all([
+      supabase.from('ketik_history').delete().eq('user_id', user.id),
+      supabase.from('results').delete().eq('user_id', user.id).eq('module', 'ketik')
+    ]);
+
+    if (res1.error || res2.error) {
+      console.error('Error clearing history:', res1.error, res2.error);
+      alert('Gagal menghapus riwayat.');
+      return;
+    }
+
+    setHistory([]);
   };
 
   const handleDeleteSession = async (id: string) => {
-    const { error } = await supabase.from('ketik_history').delete().eq('id', id);
-    if (!error) setHistory(prev => prev.filter(s => s.id !== id));
-    else alert('Gagal menghapus sesi.');
+    const [res1, res2] = await Promise.all([
+      supabase.from('ketik_history').delete().eq('id', id),
+      supabase.from('results').delete().eq('id', id).eq('module', 'ketik')
+    ]);
+
+    if (res1.error || res2.error) {
+      console.error('Error deleting session:', res1.error, res2.error);
+      alert('Gagal menghapus sesi.');
+      return;
+    }
+
+    setHistory(prev => prev.filter(s => s.id !== id));
   };
 
   const startSimulation = () => {
@@ -147,39 +197,61 @@ export default function AppKetik() {
     setTimeout(() => { setIsLoading(false); setView('chat'); }, 500);
   };
 
-  const endSession = async (messages: any[]) => {
+  const endSession = async (messages: ChatMessage[]) => {
     if (user && currentConfig && currentScenario && messages.length > 0 && currentScenario.id !== 'review') {
       setIsLoading(true);
-      try {
-        // Save conversation history only. Ketik no longer performs end-session evaluation.
-        const sessionData = {
-          user_id: user.id,
-          date: new Date().toISOString(),
+
+      // Save conversation history to legacy table
+      const sessionData = {
+        user_id: user.id,
+        date: new Date().toISOString(),
+        scenario_title: currentScenario.title,
+        consumer_name: currentConfig.identity.name,
+        consumer_phone: currentConfig.identity.phone,
+        consumer_city: currentConfig.identity.city,
+        messages,
+      };
+
+      const { data: historyData, error: historyError } = await supabase.from('ketik_history').insert([sessionData]).select().single();
+
+      if (historyError) {
+        console.error('Error saving to ketik_history:', historyError);
+      }
+
+      // Save conversation history to modern results table for dual-source consistency
+      const resultData = {
+        user_id: user.id,
+        module: 'ketik',
+        score: 0,
+        details: {
           scenario_title: currentScenario.title,
           consumer_name: currentConfig.identity.name,
           consumer_phone: currentConfig.identity.phone,
           consumer_city: currentConfig.identity.city,
           messages,
-        };
-
-        const { data: historyData } = await supabase.from('ketik_history').insert([sessionData]).select().single();
-
-        if (historyData) {
-          setHistory([{
-            id: historyData.id,
-            date: new Date(historyData.date),
-            scenarioTitle: historyData.scenario_title,
-            consumerName: historyData.consumer_name,
-            consumerPhone: historyData.consumer_phone,
-            consumerCity: historyData.consumer_city,
-            messages: historyData.messages,
-          }, ...history]);
         }
-      } catch (err) {
-        console.error('Error ending session:', err);
-      } finally {
-        setIsLoading(false);
+      };
+
+      const { error: resultsError } = await supabase.from('results').insert([resultData]);
+
+      if (resultsError) {
+        console.error('Error saving to results:', JSON.stringify(resultsError, null, 2));
       }
+
+      // Optimistically update local state if legacy insert succeeded
+      if (historyData) {
+        setHistory(prev => [{
+          id: historyData.id,
+          date: safeDate(historyData.date ?? historyData.created_at),
+          scenarioTitle: historyData.scenario_title,
+          consumerName: historyData.consumer_name,
+          consumerPhone: historyData.consumer_phone,
+          consumerCity: historyData.consumer_city,
+          messages: historyData.messages,
+        }, ...prev]);
+      }
+
+      setIsLoading(false);
     }
     setView('home');
     setCurrentConfig(null);
