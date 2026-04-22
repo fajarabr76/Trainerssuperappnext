@@ -406,10 +406,10 @@ export async function createTemuanBatchAction(
       return { data: [], error: 'Akses ditolak: Role tidak memiliki izin untuk aksi ini' };
     }
 
-    // 1. Validate period exists
+    // 1. Validate period exists (also fetch year for tahun column)
     const { data: period, error: pErr } = await supabase
       .from('qa_periods')
-      .select('id')
+      .select('id, year')
       .eq('id', period_id)
       .single();
     
@@ -439,12 +439,26 @@ export async function createTemuanBatchAction(
         });
       }
 
+      // Use legacy_indicator_id for indicator_id FK (references qa_indicators),
+      // and versioned indicator id for rule_indicator_id (references qa_service_rule_indicators).
+      // Without this mapping, indicator_id would contain a qa_service_rule_indicators UUID
+      // which violates the FK constraint to qa_indicators(id).
+      const effectiveIndicatorId = matchedIndicator
+        ? (matchedIndicator.legacy_indicator_id || t.indicator_id)
+        : t.indicator_id;
+
       return {
         peserta_id,
         period_id,
+        tahun: period.year,
+        indicator_id: effectiveIndicatorId,
         rule_version_id: resolved?.version.id ?? null,
         rule_indicator_id: matchedIndicator?.id ?? null,
-        ...t
+        no_tiket: t.no_tiket,
+        nilai: t.nilai,
+        ketidaksesuaian: t.ketidaksesuaian,
+        sebaiknya: t.sebaiknya,
+        service_type: t.service_type,
       };
     }));
 
@@ -618,6 +632,14 @@ export async function createPerfectScoreSessionAction(
     if (!profile || !allowedMutationRoles.includes(profile.role?.toLowerCase() ?? '')) {
       return { data: [], error: 'Akses ditolak: Role tidak memiliki izin untuk aksi ini' };
     }
+    // Fetch period year for tahun column
+    const { data: periodInfo } = await supabase
+      .from('qa_periods')
+      .select('year')
+      .eq('id', period_id)
+      .single();
+    const periodYear = periodInfo?.year ?? new Date().getFullYear();
+
     const supportsPhantom = await hasPhantomPaddingSupport(supabase);
     if (!supportsPhantom) {
       return { data: [], error: 'Fitur sesi tanpa temuan belum aktif. Jalankan migration database terbaru terlebih dahulu.' };
@@ -665,6 +687,7 @@ export async function createPerfectScoreSessionAction(
       indicators.map((ind: { id: string, rule_indicator_id: string | null }) => ({
         peserta_id,
         period_id,
+        tahun: periodYear,
         indicator_id: ind.id,
         rule_version_id,
         rule_indicator_id: ind.rule_indicator_id,

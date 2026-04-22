@@ -695,10 +695,13 @@ export default function QaInputClient({
 
     setSaving(true); setErrorMsg(null);
     try {
-      const { error } = await createPerfectScoreSessionAction(selectedAgent.id, selectedPeriod.id, selectedService as ServiceType);
+      const { data, error } = await createPerfectScoreSessionAction(selectedAgent.id, selectedPeriod.id, selectedService as ServiceType);
       if (error) {
         setErrorMsg(error);
         return;
+      }
+      if (data && data.length > 0) {
+        setTemuan(prev => [...(data as QATemuan[]).reverse(), ...prev]);
       }
       setSuccessMsg('Sesi Tanpa Temuan berhasil ditambahkan (phantom padding 5 sesi).');
       setTimeout(() => setSuccessMsg(null), 3000);
