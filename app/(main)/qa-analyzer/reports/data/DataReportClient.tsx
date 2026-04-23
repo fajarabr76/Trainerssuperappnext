@@ -76,6 +76,14 @@ export default function DataReportClient({
   const [loadingContext, setLoadingContext] = useState(false);
 
   useEffect(() => {
+    if (mode === 'individu') {
+      setPeriodMode('range');
+    } else {
+      setPeriodMode('single');
+    }
+  }, [mode]);
+
+  useEffect(() => {
     if (mode === 'individu' && pesertaId && year) {
       setLoadingContext(true);
       getLastAuditedMonthAction(pesertaId, year, serviceType)
@@ -304,66 +312,67 @@ export default function DataReportClient({
               </select>
             </div>
 
-            {mode === 'layanan' ? (
-              <>
-                <div className="pt-2">
-                  <label className="mb-3 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                    Mode Periode
-                  </label>
-                  <div className="flex gap-2 p-1 bg-foreground/5 rounded-2xl">
-                    <button
-                      onClick={() => setPeriodMode('single')}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                        periodMode === 'single' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
-                      }`}
-                    >
-                      <Calendar className="h-3 w-3" /> 1 Bulan
-                    </button>
-                    <button
-                      onClick={() => setPeriodMode('range')}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                        periodMode === 'range' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
-                      }`}
-                    >
-                      <LayoutGrid className="h-3 w-3" /> Rentang
-                    </button>
-                  </div>
-                </div>
+            {/* Mode Periode — tersedia untuk kedua mode layanan & individu */}
+            <div className="pt-2">
+              <label className="mb-3 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                Mode Periode
+              </label>
+              <div className="flex gap-2 p-1 bg-foreground/5 rounded-2xl">
+                <button
+                  onClick={() => setPeriodMode('single')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                    periodMode === 'single' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
+                  }`}
+                >
+                  <Calendar className="h-3 w-3" /> 1 Bulan
+                </button>
+                <button
+                  onClick={() => setPeriodMode('range')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                    periodMode === 'range' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
+                  }`}
+                >
+                  <LayoutGrid className="h-3 w-3" /> Rentang
+                </button>
+              </div>
+            </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                  <div>
-                    <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                      {periodMode === 'single' ? 'Bulan' : 'Bulan Mulai'}
-                    </label>
-                    <select
-                      value={startMonth}
-                      onChange={(e) => setStartMonth(Number(e.target.value))}
-                      className="h-11 w-full rounded-xl border border-border/50 bg-background px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
-                    >
-                      {MONTHS.map((m, i) => (
-                        <option key={i + 1} value={i + 1}>{m}</option>
-                      ))}
-                    </select>
-                  </div>
-                  {periodMode === 'range' && (
-                    <div>
-                      <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                        Bulan Akhir
-                      </label>
-                      <select
-                        value={endMonth}
-                        onChange={(e) => setEndMonth(Number(e.target.value))}
-                        className="h-11 w-full rounded-xl border border-border/50 bg-background px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
-                      >
-                        {MONTHS.map((m, i) => (
-                          <option key={i + 1} value={i + 1}>{m}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
+            {/* Bulan Selector — tersedia untuk kedua mode */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              <div>
+                <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  {periodMode === 'single' ? 'Bulan' : 'Bulan Mulai'}
+                </label>
+                <select
+                  value={startMonth}
+                  onChange={(e) => setStartMonth(Number(e.target.value))}
+                  className="h-11 w-full rounded-xl border border-border/50 bg-background px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  {MONTHS.map((m, i) => (
+                    <option key={i + 1} value={i + 1}>{m}</option>
+                  ))}
+                </select>
+              </div>
+              {periodMode === 'range' && (
+                <div>
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    Bulan Akhir
+                  </label>
+                  <select
+                    value={endMonth}
+                    onChange={(e) => setEndMonth(Number(e.target.value))}
+                    className="h-11 w-full rounded-xl border border-border/50 bg-background px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                  >
+                    {MONTHS.map((m, i) => (
+                      <option key={i + 1} value={i + 1}>{m}</option>
+                    ))}
+                  </select>
                 </div>
-              </>
-            ) : (
+              )}
+            </div>
+
+            {/* Konteks Audit Pribadi — info tambahan hanya untuk mode individu */}
+            {mode === 'individu' && (
               <div className="pt-2">
                 <label className="mb-3 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                   Konteks Audit Pribadi
@@ -375,7 +384,7 @@ export default function DataReportClient({
                     </span>
                   ) : pesertaId ? (
                     endMonth > 0 ? (
-                      <span>Januari - {MONTHS[endMonth - 1]} {year}</span>
+                      <span>Terakhir diaudit: Januari – {MONTHS[endMonth - 1]} {year}</span>
                     ) : (
                       <span className="text-amber-600 dark:text-amber-500 italic">Tidak ada data audit</span>
                     )
@@ -588,14 +597,14 @@ export default function DataReportClient({
                               {item.ticketNumber}
                             </code>
                           </td>
-                          <td className="px-6 py-4 max-w-[200px]">
-                            <div className="font-medium text-foreground line-clamp-2">{item.parameter}</div>
+                          <td className="px-6 py-4 min-w-[200px]">
+                            <div className="font-medium text-foreground whitespace-pre-wrap">{item.parameter}</div>
                           </td>
-                          <td className="px-6 py-4 max-w-[300px]">
-                            <div className="text-rose-600 leading-relaxed line-clamp-3 italic">{item.finding}</div>
+                          <td className="px-6 py-4 min-w-[300px]">
+                            <div className="text-rose-600 leading-relaxed italic whitespace-pre-wrap">{item.finding}</div>
                           </td>
-                          <td className="px-6 py-4 max-w-[300px]">
-                            <div className="text-emerald-600 leading-relaxed line-clamp-3">{item.expected}</div>
+                          <td className="px-6 py-4 min-w-[300px]">
+                            <div className="text-emerald-600 leading-relaxed whitespace-pre-wrap">{item.expected}</div>
                           </td>
                         </tr>
                       ))}
