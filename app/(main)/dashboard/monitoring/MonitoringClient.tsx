@@ -24,7 +24,7 @@ const TranscriptModal = ({ isOpen, onClose, result }: { isOpen: boolean, onClose
               <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${
                 msg.sender === 'agent' ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-foreground'
               }`}>
-                <p className="font-medium">{msg.text}</p>
+                <p className="font-medium whitespace-pre-wrap break-words">{msg.text}</p>
                 {msg.timestamp && (
                   <span className="text-[10px] opacity-40 mt-1 block">
                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

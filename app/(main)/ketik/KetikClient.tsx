@@ -13,6 +13,7 @@ import { loadSettings, saveSettings } from './services/settingService';
 import { moduleTheme } from '@/app/components/ui/moduleTheme';
 import ModuleWorkspaceIntro from '@/app/components/ModuleWorkspaceIntro';
 import { User } from '@supabase/supabase-js';
+import { persistKetikSession } from './actions';
 
 const supabase = createClient();
 
@@ -26,6 +27,7 @@ export default function AppKetik() {
   const theme = moduleTheme.ketik;
   const [view, setView] = useState<'home' | 'chat'>('home');
   const [user, setUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
 
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
 
@@ -43,6 +45,7 @@ export default function AppKetik() {
       const { data: { user }, error } = await supabase.auth.getUser();
       if (error) console.error('Error getting user:', error);
       setUser(user);
+      setAuthReady(true);
     };
     getUser();
   }, []);
@@ -130,6 +133,14 @@ export default function AppKetik() {
   };
 
   const startSimulation = () => {
+    if (!authReady) {
+      alert('Status autentikasi belum siap. Tunggu sebentar lalu coba lagi.');
+      return;
+    }
+    if (!user) {
+      alert('Anda harus login untuk memulai simulasi.');
+      return;
+    }
     const activeScenarios = settings.scenarios.filter(s => s.isActive);
     if (activeScenarios.length === 0) {
       alert('Pilih minimal satu skenario di Pengaturan.');
@@ -172,59 +183,47 @@ export default function AppKetik() {
   };
 
   const endSession = async (messages: ChatMessage[]) => {
+    if (!authReady) {
+      alert('Status autentikasi belum siap. Sesi tidak dapat disimpan.');
+      setView('home');
+      setCurrentConfig(null);
+      setCurrentScenario(null);
+      setReviewMessages([]);
+      return;
+    }
     if (user && currentConfig && currentScenario && messages.length > 0 && currentScenario.id !== 'review') {
       setIsLoading(true);
       try {
-        const sessionData = {
-          user_id: user.id,
-          date: new Date().toISOString(),
-          scenario_title: currentScenario.title,
-          consumer_name: currentConfig.identity.name,
-          consumer_phone: currentConfig.identity.phone,
-          consumer_city: currentConfig.identity.city,
+        const result = await persistKetikSession({
+          userId: user.id,
+          scenarioTitle: currentScenario.title,
+          consumerName: currentConfig.identity.name,
+          consumerPhone: currentConfig.identity.phone,
+          consumerCity: currentConfig.identity.city,
           messages,
-        };
+        });
 
-        const { data: historyData, error: historyError } = await supabase
-          .from('ketik_history')
-          .insert([sessionData])
-          .select()
-          .single();
-
-        if (historyError || !historyData) {
-          throw historyError || new Error('Gagal menyimpan riwayat Ketik.');
-        }
-
-        const resultData = {
-          user_id: user.id,
-          module: 'ketik',
-          score: 0,
-          details: {
-            legacy_history_id: historyData.id,
-            scenario_title: currentScenario.title,
-            consumer_name: currentConfig.identity.name,
-            consumer_phone: currentConfig.identity.phone,
-            consumer_city: currentConfig.identity.city,
-            messages,
+        if (!result.success) {
+          alert(`Gagal menyimpan sesi: ${result.error}`);
+        } else {
+          if (result.warning) {
+            console.warn('[Ketik] Session saved with warning:', result.warning);
           }
-        };
-
-        const { error: resultsError } = await supabase.from('results').insert([resultData]);
-        if (resultsError) {
-          console.error('Error saving to results:', JSON.stringify(resultsError, null, 2));
+          if (result.session) {
+            setHistory(prev => [{
+              id: result.session!.id,
+              date: safeDate(result.session!.date),
+              scenarioTitle: result.session!.scenario_title,
+              consumerName: result.session!.consumer_name,
+              consumerPhone: result.session!.consumer_phone,
+              consumerCity: result.session!.consumer_city,
+              messages: result.session!.messages,
+            }, ...prev]);
+          }
         }
-
-        setHistory(prev => [{
-          id: historyData.id,
-          date: safeDate(historyData.date ?? historyData.created_at),
-          scenarioTitle: historyData.scenario_title,
-          consumerName: historyData.consumer_name,
-          consumerPhone: historyData.consumer_phone,
-          consumerCity: historyData.consumer_city,
-          messages: historyData.messages,
-        }, ...prev]);
       } catch (error) {
         console.error('Error ending session:', error);
+        alert('Terjadi kesalahan saat menyimpan sesi.');
       } finally {
         setIsLoading(false);
       }
@@ -279,11 +278,11 @@ export default function AppKetik() {
                     whileHover={{ scale: 1.01, y: -1 }}
                     whileTap={{ scale: 0.99 }}
                     onClick={startSimulation}
-                    disabled={isLoading}
-                    className="module-clean-button-primary flex h-12 w-full items-center justify-center gap-2.5 rounded-xl px-5 text-[10px] font-black uppercase tracking-[0.18em] transition-all hover:opacity-95"
+                    disabled={isLoading || !authReady}
+                    className="module-clean-button-primary flex h-12 w-full items-center justify-center gap-2.5 rounded-xl px-5 text-[10px] font-black uppercase tracking-[0.18em] transition-all hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isLoading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <Play className="h-4 w-4 fill-current" />}
-                    <span>Mulai Simulasi</span>
+                    {isLoading || !authReady ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <Play className="h-4 w-4 fill-current" />}
+                    <span>{!authReady ? 'Memuat...' : isLoading ? 'Memulai...' : 'Mulai Simulasi'}</span>
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.01, y: -1 }}
@@ -324,6 +323,7 @@ export default function AppKetik() {
                   isReviewMode={currentScenario.id === 'review'} 
                   initialMessages={reviewMessages} 
                   isEnding={isLoading}
+                  authReady={authReady}
                 />
               )}
             </div>

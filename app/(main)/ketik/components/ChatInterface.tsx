@@ -15,6 +15,7 @@ interface ChatInterfaceProps {
   isReviewMode?: boolean;
   initialMessages?: ChatMessage[];
   isEnding?: boolean;
+  authReady?: boolean;
 }
 
 const TickIcon: React.FC<{ status?: string }> = ({ status }) => {
@@ -118,48 +119,69 @@ function normalizeMessagesForDisplay(messages: ChatMessage[]): ChatMessage[] {
   return normalized;
 }
 
+type SessionPhase = 'active' | 'closing_by_timeout' | 'closed';
+
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ 
   config,
   scenario,
   onEndSession,
   isReviewMode = false,
   initialMessages = [],
-  isEnding = false
+  isEnding = false,
+  authReady = true,
 }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>(() => normalizeMessagesForDisplay(initialMessages));
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isTimedOut, setIsTimedOut] = useState(false);
-  const [isSessionEnded, _setIsSessionEnded] = useState(false);
+  const [sessionPhase, setSessionPhase] = useState<SessionPhase>(isReviewMode ? 'closed' : 'active');
   const [timeLeft, setTimeLeft] = useState(config.simulationDuration * 60);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const pendingTimeoutsRef = useRef<number[]>([]);
+  const sessionPhaseRef = useRef<SessionPhase>(isReviewMode ? 'closed' : 'active');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  const clearPendingTimeouts = useCallback(() => {
+    for (const id of pendingTimeoutsRef.current) {
+      clearTimeout(id);
+    }
+    pendingTimeoutsRef.current = [];
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearPendingTimeouts();
+    };
+  }, [clearPendingTimeouts]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
 
   useEffect(() => {
-    if (!isReviewMode && !isSessionEnded) {
-      textareaRef.current?.focus();
-    }
-  }, [isReviewMode, isSessionEnded]);
+    sessionPhaseRef.current = sessionPhase;
+  }, [sessionPhase]);
 
   useEffect(() => {
-    if (isReviewMode || isSessionEnded) return;
+    if (!isReviewMode && sessionPhase === 'active') {
+      textareaRef.current?.focus();
+    }
+  }, [isReviewMode, sessionPhase]);
+
+  useEffect(() => {
+    if (isReviewMode || sessionPhase !== 'active') return;
 
     const timer = setInterval(() => {
       setElapsedSeconds((prev) => prev + 1);
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isReviewMode, isSessionEnded]);
+  }, [isReviewMode, sessionPhase]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -169,8 +191,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [inputText]);
 
   const handleSessionTimeout = useCallback(async () => {
-    setIsTimedOut(true);
+    if (sessionPhase !== 'active') return;
+
+    setSessionPhase('closing_by_timeout');
     setIsLoading(true);
+    clearPendingTimeouts();
     
     try {
       const currentHistory = [...messages];
@@ -192,6 +217,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       if (!result.success) {
         setIsLoading(false);
+        setSessionPhase('closed');
         setMessages((prev) => [
           ...prev,
           {
@@ -211,7 +237,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         );
         let delay = 1000;
         for (const part of parts) {
-          setTimeout(() => {
+          const timeoutId = window.setTimeout(() => {
             setMessages(prev => normalizeMessagesForDisplay([...prev, {
               id: Date.now().toString() + Math.random(),
               sender: part.sender,
@@ -219,33 +245,40 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
               timestamp: new Date()
             }]));
           }, delay);
+          pendingTimeoutsRef.current.push(timeoutId);
           delay += Math.max(1500, part.text.length * 50);
         }
-        setTimeout(() => setIsLoading(false), delay);
+        const finishId = window.setTimeout(() => {
+          setIsLoading(false);
+          setSessionPhase('closed');
+        }, delay);
+        pendingTimeoutsRef.current.push(finishId);
       } else {
         setIsLoading(false);
+        setSessionPhase('closed');
       }
     } catch (error) {
       console.error("Error generating timeout response", error);
       setIsLoading(false);
+      setSessionPhase('closed');
     }
-  }, [config, elapsedSeconds, messages, scenario]);
+  }, [config, elapsedSeconds, messages, scenario, sessionPhase, clearPendingTimeouts]);
 
   // Countdown Timer Logic
   useEffect(() => {
-    if (isReviewMode || isSessionEnded) return;
+    if (isReviewMode || sessionPhase !== 'active') return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => (prev <= 1 ? 0 : prev - 1));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isReviewMode, isSessionEnded, handleSessionTimeout]);
+  }, [isReviewMode, sessionPhase]);
 
   useEffect(() => {
-    if (isReviewMode || isSessionEnded || isTimedOut || timeLeft > 0) return;
+    if (isReviewMode || sessionPhase !== 'active' || timeLeft > 0) return;
     handleSessionTimeout();
-  }, [isReviewMode, isSessionEnded, isTimedOut, timeLeft, handleSessionTimeout]);
+  }, [isReviewMode, sessionPhase, timeLeft, handleSessionTimeout]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -268,7 +301,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [isReviewMode, messages.length, config.identity.name]);
 
   const handleSend = async () => {
-    if (!inputText.trim() || isSessionEnded) return;
+    if (!inputText.trim() || sessionPhase !== 'active') return;
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
@@ -281,10 +314,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setMessages(prev => [...prev, userMsg]);
     setInputText('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
-
-    if (isTimedOut) {
-      return;
-    }
 
     setIsLoading(true);
 
@@ -302,6 +331,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           totalDurationSeconds: config.simulationDuration * 60,
         }
       );
+
+      if (sessionPhaseRef.current !== 'active') {
+        setIsLoading(false);
+        return;
+      }
 
       if (!result.success) {
         setIsLoading(false);
@@ -325,7 +359,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         
         let delay = 1000;
         for (const part of parts) {
-          setTimeout(() => {
+          const timeoutId = window.setTimeout(() => {
             setMessages(prev => normalizeMessagesForDisplay([...prev, {
               id: Date.now().toString() + Math.random(),
               sender: part.sender,
@@ -333,13 +367,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
               timestamp: new Date()
             }]));
           }, delay);
+          pendingTimeoutsRef.current.push(timeoutId);
           delay += Math.max(1500, part.text.length * 50); // Simulate typing time
         }
         
-        setTimeout(() => setIsLoading(false), delay);
+        const finishId = window.setTimeout(() => setIsLoading(false), delay);
+        pendingTimeoutsRef.current.push(finishId);
       } else {
         setIsLoading(false);
-        setIsTimedOut(true); // Mark as timed out/ended naturally
+        setSessionPhase('closed');
       }
     } catch (error) {
       console.error("Error generating response", error);
@@ -501,14 +537,19 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 </div>
             ) : (
                 <button 
-                    onClick={() => !isLoading && !isEnding && onEndSession(messages)}
-                    disabled={isLoading || isEnding}
+                    onClick={() => {
+                      clearPendingTimeouts();
+                      if (!isLoading && !isEnding && authReady) {
+                        onEndSession(messages);
+                      }
+                    }}
+                    disabled={isLoading || isEnding || !authReady}
                     className={`px-6 py-2.5 text-white font-black text-[10px] uppercase tracking-widest transition-all rounded-xl shadow-lg flex items-center gap-2
-                    ${(isLoading || isEnding) 
+                    ${(isLoading || isEnding || !authReady)
                         ? 'bg-red-400 cursor-not-allowed opacity-80' 
                         : 'bg-red-500 hover:bg-red-600 shadow-red-500/20 active:scale-95'}`}
                 >
-                    {isEnding ? (
+                    {isEnding || !authReady ? (
                         <>
                             <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             <span>Memproses...</span>
@@ -570,7 +611,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                             : 'module-clean-panel text-foreground rounded-[2rem] rounded-tl-none'
                         }`}
                     >
-                        <div className="font-medium">
+                        <div className="font-medium whitespace-pre-wrap break-words">
                             {renderMessageContent(msg.text)}
                         </div>
                         {/* Timestamp */}
@@ -607,7 +648,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       </div>
 
       {/* Input Area */}
-      {!isReviewMode ? (
+      {!isReviewMode && sessionPhase === 'active' ? (
         <div className="module-clean-toolbar p-6 border-t z-40 shrink-0 relative">
           <div className="absolute inset-x-0 -top-12 h-12 bg-gradient-to-t from-card to-transparent pointer-events-none" />
           
@@ -649,6 +690,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   <Send className={`w-6 h-6 ${inputText.trim() ? 'translate-x-0.5 -translate-y-0.5' : ''}`} />
               </motion.button>
           </div>
+        </div>
+      ) : !isReviewMode ? (
+        <div className="module-clean-toolbar p-8 border-t z-40 shrink-0 text-center flex items-center justify-center gap-3">
+          <span className="text-[10px] font-extrabold uppercase tracking-[0.3em] text-muted-foreground">
+            Sesi Telah Berakhir
+          </span>
         </div>
       ) : (
         <div className="module-clean-toolbar p-8 border-t z-40 shrink-0 text-center flex items-center justify-center gap-3">
