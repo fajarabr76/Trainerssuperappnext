@@ -74,6 +74,18 @@ export function resolveServiceTypeFromTeam(team?: string | null): ServiceType {
   return 'call';
 }
 
+/**
+ * Menghitung service efektif untuk halaman input QA.
+ * Override manual menang > inference dari tim agent > fallback dari props > 'call'.
+ */
+export function computeEffectiveService(
+  serviceOverride: ServiceType | null | undefined,
+  agentTim: string | null | undefined,
+  fallbackService: ServiceType | null | undefined
+): ServiceType {
+  return serviceOverride ?? (agentTim ? resolveServiceTypeFromTeam(agentTim) : null) ?? fallbackService ?? 'call';
+}
+
 // ── Interfaces ────────────────────────────────────────────────
 export interface QAIndicator {
   id: string;

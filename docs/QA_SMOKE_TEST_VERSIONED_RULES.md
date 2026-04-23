@@ -76,6 +76,8 @@ Checklist ini dipakai setelah migration:
 ## K. Service Default CSO/Call Regression Check
 - [ ] Pilih agent dengan tim `Mix` atau `CSO` di `/qa-analyzer/input`; pastikan layanan default yang terpilih adalah `CSO`, bukan `Call`.
 - [ ] Pilih periode yang sudah punya data temuan multi-service; pastikan parameter dan daftar temuan yang muncul hanya milik `cso`, tidak bocor dari `call`.
+- [ ] Ubah layanan manual ke `Call`, lalu pindah ke agent lain; pastikan service reset mengikuti tim agent baru dan tidak membawa override lama.
+- [ ] Pastikan field tim agent di halaman input hanya display-only dan tidak mengubah hasil fetch.
 - [ ] Buka `/qa-analyzer/agents/[id]` untuk agent yang sama tanpa query `service` di URL; pastikan canonical redirect memilih `service=cso` (bukan `service=call`).
 - [ ] Ulangi poin di atas pada agent dengan tim `Telepon` sebagai kontrol; default harus tetap `call`.
 - [ ] Verifikasi bahwa semua jalur code memakai `resolveServiceTypeFromTeam()` dari `qa-types.ts`, bukan chain `includes()` atau `TIM_TO_DEFAULT_SERVICE[...] ?? 'call'` inline.

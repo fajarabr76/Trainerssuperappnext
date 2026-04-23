@@ -24,9 +24,10 @@ import {
   Agent,
   unwrapIndicator,
   resolveServiceTypeFromTeam,
+  computeEffectiveService,
 } from '../lib/qa-types';
 import type { QAIndicator, QAPeriod, QATemuan, ServiceType, ServiceWeight } from '../lib/qa-types';
-import { TIM_TO_DEFAULT_SERVICE, SERVICE_LABELS, DEFAULT_SERVICE_WEIGHTS } from '../lib/qa-types';
+import { SERVICE_LABELS, DEFAULT_SERVICE_WEIGHTS } from '../lib/qa-types';
 import { 
   createTemuanBatchAction, 
   updateTemuanAction, 
@@ -347,7 +348,6 @@ interface QaInputClientProps {
   initialStep?: Step;
   initialFolder?: string;
   initialService?: ServiceType;
-  initialTeam?: string;
   initialPeriod?: QAPeriod | null;
   initialWeights?: Record<ServiceType, ServiceWeight>;
 }
@@ -359,7 +359,6 @@ export default function QaInputClient({
   initialStep = 'folder',
   initialFolder,
   initialService,
-  initialTeam,
   initialPeriod,
   initialWeights,
 }: QaInputClientProps) {
@@ -378,11 +377,15 @@ export default function QaInputClient({
   const [selectedFolder, setSelectedFolder] = useState<string | null>(initialFolder ?? null);
   const [selectedAgent, setSelectedAgent]   = useState<Agent | null>(initialAgent ?? null);
   const [selectedPeriod, setSelectedPeriod] = useState<QAPeriod | null>(initialPeriod ?? null);
-  const [selectedService, setSelectedService] = useState<ServiceType>(initialService ?? 'call');
-  const [selectedTeam, setSelectedTeam] = useState<string>(initialTeam ?? '');
+  const [serviceOverride, setServiceOverride] = useState<ServiceType | null>(null);
   const [weights, _setWeights] = useState<Record<ServiceType, ServiceWeight>>(initialWeights ?? DEFAULT_SERVICE_WEIGHTS);
 
-  const activeWeight = weights[selectedService];
+  const effectiveService = useMemo(
+    () => computeEffectiveService(serviceOverride, selectedAgent?.tim, initialService),
+    [serviceOverride, selectedAgent, initialService]
+  );
+
+  const activeWeight = weights[effectiveService];
   const indicatorLookup = useMemo(() => {
     const map = new Map<string, QAIndicator>();
     indicators.forEach((indicator) => {
@@ -449,16 +452,20 @@ export default function QaInputClient({
 
 
   const handleSelectAgent = async (agent: Agent) => {
-    setSelectedAgent(agent); setSelectedPeriod(null); setTemuan([]);
-    setLoading(true); setErrorMsg(null);
-    
+    setSelectedAgent(agent);
+    setSelectedPeriod(null);
+    setTemuan([]);
+    setServiceOverride(null);
+    setEntries([newEntry()]);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setLoading(true);
+
     try {
-      const defaultService: ServiceType = resolveServiceTypeFromTeam(agent.tim);
-      setSelectedService(defaultService);
-      setSelectedTeam(agent.tim || '');
-      
+      const agentService: ServiceType = resolveServiceTypeFromTeam(agent.tim);
+
       // Fetch latest published indicators for this service (no period selected yet)
-      const { data: inds, error } = await getResolvedIndicatorsAction(defaultService, '');
+      const { data: inds, error } = await getResolvedIndicatorsAction(agentService, '');
       if (error) {
         setErrorMsg(error);
         return;
@@ -473,9 +480,9 @@ export default function QaInputClient({
   };
 
   const handleServiceChange = async (newService: ServiceType) => {
-    setSelectedService(newService);
-    
+    setServiceOverride(newService);
     setLoading(true);
+    setErrorMsg(null);
     try {
       if (selectedPeriod) {
         const [indsRes, wRes] = await Promise.all([
@@ -492,10 +499,10 @@ export default function QaInputClient({
         if (error) { setErrorMsg(error); return; }
         setIndicators(inds as QAIndicator[]);
       }
-      
+
       setEntries([newEntry()]); // reset form to avoid invalid indicator ids
-      
-      // Bug 2 Fix: If a period is already selected, re-fetch temuan for the new service to ensure accurate score calculation
+
+      // Re-fetch temuan for the new service to ensure accurate score calculation
       if (selectedAgent && selectedPeriod) {
         const query = supabase
           .from('qa_temuan')
@@ -514,21 +521,24 @@ export default function QaInputClient({
         if (error) throw error;
         setTemuan(found || []);
       }
-    } catch (err: unknown) { 
-      setErrorMsg((err as Error).message); 
-    } finally { 
-      setLoading(false); 
+    } catch (err: unknown) {
+      setErrorMsg((err as Error).message);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleSelectPeriod = async (period: QAPeriod) => {
     if (!selectedAgent) return;
-    setSelectedPeriod(period); setLoading(true); setErrorMsg(null);
-    try { 
+    const serviceForPeriod: ServiceType = computeEffectiveService(serviceOverride, selectedAgent.tim, initialService);
+    setSelectedPeriod(period);
+    setLoading(true);
+    setErrorMsg(null);
+    try {
       // Fetch resolved rules for this period
       const [indsRes, wRes] = await Promise.all([
-        getResolvedIndicatorsAction(selectedService, period.id),
-        getResolvedWeightsAction(selectedService, period.id)
+        getResolvedIndicatorsAction(serviceForPeriod, period.id),
+        getResolvedWeightsAction(serviceForPeriod, period.id)
       ]);
       if (indsRes.error) { setErrorMsg(indsRes.error); return; }
       if (wRes.error) { setErrorMsg(wRes.error); return; }
@@ -541,7 +551,7 @@ export default function QaInputClient({
         .select('*, qa_indicators:qa_service_rule_indicators(id, name, category, bobot, has_na, service_type), qa_periods(id, month, year)')
         .eq('peserta_id', selectedAgent.id)
         .eq('period_id', period.id)
-        .eq('service_type', selectedService); // Bug 2 Fix: Only fetch temuan for the relevant service
+        .eq('service_type', serviceForPeriod);
       let { data: found, error } = await query
         .eq('is_phantom_padding', false)
         .order('created_at', { ascending: false });
@@ -551,8 +561,8 @@ export default function QaInputClient({
         error = fallback.error;
       }
       if (error) throw error;
-      setTemuan(found || []); 
-      setStep('list'); 
+      setTemuan(found || []);
+      setStep('list');
     }
     catch (err: unknown) { setErrorMsg((err as Error).message); } finally { setLoading(false); }
   };
@@ -578,7 +588,7 @@ export default function QaInputClient({
         nilai: entry.nilai,
         ketidaksesuaian: entry.ketidaksesuaian || undefined,
         sebaiknya: entry.sebaiknya || undefined,
-        service_type: selectedService,
+        service_type: effectiveService,
       }));
 
       const { data: created, error } = await createTemuanBatchAction(selectedAgent.id, selectedPeriod.id, temuanList);
@@ -662,7 +672,7 @@ export default function QaInputClient({
         nilai: row.nilai!,
         ketidaksesuaian: row.ketidaksesuaian || undefined,
         sebaiknya: row.sebaiknya || undefined,
-        service_type: selectedService,
+        service_type: effectiveService,
       }));
 
       const { data: created, error } = await createTemuanBatchAction(selectedAgent.id, selectedPeriod.id, temuanList);
@@ -683,7 +693,7 @@ export default function QaInputClient({
 
     setSaving(true); setErrorMsg(null);
     try {
-      const { data, error } = await createPerfectScoreSessionAction(selectedAgent.id, selectedPeriod.id, selectedService as ServiceType);
+      const { data, error } = await createPerfectScoreSessionAction(selectedAgent.id, selectedPeriod.id, effectiveService);
       if (error) {
         setErrorMsg(error);
         return;
@@ -854,7 +864,7 @@ export default function QaInputClient({
                     <div>
                       <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Layanan Audit</label>
                       <select
-                        value={selectedService}
+                        value={effectiveService}
                         onChange={(e) => handleServiceChange(e.target.value as ServiceType)}
                         className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-card text-foreground text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none cursor-pointer"
                         style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
@@ -864,19 +874,12 @@ export default function QaInputClient({
                         ))}
                       </select>
                     </div>
-                    {/* Tim Dropdown */}
+                    {/* Tim Display */}
                     <div>
                       <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Tim Agent</label>
-                      <select
-                        value={selectedTeam}
-                        onChange={(e) => setSelectedTeam(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-card text-foreground text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none cursor-pointer"
-                        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
-                      >
-                        {Object.keys(TIM_TO_DEFAULT_SERVICE).map(tim => (
-                          <option key={tim} value={tim}>{tim}</option>
-                        ))}
-                      </select>
+                      <div className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-muted/40 text-foreground text-sm font-medium">
+                        {selectedAgent?.tim || '-'}
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -56,9 +56,12 @@ Checklist review:
 ### 4) Service Inference Harus Lewat Helper Tunggal
 
 - Inferensi default service dari `tim` wajib menggunakan `resolveServiceTypeFromTeam(team?)` di `qa-types.ts`.
+- Service aktif di `/qa-analyzer/input` wajib dihitung lewat `computeEffectiveService(serviceOverride, agentTim, fallbackService)` agar override manual, inferensi tim, dan fallback tidak saling menimpa secara stale.
 - Dilarang menulis chain `includes()` terpisah atau exact-match `TIM_TO_DEFAULT_SERVICE[agent.tim] ?? 'call'` di luar helper.
 - Helper menangani: trim + lowercase, passthrough service code langsung (`call`, `cso`, dll), alias tim (`mix`/`cso` → `cso`, `telepon`/`call` → `call`), dan fallback akhir ke `call`.
 - Jika UI sudah mengetahui service aktif, query prefetch temuan per `agent + period` wajib ikut filter `service_type` (via `getTemuanByAgentPeriod` argumen ketiga).
+- Saat agent berubah di input page, override service lama dan form state wajib di-reset sebelum fetch berikutnya.
+- Tim agent di UI input bersifat display-only; jangan jadikan dropdown tim sebagai sumber perubahan fetch.
 
 Rute terdampak:
 - `/qa-analyzer/input` — prefetch `initialIndicators` dan `initialTemuan` harus scoped ke service yang sama.
@@ -69,6 +72,8 @@ Checklist review:
 - [ ] Tidak ada `includes('mix')`, `includes('chat')`, atau chain serupa di luar `resolveServiceTypeFromTeam`.
 - [ ] Tidak ada `TIM_TO_DEFAULT_SERVICE[...] ?? 'call'` di luar helper.
 - [ ] Prefetch temuan di input page membawa argumen `serviceType` ke `getTemuanByAgentPeriod`.
+- [ ] `handleSelectAgent` dan `handleSelectPeriod` tidak memakai service state lama saat agent berganti.
+- [ ] Tim agent di UI input tidak mengubah hasil fetch service.
 - [ ] Agent detail page memakai `resolveServiceTypeFromTeam` untuk menentukan `defaultSvc`.
 
 ## Deployment Checklist

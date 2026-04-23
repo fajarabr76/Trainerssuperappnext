@@ -66,7 +66,6 @@ export default async function QaInputPage({ searchParams }: PageProps) {
   let initialTemuan: any[] = [];
   let initialStep: 'folder' | 'agent' | 'period' | 'list' = 'folder';
   let initialService: ServiceType | undefined;
-  let initialTeam: string | undefined;
   let initialPeriod: QAPeriod | null = null;
 
   if (folderParam) {
@@ -83,7 +82,6 @@ export default async function QaInputPage({ searchParams }: PageProps) {
         if (initialAgent) {
           const defaultService: ServiceType = resolveServiceTypeFromTeam(initialAgent.tim);
           initialService = defaultService;
-          initialTeam = initialAgent.tim || '';
           initialStep = 'period';
 
           // Pre-fetch indicators for the default service
@@ -124,7 +122,6 @@ export default async function QaInputPage({ searchParams }: PageProps) {
       initialStep={initialStep}
       initialFolder={folderParam}
       initialService={initialService}
-      initialTeam={initialTeam}
       initialPeriod={initialPeriod}
     />
   );

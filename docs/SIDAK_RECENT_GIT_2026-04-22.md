@@ -19,10 +19,10 @@ Commit repo lain yang tidak relevan (monitoring, ketik, auth) tidak dimasukkan.
 | Aspek | Detail |
 |-------|--------|
 | Isu | Agent dengan tim `Mix`/`CSO` memilih layanan `CSO` di UI tetapi parameter atau query prefetched jatuh ke `Call` |
-| Akar masalah | Inferensi service dari `tim` tidak konsisten di beberapa file; prefetch temuan tidak filter `service_type` |
-| Fix yang diterapkan | 1) Helper `resolveServiceTypeFromTeam()` di `qa-types.ts` sebagai satu-satunya sumber inferensi. 2) Semua chain `includes()` ad hoc dan exact-match `TIM_TO_DEFAULT_SERVICE[...]` diganti dengan helper. 3) `getTemuanByAgentPeriod(...)` sekarang menerima argumen opsional `serviceType` untuk prefetch yang service-scoped. |
+| Akar masalah | Service aktif di input page bisa stale saat agent berganti; prefetch temuan juga tidak selalu service-scoped |
+| Fix yang diterapkan | 1) Helper `resolveServiceTypeFromTeam()` tetap jadi sumber inferensi tim. 2) `computeEffectiveService()` dipakai untuk menentukan service aktif dengan prioritas override manual > tim agent > fallback. 3) `QaInputClient` memakai `serviceOverride` + `effectiveService`, mereset state saat agent berubah, dan `getTemuanByAgentPeriod(...)` sekarang menerima argumen opsional `serviceType` untuk prefetch yang service-scoped. |
 | File terdampak | `qa-types.ts`, `agents/[id]/page.tsx`, `input/page.tsx`, `input/QaInputClient.tsx`, `services/qaService.server.ts` |
-| Verifikasi otomatis | `npm run lint` (pass), `npm run type-check` (pass) |
+| Verifikasi otomatis | `npm run test:sidak` (pass), `npm run lint` (pass), `npm run type-check` (pass) |
 
 ## Verification Status
 
