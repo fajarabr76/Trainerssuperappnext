@@ -29,7 +29,7 @@
 ### Auth-Guard-Sentinel
 **Trigger:** Perubahan pada `app/lib/authz.ts`, `middleware.ts`, atau kueri ke tabel `profiles`.
 - Gunakan `PROFILE_FIELDS` dari `app/lib/authz.ts` untuk canonical auth profile read
-- Setiap kegagalan pembacaan profil memicu `signOut()` dan redirect ke `/?auth=login&message=profile-unavailable`
+- Kegagalan pembacaan profil yang bersifat transient (network error, row belum tersedia) tidak lagi memicu `signOut()`. Hanya state terminal (`is_deleted`, `rejected`) dan guest tanpa sesi yang di-redirect keras. Missing profile ditoleransi di middleware dan AuthModal agar sesi aktif tidak hancur.
 
 ## Commands
 

@@ -86,8 +86,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', init
 
     if (profileError || !profile) {
       console.warn('[AuthModal] Failed to read profile after login:', profileError?.message);
-      await supabase.auth.signOut();
-      throw new Error('Data akun tidak ditemukan atau gagal diverifikasi. Silakan hubungi admin.');
+      // Tolerant: do not sign out on transient read failure or missing row
+      return '/dashboard';
     }
 
     const profileStatus = profile?.status?.toLowerCase();

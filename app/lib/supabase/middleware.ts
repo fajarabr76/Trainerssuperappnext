@@ -70,81 +70,77 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(url);
       }
 
-      // Hanya terapkan gate jika status profile memang terbaca jelas.
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select(PROFILE_FIELDS)
         .eq('id', user.id)
         .maybeSingle();
 
-      if (profileError || !profile) {
+      // On temporary read failure or missing row, do not revoke the auth session.
+      // Only apply hard gates when the profile is clearly readable.
+      if (profile && !profileError) {
+        const profileStatus = profile?.status?.toLowerCase();
+
+        if (profile?.is_deleted || profileStatus === 'rejected') {
+          await supabase.auth.signOut();
+          const url = new URL('/', request.url);
+          url.searchParams.set('auth', 'login');
+          url.searchParams.set('message', profile?.is_deleted ? 'deleted' : 'rejected');
+          return NextResponse.redirect(url);
+        }
+
+        if (profileStatus === 'pending') {
+          const url = new URL('/waiting-approval', request.url);
+          return NextResponse.redirect(url);
+        }
+
+        const role = normalizeRole(profile?.role);
+        const trainerOnlyRoutes = [
+          '/dashboard/users',
+          '/dashboard/activities',
+          '/qa-analyzer/input',
+          '/qa-analyzer/settings',
+          '/qa-analyzer/periods',
+          '/qa-analyzer/reports',
+        ];
+        const trainerOrLeaderRoutes = [
+          '/dashboard/monitoring',
+          '/profiler',
+          '/qa-analyzer/dashboard',
+          '/qa-analyzer/ranking',
+        ];
+        const isQaAgentsListRoute = path === '/qa-analyzer/agents' || path === '/qa-analyzer/agents/';
+        const isQaAgentDetailRoute = path.startsWith('/qa-analyzer/agents/');
+
+        if (trainerOnlyRoutes.some((route) => path.startsWith(route))) {
+          const allowed = ['trainer', 'admin'];
+          if (!allowed.includes(role)) {
+            return NextResponse.redirect(new URL('/dashboard', request.url));
+          }
+        }
+
+        if (trainerOrLeaderRoutes.some((route) => path.startsWith(route))) {
+          const allowed = ['trainer', 'leader', 'admin'];
+          if (!allowed.includes(role)) {
+            return NextResponse.redirect(new URL('/dashboard', request.url));
+          }
+        }
+
+        if (isQaAgentsListRoute) {
+          const allowed = ['trainer', 'leader', 'admin'];
+          if (!allowed.includes(role)) {
+            return NextResponse.redirect(new URL('/dashboard', request.url));
+          }
+        }
+
+        if (isQaAgentDetailRoute) {
+          const allowed = ['trainer', 'leader', 'agent', 'admin'];
+          if (!allowed.includes(role)) {
+            return NextResponse.redirect(new URL('/dashboard', request.url));
+          }
+        }
+      } else if (profileError) {
         console.warn('[middleware] Failed to read profile during auth check:', profileError?.message);
-        await supabase.auth.signOut();
-        const url = new URL('/', request.url);
-        url.searchParams.set('auth', 'login');
-        url.searchParams.set('message', 'profile-unavailable');
-        return NextResponse.redirect(url);
-      }
-
-      const profileStatus = profile?.status?.toLowerCase();
-
-      if (profile?.is_deleted || profileStatus === 'rejected') {
-        await supabase.auth.signOut();
-        const url = new URL('/', request.url);
-        url.searchParams.set('auth', 'login');
-        url.searchParams.set('message', profile?.is_deleted ? 'deleted' : 'rejected');
-        return NextResponse.redirect(url);
-      }
-
-      if (profileStatus === 'pending') {
-        const url = new URL('/waiting-approval', request.url);
-        return NextResponse.redirect(url);
-      }
-
-      const role = normalizeRole(profile?.role);
-      const trainerOnlyRoutes = [
-        '/dashboard/users',
-        '/dashboard/activities',
-        '/qa-analyzer/input',
-        '/qa-analyzer/settings',
-        '/qa-analyzer/periods',
-        '/qa-analyzer/reports',
-      ];
-      const trainerOrLeaderRoutes = [
-        '/dashboard/monitoring',
-        '/profiler',
-        '/qa-analyzer/dashboard',
-        '/qa-analyzer/ranking',
-      ];
-      const isQaAgentsListRoute = path === '/qa-analyzer/agents' || path === '/qa-analyzer/agents/';
-      const isQaAgentDetailRoute = path.startsWith('/qa-analyzer/agents/');
-
-      if (trainerOnlyRoutes.some((route) => path.startsWith(route))) {
-        const allowed = ['trainer', 'admin'];
-        if (!allowed.includes(role)) {
-          return NextResponse.redirect(new URL('/dashboard', request.url));
-        }
-      }
-
-      if (trainerOrLeaderRoutes.some((route) => path.startsWith(route))) {
-        const allowed = ['trainer', 'leader', 'admin'];
-        if (!allowed.includes(role)) {
-          return NextResponse.redirect(new URL('/dashboard', request.url));
-        }
-      }
-
-      if (isQaAgentsListRoute) {
-        const allowed = ['trainer', 'leader', 'admin'];
-        if (!allowed.includes(role)) {
-          return NextResponse.redirect(new URL('/dashboard', request.url));
-        }
-      }
-
-      if (isQaAgentDetailRoute) {
-        const allowed = ['trainer', 'leader', 'agent', 'admin'];
-        if (!allowed.includes(role)) {
-          return NextResponse.redirect(new URL('/dashboard', request.url));
-        }
       }
     }
 

@@ -81,13 +81,7 @@ export async function requirePageAccess(options?: {
     redirect('/?auth=login');
   }
 
-  // 2. Profile check for authenticated users
-  if (!profile) {
-    console.warn('[authz] Auth user exists but profile is null. Redirecting to login with error.');
-    redirect('/?auth=login&message=profile-unavailable');
-  }
-
-  // 3. Terminal account states (deleted, rejected)
+  // 2. Terminal account states (deleted, rejected)
   const status = profile?.status?.toLowerCase();
   if (profile?.is_deleted) {
     redirect('/?auth=login&message=deleted');

@@ -764,6 +764,49 @@ const cachedFetchAgentPeriodSummaries = unstable_cache(
   { revalidate: 300, tags: [QA_AGENT_DETAIL_TAG] }
 );
 
+// ── Dashboard Trend Contract ─────────────────────────────────
+type DashboardTrendData = {
+  labels: string[];
+  totalData: number[];
+  serviceData: Record<string, number[]>;
+  activeServices: string[];
+  serviceSummary: Record<string, { totalDefects: number; auditedAgents: number }>;
+  totalSummary: { totalDefects: number; auditedAgents: number; activeServiceCount: number };
+  periodStats: Array<{
+    id: string;
+    label: string;
+    totalDefects: number;
+    auditedAgents: number;
+    serviceStats: Record<string, { totalDefects: number; auditedAgents: number }>;
+  }>;
+};
+
+function isValidDashboardTrendData(value: unknown): value is DashboardTrendData {
+  if (!value || typeof value !== 'object') return false;
+  const d = value as Record<string, unknown>;
+  if (!Array.isArray(d.labels)) return false;
+  if (!Array.isArray(d.totalData)) return false;
+  if (typeof d.serviceData !== 'object' || d.serviceData === null) return false;
+  if (!Array.isArray(d.activeServices)) return false;
+  if (typeof d.serviceSummary !== 'object' || d.serviceSummary === null) return false;
+  if (typeof d.totalSummary !== 'object' || d.totalSummary === null) return false;
+  if (!Array.isArray(d.periodStats)) return false;
+
+  // Nested validation: serviceData values must be arrays
+  for (const [, arr] of Object.entries(d.serviceData)) {
+    if (!Array.isArray(arr)) return false;
+  }
+
+  // Nested validation: periodStats items must have serviceStats object
+  for (const stat of d.periodStats) {
+    if (!stat || typeof stat !== 'object') return false;
+    const s = stat as Record<string, unknown>;
+    if (typeof s.serviceStats !== 'object' || s.serviceStats === null) return false;
+  }
+
+  return true;
+}
+
 export const qaServiceServer = {
   // ── Rule Versioning ──────────────────────────────────────────
   async resolveRuleVersion(periodId: string, serviceType: ServiceType): Promise<ResolvedQARule | null> {
@@ -2187,22 +2230,13 @@ export const qaServiceServer = {
       console.error('[RPC Error] get_service_trend_dashboard:', error);
       throw error;
     }
-    // Cast ke type yang dibutuhkan DashboardClient & sliceTrendData
-    return data as {
-      labels: string[];
-      totalData: number[];
-      serviceData: Record<string, number[]>;
-      activeServices: string[];
-      serviceSummary: Record<string, { totalDefects: number; auditedAgents: number }>;
-      totalSummary: { totalDefects: number; auditedAgents: number; activeServiceCount: number };
-      periodStats: {
-        id: string;
-        label: string;
-        totalDefects: number;
-        auditedAgents: number;
-        serviceStats: Record<string, { totalDefects: number; auditedAgents: number }>;
-      }[];
-    };
+
+    if (!isValidDashboardTrendData(data)) {
+      console.warn('[RPC] get_service_trend_dashboard returned unexpected shape. Payload keys:', Object.keys(data || {}).join(', '));
+      return this.getServiceTrendForDashboard('all');
+    }
+
+    return data;
   },
 
   // ── Consolidated Dashboard Data ──────────────────────────────
@@ -3362,22 +3396,52 @@ export const qaServiceServer = {
   },
 
   sliceTrendData(data: { 
-    labels: string[]; 
-    totalData: number[]; 
-    serviceData: Record<string, number[]>; 
-    activeServices: string[]; 
-    serviceSummary: Record<string, { totalDefects: number; auditedAgents: number }>; 
-    totalSummary: { totalDefects: number; auditedAgents: number; activeServiceCount: number }; 
-    periodStats: Array<{ id: string; label: string; totalDefects: number; auditedAgents: number; serviceStats: Record<string, { totalDefects: number; auditedAgents: number }> }>
+    labels?: string[] | null; 
+    totalData?: number[] | null; 
+    serviceData?: Record<string, number[]> | null; 
+    activeServices?: string[] | null; 
+    serviceSummary?: Record<string, { totalDefects: number; auditedAgents: number }> | null; 
+    totalSummary?: { totalDefects: number; auditedAgents: number; activeServiceCount: number } | null; 
+    periodStats?: Array<{ id: string; label: string; totalDefects: number; auditedAgents: number; serviceStats: Record<string, { totalDefects: number; auditedAgents: number }> }> | null
   }, months: number) {
-    const sliceIdx = Math.max(0, data.labels.length - months);
-    const slicedLabels = data.labels.slice(sliceIdx);
-    const slicedTotalData = data.totalData.slice(sliceIdx);
-    const slicedPeriodStats = data.periodStats.slice(sliceIdx);
-    
+    const safeLabels = data.labels || [];
+    const safeTotalData = data.totalData || [];
+    const safeServiceData = data.serviceData || {};
+    const safeActiveServices = data.activeServices || [];
+    const safePeriodStats = data.periodStats || [];
+
+    const sliceIdx = Math.max(0, safeLabels.length - months);
+    const slicedLabels = safeLabels.slice(sliceIdx);
+    const slicedTotalData = safeTotalData.slice(sliceIdx);
+
+    // Normalize periodStats items: filter out null/undefined, ensure serviceStats exists
+    type NormalizedPeriodStat = {
+      id: string;
+      label: string;
+      totalDefects: number;
+      auditedAgents: number;
+      serviceStats: Record<string, { totalDefects: number; auditedAgents: number }>;
+    };
+    const normalizedPeriodStats: NormalizedPeriodStat[] = safePeriodStats
+      .filter((stat): stat is NonNullable<typeof stat> => Boolean(stat) && typeof stat === 'object')
+      .map((stat) => {
+        const s = stat as Record<string, unknown>;
+        return {
+          id: String(s.id ?? ''),
+          label: String(s.label ?? ''),
+          totalDefects: Number(s.totalDefects ?? 0),
+          auditedAgents: Number(s.auditedAgents ?? 0),
+          serviceStats: (s.serviceStats && typeof s.serviceStats === 'object') ? s.serviceStats as Record<string, { totalDefects: number; auditedAgents: number }> : {},
+        };
+      });
+    const slicedPeriodStats = normalizedPeriodStats.slice(sliceIdx);
+
+    // Normalize serviceData entries: only keep arrays, then slice
     const slicedServiceData: Record<string, number[]> = {};
-    Object.entries(data.serviceData).forEach(([svc, arr]) => {
-      slicedServiceData[svc] = arr.slice(sliceIdx);
+    Object.entries(safeServiceData).forEach(([svc, arr]) => {
+      if (Array.isArray(arr)) {
+        slicedServiceData[svc] = arr.slice(sliceIdx);
+      }
     });
 
     // Re-aggregate summaries based on sliced data
@@ -3391,7 +3455,7 @@ export const qaServiceServer = {
     const totalDefects = slicedTotalData.reduce((a: number, b: number) => a + b, 0);
     
     const serviceSummary: Record<string, { totalDefects: number, auditedAgents: number }> = {};
-    data.activeServices.forEach((svc: string) => {
+    safeActiveServices.forEach((svc: string) => {
       const svcTotalDefects = slicedServiceData[svc]?.reduce((a: number, b: number) => a + b, 0) || 0;
       serviceSummary[svc] = {
         totalDefects: svcTotalDefects,
@@ -3403,12 +3467,12 @@ export const qaServiceServer = {
       labels: slicedLabels,
       totalData: slicedTotalData,
       serviceData: slicedServiceData,
-      activeServices: data.activeServices,
+      activeServices: safeActiveServices,
       serviceSummary,
       totalSummary: {
         totalDefects,
         auditedAgents: latestStat.auditedAgents || 0,
-        activeServiceCount: data.activeServices.length
+        activeServiceCount: safeActiveServices.length
       },
       periodStats: slicedPeriodStats
     };

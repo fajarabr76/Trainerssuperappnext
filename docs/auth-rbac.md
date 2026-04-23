@@ -29,6 +29,7 @@ Untuk menjaga keamanan internal, pendaftaran user baru melalui proses approval:
 Sistem menggunakan helper server-side terpadu untuk menjaga akses route:
 - `app/lib/authz.ts`: Berisi fungsi `requirePageAccess` yang menjadi kontrak tunggal untuk guard halaman server. Helper ini menangani redirect otomatis untuk tamu, user pending, akun ditolak/dihapus, dan ketidakcocokan role.
 - `middleware.ts`: Melakukan pengecekan sesi aktif di tingkat edge/network sebelum request mencapai server/page.
+- `app/components/AuthModal.tsx`: Menunggu sesi Supabase benar-benar aktif setelah login, lalu menentukan rute lanjutan berdasarkan status profil.
 
 ### 2. Guard Logic
 Setiap halaman atau aksi sensitif dilindungi dengan pengecekan role:
@@ -40,18 +41,48 @@ const { role } = await requirePageAccess({
 });
 ```
 
-### 3. Strict Profile Requirement (No-Profile-No-Entry)
-Untuk mencegah degradasi role secara diam-diam (fallback ke role kosong/"User"), sistem menerapkan kebijakan ketat:
-- **PROFILE_FIELDS**: Gunakan konstanta `PROFILE_FIELDS` dari `app/lib/authz.ts` untuk canonical auth profile read di guard, middleware, dan alur lain yang membutuhkan kontrak profil penuh. Untuk kueri feature-specific, pilih kolom minimum yang dibutuhkan, tetapi **DILARANG** menambahkan kolom baru ke dalam kueri `select` tanpa memverifikasi keberadaannya di skema database asli.
-- **Explicit Recovery**: Jika user terautentikasi tetapi profilnya tidak terbaca (karena drift skema atau data korup), sistem akan langsung melakukan `signOut()` dan me-redirect user ke landing page dengan pesan `profile-unavailable`. Hal ini mencegah user terjebak dalam sesi "setengah login" yang tidak memiliki hak akses.
+### 3. Profile Read Contract & Recovery
+Sistem sekarang membedakan dengan tegas antara state terminal akun dan kegagalan pembacaan profil yang bersifat transient.
 
-### 4. Role Normalization
+- **PROFILE_FIELDS**: Gunakan konstanta `PROFILE_FIELDS` dari `app/lib/authz.ts` untuk canonical auth profile read di guard, middleware, dan alur lain yang membutuhkan kontrak profil penuh. Untuk kueri feature-specific, pilih kolom minimum yang dibutuhkan, tetapi jangan menambahkan kolom ke `select` tanpa memverifikasi field tersebut benar-benar ada di skema database.
+- **Terminal states tetap hard-fail**: Jika profil berhasil terbaca dan status menunjukkan `rejected` atau `is_deleted = true`, sesi harus dianggap tidak valid untuk akses aplikasi dan user di-redirect kembali ke landing page dengan pesan yang sesuai.
+- **Pending tetap diarahkan ke waiting approval**: Jika profil berhasil terbaca dan status `pending`, user harus diarahkan ke `/waiting-approval`.
+- **Transient profile read failure tidak lagi menghancurkan sesi**: Jika pembacaan `profiles` gagal sementara karena network error, row belum tersedia, atau mismatch kontrak yang belum final, middleware dan alur login client tidak lagi langsung memanggil `signOut()`. Sistem mempertahankan sesi aktif, mencatat warning, lalu membiarkan recovery lanjut di route normal.
+- **Default post-login path**: Setelah sesi login aktif, `AuthModal` memetakan `pending -> /waiting-approval`, `rejected -> signOut() + error`, dan untuk kondisi selain itu tetap mengarah ke `/dashboard`. Ini termasuk kasus pembacaan profil yang gagal sementara.
+
+### 4. Access Matrix Ringkas
+
+| Kondisi | Middleware / Guard | Hasil |
+|---|---|---|
+| Tidak ada sesi | Hard redirect | `/?auth=login` |
+| `pending` | Redirect | `/waiting-approval` |
+| `rejected` | Sign-out + redirect | `/?auth=login&message=rejected` |
+| `is_deleted = true` | Sign-out + redirect | `/?auth=login&message=deleted` |
+| Role tidak diizinkan | Redirect | `/dashboard` |
+| Profil gagal dibaca sementara | Toleran, log warning | sesi dipertahankan |
+
+### 5. Role Normalization
 Aplikasi menormalkan role (misalnya dari `trainers` menjadi `trainer`) menggunakan fungsi `normalizeRole()` di `authz.ts`. Seluruh perbandingan role di tingkat aplikasi harus melalui fungsi ini untuk memastikan konsistensi.
 
-### 5. Checklist Refactor Auth
+### 6. Checklist Refactor Auth
 Setiap refactor yang menyentuh auth flow atau tabel `profiles` wajib memeriksa poin berikut:
 - Sinkronkan `PROFILE_FIELDS` dengan skema `profiles` yang aktual.
 - Sinkronkan interface `Profile` di `app/types/auth.ts` dengan field yang benar-benar ada.
 - Perbarui `docs/database.md` dan dokumen RBAC ini jika kontrak auth berubah.
 - Jalankan `npm run lint` dan `npm run type-check`.
-- Lakukan smoke test login untuk akun `approved`, `pending`, `rejected`, dan skenario `profile-unavailable`.
+- Lakukan smoke test login minimal untuk akun `approved`, `pending`, `rejected`, dan skenario pembacaan profil transient.
+
+### 7. Smoke Test Wajib Setelah Auth/Profile Refactor
+
+- Login akun `approved` role `agent` harus berhasil dan mendarat di `/dashboard`.
+- Login akun `pending` harus selalu berakhir di `/waiting-approval`.
+- Login akun `rejected` harus memutus sesi dan menampilkan pesan penolakan.
+- Simulasikan pembacaan `profiles` yang gagal sementara; sesi tidak boleh langsung dihancurkan hanya karena profil belum terbaca jelas.
+- Setelah login `agent`, akses route terbatas seperti `/profiler` atau route SIDAK manajerial harus tetap ditolak sesuai matrix akses, tanpa dianggap sebagai kegagalan login.
+
+## Referensi Guardrail
+
+- `app/components/AuthModal.tsx`
+- `app/lib/supabase/middleware.ts`
+- `app/lib/authz.ts`
+- `docs/AUTH_KNOWN_ISSUE_TRANSIENT_PROFILE_READS.md`
