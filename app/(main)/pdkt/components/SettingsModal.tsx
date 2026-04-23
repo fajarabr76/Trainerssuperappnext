@@ -292,11 +292,130 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     resetConsumerForm();
   };
 
+  const isScenarioDraftDirty = () => isAddingScenario || editingScenarioId !== null;
+
+  const isScenarioDraftValid = () => {
+    if (!newScenarioTitle) return false;
+    if (!newScenarioDesc) return false;
+    const category = isNewCategoryInput ? newScenarioCategory : newScenarioCategory || "Umum";
+    if (!category) return false;
+    return true;
+  };
+
+  const applyScenarioDraft = (base: AppSettings): AppSettings | null => {
+    if (!isScenarioDraftDirty() || !isScenarioDraftValid()) return null;
+    const category = isNewCategoryInput ? newScenarioCategory : newScenarioCategory || "Umum";
+
+    if (editingScenarioId) {
+      return {
+        ...base,
+        scenarios: base.scenarios.map(s =>
+          s.id === editingScenarioId
+            ? {
+                ...s,
+                category,
+                title: newScenarioTitle,
+                description: newScenarioDesc,
+                script: newScenarioScript,
+                attachmentImages: newScenarioImages
+              }
+            : s
+        )
+      };
+    } else {
+      const newScenario: Scenario = {
+        id: `s-${Date.now()}`,
+        category,
+        title: newScenarioTitle,
+        description: newScenarioDesc,
+        script: newScenarioScript,
+        isActive: true,
+        attachmentImages: newScenarioImages
+      };
+      return {
+        ...base,
+        scenarios: [...base.scenarios, newScenario]
+      };
+    }
+  };
+
+  const isConsumerDraftDirty = () => isAddingConsumer || editingConsumerId !== null;
+
+  const isConsumerDraftValid = () => {
+    if (!newConsumerName) return false;
+    if (!newConsumerDesc) return false;
+    return true;
+  };
+
+  const applyConsumerDraft = (base: AppSettings): AppSettings | null => {
+    if (!isConsumerDraftDirty() || !isConsumerDraftValid()) return null;
+
+    if (editingConsumerId) {
+      return {
+        ...base,
+        consumerTypes: base.consumerTypes.map(c =>
+          c.id === editingConsumerId
+            ? { ...c, name: newConsumerName, description: newConsumerDesc, difficulty: newConsumerDifficulty, tone: newConsumerTone }
+            : c
+        )
+      };
+    } else {
+      const newConsumer: ConsumerType = {
+        id: `c-${Date.now()}`,
+        name: newConsumerName,
+        description: newConsumerDesc,
+        difficulty: newConsumerDifficulty,
+        tone: newConsumerTone,
+        isCustom: true
+      };
+      return {
+        ...base,
+        consumerTypes: [...base.consumerTypes, newConsumer]
+      };
+    }
+  };
+
   const handleSave = () => {
+    const scenarioDirty = isScenarioDraftDirty();
+    const consumerDirty = isConsumerDraftDirty();
+
+    if (scenarioDirty && !isScenarioDraftValid()) {
+      setActiveTab('scenarios');
+      setTimeout(() => {
+        document.getElementById('scenario-form')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      alert('Skenario yang sedang Anda buat belum lengkap. Isi judul dan deskripsi masalah terlebih dahulu, atau klik Batal untuk membatalkan skenario.');
+      return;
+    }
+
+    if (consumerDirty && !isConsumerDraftValid()) {
+      setActiveTab('consumers');
+      setTimeout(() => {
+        document.getElementById('consumer-form')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      alert('Karakter yang sedang Anda buat belum lengkap. Isi nama dan deskripsi karakteristik terlebih dahulu, atau klik Batal untuk membatalkan karakter.');
+      return;
+    }
+
+    let finalSettings = localSettings;
+    if (scenarioDirty) {
+      const applied = applyScenarioDraft(finalSettings);
+      if (applied) finalSettings = applied;
+    }
+    if (consumerDirty) {
+      const applied = applyConsumerDraft(finalSettings);
+      if (applied) finalSettings = applied;
+    }
+
+    if (scenarioDirty || consumerDirty) {
+      setLocalSettings(finalSettings);
+      if (scenarioDirty) resetScenarioForm();
+      if (consumerDirty) resetConsumerForm();
+    }
+
     try {
-      // Test localStorage size before closing
       const settingsToSave: AppSettings = {
-        ...localSettings,
+        ...finalSettings,
         enableImageGeneration,
         globalConsumerTypeId,
         selectedModel,
@@ -307,11 +426,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
           city: customCity
         }
       };
-      
+
       const json = JSON.stringify(settingsToSave);
       localStorage.setItem('TEST_STORAGE', json);
       localStorage.removeItem('TEST_STORAGE');
-      
+
       onSave(settingsToSave);
       onClose();
     } catch (e) {

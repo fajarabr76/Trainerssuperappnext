@@ -20,7 +20,7 @@ Ruang simulasi untuk melatih kemampuan komunikasi tertulis melalui media chat.
   - **Skenario Dinamis**: Latihan berdasarkan berbagai tingkat kesulitan.
   - **AI feedback**: Analisis otomatis terhadap respon peserta menggunakan model Gemini.
   - **Riwayat Sesi**: Peserta bisa meninjau kembali percakapan sebelumnya.
-- **Catatan Teknis**: Respons AI divalidasi sebagai string terlebih dahulu lalu disanitasi sebelum ditampilkan atau dipakai sebagai balasan konsumen.
+- **Catatan Teknis**: Respons AI divalidasi sebagai string terlebih dahulu lalu disanitasi sebelum ditampilkan atau dipakai sebagai balasan konsumen. Di modal pengaturan, `Simpan Perubahan` ikut meng-commit draft skenario atau karakter yang masih terbuka; draft yang belum lengkap akan memblok save dan menampilkan peringatan.
 
 ## 3. PDKT (Email Simulation)
 Workspace untuk latihan korespondensi email yang terstandarisasi.
@@ -31,7 +31,7 @@ Workspace untuk latihan korespondensi email yang terstandarisasi.
   - **Composer Reply**: Balasan memakai panel composer-style dengan field read-only untuk `Kepada`, `Cc`, dan `Subjek`.
   - **Riwayat Ringkas**: History sesi bisa di-collapse agar detail utama tetap fokus.
   - **Feedback Analitik**: Evaluasi kualitas bahasa dan ketepatan solusi tetap dipertahankan.
-- **Catatan Teknis**: Output model untuk draft email awal dan evaluasi QA divalidasi dulu sebagai string valid sebelum diparse sebagai JSON. Subject email awal dijaga realistis, boleh kosong, dan tidak boleh menjadi clue utama inti masalah.
+- **Catatan Teknis**: Output model untuk draft email awal dan evaluasi QA divalidasi dulu sebagai string valid sebelum diparse sebagai JSON. Subject email awal dijaga realistis, boleh kosong, dan tidak boleh menjadi clue utama inti masalah. Di modal pengaturan, `Simpan Perubahan` ikut meng-commit draft skenario atau karakter yang masih terbuka; draft yang belum lengkap akan memblok save dan menampilkan peringatan.
 
 ## 4. TELEFUN (Phone Simulation)
 Modul simulasi komunikasi suara untuk melatih intonasi dan kecepatan respon telepon.
