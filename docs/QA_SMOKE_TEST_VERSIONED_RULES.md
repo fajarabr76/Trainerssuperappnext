@@ -37,6 +37,7 @@ Checklist ini dipakai setelah migration:
 ## E. Dashboard/Ranking/Export Konsisten
 - [ ] Cek `/qa-analyzer/dashboard` untuk periode lama vs baru, pastikan tren masuk akal.
 - [ ] Cek `/qa-analyzer/ranking`, pastikan peringkat mengikuti rule tiap periode.
+- [ ] Pastikan `/qa-analyzer/ranking` tetap lengkap walaupun dataset `qa_temuan` untuk filter aktif besar (tidak terpotong di sekitar batas 1000 row fetch).
 - [ ] Jalankan export data agent, pastikan skor export per periode sesuai snapshot rules periode tersebut.
 - [ ] Verifikasi split `NC/CR` di export konsisten dengan kategori snapshot.
 
@@ -67,6 +68,14 @@ Checklist ini dipakai setelah migration:
 - [ ] Pastikan bulan yang punya row real tetap menampilkan skor non-100 dan tidak collapse ke `100`.
 - [ ] Buka `/qa-analyzer/ranking?service=email&year=2026`, lalu pastikan agent phantom-only muncul dengan `defects = 0` dan `score = 100`.
 - [ ] Buka `/qa-analyzer/dashboard`, lalu pastikan clean session menambah audited population tetapi tidak menambah total defect/pareto/donut.
+
+## L. Ranking Completeness & Parameter Order Check
+- [ ] Pilih 1 filter ranking dengan data besar; pastikan semua agent yang punya audit presence tampil, bukan hanya sebagian awal hasil fetch.
+- [ ] Jika service punya clean session, pastikan agent phantom-only tetap ada di ranking walaupun tidak punya finding row real.
+- [ ] Buka `/qa-analyzer/dashboard` dengan filter yang sama, lalu cek panel `Tren Kualitas & Parameter`.
+- [ ] Pastikan toggle parameter diurutkan dari total temuan terbesar ke tersedikit.
+- [ ] Pastikan urutan parameter chart sama dengan urutan toggle.
+- [ ] Jika dua parameter punya total temuan sama, pastikan urutan label stabil dan tidak berubah-ubah saat reload.
 
 ## J. Detail Agent Consistency
 - [ ] Buka `/qa-analyzer/agents/[id]` untuk minimal 1 agent yang punya temuan real dan pastikan panel skor detail tidak mentok di `100%`.

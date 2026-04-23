@@ -2027,19 +2027,44 @@ export const qaServiceServer = {
     const loadScoringContext = createScoringContextLoader();
     const pIds = await this.resolvePeriodIds(periodId, year);
     const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
+    const queryClient = getServiceSupabase() || supabase;
 
-    let query = supabase
-      .from('qa_temuan')
-      .select('period_id, rule_indicator_id, nilai, ketidaksesuaian, sebaiknya, no_tiket, indicator_id, is_phantom_padding, qa_indicators:qa_service_rule_indicators(category), profiler_peserta!inner(id, nama, batch_name, tim, jabatan)')
-      .in('period_id', pIds)
-      .eq('service_type', serviceType);
+    // Fetch all rows with pagination to avoid PostgREST 1000-row truncation.
+    // Service-role client ensures phantom padding rows are visible.
+    let allData: any[] = [];
+    let from = 0;
+    const step = 1000;
+    let finished = false;
 
-    if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
+    while (!finished) {
+      let query = queryClient
+        .from('qa_temuan')
+        .select('peserta_id, period_id, rule_indicator_id, nilai, ketidaksesuaian, sebaiknya, no_tiket, indicator_id, is_phantom_padding, qa_indicators:qa_service_rule_indicators(category), profiler_peserta!inner(id, nama, batch_name, tim, jabatan)')
+        .in('period_id', pIds)
+        .eq('service_type', serviceType)
+        .range(from, from + step - 1);
 
-    const { data, error } = await query;
-    if (error || !data) return [];
+      if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
 
-    const temuan = data.map((d) => ({
+      const { data, error } = await query;
+      if (error) {
+        console.error('[getAllAgentsRanking] query error:', error);
+        return [];
+      }
+      if (!data || data.length === 0) {
+        finished = true;
+      } else {
+        allData = [...allData, ...data];
+        if (data.length < step) {
+          finished = true;
+        } else {
+          from += step;
+        }
+      }
+    }
+
+    const temuan = allData.map((d) => ({
+      peserta_id: String(d.peserta_id ?? ''),
       period_id: d.period_id,
       indicator_id: d.indicator_id,
       rule_indicator_id: d.rule_indicator_id,
@@ -2051,7 +2076,10 @@ export const qaServiceServer = {
       is_phantom_padding: hasPhantomSupport ? (d as unknown as QATemuan).is_phantom_padding === true : false,
       profiler_peserta: unwrapAgent(d.profiler_peserta) as Agent | null,
     }));
-    const partitions = buildPartitionedAuditRows(temuan, (item) => item.period_id || null);
+    const partitions = buildPartitionedAuditRows(temuan, (item) => {
+      if (!item.peserta_id || !item.period_id) return null;
+      return `${item.peserta_id}:${item.period_id}`;
+    });
     const collections = buildAgentAuditCollections(partitions.values(), {
       getAgentIdentity: (sample) => {
         const profile = sample.profiler_peserta;

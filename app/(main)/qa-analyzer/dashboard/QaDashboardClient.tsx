@@ -148,12 +148,30 @@ export default function QaDashboardClient({
     };
   };
 
-  const hasVisibleParam = displayData.paramTrend?.datasets
+  const sortedParamTrend = useMemo(() => {
+    if (!displayData.paramTrend) return null;
+    const totalDataset = displayData.paramTrend.datasets.find((ds: TrendDataset) => ds.isTotal);
+    const paramDatasets = displayData.paramTrend.datasets.filter((ds: TrendDataset) => !ds.isTotal);
+
+    const sortedParams = [...paramDatasets].sort((a, b) => {
+      const totalA = a.data.reduce((sum: number, v: number) => sum + (v || 0), 0);
+      const totalB = b.data.reduce((sum: number, v: number) => sum + (v || 0), 0);
+      if (totalB !== totalA) return totalB - totalA;
+      return (a.label || '').localeCompare(b.label || '');
+    });
+
+    return {
+      ...displayData.paramTrend,
+      datasets: totalDataset ? [totalDataset, ...sortedParams] : sortedParams,
+    };
+  }, [displayData.paramTrend]);
+
+  const hasVisibleParam = sortedParamTrend?.datasets
     .filter((ds: TrendDataset) => !ds.isTotal && ds.label)
     .some((ds: TrendDataset) => !hiddenParams.has(ds.label)) ?? false;
 
-  const isTrendEmpty = !displayData.paramTrend || displayData.paramTrend.labels.length === 0 || 
-    (displayData.paramTrend.datasets.filter((ds: TrendDataset) => !ds.isTotal).every((ds: TrendDataset) => ds.data.every((v: number) => v === 0)));
+  const isTrendEmpty = !sortedParamTrend || sortedParamTrend.labels.length === 0 || 
+    (sortedParamTrend.datasets.filter((ds: TrendDataset) => !ds.isTotal).every((ds: TrendDataset) => ds.data.every((v: number) => v === 0)));
 
   const activeFolderName = useMemo(() => {
     const folderId = initialFilters.folder;
@@ -436,7 +454,7 @@ export default function QaDashboardClient({
                       {/* Compact Toggles */}
                       <div className="flex flex-wrap items-center gap-1.5 pb-2">
                         <span className="text-xs font-bold text-muted-foreground mr-2 uppercase tracking-tighter">Parameter:</span>
-                        {displayData.paramTrend?.datasets.map((ds: TrendDataset, i: number) => {
+                        {sortedParamTrend?.datasets.map((ds: TrendDataset, i: number) => {
                           if (ds.isTotal) return null;
                           const color = TREND_COLORS[i % TREND_COLORS.length];
                           const isHidden = hiddenParams.has(ds.label);
@@ -476,7 +494,7 @@ export default function QaDashboardClient({
 
                       <div className="h-[360px] w-full mt-2">
                         <ParamTrendChart 
-                          data={displayData.paramTrend!} 
+                          data={sortedParamTrend!} 
                           showParameters={true} 
                           hiddenKeys={hiddenParams}
                           hideTotal={hasVisibleParam}

@@ -3,6 +3,7 @@
 Dokumen ini dibuat untuk mencegah regresi SIDAK pada scoring, audited population, dan clean-session handling.
 
 Status issue detail agent: `resolved`. Ringkasan penutupan ada di `docs/SIDAK_KNOWN_ISSUE_AGENT_DETAIL_SCORE.md`.
+Status issue ranking completeness + parameter order: `resolved`. Ringkasan penutupan ada di `docs/SIDAK_KNOWN_ISSUE_RANKING_COMPLETENESS_PARAMETER_ORDER.md`.
 
 ## Ringkasan Akar Masalah
 
@@ -76,6 +77,30 @@ Checklist review:
 - [ ] Tim agent di UI input tidak mengubah hasil fetch service.
 - [ ] Agent detail page memakai `resolveServiceTypeFromTeam` untuk menentukan `defaultSvc`.
 
+### 5) Ranking Harus Fetch Lengkap Dan Dipartisi Per Agent
+
+- Jalur ranking yang membaca `qa_temuan` langsung tidak boleh bergantung pada satu page default PostgREST.
+- Jika ranking memakai row-level fetch dari `qa_temuan`, pembacaan wajib di-paginate sampai habis.
+- Grouping untuk audited population ranking minimal harus memisahkan `agent + period`; jangan pakai `period_id` saja.
+- Untuk clean session, audited presence agent harus tetap masuk ranking walaupun `findingRows` kosong.
+
+Checklist review:
+- [ ] `getAllAgentsRanking()` atau jalur setara tidak rawan truncation 1000 row.
+- [ ] Key partisi ranking tidak menggabungkan beberapa agent dalam satu period bucket.
+- [ ] Agent phantom-only tetap bisa muncul di ranking dengan `defects = 0` dan `score = 100`.
+
+### 6) Urutan Parameter Dashboard Harus Eksplisit
+
+- Panel `Tren Kualitas & Parameter` tidak boleh mengandalkan urutan payload mentah.
+- Dataset parameter non-total wajib diurutkan berdasarkan total temuan terbesar ke terkecil sebelum dipakai untuk toggle dan chart.
+- `Total Temuan` tetap menjadi seri pertama jika ditampilkan.
+- Jika total temuan sama, gunakan tie-break stabil berbasis label agar urutan UI tidak berubah-ubah antar render.
+
+Checklist review:
+- [ ] Toggle parameter dashboard memakai dataset yang sudah di-sort, bukan payload mentah.
+- [ ] Chart parameter dashboard memakai urutan yang sama dengan toggle.
+- [ ] Tie-break urutan parameter stabil saat total temuan sama.
+
 ## Deployment Checklist
 
 1. Apply migration terbaru SIDAK (termasuk fix scoring/dashboard):
@@ -88,6 +113,7 @@ Checklist review:
 2. Jalankan smoke test di `docs/QA_SMOKE_TEST_VERSIONED_RULES.md`.
 3. Verifikasi manual dashboard untuk 2 periode berbeda (lama vs baru) agar skor/tren tidak collapse ke `100%` tanpa alasan data.
 4. Verifikasi minimal 1 agent dengan bulan phantom-only agar rail/detail/ranking tetap menampilkan audited session `100` tanpa menaikkan defect count.
+5. Verifikasi panel `Tren Kualitas & Parameter` mengurutkan parameter dari total temuan terbesar ke terkecil.
 
 ## Minimal Verification Setelah Perubahan
 
@@ -95,6 +121,9 @@ Checklist review:
 - `npm run lint`
 - `npm run type-check`
 - Smoke UI: `/qa-analyzer/settings`, `/qa-analyzer/input`, `/qa-analyzer/dashboard`, `/qa-analyzer/ranking`
+- Fokus smoke tambahan:
+  - ranking tetap lengkap saat dataset besar
+  - toggle parameter dashboard mengikuti urutan total temuan
 
 Gunakan `npm run test:sidak` sebagai verifikasi wajib setiap ada perubahan clean-session semantics, ranking/top agents, fallback dashboard/trend, atau migration RPC SIDAK terkait audited population.
 
