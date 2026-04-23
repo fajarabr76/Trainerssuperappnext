@@ -4,18 +4,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Mail, 
   Send, 
   Reply, 
   ArrowLeft,
   Clock,
-  Info,
-  CheckCircle2,
   AlertCircle,
   Loader2,
   X,
   Paperclip,
-  Search
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { EmailMessage, SessionConfig, EvaluationResult, EvaluationStatus } from '../types';
 
@@ -31,8 +29,6 @@ interface EmailInterfaceProps {
   timeTaken: number | null;
 }
 
-
-
 export const EmailInterface: React.FC<EmailInterfaceProps> = ({ 
   emails, 
   onSendReply, 
@@ -47,6 +43,7 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
   const [replyText, setReplyText] = useState('');
   const [isDrafting, setIsDrafting] = useState(false);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -73,22 +70,30 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
     return isNaN(d.getTime()) ? new Date() : d;
   };
 
-  const getInitials = (name: string) => name.substring(0, 2).toUpperCase();
-
-  const latestSubject = emails.length > 0 
-    ? emails[emails.length - 1].subject 
-    : (isLoading ? "Tiket Baru Masuk..." : "No Subject");
-  const hasAgentReplied = emails.some(e => e.isAgent);
-  const firstInboundEmail = emails.find((email) => !email.isAgent) ?? emails[0];
-  const sessionEmailInfo = {
-    subject: firstInboundEmail?.subject || latestSubject,
-    sender: firstInboundEmail?.from || 'Belum tersedia',
-    recipient: firstInboundEmail?.to || config.identity.email || 'Belum tersedia',
-    cc: hasAgentReplied ? 'cc.ojk@ojk.go.id' : '-',
+  const getInitials = (name: string) => {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
   };
 
+  const firstInboundEmail = emails.find((email) => !email.isAgent) ?? emails[0];
+  const hasAgentReplied = emails.some(e => e.isAgent);
   const isEvaluationProcessing = evaluationStatus === 'processing';
   const isEvaluationFailed = evaluationStatus === 'failed';
+
+  const historyEmails = emails.slice(1);
+
+  const formatEmailDate = (date: Date) => {
+    return safeDate(date).toLocaleDateString('id-ID', { 
+      day: 'numeric', 
+      month: 'long', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   return (
     <div data-module="pdkt" className="module-clean-app flex flex-col h-full bg-background text-foreground transition-colors duration-300 relative">
@@ -118,212 +123,240 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Premium Header */}
-      <header className="module-clean-toolbar px-8 py-6 border-b flex items-center justify-between z-50 shrink-0 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-module-pdkt/10 to-transparent pointer-events-none" />
-        
-        <div className="flex items-center gap-6 flex-1 min-w-0 relative z-10">
+      {/* Top Bar */}
+      <header className="module-clean-toolbar px-4 md:px-6 py-3 border-b flex items-center justify-between z-50 shrink-0">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
           <button 
             onClick={onEndSession}
-            className="module-clean-button-secondary w-12 h-12 flex items-center justify-center rounded-2xl text-muted-foreground hover:text-foreground transition-all group"
+            className="module-clean-button-secondary w-10 h-10 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground transition-all"
           >
-            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+            <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="flex flex-col flex-1 min-w-0">
-            <h1 className="text-2xl font-black truncate tracking-tighter text-foreground">
-              {latestSubject}
+            <h1 className="text-base font-semibold truncate text-foreground">
+              Simulasi Email
             </h1>
-            <div className="flex items-center gap-4 mt-1.5">
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">
-                  {isEvaluationProcessing ? 'Evaluasi Berjalan' : isEvaluationFailed ? 'Evaluasi Gagal' : 'Active Ticket'}
+            <div className="flex items-center gap-2 mt-0.5">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full module-clean-chip">
+                <span className="w-1.5 h-1.5 bg-module-pdkt rounded-full animate-pulse" />
+                <span className="text-[9px] font-medium text-module-pdkt uppercase tracking-wide">
+                  {isEvaluationProcessing ? 'Evaluasi Berjalan' : isEvaluationFailed ? 'Evaluasi Gagal' : 'Aktif'}
                 </span>
               </div>
-              <div className="module-clean-panel flex items-center gap-3 px-3 py-1 rounded-full">
-                <span className="text-[10px] text-foreground font-black uppercase tracking-[0.2em]">
-                  {config.identity.name}
-                </span>
-                <span className="w-1 h-1 bg-foreground/20 rounded-full"></span>
-                <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">
-                  {config.identity.city}
-                </span>
-              </div>
-
+              {timeTaken !== null && (
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <Clock className="w-3 h-3" />
+                  <span className="text-[9px] font-medium">{formatTime(timeTaken)}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
         
-        <div className="flex items-center gap-4 ml-8 shrink-0 relative z-10">
-          {timeTaken !== null && (
-            <div className="module-clean-panel hidden md:flex items-center gap-3 px-4 py-2 rounded-2xl">
-              <Clock className="w-4 h-4 text-primary" />
-              <span className="text-xs font-black tracking-tight text-muted-foreground">{formatTime(timeTaken)}</span>
-            </div>
-          )}
+        <div className="flex items-center gap-2 ml-4 shrink-0">
           <button 
             onClick={onEndSession}
-            className="px-6 py-2.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-red-500/20 shadow-lg shadow-red-500/5"
+            className="module-clean-button-secondary px-3 py-2 rounded-lg text-[9px] font-medium uppercase tracking-wide transition-all"
           >
-            Tutup Tiket
+            Tutup
           </button>
         </div>
       </header>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 bg-background">
-        <div className="max-w-4xl mx-auto space-y-8 pb-32">
+      <div className="flex-1 overflow-y-auto bg-background">
+        <div className="max-w-3xl mx-auto">
           
-          {/* System Info */}
-          <div className="flex justify-center">
-            <div className="module-clean-panel px-4 py-2 rounded-full flex items-center gap-2">
-              <Info className="w-3 h-3 text-primary" />
-              <span className="text-[10px] text-muted-foreground font-medium">Simulasi email dimulai. Balas dengan format formal dan profesional.</span>
-            </div>
-          </div>
-
-          <div className="module-clean-panel rounded-2xl border border-border/60 p-4 sm:p-5">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-3">Info Sesi Email</p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-border/50 bg-background/60 px-3 py-2.5">
-                <div className="text-[9px] font-black uppercase tracking-[0.18em] text-muted-foreground">Subject</div>
-                <div className="mt-1 text-sm font-semibold text-foreground line-clamp-2">{sessionEmailInfo.subject}</div>
+          {/* Main Email Detail View */}
+          {firstInboundEmail && (
+            <div className="border-b border-border/50">
+              {/* Subject Header */}
+              <div className="px-4 md:px-6 pt-5 pb-4">
+                <h2 className={`text-xl md:text-2xl leading-tight ${firstInboundEmail.subject ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground/60'}`}>
+                  {firstInboundEmail.subject || 'Tanpa Subjek'}
+                </h2>
               </div>
-              <div className="rounded-xl border border-border/50 bg-background/60 px-3 py-2.5">
-                <div className="text-[9px] font-black uppercase tracking-[0.18em] text-muted-foreground">Pengirim</div>
-                <div className="mt-1 text-sm font-semibold text-foreground break-all">{sessionEmailInfo.sender}</div>
-              </div>
-              <div className="rounded-xl border border-border/50 bg-background/60 px-3 py-2.5">
-                <div className="text-[9px] font-black uppercase tracking-[0.18em] text-muted-foreground">Tujuan</div>
-                <div className="mt-1 text-sm font-semibold text-foreground break-all">{sessionEmailInfo.recipient}</div>
-              </div>
-              <div className="rounded-xl border border-border/50 bg-background/60 px-3 py-2.5">
-                <div className="text-[9px] font-black uppercase tracking-[0.18em] text-muted-foreground">CC</div>
-                <div className="mt-1 text-sm font-semibold text-foreground break-all">{sessionEmailInfo.cc}</div>
-              </div>
-            </div>
-          </div>
 
-
-
-          {/* Conversation History */}
-          <div className="space-y-8">
-            {emails.map((email, idx) => (
-              <motion.div 
-                key={email.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                className={`flex w-full ${email.isAgent ? 'justify-end' : 'justify-start'}`}
-              >
-                <div className={`flex flex-col w-full max-w-[98%] md:max-w-3xl mx-auto`}>
-                  <div className={`module-clean-shell rounded-[2rem] border px-8 py-8 transition-all ${email.isAgent ? 'rounded-tr-none border-r-module-pdkt/30' : 'rounded-tl-none border-l-module-pdkt/30'}`}>
-                    
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-6 border-b border-border/30 pb-6">
-                      <div className="flex items-center gap-5 min-w-0">
-                        <div className={`shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl shadow-lg border ${
-                          email.isAgent 
-                            ? 'bg-foreground text-background border-foreground/10' 
-                            : 'bg-module-pdkt text-white border-module-pdkt/20'
-                        }`}>
-                          {email.isAgent ? 'CS' : getInitials(config.identity.name)}
+              {/* Sender Metadata */}
+              <div className="px-4 md:px-6 pb-4">
+                <div className="flex items-start gap-3">
+                  <div className="shrink-0 w-10 h-10 rounded-full bg-module-pdkt/10 border border-module-pdkt/20 flex items-center justify-center">
+                    <span className="text-xs font-semibold text-module-pdkt">
+                      {getInitials(firstInboundEmail.from)}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-foreground truncate">
+                          {config.identity.name}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-black text-foreground text-xl tracking-tighter truncate">
-                            {email.isAgent ? 'Customer Service (Anda)' : config.identity.name}
-                          </div>
-                          <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground truncate mt-1">
-                            {email.isAgent ? 'cc.ojk@ojk.go.id' : email.from}
-                          </div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {firstInboundEmail.from}
                         </div>
                       </div>
-                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/50 whitespace-nowrap text-left sm:text-right">
-                        <div className="flex items-center sm:justify-end gap-2 mb-1">
-                          <Clock className="w-3 h-3" />
-                          <span>{safeDate(email.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                        </div>
-                        <div>{safeDate(email.timestamp).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                      <div className="text-xs text-muted-foreground whitespace-nowrap">
+                        {formatEmailDate(firstInboundEmail.timestamp)}
                       </div>
                     </div>
-
-                    <div className="mb-8">
-                      <h3 className="text-2xl font-black text-foreground tracking-tight leading-tight">
-                        {email.subject}
-                      </h3>
-                    </div>
-
-                    <div className="text-base text-foreground whitespace-pre-wrap font-medium leading-relaxed font-sans">
-                      {email.body}
-                    </div>
-
-                    {/* Attachments */}
-                    {email.attachments && email.attachments.length > 0 && (
-                      <div className="mt-8 pt-8 border-t border-border/50">
-                        <div className="flex items-center gap-2 mb-4">
-                          <Paperclip className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Lampiran ({email.attachments.length})</span>
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                          {email.attachments.map((base64, i) => (
-                            <motion.div 
-                              key={i}
-                              whileHover={{ scale: 1.02 }}
-                              className="relative aspect-square rounded-2xl overflow-hidden border border-border bg-foreground/5 group cursor-zoom-in"
-                              onClick={() => window.open(`data:image/png;base64,${base64}`, '_blank')}
-                            >
-                              <Image 
-                                src={`data:image/png;base64,${base64}`} 
-                                alt={`Attachment ${i + 1}`}
-                                fill
-                                className="object-cover"
-                                unoptimized
-                              />
-                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                                <Search className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                              </div>
-                            </motion.div>
-                          ))}
-                        </div>
+                    <div className="mt-2 text-xs text-muted-foreground space-y-0.5">
+                      <div className="flex items-center gap-1">
+                        <span className="text-muted-foreground/60 w-14 shrink-0">Dari</span>
+                        <span className="text-foreground truncate">{firstInboundEmail.from}</span>
                       </div>
-                    )}
+                      <div className="flex items-center gap-1">
+                        <span className="text-muted-foreground/60 w-14 shrink-0">Kepada</span>
+                        <span className="text-foreground truncate">{firstInboundEmail.to || config.identity.email}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-muted-foreground/60 w-14 shrink-0">Cc</span>
+                        <span className="text-muted-foreground truncate">-</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {isLoading && (
-            <div className="module-clean-panel flex flex-col items-center justify-center p-16 rounded-[3rem] border-2 border-dashed border-module-pdkt/20">
-              <div className="relative w-16 h-16 mb-8 group">
-                <div className="absolute inset-0 border-4 border-primary/10 rounded-full group-hover:scale-110 transition-transform"></div>
-                <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                <Mail className="absolute inset-4 w-8 h-8 text-primary animate-pulse" />
               </div>
-              <p className="text-muted-foreground font-black text-[11px] uppercase tracking-[0.4em] text-center">
-                {emails.length === 0 ? "Menerima Email Masuk..." : "Mengevaluasi Tanggapan..."}
+
+              {/* Email Body */}
+              <div className="px-4 md:px-6 pb-5">
+                <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed text-justify">
+                  {firstInboundEmail.body}
+                </div>
+              </div>
+
+              {/* Attachments */}
+              {firstInboundEmail.attachments && firstInboundEmail.attachments.length > 0 && (
+                <div className="px-4 md:px-6 pb-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Paperclip className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Lampiran ({firstInboundEmail.attachments.length})
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {firstInboundEmail.attachments.map((base64, i) => (
+                      <motion.div 
+                        key={i}
+                        whileHover={{ scale: 1.02 }}
+                        className="relative aspect-square rounded-lg overflow-hidden border border-border bg-foreground/5 cursor-pointer"
+                        onClick={() => setZoomedImage(`data:image/png;base64,${base64}`)}
+                      >
+                        <Image 
+                          src={`data:image/png;base64,${base64}`} 
+                          alt={`Attachment ${i + 1}`}
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Reply Action */}
+              {!hasAgentReplied && !evaluation && (
+                <div className="px-4 md:px-6 pb-5">
+                  <button 
+                    onClick={() => setIsDrafting(true)}
+                    disabled={isLoading}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border hover:border-module-pdkt/50 hover:bg-module-pdkt/5 text-muted-foreground hover:text-module-pdkt transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Reply className="w-4 h-4" />
+                    <span className="text-sm font-medium">Balas</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* History Toggle */}
+          {historyEmails.length > 0 && (
+            <div className="border-b border-border/50">
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className="w-full flex items-center justify-between px-4 md:px-6 py-3 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <span className="text-xs font-medium uppercase tracking-wide">
+                  Riwayat ({historyEmails.length})
+                </span>
+                {showHistory ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+              
+              <AnimatePresence>
+                {showHistory && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-4 md:px-6 pb-4 space-y-4">
+                      {historyEmails.map((email) => (
+                        <div key={email.id} className="border-l-2 border-border/30 pl-4 py-2">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <div className="min-w-0">
+                              <div className="text-xs font-medium text-foreground truncate">
+                                {email.isAgent ? 'Anda' : email.from}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground truncate">
+                                {email.subject || 'Tanpa Subjek'}
+                              </div>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground whitespace-nowrap">
+                              {formatEmailDate(email.timestamp)}
+                            </div>
+                          </div>
+                          <div className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-3">
+                            {email.body}
+                          </div>
+                          {email.attachments && email.attachments.length > 0 && (
+                            <div className="flex items-center gap-1 mt-2 text-[10px] text-muted-foreground">
+                              <Paperclip className="w-3 h-3" />
+                              <span>{email.attachments.length} lampiran</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center p-12">
+              <Loader2 className="w-8 h-8 text-module-pdkt animate-spin mb-3" />
+              <p className="text-muted-foreground text-xs font-medium">
+                {emails.length === 0 ? "Menerima Email Masuk..." : "Memproses..."}
               </p>
             </div>
           )}
 
+          {/* Evaluation Processing */}
           {!isLoading && isEvaluationProcessing && (
-            <div className="module-clean-panel flex flex-col items-center justify-center p-12 rounded-[3rem] border-2 border-dashed border-sky-500/20">
-              <Loader2 className="w-10 h-10 text-sky-500 animate-spin mb-5" />
-              <p className="text-sky-500 font-black text-[11px] uppercase tracking-[0.3em] text-center">
+            <div className="flex flex-col items-center justify-center p-10">
+              <Loader2 className="w-6 h-6 text-module-pdkt animate-spin mb-3" />
+              <p className="text-module-pdkt text-xs font-medium">
                 Evaluasi sedang diproses
               </p>
-              <p className="text-muted-foreground text-xs text-center mt-3 max-w-md">
+              <p className="text-muted-foreground text-xs text-center mt-2 max-w-sm">
                 Riwayat email sudah tersimpan. Hasil evaluasi akan muncul otomatis saat selesai.
               </p>
             </div>
           )}
 
+          {/* Evaluation Failed */}
           {!isLoading && isEvaluationFailed && (
-            <div className="module-clean-panel p-8 rounded-[2.5rem] border border-rose-500/20 bg-rose-500/5">
-              <div className="flex items-center gap-3 mb-3">
-                <AlertCircle className="w-5 h-5 text-rose-500" />
-                <h3 className="text-lg font-black tracking-tight text-rose-500">Evaluasi belum berhasil</h3>
+            <div className="p-6 mx-4 md:mx-6 my-4 rounded-lg border border-destructive/20 bg-destructive/5">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle className="w-4 h-4 text-destructive" />
+                <h3 className="text-sm font-medium text-destructive">Evaluasi belum berhasil</h3>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-xs text-muted-foreground">
                 {evaluationError || 'Terjadi gangguan saat menjalankan evaluasi AI untuk sesi ini.'}
               </p>
             </div>
@@ -332,32 +365,32 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
           {/* Evaluation Result */}
           {evaluation && (
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="module-clean-shell border-2 border-module-pdkt/20 rounded-[2.5rem] overflow-hidden"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="border-t border-border/50"
             >
-              <div className="bg-gradient-to-r from-module-pdkt to-module-pdkt/80 p-6 text-primary-foreground flex justify-between items-center">
+              <div className="bg-module-pdkt/5 px-4 md:px-6 py-4 flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold">Hasil Evaluasi</h3>
-                  <p className="text-xs text-white/70">Analisis performa balasan Anda.</p>
+                  <h3 className="text-sm font-semibold text-foreground">Hasil Evaluasi</h3>
+                  <p className="text-xs text-muted-foreground">Analisis performa balasan Anda.</p>
                 </div>
-                <div className="flex items-center gap-3 bg-black/20 px-5 py-2 rounded-2xl border border-white/10">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">Skor</span>
-                  <span className="text-3xl font-black tracking-tighter">{evaluation.score}%</span>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-module-pdkt/10 border border-module-pdkt/20">
+                  <span className="text-[9px] font-medium text-muted-foreground uppercase">Skor</span>
+                  <span className="text-lg font-semibold text-module-pdkt">{evaluation.score}%</span>
                 </div>
               </div>
               
-              <div className="p-8 grid gap-8 md:grid-cols-2">
-                <div className="space-y-6">
-                  <div className="bg-rose-500/5 p-5 rounded-2xl border border-rose-500/10">
-                    <h4 className="font-bold text-rose-500 text-xs mb-3 flex items-center gap-2 uppercase tracking-widest">
-                      <AlertCircle className="w-4 h-4" /> Typo / Salah Ketik
+              <div className="px-4 md:px-6 py-5 grid gap-5 md:grid-cols-2">
+                <div className="space-y-4">
+                  <div className="p-4 rounded-lg border border-destructive/10 bg-destructive/5">
+                    <h4 className="text-[10px] font-medium text-destructive uppercase tracking-wide mb-2">
+                      Typo / Salah Ketik
                     </h4>
                     {evaluation.typos.length > 0 ? (
-                      <ul className="space-y-2">
+                      <ul className="space-y-1.5">
                         {evaluation.typos.map((item, idx) => (
-                          <li key={idx} className="text-xs text-muted-foreground flex gap-2">
-                            <span className="text-rose-500">•</span> {item}
+                          <li key={idx} className="text-xs text-muted-foreground">
+                            • {item}
                           </li>
                         ))}
                       </ul>
@@ -366,15 +399,15 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
                     )}
                   </div>
 
-                  <div className="bg-amber-500/5 p-5 rounded-2xl border border-amber-500/10">
-                    <h4 className="font-bold text-amber-500 text-xs mb-3 flex items-center gap-2 uppercase tracking-widest">
-                      <Info className="w-4 h-4" /> Kejelasan Kalimat
+                  <div className="module-clean-panel p-4 rounded-lg">
+                    <h4 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                      Kejelasan Kalimat
                     </h4>
                     {evaluation.clarityIssues.length > 0 ? (
-                      <ul className="space-y-2">
+                      <ul className="space-y-1.5">
                         {evaluation.clarityIssues.map((item, idx) => (
-                          <li key={idx} className="text-xs text-muted-foreground flex gap-2">
-                            <span className="text-amber-500">•</span> {item}
+                          <li key={idx} className="text-xs text-muted-foreground">
+                            • {item}
                           </li>
                         ))}
                       </ul>
@@ -384,16 +417,16 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
                   </div>
                 </div>
 
-                <div className="space-y-6">
-                  <div className="bg-indigo-500/5 p-5 rounded-2xl border border-indigo-500/10">
-                    <h4 className="font-bold text-indigo-500 text-xs mb-3 flex items-center gap-2 uppercase tracking-widest">
-                      <CheckCircle2 className="w-4 h-4" /> Relevansi & Solusi
+                <div className="space-y-4">
+                  <div className="p-4 rounded-lg border border-module-pdkt/10 bg-module-pdkt/5">
+                    <h4 className="text-[10px] font-medium text-module-pdkt uppercase tracking-wide mb-2">
+                      Relevansi & Solusi
                     </h4>
                     {evaluation.contentGaps.length > 0 ? (
-                      <ul className="space-y-2">
+                      <ul className="space-y-1.5">
                         {evaluation.contentGaps.map((item, idx) => (
-                          <li key={idx} className="text-xs text-muted-foreground flex gap-2">
-                            <span className="text-indigo-500">•</span> {item}
+                          <li key={idx} className="text-xs text-muted-foreground">
+                            • {item}
                           </li>
                         ))}
                       </ul>
@@ -402,17 +435,17 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
                     )}
                   </div>
 
-                  <div className="module-clean-panel p-5 rounded-2xl">
-                    <h4 className="font-bold text-muted-foreground text-[10px] mb-3 uppercase tracking-widest">Masukan & Saran</h4>
-                    <p className="text-sm text-muted-foreground italic leading-relaxed">&quot;{evaluation.feedback}&quot;</p>
+                  <div className="module-clean-panel p-4 rounded-lg">
+                    <h4 className="text-[9px] font-medium text-muted-foreground uppercase tracking-wide mb-2">Masukan & Saran</h4>
+                    <p className="text-xs text-muted-foreground italic leading-relaxed">&quot;{evaluation.feedback}&quot;</p>
                   </div>
                 </div>
               </div>
 
-              <div className="p-8 border-t border-border flex justify-center">
+              <div className="px-4 md:px-6 py-4 border-t border-border/50 flex justify-center">
                 <button 
                   onClick={onEndSession}
-                  className="bg-foreground text-background px-10 py-4 rounded-2xl font-bold text-sm hover:opacity-90 transition-all shadow-xl"
+                  className="bg-foreground text-background px-6 py-2.5 rounded-lg font-medium text-sm hover:opacity-90 transition-all"
                 >
                   Selesaikan Sesi
                 </button>
@@ -420,68 +453,109 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
             </motion.div>
           )}
           
-          <div ref={bottomRef} className="h-4" />
+          <div ref={bottomRef} className="h-2" />
         </div>
       </div>
 
-      {/* Reply Section */}
-      <div className={`p-4 md:p-6 sticky bottom-0 z-30 transition-all duration-300 ${
-        evaluation ? 'bg-transparent' : 'module-clean-toolbar border-t'
-      }`}>
-        {!hasAgentReplied && !evaluation ? (
-          !isDrafting ? (
-            <button 
-              onClick={() => setIsDrafting(true)}
-              disabled={isLoading}
-              className="module-clean-panel group flex items-center gap-5 text-muted-foreground border-2 border-dashed hover:border-module-pdkt/50 rounded-[2rem] px-8 py-6 w-full transition-all shadow-inner"
-            >
-                <div className="module-clean-button-secondary w-12 h-12 rounded-2xl flex items-center justify-center group-hover:text-module-pdkt transition-all">
-                <Reply className="w-6 h-6" />
-              </div>
-              <span className="font-black text-sm uppercase tracking-[0.2em]">Balas Email Ini...</span>
-            </button>
-          ) : (
-            <div className="module-clean-shell rounded-[2.5rem] overflow-hidden relative">
-              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/50 to-primary/10" />
-              <div className="flex items-center justify-between px-8 py-5 border-b border-border/30">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                  <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">
-                    Drafting Reply to: <span className="text-muted-foreground">{config.identity.name}</span>
+      {/* Reply Composer */}
+      <AnimatePresence>
+        {isDrafting && !evaluation && (
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="module-clean-toolbar border-t z-30 shrink-0"
+          >
+            <div className="max-w-3xl mx-auto">
+              {/* Composer Header */}
+              <div className="flex items-center justify-between px-4 md:px-6 py-2.5 border-b border-border/50">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-module-pdkt rounded-full" />
+                  <span className="text-[9px] font-medium text-muted-foreground uppercase tracking-wide">
+                    Balas
                   </span>
                 </div>
                 <button 
                   onClick={() => setIsDrafting(false)} 
-                  className="w-8 h-8 flex items-center justify-center hover:bg-foreground/5 rounded-xl transition-all"
+                  className="w-7 h-7 flex items-center justify-center hover:bg-foreground/5 rounded-lg transition-all"
                 >
-                  <X className="w-5 h-5 text-muted-foreground" />
+                  <X className="w-4 h-4 text-muted-foreground" />
                 </button>
               </div>
+
+              {/* Composer Fields */}
+              <div className="px-4 md:px-6 py-2 space-y-1.5 border-b border-border/50">
+                <div className="flex items-center text-xs">
+                  <span className="text-muted-foreground/60 w-12 shrink-0">Kepada</span>
+                  <span className="text-foreground truncate">{firstInboundEmail?.from || '-'}</span>
+                </div>
+                <div className="flex items-center text-xs">
+                  <span className="text-muted-foreground/60 w-12 shrink-0">Cc</span>
+                  <span className="text-muted-foreground truncate">-</span>
+                </div>
+                <div className="flex items-center text-xs">
+                  <span className="text-muted-foreground/60 w-12 shrink-0">Subjek</span>
+                  <span className={firstInboundEmail?.subject ? 'text-foreground truncate' : 'text-muted-foreground/60 truncate'}>{firstInboundEmail?.subject || 'Tanpa Subjek'}</span>
+                </div>
+              </div>
+
+              {/* Textarea */}
               <textarea
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
-                className="w-full h-64 p-10 outline-none text-foreground bg-transparent resize-none font-sans text-base leading-relaxed font-medium placeholder:text-foreground/10"
-                placeholder="Tulis balasan Anda secara profesional..."
+                className="w-full h-40 md:h-48 p-4 md:p-5 outline-none text-foreground bg-transparent resize-none font-sans text-sm leading-relaxed placeholder:text-muted-foreground/40"
+                placeholder="Tulis balasan Anda..."
                 autoFocus
               />
-              <div className="module-clean-panel px-10 py-6 flex justify-end items-center border-t border-border/30">
+
+              {/* Send Button */}
+              <div className="px-4 md:px-6 py-3 flex justify-end items-center border-t border-border/50">
                 <button 
                   onClick={handleSend}
                   disabled={!replyText.trim() || isLoading}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl shadow-primary/20 flex items-center gap-4 disabled:opacity-50 transition-all group"
+                  className="bg-module-pdkt hover:bg-module-pdkt/90 text-white px-5 py-2.5 rounded-lg font-medium text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
-                  {isLoading ? "Mengirim..." : "Kirim"}
-                  {!isLoading && <Send className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Mengirim...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      <span>Kirim</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
-          )
-        ) : (
-          <div className="text-center p-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Reply Prompt (when not drafting) */}
+      {!isDrafting && !hasAgentReplied && !evaluation && !isLoading && (
+        <div className="module-clean-toolbar border-t z-30 shrink-0 px-4 md:px-6 py-4">
+          <button 
+            onClick={() => setIsDrafting(true)}
+            disabled={isLoading}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-dashed border-border/60 hover:border-module-pdkt/50 hover:bg-module-pdkt/5 text-muted-foreground hover:text-module-pdkt transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Reply className="w-4 h-4" />
+            <span className="text-sm font-medium">Balas Email Ini...</span>
+          </button>
+        </div>
+      )}
+
+      {/* Post-reply Status */}
+      {(hasAgentReplied || evaluation) && !isDrafting && (
+        <div className="module-clean-toolbar border-t z-30 shrink-0 px-4 md:px-6 py-3">
+          <div className="text-center text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
             {evaluation ? "Tiket telah dievaluasi" : isEvaluationFailed ? "Evaluasi gagal diproses" : "Menunggu evaluasi..."}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

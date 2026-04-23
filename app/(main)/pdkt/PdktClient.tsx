@@ -232,7 +232,7 @@ const PdktPage: React.FC = () => {
       id: Date.now().toString(),
       from: 'cc.ojk@ojk.go.id',
       to: currentConfig?.identity.email || '',
-      subject: emails.length > 0 ? `Re: ${emails[0].subject}` : 'Re: Ticket',
+      subject: emails.length > 0 && emails[0].subject ? `Re: ${emails[0].subject}` : '',
       body: text,
       timestamp: new Date(),
       isAgent: true,

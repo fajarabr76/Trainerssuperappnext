@@ -38,6 +38,35 @@ interface Content {
 
 let chatHistory: Content[] = [];
 
+/**
+ * Normalize subject from AI response:
+ * - Trim and collapse whitespace
+ * - If too descriptive (contains company names, explicit problem keywords, or too long), degrade to empty
+ * - Return empty string for invalid/missing subjects
+ */
+function normalizeSubject(raw: string | undefined | null): string {
+  if (!raw || typeof raw !== 'string') return '';
+  
+  const trimmed = raw.trim().replace(/\s+/g, ' ');
+  
+  // Too long = likely too descriptive
+  if (trimmed.length > 60) return '';
+  
+  // Check for explicit problem indicators that would leak the case
+  const leakyPatterns = [
+    /penipuan/i, /fraud/i, /gagal login/i, /transaksi tidak dikenal/i,
+    /slik/i, /terror/i, /penagihan/i, /pinjol/i, /pinjaman online/i,
+    /investasi bodong/i, /asuransi/i, /leasing/i, /bank.*blokir/i,
+    /rekening.*diblokir/i, /dana.*hilang/i, /uang.*raib/i
+  ];
+  
+  for (const pattern of leakyPatterns) {
+    if (pattern.test(trimmed)) return '';
+  }
+  
+  return trimmed;
+}
+
 function parseJsonFromModelText(raw: string): any {
   const trimmed = raw.trim();
 
@@ -118,6 +147,15 @@ const getSystemInstruction = (config: SessionConfig, hasCustomImages: boolean) =
        - Jika skenario terkait PINJOL ILEGAL (Teror Penagihan): Gunakan nama yang terdengar tidak formal.
          Contoh: "Dompet Kilat", "Dana Cepat Cair", "Pinjam Dulu".
 
+    1a. ATURAN SUBJECT EMAIL (ADAPTIF BERDASARKAR KARAKTER):
+        - Subject email harus menyesuaikan dengan tipe karakter Anda:
+          * Jika Anda tipe yang bingung/awam: Subject BOLEH KOSONG (string kosong "") atau sangat umum seperti "Mohon Bantuan" atau "Pertanyaan".
+          * Jika Anda tipe biasa: Subject singkat dan samar, misal "Perlu Klarifikasi" atau "Menanyakan Sesuatu".
+          * Jika Anda tipe yang lebih terstruktur/ekspresif: Subject boleh ada, tetapi hanya memberi clue tipis. Maksimal 4-6 kata. Contoh: "Ada Masalah di Aplikasi", "Transaksi Bermasalah".
+        - DILARANG: Subject yang membocorkan inti masalah secara eksplisit, kombinasi nama perusahaan + jenis masalah, kronologi lengkap, atau kata-kata yang langsung menjawab diagnosis kasus.
+        - Subject harus natural, tidak terasa "dioptimalkan untuk memberi hint" kepada agen.
+        - Jika ragu, lebih baik kosong atau sangat umum.
+
     2. GAYA PENULISAN:
        - Buatlah isi email yang SANGAT PANJANG (minimal 300-400 kata), BERTELE-TELE, dan PENUH DETAIL.
        - Ceritakan kronologi dengan sangat rinci. Masukkan curhatan pribadi yang tidak relevan (distraksi) tentang pekerjaan, keluarga, atau perasaan Anda untuk menyembunyikan inti masalah.
@@ -131,16 +169,16 @@ const getSystemInstruction = (config: SessionConfig, hasCustomImages: boolean) =
        - Gabungkan SEMUA skenario masalah di atas menjadi satu cerita utuh.
        - Jangan memberikan solusi sendiri. Anda di sini untuk mengeluh.
 
-    4. OUTPUT:
-       - Format output HANYA JSON.
-       - ${imageInstruction}
-       - Struktur JSON:
-       { 
-         "subject": "Subjek Email (Buat yang menarik/emosional sesuai karakter)", 
-         "body": "Isi Email Panjang...",
-         "imagePrompts": ["Deskripsi gambar 1"]
-       }
-  `;
+     4. OUTPUT:
+        - Format output HANYA JSON.
+        - ${imageInstruction}
+        - Struktur JSON:
+        { 
+          "subject": "Subjek email boleh kosong (string kosong), sangat umum, atau memberi clue tipis saja. Jangan membocorkan inti masalah, nama LJK + problem utama, atau kronologi lengkap. Maksimal 6 kata, natural.", 
+          "body": "Isi Email Panjang...",
+          "imagePrompts": ["Deskripsi gambar 1"]
+        }
+   `;
 };
 
 type InitializeEmailSessionResult =
@@ -231,7 +269,7 @@ export const initializeEmailSession = async (
         id: Date.now().toString(),
         from: config.identity.email,
         to: "konsumen@ojk.go.id",
-        subject: jsonResponse.subject || "Keluhan Pelanggan",
+        subject: normalizeSubject(jsonResponse.subject),
         body: jsonResponse.body || "Gagal memuat isi email.",
         timestamp: new Date(),
         isAgent: false,

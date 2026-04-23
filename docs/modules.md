@@ -27,10 +27,11 @@ Workspace untuk latihan korespondensi email yang terstandarisasi.
 
 - **Fungsi**: Simulasi penulisan email balasan untuk keluhan atau pertanyaan pelanggan.
 - **Fitur Utama**:
-  - **Rich Text Editor**: Interface penulisan email yang profesional.
-  - **Struktur Formal**: Melatih penggunaan template, greeting, dan closing yang benar.
-  - **Feedback Analitik**: Evaluasi kualitas bahasa dan ketepatan solusi.
-- **Catatan Teknis**: Output model untuk draft email awal dan evaluasi QA divalidasi dulu sebagai string valid sebelum diparse sebagai JSON.
+  - **Detail View Inbound**: Email masuk utama tampil sebagai detail view, bukan bubble thread besar.
+  - **Composer Reply**: Balasan memakai panel composer-style dengan field read-only untuk `Kepada`, `Cc`, dan `Subjek`.
+  - **Riwayat Ringkas**: History sesi bisa di-collapse agar detail utama tetap fokus.
+  - **Feedback Analitik**: Evaluasi kualitas bahasa dan ketepatan solusi tetap dipertahankan.
+- **Catatan Teknis**: Output model untuk draft email awal dan evaluasi QA divalidasi dulu sebagai string valid sebelum diparse sebagai JSON. Subject email awal dijaga realistis, boleh kosong, dan tidak boleh menjadi clue utama inti masalah.
 
 ## 4. TELEFUN (Phone Simulation)
 Modul simulasi komunikasi suara untuk melatih intonasi dan kecepatan respon telepon.
