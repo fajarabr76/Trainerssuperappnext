@@ -2,13 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { X, BarChart3, Loader2 } from 'lucide-react';
+import { X, BarChart3, Loader2, TrendingUp } from 'lucide-react';
 import { getMyModuleUsage } from '@/app/actions/usage';
+import type { UsageDelta } from '@/app/lib/usage-snapshot';
 
 interface UsageModalProps {
   isOpen: boolean;
   onClose: () => void;
   module: 'ketik' | 'pdkt';
+  sessionDelta?: UsageDelta | null;
+  sessionDeltaPending?: boolean;
 }
 
 function formatIdr(value: number): string {
@@ -19,7 +22,7 @@ function formatTokenCount(value: number): string {
   return new Intl.NumberFormat('id-ID').format(value);
 }
 
-export const UsageModal: React.FC<UsageModalProps> = ({ isOpen, onClose, module }) => {
+export const UsageModal: React.FC<UsageModalProps> = ({ isOpen, onClose, module, sessionDelta, sessionDeltaPending }) => {
   const [loading, setLoading] = useState(false);
   const [usage, setUsage] = useState<{
     total_calls: number;
@@ -97,6 +100,29 @@ export const UsageModal: React.FC<UsageModalProps> = ({ isOpen, onClose, module 
               <div className="text-center mb-4">
                 <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">{usage.periodLabel}</p>
               </div>
+
+              {(sessionDelta || sessionDeltaPending) && (
+                <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 mb-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <TrendingUp className="w-4 h-4 text-primary" />
+                    <p className="text-xs font-black uppercase tracking-widest text-primary">Kenaikan setelah sesi terakhir</p>
+                  </div>
+                  <p className="text-xl font-black text-foreground">
+                    {sessionDelta ? `+${formatIdr(sessionDelta.costIdr)}` : '—'}
+                  </p>
+                  <div className="flex items-center gap-3 mt-1">
+                    {sessionDelta && sessionDelta.totalTokens > 0 && (
+                      <span className="text-[10px] font-bold text-muted-foreground">+{formatTokenCount(sessionDelta.totalTokens)} token</span>
+                    )}
+                    {sessionDelta && sessionDelta.totalCalls > 0 && (
+                      <span className="text-[10px] font-bold text-muted-foreground">+{sessionDelta.totalCalls} call</span>
+                    )}
+                    {sessionDeltaPending && (
+                      <span className="text-[10px] font-bold text-amber-600">masih diproses</span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-foreground/[0.02] rounded-xl p-4">

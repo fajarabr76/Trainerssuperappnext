@@ -63,6 +63,37 @@ Isi modal:
 
 Telefun dan QA Analyzer ikut tercatat dalam monitoring usage bulanan, tetapi tidak memiliki quick-view modal khusus.
 
+#### Indikator Kenaikan Biaya Sesi (`+Rp`)
+
+Setelah sesi selesai, tombol `Usage Bulan Ini` dan bagian atas modal menampilkan indikator kenaikan biaya yang disebabkan oleh sesi terakhir.
+
+**Cara kerja:**
+
+1. Saat user memulai sesi baru, sistem mengambil snapshot usage bulan berjalan ke baseline sesi aktif (`sessionBaselineRef`) secara async.
+2. Saat user menutup sesi, sistem mengambil ulang snapshot usage bulan berjalan dan menghitung delta terhadap baseline sesi aktif:
+   - `costIdr`: selisih estimasi biaya (clamped minimum 0)
+   - `totalTokens`: selisih total token (clamped minimum 0)
+   - `totalCalls`: selisih jumlah call (clamped minimum 0)
+3. Delta ditampilkan sebagai badge kecil di tombol `Usage Bulan Ini` dan sebagai blok ringkas di header modal.
+
+**Alur khusus PDKT (evaluasi async):**
+
+- Jika user menutup sesi saat evaluasi masih `processing`, sistem menampilkan **delta provisional** + label "masih diproses".
+- Setelah evaluasi selesai (status berubah ke `completed`/`failed`), sistem melakukan polling ringan (interval 4 detik, max 2 menit) untuk refetch usage dan recompute delta final.
+- Jika polling timeout, label "masih diproses" dihapus dan delta terakhir dipertahankan.
+
+**Session-run guard:**
+
+Setiap sesi memiliki `sessionRunId` monotonik (counter `useRef` yang di-increment saat sesi dimulai). Semua callback async yang menulis baseline, delta, atau membersihkan state polling memeriksa guard `runId === sessionRunIdRef.current` sebelum commit ke state. Ini mencegah race condition saat user memulai sesi baru sebelum fetch baseline, perhitungan delta, atau polling sesi sebelumnya selesai.
+
+**Reset delta:**
+
+Indikator delta di-reset setiap kali user memulai sesi baru, sehingga tidak menampilkan nilai stale dari sesi sebelumnya.
+
+**Fallback:**
+
+Jika fetch baseline gagal atau tidak tersedia, UI usage tetap normal tanpa badge delta dan tanpa crash.
+
 ## Boundary Waktu
 
 Seluruh agregasi bulanan menggunakan WIB / `Asia/Jakarta`:
@@ -164,11 +195,16 @@ Catatan:
 - Jalankan satu sesi KETIK sukses, lalu cek:
   - quick-view `Usage Bulan Ini` bertambah untuk `ketik`
   - agregasi bulan berjalan di monitoring ikut bertambah
+  - badge `+Rp` muncul di tombol `Usage Bulan Ini` setelah sesi selesai
+  - buka modal usage, pastikan blok "Kenaikan setelah sesi terakhir" menampilkan `+Rp` yang konsisten dengan selisih total bulan berjalan
 - Jalankan satu sesi PDKT sukses, lalu cek quick-view `pdkt`
+  - jika evaluasi masih `processing` saat sesi ditutup, pastikan badge/modal menampilkan delta provisional + label "masih diproses"
+  - setelah evaluasi selesai, pastikan nilai delta auto-update tanpa perlu refresh halaman
 - Jalankan flow Telefun yang memicu AI call, lalu cek usage muncul untuk modul `telefun`
 - Jalankan pembuatan narasi laporan QA Analyzer, lalu cek usage muncul untuk modul `qa-analyzer`
 - Uji boundary akhir bulan WIB dengan request dekat pergantian bulan; request harus masuk ke bulan WIB yang benar
 - Login sebagai `leader`; pastikan tab `Penggunaan Token` ada, tetapi tab `Harga & Kurs` tidak ada
+- Uji race condition: mulai sesi baru sebelum fetch baseline sesi sebelumnya selesai, pastikan delta yang ditampilkan sesuai dengan sesi terakhir (bukan sesi sebelumnya)
 
 ## Batasan v1
 
@@ -176,6 +212,8 @@ Catatan:
 - tidak ada export CSV/XLSX usage
 - quick-view hanya tersedia untuk KETIK dan PDKT
 - jika model belum punya pricing atau provider tidak memberi metadata token, request user tetap berjalan tetapi usage tidak tercatat
+- delta sesi dihitung dari selisih total usage bulan berjalan (bukan per `request_id` individual)
+- jika ada lag logging/persist, nilai awal boleh provisional lalu disinkronkan (khusus PDKT async)
 
 ## Referensi
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Settings, History, Play, MessageSquare, BarChart3 } from 'lucide-react';
 import { AppSettings, ChatSession, SessionConfig, Scenario, ConsumerType, Identity, ChatMessage } from '@/app/types';
@@ -15,6 +15,8 @@ import { moduleTheme } from '@/app/components/ui/moduleTheme';
 import ModuleWorkspaceIntro from '@/app/components/ModuleWorkspaceIntro';
 import { User } from '@supabase/supabase-js';
 import { persistKetikSession } from './actions';
+import { getMyModuleUsage } from '@/app/actions/usage';
+import { type UsageSnapshot, computeUsageDelta, formatCompactIdr } from '@/app/lib/usage-snapshot';
 
 const supabase = createClient();
 
@@ -40,6 +42,9 @@ export default function AppKetik() {
   const [currentConfig, setCurrentConfig] = useState<SessionConfig | null>(null);
   const [currentScenario, setCurrentScenario] = useState<Scenario | null>(null);
   const [reviewMessages, setReviewMessages] = useState<ChatMessage[]>([]);
+  const [sessionDelta, setSessionDelta] = useState<ReturnType<typeof computeUsageDelta>>(null);
+  const sessionBaselineRef = useRef<UsageSnapshot | null>(null);
+  const sessionRunIdRef = useRef(0);
 
   // Get user on mount
   useEffect(() => {
@@ -181,7 +186,22 @@ export default function AppKetik() {
     setCurrentConfig(config);
     setCurrentScenario(scenario);
     setReviewMessages([]);
+    setSessionDelta(null);
+    sessionBaselineRef.current = null;
+    const runId = ++sessionRunIdRef.current;
     setIsLoading(true);
+
+    void getMyModuleUsage('ketik').then((usage) => {
+      if (usage && runId === sessionRunIdRef.current) {
+        sessionBaselineRef.current = {
+          total_calls: usage.total_calls,
+          total_tokens: usage.total_tokens,
+          total_cost_idr: usage.total_cost_idr,
+          periodLabel: usage.periodLabel,
+        };
+      }
+    });
+
     setTimeout(() => { setIsLoading(false); setView('chat'); }, 500);
   };
 
@@ -231,6 +251,25 @@ export default function AppKetik() {
         setIsLoading(false);
       }
     }
+
+    const runId = sessionRunIdRef.current;
+    try {
+      const afterUsage = await getMyModuleUsage('ketik');
+      if (afterUsage && runId === sessionRunIdRef.current) {
+        const after: UsageSnapshot = {
+          total_calls: afterUsage.total_calls,
+          total_tokens: afterUsage.total_tokens,
+          total_cost_idr: afterUsage.total_cost_idr,
+          periodLabel: afterUsage.periodLabel,
+        };
+        const delta = computeUsageDelta(sessionBaselineRef.current, after);
+        setSessionDelta(delta);
+      }
+    } catch (e) {
+      console.warn('[Ketik] Failed to fetch post-session usage:', e);
+    }
+
+    sessionBaselineRef.current = null;
     setView('home');
     setCurrentConfig(null);
     setCurrentScenario(null);
@@ -314,6 +353,11 @@ export default function AppKetik() {
                   >
                     <BarChart3 className="h-4 w-4 opacity-60" />
                     <span>Usage Bulan Ini</span>
+                    {sessionDelta && sessionDelta.costIdr > 0 && (
+                      <span className="ml-auto text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                        +{formatCompactIdr(sessionDelta.costIdr)} sesi terakhir
+                      </span>
+                    )}
                   </motion.button>
                 </>
               }
@@ -346,7 +390,7 @@ export default function AppKetik() {
 
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} settings={settings} onSave={handleSaveSettings} />
       <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} history={history} onClear={handleClearHistory} onDelete={handleDeleteSession} onReview={handleReviewHistory} />
-      <UsageModal isOpen={isUsageOpen} onClose={() => setIsUsageOpen(false)} module="ketik" />
+      <UsageModal isOpen={isUsageOpen} onClose={() => setIsUsageOpen(false)} module="ketik" sessionDelta={sessionDelta} sessionDeltaPending={false} />
     </div>
   );
 }

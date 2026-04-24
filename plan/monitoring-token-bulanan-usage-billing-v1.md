@@ -65,6 +65,11 @@ Periode bulanan selalu memakai WIB / `Asia/Jakarta`:
   - estimasi billing Rupiah bulan berjalan
   - jumlah call sukses bulan berjalan
   - label periode aktif, misalnya `1 April 2026 - 30 April 2026 WIB`
+- Setelah sesi selesai, tombol `Usage Bulan Ini` dan bagian atas modal menampilkan indikator kenaikan biaya sesi terakhir (`+Rp`) berdasarkan selisih total usage bulan berjalan sebelum-vs-sesudah sesi.
+- Khusus PDKT, jika evaluasi masih async saat sesi ditutup:
+  - tampilkan delta provisional + label `masih diproses`
+  - lanjut polling ringan untuk recompute delta final saat evaluasi selesai
+  - gunakan session-run guard (`sessionRunIdRef`) agar baseline, delta, dan cleanup polling tidak tertukar antar sesi
 
 ## Pengujian
 
@@ -81,6 +86,9 @@ Periode bulanan selalu memakai WIB / `Asia/Jakarta`:
   - Ubah kurs atau harga model, lalu request baru memakai harga baru tanpa mengubah histori lama
   - Tombol `Usage Bulan Ini` di Ketik hanya menampilkan akumulasi `ketik`
   - Tombol `Usage Bulan Ini` di PDKT hanya menampilkan akumulasi `pdkt`
+  - Setelah sesi KETIK selesai, badge `+Rp` muncul di tombol dan modal menunjukkan blok `Kenaikan setelah sesi terakhir`
+  - Saat sesi PDKT ditutup ketika evaluasi masih `processing`, tampilkan delta provisional + label `masih diproses`, lalu auto-update setelah evaluasi selesai
+  - Jika sesi baru dimulai sebelum fetch baseline/polling sesi sebelumnya selesai, delta yang tampil tetap milik sesi terbaru
   - `leader` bisa melihat tab usage monitoring tetapi tidak bisa melihat atau submit editor pricing
 
 ## Asumsi
@@ -89,6 +97,7 @@ Periode bulanan selalu memakai WIB / `Asia/Jakarta`:
 - v1 tidak menambah export CSV/XLSX untuk usage
 - Model di luar pricing table tidak memblokir request user, tetapi usage tidak dicatat sampai pricing tersedia
 - Telefun dan QA Analyzer tetap ikut instrumentasi logging, walau quick-view hanya ditambahkan ke Ketik dan PDKT
+- Delta sesi dihitung dari selisih total usage bulan berjalan, bukan dari satu `request_id` individual
 
 ## Corrective Fix Summary
 

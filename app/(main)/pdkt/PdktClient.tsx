@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { SettingsModal } from './components/SettingsModal';
 import { EmailInterface } from './components/EmailInterface';
 import { HistoryModal } from './components/HistoryModal';
@@ -16,6 +16,8 @@ import { createClient } from '@/app/lib/supabase/client';
 import { moduleTheme } from '@/app/components/ui/moduleTheme';
 import ModuleWorkspaceIntro from '@/app/components/ModuleWorkspaceIntro';
 import { normalizeModelId } from '@/app/lib/ai-models';
+import { getMyModuleUsage } from '@/app/actions/usage';
+import { type UsageSnapshot, computeUsageDelta, formatCompactIdr } from '@/app/lib/usage-snapshot';
 
 const supabase = createClient();
 
@@ -46,6 +48,12 @@ const PdktPage: React.FC = () => {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
   const [timeTaken, setTimeTaken] = useState<number | null>(null);
+  const [sessionDelta, setSessionDelta] = useState<ReturnType<typeof computeUsageDelta>>(null);
+  const [sessionDeltaPending, setSessionDeltaPending] = useState(false);
+  const [closedSessionId, setClosedSessionId] = useState<string | null>(null);
+  const [closedSessionBaseline, setClosedSessionBaseline] = useState<UsageSnapshot | null>(null);
+  const sessionBaselineRef = useRef<UsageSnapshot | null>(null);
+  const sessionRunIdRef = useRef(0);
 
   const mapSessionHistory = useCallback((item: any): SessionHistory => ({
     id: item.id,
@@ -154,6 +162,61 @@ const PdktPage: React.FC = () => {
     return () => window.clearInterval(timer);
   }, [currentSessionId, evaluationStatus, refreshCurrentSession, view]);
 
+  // ── Post-close polling untuk delta usage saat evaluasi async ──
+  useEffect(() => {
+    if (!closedSessionId || !closedSessionBaseline || !user) return;
+
+    const runId = sessionRunIdRef.current;
+    let attempts = 0;
+    const maxAttempts = 30; // 30 * 4s = 2 menit
+
+    const timer = window.setInterval(async () => {
+      attempts++;
+
+      try {
+        const { data, error } = await supabase
+          .from('pdkt_history')
+          .select('evaluation_status')
+          .eq('id', closedSessionId)
+          .eq('user_id', user.id)
+          .single();
+
+        if (error) {
+          console.warn('[PDKT] Post-close polling error:', error);
+        }
+
+        if (data && data.evaluation_status !== 'processing') {
+          const usage = await getMyModuleUsage('pdkt');
+          if (usage && runId === sessionRunIdRef.current) {
+            const after: UsageSnapshot = {
+              total_calls: usage.total_calls,
+              total_tokens: usage.total_tokens,
+              total_cost_idr: usage.total_cost_idr,
+              periodLabel: usage.periodLabel,
+            };
+            const delta = computeUsageDelta(closedSessionBaseline, after);
+            setSessionDelta(delta);
+            setSessionDeltaPending(false);
+            setClosedSessionId(null);
+            setClosedSessionBaseline(null);
+          }
+          window.clearInterval(timer);
+        } else if (attempts >= maxAttempts) {
+          if (runId === sessionRunIdRef.current) {
+            setSessionDeltaPending(false);
+            setClosedSessionId(null);
+            setClosedSessionBaseline(null);
+          }
+          window.clearInterval(timer);
+        }
+      } catch (e) {
+        console.warn('[PDKT] Post-close polling exception:', e);
+      }
+    }, 4000);
+
+    return () => window.clearInterval(timer);
+  }, [closedSessionId, closedSessionBaseline, user]);
+
   // ── Simpan settings ke localStorage + Supabase ────────
   const handleSaveSettings = async (newSettings: AppSettings) => {
     setSettings(newSettings);
@@ -202,6 +265,23 @@ const PdktPage: React.FC = () => {
     setEvaluationStatus(null);
     setEvaluationError(null);
     setCurrentSessionId(null);
+    setSessionDelta(null);
+    setSessionDeltaPending(false);
+    setClosedSessionId(null);
+    setClosedSessionBaseline(null);
+    sessionBaselineRef.current = null;
+    const runId = ++sessionRunIdRef.current;
+
+    void getMyModuleUsage('pdkt').then((usage) => {
+      if (usage && runId === sessionRunIdRef.current) {
+        sessionBaselineRef.current = {
+          total_calls: usage.total_calls,
+          total_tokens: usage.total_tokens,
+          total_cost_idr: usage.total_cost_idr,
+          periodLabel: usage.periodLabel,
+        };
+      }
+    });
 
     try {
       console.log('[PDKT] Starting session with config:', config);
@@ -296,6 +376,45 @@ const PdktPage: React.FC = () => {
   };
 
   const endSession = () => {
+    const exitingSessionId = currentSessionId;
+    const exitingEvaluationStatus = evaluationStatus;
+    const baseline = sessionBaselineRef.current;
+    const runId = sessionRunIdRef.current;
+
+    if (exitingSessionId && exitingEvaluationStatus === 'processing' && baseline) {
+      setClosedSessionId(exitingSessionId);
+      setClosedSessionBaseline(baseline);
+
+      void getMyModuleUsage('pdkt').then((usage) => {
+        if (usage && runId === sessionRunIdRef.current) {
+          const after: UsageSnapshot = {
+            total_calls: usage.total_calls,
+            total_tokens: usage.total_tokens,
+            total_cost_idr: usage.total_cost_idr,
+            periodLabel: usage.periodLabel,
+          };
+          const delta = computeUsageDelta(baseline, after);
+          setSessionDelta(delta);
+          setSessionDeltaPending(true);
+        }
+      });
+    } else if (baseline) {
+      void getMyModuleUsage('pdkt').then((usage) => {
+        if (usage && runId === sessionRunIdRef.current) {
+          const after: UsageSnapshot = {
+            total_calls: usage.total_calls,
+            total_tokens: usage.total_tokens,
+            total_cost_idr: usage.total_cost_idr,
+            periodLabel: usage.periodLabel,
+          };
+          const delta = computeUsageDelta(baseline, after);
+          setSessionDelta(delta);
+          setSessionDeltaPending(false);
+        }
+      });
+    }
+
+    sessionBaselineRef.current = null;
     setView('home');
     setEmails([]);
     setCurrentConfig(null);
@@ -389,6 +508,11 @@ const PdktPage: React.FC = () => {
                   >
                     <BarChart3 className="h-4 w-4 opacity-60" />
                     <span>Usage Bulan Ini</span>
+                    {sessionDelta && sessionDelta.costIdr > 0 && (
+                      <span className="ml-auto text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                        +{formatCompactIdr(sessionDelta.costIdr)} sesi terakhir
+                      </span>
+                    )}
                   </motion.button>
                 </>
               }
@@ -423,7 +547,7 @@ const PdktPage: React.FC = () => {
 
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} settings={settings} onSave={handleSaveSettings} />
       <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} history={history} onSelectSession={handleSelectSession} onDeleteSession={handleDeleteSession} onClearHistory={handleClearHistory} />
-      <UsageModal isOpen={isUsageOpen} onClose={() => setIsUsageOpen(false)} module="pdkt" />
+      <UsageModal isOpen={isUsageOpen} onClose={() => setIsUsageOpen(false)} module="pdkt" sessionDelta={sessionDelta} sessionDeltaPending={sessionDeltaPending} />
     </div>
   );
 };
