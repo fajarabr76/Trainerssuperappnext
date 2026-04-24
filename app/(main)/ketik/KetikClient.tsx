@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Settings, History, Play, MessageSquare } from 'lucide-react';
+import { Settings, History, Play, MessageSquare, BarChart3 } from 'lucide-react';
 import { AppSettings, ChatSession, SessionConfig, Scenario, ConsumerType, Identity, ChatMessage } from '@/app/types';
 import { defaultSettings } from './data';
 import { SettingsModal } from './components/SettingsModal';
 import { HistoryModal } from './components/HistoryModal';
+import { UsageModal } from './components/UsageModal';
 import { ChatInterface } from './components/ChatInterface';
 import { createClient } from '@/app/lib/supabase/client';
 import { loadSettings, saveSettings } from './services/settingService';
@@ -34,6 +35,7 @@ export default function AppKetik() {
   const [history, setHistory] = useState<ChatSession[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isUsageOpen, setIsUsageOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentConfig, setCurrentConfig] = useState<SessionConfig | null>(null);
   const [currentScenario, setCurrentScenario] = useState<Scenario | null>(null);
@@ -304,6 +306,15 @@ export default function AppKetik() {
                     <History className="h-4 w-4 opacity-60" />
                     <span>Riwayat</span>
                   </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.01, y: -1 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => setIsUsageOpen(true)}
+                    className="module-clean-button-secondary flex h-12 w-full items-center justify-center gap-2.5 rounded-xl px-5 text-[10px] font-black uppercase tracking-[0.18em] transition-all"
+                  >
+                    <BarChart3 className="h-4 w-4 opacity-60" />
+                    <span>Usage Bulan Ini</span>
+                  </motion.button>
                 </>
               }
             />
@@ -335,6 +346,7 @@ export default function AppKetik() {
 
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} settings={settings} onSave={handleSaveSettings} />
       <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} history={history} onClear={handleClearHistory} onDelete={handleDeleteSession} onReview={handleReviewHistory} />
+      <UsageModal isOpen={isUsageOpen} onClose={() => setIsUsageOpen(false)} module="ketik" />
     </div>
   );
 }

@@ -1,5 +1,9 @@
 'use server';
 
+import { createClient } from "@/app/lib/supabase/server";
+import { logAiUsage, type UsageContext } from "@/app/lib/ai-usage";
+import { randomUUID } from "crypto";
+
 export interface OpenRouterResponse {
   success: boolean;
   text?: string;
@@ -16,6 +20,7 @@ export async function generateOpenRouterContent(options: {
   contents: { role: string; parts: { text: string }[] }[];
   temperature?: number;
   responseMimeType?: string;
+  usageContext?: UsageContext;
 }): Promise<OpenRouterResponse> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   const modelId = options.model || 'z-ai/glm-4.5-air:free';
@@ -115,6 +120,39 @@ export async function generateOpenRouterContent(options: {
     }
 
     const text = data.choices?.[0]?.message?.content || "";
+
+    if (options.usageContext) {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        const usage = data.usage;
+        if (usage && typeof usage === 'object') {
+          const inputTokens = typeof usage.prompt_tokens === 'number' ? usage.prompt_tokens : 0;
+          const outputTokens = typeof usage.completion_tokens === 'number' ? usage.completion_tokens : 0;
+          const totalTokens = typeof usage.total_tokens === 'number' ? usage.total_tokens : inputTokens + outputTokens;
+
+          if (inputTokens > 0 || outputTokens > 0) {
+            const modelId = options.model || 'z-ai/glm-4.5-air:free';
+            const requestId = `openrouter-${randomUUID()}`;
+
+            await logAiUsage({
+              requestId,
+              userId: user.id,
+              provider: 'openrouter',
+              modelId,
+              usageContext: options.usageContext,
+              tokens: { inputTokens, outputTokens, totalTokens },
+            });
+          } else {
+            console.warn('[OpenRouter Action] Token metadata missing from response. Usage not logged.');
+          }
+        } else {
+          console.warn('[OpenRouter Action] Token metadata missing from response. Usage not logged.');
+        }
+      }
+    }
+
     return { success: true, text };
 
   } catch (error: unknown) {

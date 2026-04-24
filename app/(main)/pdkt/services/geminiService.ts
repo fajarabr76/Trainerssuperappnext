@@ -2,6 +2,7 @@ import { SessionConfig, EmailMessage, EvaluationResult } from "../types";
 import { generateGeminiContent } from '@/app/actions/gemini';
 import { generateOpenRouterContent } from '@/app/actions/openrouter';
 import { getProviderFromModelId, normalizeModelId } from '@/app/lib/ai-models';
+import type { UsageContext } from '@/app/lib/ai-usage';
 
 /**
  * Helper to call the appropriate AI provider based on model ID.
@@ -12,6 +13,7 @@ async function callAI(options: {
   prompt: string; 
   temperature?: number;
   responseMimeType?: string;
+  usageContext?: UsageContext;
 }) {
   const normalizedModel = normalizeModelId(options.model);
   const provider = getProviderFromModelId(normalizedModel);
@@ -22,6 +24,7 @@ async function callAI(options: {
     contents: [{ role: 'user', parts: [{ text: options.prompt }] }],
     temperature: options.temperature,
     responseMimeType: options.responseMimeType,
+    usageContext: options.usageContext,
   };
 
   if (provider === 'openrouter') {
@@ -231,7 +234,8 @@ export const initializeEmailSession = async (
       model,
       prompt,
       systemInstruction: getSystemInstruction(config, hasCustomImages),
-      responseMimeType: "application/json"
+      responseMimeType: "application/json",
+      usageContext: { module: 'pdkt', action: 'init_email' },
     });
 
     if (!response.success) {
@@ -340,7 +344,8 @@ export const evaluateAgentResponse = async (
         prompt: evaluationPrompt,
         systemInstruction: "Anda adalah supervisor QA yang memberikan penilaian objektif dalam format JSON.",
         responseMimeType: "application/json",
-        temperature: 0.2 // Lower temperature for more consistent evaluation
+        temperature: 0.2,
+        usageContext: { module: 'pdkt', action: 'evaluate_response' },
       });
 
       if (!response.success) {

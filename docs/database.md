@@ -49,6 +49,17 @@ Menyimpan hasil simulasi dari modul Ketik, PDKT, dan Telefun.
 - **`qa_indicators`**: Daftar parameter penilaian audit.
 - **`qa_categories`**: Pengelompokan indikator temuan (Pareto mapping).
 
+### 5. Monitoring AI Usage & Billing
+- **`ai_usage_logs`**: Log 1 baris per AI call sukses final. Menyimpan `request_id` unik, `user_id`, `provider`, `model_id`, `module`, `action`, token input/output/total, snapshot harga input/output per 1 juta token, snapshot kurs USD/IDR, serta estimasi biaya USD dan IDR.
+- **`ai_pricing_settings`**: Harga token input/output per model kanonik. Lookup model mengikuti normalisasi `normalizeModelId()` agar alias lama tetap jatuh ke pricing yang benar.
+- **`ai_billing_settings`**: Riwayat nilai kurs global USD ke IDR. Request baru memakai kurs terbaru saat request terjadi, sementara histori lama tetap memakai snapshot kurs yang sudah tersimpan di `ai_usage_logs`.
+
+**Catatan Kontrak Billing:**
+- Histori biaya tidak dihitung ulang dari setting terbaru. Snapshot harga dan kurs disimpan langsung pada row usage.
+- Request gagal, timeout, atau 429 final tidak boleh membuat row usage baru.
+- Jika provider tidak mengembalikan metadata token atau pricing model belum tersedia, flow user tetap lanjut tetapi usage tidak dicatat.
+- Akses monitoring lintas akun dilakukan server-side dengan `createAdminClient()`, bukan direct browser read.
+
 ## Keamanan Data (RLS Policies)
 
 RLS diaktifkan di seluruh tabel untuk memastikan isolasi data antar user.
@@ -59,6 +70,11 @@ RLS diaktifkan di seluruh tabel untuk memastikan isolasi data antar user.
 | `results` | Read/Write (Own) | Read (Team) | Read/Update (All) |
 | `profiler_*` | No Access | Read (All) | Full CRUD Access |
 | `qa_*` | Read (Own/Summary) | Read (Team) | Full CRUD Access |
+
+**Catatan Monitoring AI Usage:**
+- `leader` hanya mendapatkan visibilitas usage monitoring dari server action yang sudah di-gate role.
+- Editor pricing dan kurs hanya tersedia untuk `trainer` dan `admin`.
+- Kontrak akses aplikasi untuk permukaan monitoring dijelaskan lebih detail di `docs/auth-rbac.md` dan `docs/MONITORING_TOKEN_USAGE_BILLING.md`.
 
 ### Fungsi Pembantu (Security Definer)
 Sistem menggunakan fungsi `public.get_auth_role()` untuk mengambil role user saat ini secara efisien tanpa menyebabkan rekursi pada kebijakan RLS.

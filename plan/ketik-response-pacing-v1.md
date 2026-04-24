@@ -2,7 +2,7 @@
 
 ## Status
 
-- Belum dijalankan
+- Selesai
 
 ## Ringkasan
 

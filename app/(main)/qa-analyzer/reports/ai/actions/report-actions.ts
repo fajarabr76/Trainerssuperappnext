@@ -58,6 +58,7 @@ async function narrationWithTimeout(modelId: string, systemInstruction: string, 
         systemInstruction,
         contents,
         temperature: 0.5,
+        usageContext: { module: 'qa-analyzer', action: 'report_generation' },
       });
       if (!r.success) throw new Error(r.error || 'Gagal memanggil OpenRouter');
       return r.text || '';
@@ -67,6 +68,7 @@ async function narrationWithTimeout(modelId: string, systemInstruction: string, 
       systemInstruction,
       contents,
       temperature: 0.5,
+      usageContext: { module: 'qa-analyzer', action: 'report_generation' },
     });
     if (!r.success) throw new Error(r.error || 'Gagal memanggil Gemini');
     return typeof r.text === 'string' ? r.text : '';

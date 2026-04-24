@@ -4,12 +4,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { SettingsModal } from './components/SettingsModal';
 import { EmailInterface } from './components/EmailInterface';
 import { HistoryModal } from './components/HistoryModal';
+import { UsageModal } from './components/UsageModal';
 import { AppSettings, SessionConfig, Identity, ConsumerType, EmailMessage, EvaluationResult, SessionHistory, EvaluationStatus } from './types';
 import { DUMMY_CITIES, DUMMY_PROFILES } from './constants';
 import { initializeEmailSession } from './services/geminiService';
 import { loadPdktSettings, savePdktSettings, defaultPdktSettings } from './services/settingService';
 
-import { History, Settings, Play, Mail } from 'lucide-react';
+import { History, Settings, Play, Mail, BarChart3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { createClient } from '@/app/lib/supabase/client';
 import { moduleTheme } from '@/app/components/ui/moduleTheme';
@@ -34,6 +35,7 @@ const PdktPage: React.FC = () => {
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isUsageOpen, setIsUsageOpen] = useState(false);
   const [history, setHistory] = useState<SessionHistory[]>([]);
   const [emails, setEmails] = useState<EmailMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -379,6 +381,15 @@ const PdktPage: React.FC = () => {
                     <History className="h-4 w-4 opacity-60" />
                     <span>Riwayat</span>
                   </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.01, y: -1 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => setIsUsageOpen(true)}
+                    className="module-clean-button-secondary flex h-12 w-full items-center justify-center gap-2.5 rounded-xl px-5 text-[10px] font-black uppercase tracking-[0.18em] transition-all"
+                  >
+                    <BarChart3 className="h-4 w-4 opacity-60" />
+                    <span>Usage Bulan Ini</span>
+                  </motion.button>
                 </>
               }
             />
@@ -412,6 +423,7 @@ const PdktPage: React.FC = () => {
 
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} settings={settings} onSave={handleSaveSettings} />
       <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} history={history} onSelectSession={handleSelectSession} onDeleteSession={handleDeleteSession} onClearHistory={handleClearHistory} />
+      <UsageModal isOpen={isUsageOpen} onClose={() => setIsUsageOpen(false)} module="pdkt" />
     </div>
   );
 };

@@ -2,6 +2,7 @@ import { SessionConfig, ChatMessage, Scenario } from '@/app/types';
 import { generateGeminiContent } from '@/app/actions/gemini';
 import { generateOpenRouterContent } from '@/app/actions/openrouter';
 import { getProviderFromModelId } from '@/app/lib/ai-models';
+import type { UsageContext } from '@/app/lib/ai-usage';
 
 function sanitizeConsumerText(rawText: string): string {
   if (!rawText) return rawText;
@@ -42,6 +43,7 @@ async function callAI(options: {
   temperature?: number;
   responseMimeType?: string;
   strictScriptMode?: boolean;
+  usageContext?: UsageContext;
 }) {
   const provider = getProviderFromModelId(options.model);
   const isOpenRouter = provider === 'openrouter';
@@ -58,6 +60,7 @@ async function callAI(options: {
       ? Math.min(options.temperature ?? 0.82, 0.55)
       : options.temperature,
     responseMimeType: options.responseMimeType,
+    usageContext: options.usageContext,
   };
 
   try {
@@ -157,7 +160,8 @@ export async function generateConsumerResponse(
   scenario: Scenario,
   chatHistory: ChatMessage[],
   extraPrompt?: string,
-  timing?: SessionTimingContext
+  timing?: SessionTimingContext,
+  usageContext?: UsageContext
 ): Promise<GenerateConsumerResponseResult> {
   const imagesCount = scenario.images?.length || 0;
   const imageInstruction = imagesCount > 0
@@ -256,6 +260,7 @@ ${extraPrompt || 'Balas sebagai konsumen:'}`;
       systemInstruction,
       temperature: 0.82,
       strictScriptMode: Boolean(scenario.script),
+      usageContext,
     });
 
     if (!response.success) {

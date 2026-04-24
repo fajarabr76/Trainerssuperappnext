@@ -2,7 +2,7 @@
 
 ## Status
 
-- Belum dijalankan
+- Sudah dijalankan (iterasi awal + corrective fix)
 
 ## Ringkasan
 
@@ -89,3 +89,12 @@ Periode bulanan selalu memakai WIB / `Asia/Jakarta`:
 - v1 tidak menambah export CSV/XLSX untuk usage
 - Model di luar pricing table tidak memblokir request user, tetapi usage tidak dicatat sampai pricing tersedia
 - Telefun dan QA Analyzer tetap ikut instrumentasi logging, walau quick-view hanya ditambahkan ke Ketik dan PDKT
+
+## Corrective Fix Summary
+
+- Boundary WIB diperbaiki: `getWibMonthBounds` sekarang mengonversi WIB ke UTC dengan `setUTCHours(-7)` sehingga query `created_at` tepat
+- Tab `Penggunaan Token` sekarang benar-benar refetch data saat filter bulan/tahun/modul berubah lewat server action `getFilteredUsage`
+- Tab `Harga & Kurs` sekarang memiliki editor pricing per model dan editor kurs USD/IDR dengan role gate eksplisit (`trainer`/`admin` only)
+- Instrumentasi usage ditambahkan untuk Telefun (`voice_tts`, `chat_response`, `first_message`, `score_generation`) dan QA Analyzer (`report_generation`)
+- Logging diubah dari `void` ke `await` agar durability terjamin
+- Default filter bulan/tahun di MonitoringClient berasal dari WIB server, bukan timezone browser

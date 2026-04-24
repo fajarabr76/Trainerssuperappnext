@@ -4,6 +4,8 @@ import { GoogleGenAI, Content, Schema, SpeechConfig } from "@google/genai";
 import { createClient } from "@/app/lib/supabase/server";
 import { consumeRateLimit } from "@/app/lib/rate-limit";
 import { randomUUID } from "crypto";
+import { logAiUsage, type UsageContext } from "@/app/lib/ai-usage";
+import { getProviderFromModelId } from "@/app/lib/ai-models";
 
 export interface GeminiResponse {
   success: boolean;
@@ -45,6 +47,7 @@ export async function generateGeminiContent(options: {
   temperature?: number;
   responseModalities?: string[];
   speechConfig?: SpeechConfig;
+  usageContext?: UsageContext;
 }): Promise<GeminiResponse> {
   try {
     const supabase = await createClient();
@@ -113,6 +116,35 @@ export async function generateGeminiContent(options: {
           audioData = part.inlineData.data;
           break;
         }
+      }
+    }
+
+    if (options.usageContext && user) {
+      const usage = (response as { usageMetadata?: unknown })?.usageMetadata;
+      if (usage && typeof usage === 'object') {
+        const u = usage as Record<string, unknown>;
+        const inputTokens = typeof u.promptTokenCount === 'number' ? u.promptTokenCount : 0;
+        const outputTokens = typeof u.candidatesTokenCount === 'number' ? u.candidatesTokenCount : 0;
+        const totalTokens = typeof u.totalTokenCount === 'number' ? u.totalTokenCount : inputTokens + outputTokens;
+
+        if (inputTokens > 0 || outputTokens > 0) {
+          const modelName = options.model || "gemini-1.5-flash";
+          const provider = getProviderFromModelId(modelName);
+          const requestId = `gemini-${randomUUID()}`;
+
+          await logAiUsage({
+            requestId,
+            userId: user.id,
+            provider: provider as 'gemini' | 'openrouter',
+            modelId: modelName,
+            usageContext: options.usageContext,
+            tokens: { inputTokens, outputTokens, totalTokens },
+          });
+        } else {
+          console.warn('[Gemini Action] Token metadata missing from response. Usage not logged.');
+        }
+      } else {
+        console.warn('[Gemini Action] Token metadata missing from response. Usage not logged.');
       }
     }
 

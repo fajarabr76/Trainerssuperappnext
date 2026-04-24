@@ -505,12 +505,13 @@ export const generateConsumerVoice = async (
     const response = await generateGeminiContent({
       model: "gemini-2.5-flash-preview-tts",
       contents: [{ parts: [{ text: prompt }] }],
-      responseModalities: ["AUDIO"] as unknown as string[], // Modality.AUDIO
+      responseModalities: ["AUDIO"] as unknown as string[],
       speechConfig: {
         voiceConfig: {
           prebuiltVoiceConfig: { voiceName },
         },
       } as unknown as Record<string, unknown>,
+      usageContext: { module: 'telefun', action: 'voice_tts' },
     });
 
     return (response as { audioData?: string }).audioData; // Need to update Server Action to return audio data
@@ -556,6 +557,7 @@ export const generateConsumerResponse = async (
       contents: contents,
       systemInstruction,
       temperature: 0.7,
+      usageContext: { module: 'telefun', action: 'chat_response' },
     });
 
     return typeof response.text === 'string' ? response.text : "Halo?";
@@ -592,6 +594,7 @@ export const generateFirstCallMessage = async (
       contents: [{ role: 'user', parts: [{ text: "Berikan pesan pembuka telepon." }] }],
       systemInstruction,
       temperature: 0.7,
+      usageContext: { module: 'telefun', action: 'first_message' },
     });
 
     return typeof response.text === 'string' ? response.text : "Halo?";
@@ -631,6 +634,7 @@ export const generateScore = async (
       contents: [{ role: 'user', parts: [{ text: "Berikan penilaian untuk simulasi telepon." }] }],
       systemInstruction,
       responseMimeType: "application/json",
+      usageContext: { module: 'telefun', action: 'score_generation' },
     });
 
     const responseText = typeof response.text === 'string' ? response.text : "{}";

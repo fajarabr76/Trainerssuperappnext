@@ -245,7 +245,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           remainingSeconds: 0,
           elapsedSeconds,
           totalDurationSeconds: config.simulationDuration * 60,
-        }
+        },
+        { module: 'ketik', action: 'session_timeout' }
       );
 
       if (!result.success) {
@@ -371,7 +372,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
           remainingSeconds: timeLeft,
           elapsedSeconds,
           totalDurationSeconds: config.simulationDuration * 60,
-        }
+        },
+        { module: 'ketik', action: 'chat_response' }
       );
 
       if (sessionPhaseRef.current !== 'active') {

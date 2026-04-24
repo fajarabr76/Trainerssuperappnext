@@ -9,8 +9,8 @@ Aplikasi memiliki 4 role utama dengan hierarki akses sebagai berikut:
 | Role | Deskripsi | Hak Akses Utama |
 |---|---|---|
 | **Admin** | Pengelola Sistem | Akses penuh seluruh modul, manajemen user (approve/reject/delete), audit logs, & konfigurasi sistem. |
-| **Trainer** | Operasional Utama | Manajemen data Profiler, input & setting QA (SIDAK), monitoring, & audit logs terbatas. |
-| **Leader** | Pengawas Tim | Melihat dashboard tim, monitoring aktivitas tim, melihat data Profiler. |
+| **Trainer** | Operasional Utama | Manajemen data Profiler, input & setting QA (SIDAK), monitoring, editor pricing/kurs usage billing, & audit logs terbatas. |
+| **Leader** | Pengawas Tim | Melihat dashboard tim, monitoring aktivitas tim, monitoring usage billing lintas akun tanpa akses editor pricing/kurs, melihat data Profiler. |
 | **Agent** | Pengguna Simulasi | Akses ke modul simulasi (Ketik, PDKT, Telefun), melihat dashboard pribadi. |
 
 ## Alur Pendaftaran & Approval
@@ -79,6 +79,32 @@ Setiap refactor yang menyentuh auth flow atau tabel `profiles` wajib memeriksa p
 - Login akun `rejected` harus memutus sesi dan menampilkan pesan penolakan.
 - Simulasikan pembacaan `profiles` yang gagal sementara; sesi tidak boleh langsung dihancurkan hanya karena profil belum terbaca jelas.
 - Setelah login `agent`, akses route terbatas seperti `/profiler` atau route SIDAK manajerial harus tetap ditolak sesuai matrix akses, tanpa dianggap sebagai kegagalan login.
+
+## Monitoring Usage & Billing Access
+
+Route `/dashboard/monitoring` memakai guard:
+
+```tsx
+const { role } = await requirePageAccess({
+  allowedRoles: ['trainer', 'leader', 'admin']
+});
+```
+
+Kontrak akses untuk fitur monitoring usage billing:
+
+| Permukaan | Admin | Trainer | Leader | Agent |
+|---|---|---|---|---|
+| Histori simulasi lintas akun | Ya | Ya | Ya | Tidak |
+| Tab `Penggunaan Token` lintas akun | Ya | Ya | Ya | Tidak |
+| Tab `Harga & Kurs` | Ya | Ya | Tidak | Tidak |
+| Simpan harga input/output model | Ya | Ya | Tidak | Tidak |
+| Simpan kurs USD/IDR | Ya | Ya | Tidak | Tidak |
+| Quick-view `Usage Bulan Ini` di modul pribadi | Ya, jika memakai modul | Ya, jika memakai modul | Ya, jika memakai modul | Ya |
+
+Catatan:
+- `leader` tetap dapat melihat agregasi usage lintas akun, tetapi tidak menerima editor pricing/kurs dari server.
+- `agent` tidak memiliki akses ke monitoring lintas akun, tetapi tetap dapat melihat quick-view usage miliknya sendiri di KETIK dan PDKT.
+- Detail perilaku fitur dan smoke test operasional ada di `docs/MONITORING_TOKEN_USAGE_BILLING.md`.
 
 ## Referensi Guardrail
 
