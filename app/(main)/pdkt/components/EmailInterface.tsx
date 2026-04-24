@@ -308,7 +308,7 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
                               {formatEmailDate(email.timestamp)}
                             </div>
                           </div>
-                          <div className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-3">
+                          <div className="text-xs text-muted-foreground whitespace-pre-wrap">
                             {email.body}
                           </div>
                           {email.attachments && email.attachments.length > 0 && (
