@@ -20,7 +20,7 @@ Ruang simulasi untuk melatih kemampuan komunikasi tertulis melalui media chat.
   - **Skenario Dinamis**: Latihan berdasarkan berbagai tingkat kesulitan.
   - **AI feedback**: Analisis otomatis terhadap respon peserta menggunakan model Gemini.
   - **Riwayat Sesi**: Peserta bisa meninjau kembali percakapan sebelumnya.
-- **Catatan Teknis**: Respons AI divalidasi sebagai string terlebih dahulu lalu disanitasi sebelum ditampilkan atau dipakai sebagai balasan konsumen. Di modal pengaturan, `Simpan Perubahan` ikut meng-commit draft skenario atau karakter yang masih terbuka; draft yang belum lengkap akan memblok save dan menampilkan peringatan.
+- **Catatan Teknis**: Respons AI divalidasi sebagai string terlebih dahulu lalu disanitasi sebelum ditampilkan atau dipakai sebagai balasan konsumen. Di modal pengaturan, `Simpan Perubahan` ikut meng-commit draft skenario atau karakter yang masih terbuka; draft yang belum lengkap akan memblok save dan menampilkan peringatan. Timeout closing sekarang branch-aware: bila pesan terakhir berasal dari `consumer`, konsumen tetap menutup chat tanpa mengonfirmasi solusi yang tidak ada; bila pesan terakhir dari `agent`, acknowledgement singkat hanya boleh muncul jika solusi eksplisit memang terdeteksi.
 
 ## 3. PDKT (Email Simulation)
 Workspace untuk latihan korespondensi email yang terstandarisasi.

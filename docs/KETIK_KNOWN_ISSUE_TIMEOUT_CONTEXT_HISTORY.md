@@ -34,6 +34,20 @@
 - Saat `timeLeft` mencapai `0`, konsumen masuk ke fase `closing_by_timeout`, menghasilkan satu giliran penutup, lalu pindah ke `closed`.
 - Ditambahkan `sessionPhaseRef` untuk membuang hasil request AI biasa yang selesai setelah sesi tidak lagi `active`, sehingga race condition pasca-timeout tidak memunculkan balasan konsumen baru.
 
+### 1b. Timeout closing dibuat branch-aware
+
+- `handleSessionTimeout()` sekarang membaca `last speaker` dari history sebelum mengirim prompt penutup.
+- Jika pesan terakhir berasal dari `consumer`, prompt melarang model mengonfirmasi solusi, arahan, atau langkah yang tidak pernah dikirim agent.
+- Jika pesan terakhir berasal dari `agent` tetapi tidak terdeteksi solusi eksplisit, prompt tetap netral dan hanya boleh menutup percakapan tanpa menyebut `solusi` atau `langkah`.
+- Jika pesan terakhir berasal dari `agent` dan solusi eksplisit terdeteksi, model boleh memberi acknowledgement singkat satu kalimat lalu menutup percakapan.
+- Wording instruksi waktu umum di `geminiService.ts` juga dinetralkan agar tidak berbenturan dengan branch-aware timeout prompt.
+
+### 1c. Deteksi solusi dibuat lebih ketat
+
+- `timeoutContext.ts` memisahkan cue instruksional menjadi tier yang lebih spesifik dan memakai boundary matching untuk kata tunggal agar substring yang kebetulan mirip tidak ikut terhitung.
+- Struktur langkah diperiksa per baris dan baru dianggap cukup bila ada minimal dua langkah terformat.
+- Ambang acknowledgement solusi sekarang hanya lolos bila sinyal instruksional memang kuat, sehingga false positive dari teks agent yang sekadar menjelaskan konteks biasa lebih kecil.
+
 ### 2. Transcript multiline dipertahankan
 
 - Bubble chat KETIK memakai `whitespace-pre-wrap break-words`.
@@ -83,7 +97,9 @@
 2. Kirim pesan agent dengan beberapa paragraf dan verifikasi bubble chat tetap multiline.
 3. Selesaikan sesi lalu buka detail transcript di monitoring; pastikan paragraf tetap utuh.
 4. Jalankan skenario penipuan dan coba bawa percakapan ke topik lain; pastikan konsumen mengarahkan kembali ke inti skenario.
-5. Akhiri sesi KETIK, reload `/dashboard/monitoring`, lalu pastikan history baru muncul.
+5. Uji timeout dengan pesan terakhir dari consumer, lalu pastikan closing tidak mengonfirmasi solusi yang tidak pernah diberikan agent.
+6. Uji timeout dengan pesan terakhir dari agent yang jelas memberi arahan, lalu pastikan acknowledgement singkat masih natural sebelum penutupan.
+7. Akhiri sesi KETIK, reload `/dashboard/monitoring`, lalu pastikan history baru muncul.
 
 ## Checklist Penutupan
 

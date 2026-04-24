@@ -1,5 +1,9 @@
 # PDKT Email Composer Refresh v1
 
+## Status
+
+- Done
+
 ## Ringkasan
 
 Refresh tampilan workspace email PDKT agar mendekati referensi email modern tanpa merusak shell, flow, dan business logic yang sudah ada. v1 fokus pada perubahan UI di screen email aktif: email masuk utama ditampilkan sebagai detail view yang rapi, sedangkan area balas memakai composer-style panel yang lebih dekat ke referensi sebelumnya. Semua perubahan tetap berada di dalam overlay dan container PDKT saat ini.

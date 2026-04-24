@@ -1,5 +1,9 @@
 # KETIK Response Pacing v1
 
+## Status
+
+- Belum dijalankan
+
 ## Ringkasan
 
 Tambahkan pacing engine terkontrol di KETIK agar balasan konsumen tidak lagi terasa instan, tetapi tetap patuh ke timer sesi dan mudah diaudit. v1 memakai preset global di Settings, bukan pengaturan per skenario, dan pacing diterapkan di layer UI scheduling, bukan di prompt AI. Ini menjaga realism tanpa membuat model bebas melanggar skenario atau waktu sesi.
@@ -40,6 +44,10 @@ Tambahkan pacing engine terkontrol di KETIK agar balasan konsumen tidak lagi ter
   - pesan pertama memakai band utama,
   - pesan kedua/ketiga memakai `follow_up` gap `1.2-2.5 detik`,
   - tidak pernah memakai band `slow`.
+- Rule solusi panjang:
+  - jika pesan agen terakhir terlihat seperti memberi solusi karena teksnya panjang (`> 90` karakter), balasan pertama konsumen harus punya delay minimal `10 detik`
+  - rule ini berlaku di semua preset pacing, termasuk `training_fast`
+  - rule ini hanya berlaku untuk pesan pertama pada turn konsumen, bukan follow-up `[BREAK]`
 - Guardrail timer:
   - bila `remainingSeconds < 20`, semua balasan dipaksa ke `1-3 detik`,
   - planned delay selalu di-clamp agar masih menyisakan minimal `5 detik` untuk timeout-close path,
@@ -61,6 +69,8 @@ Tambahkan pacing engine terkontrol di KETIK agar balasan konsumen tidak lagi ter
   - klasifikasi `short/normal/long`
   - `slow` tidak muncul pada turn yang tidak eligible
   - `slow` tidak pernah dua kali berturut-turut
+  - pesan agen panjang memicu floor `10 detik` pada balasan pertama konsumen
+  - rule floor `10 detik` berlaku di `realistic` dan `training_fast`
   - clamp aktif saat sisa waktu mepet
   - follow-up `[BREAK]` selalu memakai gap pendek
 - Smoke test manual KETIK:
@@ -77,4 +87,5 @@ Tambahkan pacing engine terkontrol di KETIK agar balasan konsumen tidak lagi ter
 
 - v1 sengaja tidak membaca pacing dari skenario agar tracking tetap konsisten dan implementasi tidak bergantung pada kepatuhan model.
 - Metadata pacing disimpan tetapi tidak ditampilkan dulu di UI history/review; fungsinya audit dan debugging internal.
+- Definisi awal “agen memberi solusi” di v1 memakai heuristic panjang teks saja, bukan keyword atau classifier semantic.
 - Persona konsumen seperti `terburu-buru` atau `marah` belum memodifikasi pacing di v1; jika nanti dibutuhkan, itu jadi layer bias tambahan di atas engine ini, bukan pengganti aturan timer.

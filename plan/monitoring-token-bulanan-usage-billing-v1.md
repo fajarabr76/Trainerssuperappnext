@@ -1,5 +1,9 @@
 # Monitoring Token Bulanan dan Usage Billing v1
 
+## Status
+
+- Belum dijalankan
+
 ## Ringkasan
 
 Tambahkan sistem monitoring token yang mencatat usage setiap AI call sukses, menghitung estimasi billing Rupiah saat request terjadi, lalu menampilkannya di dua permukaan:

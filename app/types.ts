@@ -36,12 +36,20 @@ export interface Scenario {
   images?: string[];
 }
 
+export interface PacingMeta {
+  mode: 'realistic' | 'training_fast';
+  band: 'short' | 'normal' | 'long' | 'slow' | 'follow_up';
+  plannedDelayMs: number;
+  timerClamped: boolean;
+}
+
 export interface ChatMessage {
   id: string;
   sender: 'agent' | 'consumer' | 'system';
   text: string;
   timestamp: Date;
   status?: 'sent' | 'delivered' | 'read';
+  pacingMeta?: PacingMeta;
 }
 
 export interface SessionConfig {
@@ -50,6 +58,7 @@ export interface SessionConfig {
   identity: Identity;
   model: string;
   simulationDuration: number;
+  responsePacingMode: 'realistic' | 'training_fast';
 }
 
 export interface AppSettings {
@@ -59,6 +68,7 @@ export interface AppSettings {
   identitySettings: ConsumerIdentitySettings;
   selectedModel: string;
   simulationDuration?: number;
+  responsePacingMode?: 'realistic' | 'training_fast';
 }
 
 export interface ChatSession {

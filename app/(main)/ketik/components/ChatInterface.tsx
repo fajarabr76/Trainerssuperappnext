@@ -4,9 +4,11 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 import { Send, Phone, X, Check, CheckCheck, Sparkles, Lock, ArrowLeft, Download } from 'lucide-react';
-import { ChatMessage, SessionConfig, Scenario } from '@/app/types';
+import { ChatMessage, SessionConfig, Scenario, PacingMeta } from '@/app/types';
 import { generateConsumerResponse } from '../services/geminiService';
 import DiceBearAvatar from '@/app/components/DiceBearAvatar';
+import { classifyTextBand, isSlowEligible, calculatePacingDelay, calculateFollowUpDelay, isAgentGivingSolution } from '../services/responsePacing';
+import { getLastNonSystemSpeaker, getLastAgentMessage, allowSolutionAcknowledgement } from '../services/timeoutContext';
 
 interface ChatInterfaceProps {
   config: SessionConfig;
@@ -141,6 +143,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const pendingTimeoutsRef = useRef<number[]>([]);
   const sessionPhaseRef = useRef<SessionPhase>(isReviewMode ? 'closed' : 'active');
+  const consumerTurnCountRef = useRef(0);
+  const totalSlowCountRef = useRef(0);
+  const consecutiveSlowCountRef = useRef(0);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -199,15 +204,43 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     
     try {
       const currentHistory = [...messages];
+      const lastSpeaker = getLastNonSystemSpeaker(currentHistory);
+      const lastAgentText = getLastAgentMessage(currentHistory);
+      const hasSolution = allowSolutionAcknowledgement(lastAgentText);
+
+      let timeoutPrompt = '';
+
+      if (lastSpeaker === 'consumer') {
+        timeoutPrompt = `WAKTU SIMULASI SUDAH HABIS SAAT INI. Anda HARUS menutup percakapan sekarang juga secara natural sebagai konsumen.
+- Pesan terakhir dalam percakapan adalah dari ANDA (konsumen). Agen TIDAK mengirim balasan baru setelah itu.
+- DILARANG membuat kalimat yang seolah-olah mengonfirmasi solusi, arahan, atau langkah dari agen yang tidak ada.
+- DILARANG menulis kalimat seperti "oh jadi harus…", "baik pak berarti…", atau bentuk pengakuan solusi lainnya.
+- Penutup harus berdiri sendiri sebagai inisiatif konsumen untuk mengakhiri chat.
+- Berikan alasan manusiawi yang singkat dan wajar, misalnya harus pergi, sinyal jelek, baterai habis, sedang rapat, atau mau lanjut nanti.
+- Jika masih perlu, Anda boleh menambahkan satu pesan penutup singkat setelahnya dengan [BREAK].
+- Jangan gunakan [NO_RESPONSE].`;
+      } else if (lastSpeaker === 'agent' && !hasSolution) {
+        timeoutPrompt = `WAKTU SIMULASI SUDAH HABIS SAAT INI. Anda HARUS menutup percakapan sekarang juga secara natural sebagai konsumen.
+- Agen mengirim pesan terakhir, tetapi pesan itu TIDAK berisi solusi atau langkah tindakan yang eksplisit.
+- Penutup harus netral. DILARANG menyebut "solusi", "langkah", atau mengonfirmasi tindakan yang tidak pernah diberikan agen.
+- Anda boleh berterima kasih atas penjelasan agen, lalu menutup percakapan secara singkat.
+- Berikan alasan manusiawi yang singkat dan wajar untuk mengakhiri chat, misalnya harus pergi, sinyal jelek, baterai habis, atau mau lanjut nanti.
+- Jika masih perlu, Anda boleh menambahkan satu pesan penutup singkat setelahnya dengan [BREAK].
+- Jangan gunakan [NO_RESPONSE].`;
+      } else {
+        timeoutPrompt = `WAKTU SIMULASI SUDAH HABIS SAAT INI. Anda HARUS menutup percakapan sekarang juga secara natural sebagai konsumen.
+- Agen mengirim pesan terakhir yang berisi arahan atau solusi. Anda BOLEH mengakui inti langkah terakhir secara SINGKAT (maksimal satu kalimat), lalu menutup percakapan.
+- Jangan mengulang seluruh solusi agen. Cukup satu acknowledgement ringan seperti "baik, nanti saya coba langkah itu" atau "mengerti, terima kasih arahannya".
+- Setelah acknowledgement, berikan alasan manusiawi yang singkat untuk mengakhiri chat, misalnya harus pergi, sinyal jelek, baterai habis, atau mau lanjut nanti.
+- Jika masih perlu, Anda boleh menambahkan satu pesan penutup singkat setelahnya dengan [BREAK].
+- Jangan gunakan [NO_RESPONSE].`;
+      }
+
       const result = await generateConsumerResponse(
         config,
         scenario,
         currentHistory,
-        `WAKTU SIMULASI SUDAH HABIS SAAT INI. Anda HARUS menutup percakapan sekarang juga secara natural sebagai konsumen.
-- Balasan harus mengarah ke penutupan chat, bukan melanjutkan diskusi.
-- Berikan alasan manusiawi yang singkat dan wajar, misalnya harus pergi, sinyal jelek, baterai habis, sedang rapat, atau mau lanjut nanti.
-- Jika masih perlu, Anda boleh menambahkan satu pesan penutup singkat setelahnya dengan [BREAK].
-- Jangan gunakan [NO_RESPONSE].`,
+        timeoutPrompt,
         {
           remainingSeconds: 0,
           elapsedSeconds,
@@ -232,21 +265,30 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       const responseText = result.text;
       if (responseText !== '[NO_RESPONSE]') {
-        const parts = normalizeGeneratedParts(
-          responseText.split('[BREAK]').map(p => p.trim()).filter(p => p)
-        );
-        let delay = 1000;
-        for (const part of parts) {
+        const rawParts = responseText.split('[BREAK]').map(p => p.trim()).filter(p => p);
+        const parts = normalizeGeneratedParts(rawParts);
+        const pacingMode = config.responsePacingMode || 'realistic';
+        const remaining = 0;
+        let delay = 0;
+
+        for (let i = 0; i < parts.length; i += 1) {
+          const part = parts[i];
+          const isFirst = i === 0;
+          const pacingResult = isFirst
+            ? calculatePacingDelay({ mode: pacingMode, band: 'short', remainingSeconds: remaining, isClosingByTimeout: true })
+            : calculateFollowUpDelay({ mode: pacingMode, followUpIndex: i, remainingSeconds: remaining, isClosingByTimeout: true });
+
+          delay += pacingResult.delayMs;
           const timeoutId = window.setTimeout(() => {
             setMessages(prev => normalizeMessagesForDisplay([...prev, {
               id: Date.now().toString() + Math.random(),
               sender: part.sender,
               text: part.text,
-              timestamp: new Date()
+              timestamp: new Date(),
+              pacingMeta: pacingResult.meta,
             }]));
           }, delay);
           pendingTimeoutsRef.current.push(timeoutId);
-          delay += Math.max(1500, part.text.length * 50);
         }
         const finishId = window.setTimeout(() => {
           setIsLoading(false);
@@ -353,22 +395,62 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       const responseText = result.text;
       if (responseText !== '[NO_RESPONSE]') {
-        const parts = normalizeGeneratedParts(
-          responseText.split('[BREAK]').map(p => p.trim()).filter(p => p)
-        );
-        
-        let delay = 1000;
-        for (const part of parts) {
+        const rawParts = responseText.split('[BREAK]').map(p => p.trim()).filter(p => p);
+        const parts = normalizeGeneratedParts(rawParts);
+        const pacingMode = config.responsePacingMode || 'realistic';
+        const remaining = timeLeft;
+
+        const lastAgentMsg = [...currentHistory].reverse().find(m => m.sender === 'agent');
+        const agentGivingSolution = isAgentGivingSolution(lastAgentMsg?.text);
+
+        consumerTurnCountRef.current += 1;
+        const currentConsumerTurn = consumerTurnCountRef.current;
+
+        let firstBand: 'short' | 'normal' | 'long' | 'slow' = classifyTextBand(parts[0]?.text.length || 0);
+        const shouldUseSlow =
+          pacingMode === 'realistic' &&
+          parts.length > 0 &&
+          !agentGivingSolution &&
+          isSlowEligible({
+            consumerTurnIndex: currentConsumerTurn,
+            consecutiveSlowCount: consecutiveSlowCountRef.current,
+            totalSlowCount: totalSlowCountRef.current,
+            sessionDurationMinutes: config.simulationDuration,
+            remainingSeconds: remaining,
+          });
+
+        if (shouldUseSlow) {
+          firstBand = 'slow';
+          totalSlowCountRef.current += 1;
+          consecutiveSlowCountRef.current += 1;
+        } else {
+          consecutiveSlowCountRef.current = 0;
+        }
+
+        let delay = 0;
+
+        for (let i = 0; i < parts.length; i += 1) {
+          const part = parts[i];
+          const isFirst = i === 0;
+          const pacingResult = isFirst
+            ? calculatePacingDelay({ mode: pacingMode, band: firstBand, remainingSeconds: remaining, isClosingByTimeout: false, minDelayMs: agentGivingSolution ? 10000 : undefined })
+            : calculateFollowUpDelay({ mode: pacingMode, followUpIndex: i, remainingSeconds: remaining, isClosingByTimeout: false });
+
+          delay += pacingResult.delayMs;
+          const pacingMeta: PacingMeta = isFirst
+            ? { ...pacingResult.meta, band: firstBand }
+            : pacingResult.meta;
+
           const timeoutId = window.setTimeout(() => {
             setMessages(prev => normalizeMessagesForDisplay([...prev, {
               id: Date.now().toString() + Math.random(),
               sender: part.sender,
               text: part.text,
-              timestamp: new Date()
+              timestamp: new Date(),
+              pacingMeta,
             }]));
           }, delay);
           pendingTimeoutsRef.current.push(timeoutId);
-          delay += Math.max(1500, part.text.length * 50); // Simulate typing time
         }
         
         const finishId = window.setTimeout(() => setIsLoading(false), delay);

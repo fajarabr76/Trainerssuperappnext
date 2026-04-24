@@ -12,5 +12,6 @@ export const defaultSettings: AppSettings = {
     city: ''
   },
   selectedModel: 'minimax/minimax-m2.5:free',
-  simulationDuration: 5
+  simulationDuration: 5,
+  responsePacingMode: 'realistic'
 };

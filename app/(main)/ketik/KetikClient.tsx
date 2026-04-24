@@ -173,6 +173,7 @@ export default function AppKetik() {
       identity,
       model: settings.selectedModel,
       simulationDuration: settings.simulationDuration || 5,
+      responsePacingMode: settings.responsePacingMode || 'realistic',
     };
 
     setCurrentConfig(config);
@@ -243,6 +244,7 @@ export default function AppKetik() {
       identity: { name: session.consumerName, city: session.consumerCity || '', phone: session.consumerPhone || '0812...' },
       model: settings.selectedModel,
       simulationDuration: 5,
+      responsePacingMode: settings.responsePacingMode || 'realistic',
     });
     setCurrentScenario(
       matchingScenario

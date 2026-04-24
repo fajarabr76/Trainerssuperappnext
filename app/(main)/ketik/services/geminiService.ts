@@ -130,8 +130,8 @@ STATUS WAKTU SIMULASI:
     return `
 STATUS WAKTU SIMULASI SAAT INI:
 - Sisa waktu nyata sekitar ${formatDurationLabel(remainingSeconds)}. Ini benar-benar fase akhir sesi.
-- Anda BOLEH mulai menutup percakapan secara natural, tetapi jangan mendadak memotong jawaban agen bila agen sedang memberi langkah penting.
-- Jika agen masih menjelaskan solusi yang relevan, beri kesempatan satu respons singkat yang tetap menanggapi inti penjelasan, lalu arahkan ke penutupan yang wajar.
+- Anda BOLEH mulai menutup percakapan secara natural, tetapi jangan mendadak memotong jawaban agen bila agen sedang memberi penjelasan penting.
+- Jika agen masih menjelaskan hal yang relevan, beri kesempatan satu respons singkat yang tetap menanggapi inti penjelasan, lalu arahkan ke penutupan yang wajar.
 - Jangan menyebut "timer", "waktu sistem", atau istilah teknis simulasi. Tetap sebagai konsumen biasa.`;
   }
 
@@ -139,7 +139,7 @@ STATUS WAKTU SIMULASI SAAT INI:
     return `
 STATUS WAKTU SIMULASI SAAT INI:
 - Sisa waktu nyata sekitar ${formatDurationLabel(remainingSeconds)}. Sesi sudah mulai mendekati akhir, tetapi BELUM perlu menutup percakapan secara tiba-tiba.
-- Prioritaskan menanggapi penjelasan agen sampai inti solusi atau langkah berikutnya jelas.
+- Prioritaskan menanggapi penjelasan agen sampai inti masalah atau langkah berikutnya jelas.
 - Anda baru boleh mulai merapikan arah percakapan ke penutupan jika pembahasan memang sudah cukup selesai secara natural.
 - Jangan berpura-pura waktu habis dan jangan memberi alasan pergi mendadak kalau masalah belum cukup dijelaskan.`;
   }
@@ -148,7 +148,7 @@ STATUS WAKTU SIMULASI SAAT INI:
 STATUS WAKTU SIMULASI SAAT INI:
 - Sisa waktu nyata masih sekitar ${formatDurationLabel(remainingSeconds)} dari total ${formatDurationLabel(totalDurationSeconds)}. Sesi masih panjang.
 - JANGAN menutup percakapan, JANGAN bersikap seolah waktu habis, dan JANGAN memberi alasan seperti harus pergi, baterai habis, atau sinyal jelek hanya karena asumsi waktu.
-- Walau sedang frustrasi, bingung, atau kesal, tetap tanggapi agen selama agen masih berusaha menjelaskan atau mencari solusi.
+- Walau sedang frustrasi, bingung, atau kesal, tetap tanggapi agen selama agen masih berusaha menjelaskan atau membantu.
 - Fokuslah pada substansi masalah, bukan pada penutupan percakapan karena batas waktu.`;
 }
 
