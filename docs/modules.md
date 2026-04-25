@@ -80,5 +80,6 @@ Platform analytics kualitas untuk memantau performa agent secara mendalam.
 - **Catatan Teknis**: Flow narasi/laporan berbasis AI memanfaatkan server action terpusat agar handling provider dan validasi output tetap konsisten. Narasi AI SIDAK untuk laporan sekarang ikut tercatat ke usage billing bulanan dengan action `report_generation`, tetapi tidak menambah quick-view usage di halaman SIDAK.
 - **Catatan Stabilitas SIDAK**: Untuk mencegah regresi skor/kepatuhan dan clean-session handling, ikuti guardrails di `docs/SIDAK_SCORING_GUARDRAILS.md` sebelum merge dan sebelum deploy.
 - **Catatan Clean Session**: Sesi tanpa temuan tetap dianggap audit valid untuk skor dan audited population, tetapi tidak boleh menambah total temuan, pareto, donut, atau defect ranking.
+- **Dokumentasi Logika**: Rincian logika, rumus, dan contoh perhitungan ada di `docs/SIDAK_LOGIC_AND_SCORING.md`.
 - **Riwayat Isu**: Investigasi mismatch skor detail agent sudah ditutup. Ringkasan penutupan ada di `docs/SIDAK_KNOWN_ISSUE_AGENT_DETAIL_SCORE.md`.
 - **Dokumen Terkait**: `docs/SIDAK_SCORING_GUARDRAILS.md`, `docs/QA_SMOKE_TEST_VERSIONED_RULES.md`, `docs/SIDAK_KNOWN_ISSUE_SERVICE_DEFAULT_CSO_CALL.md`, `docs/SIDAK_KNOWN_ISSUE_RANKING_COMPLETENESS_PARAMETER_ORDER.md`.

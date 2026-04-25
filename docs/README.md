@@ -15,6 +15,7 @@ Dokumen ini adalah peta baca untuk kondisi aplikasi Trainers SuperApp saat ini. 
 
 - `docs/MONITORING_TOKEN_USAGE_BILLING.md`: Kontrak usage AI bulanan, billing Rupiah, pricing/kurs, quick-view modul, dan smoke test.
 - `docs/SUPABASE_LOCAL_BACKUP.md`: Backup lokal Supabase database dan Storage.
+- `docs/SIDAK_LOGIC_AND_SCORING.md`: Penjelasan logika bisnis SIDAK, rumus skor, clean-session, dan cara perhitungan.
 - `docs/QA_SMOKE_TEST_VERSIONED_RULES.md`: Checklist smoke test SIDAK untuk scoring, ranking, dan clean-session.
 - `docs/SIDAK_SCORING_GUARDRAILS.md`: Guardrail wajib sebelum mengubah scoring atau agregasi SIDAK.
 
