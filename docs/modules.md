@@ -2,6 +2,14 @@
 
 Dokumen ini merinci fitur dan fungsi dari setiap modul utama yang tersedia di Trainers SuperApp.
 
+Konvensi nama modul:
+
+- **KETIK** = Kelas Etika & Trik Komunikasi
+- **PDKT** = Paham Dulu Kasih Tanggapan
+- **TELEFUN** = Telephone Fun
+- **KTP** = Kotak Tool Profil
+- **SIDAK** = Sistem Informasi Data Analisis Kualitas
+
 ## 1. Unified Dashboard
 Dashboard tunggal yang berfungsi sebagai pusat informasi bagi semua tingkatan user.
 
@@ -14,7 +22,7 @@ Dashboard tunggal yang berfungsi sebagai pusat informasi bagi semua tingkatan us
 - **Catatan Teknis**: Halaman `/dashboard/monitoring` tetap menjadi permukaan terproteksi utama untuk histori simulasi dan usage billing bulanan. Periode default penggunaan token selalu mengikuti WIB / `Asia/Jakarta`, bukan timezone browser.
 - **Dokumen Terkait**: `docs/MONITORING_TOKEN_USAGE_BILLING.md`, `docs/auth-rbac.md`.
 
-## 2. KETIK (Simulation Chat)
+## 2. KETIK (Kelas Etika & Trik Komunikasi)
 Ruang simulasi untuk melatih kemampuan komunikasi tertulis melalui media chat.
 
 - **Fungsi**: Peserta berinteraksi dengan AI yang berperan sebagai pelanggan dalam berbagai skenario.
@@ -26,7 +34,7 @@ Ruang simulasi untuk melatih kemampuan komunikasi tertulis melalui media chat.
 - **Catatan Teknis**: KETIK tidak menjalankan evaluasi/scoring otomatis seperti PDKT; modul ini menyimpan history chat sebagai sumber utama dan tetap membuat row `results` kompatibilitas dengan `legacy_history_id`. Respons AI divalidasi sebagai string terlebih dahulu lalu disanitasi sebelum ditampilkan atau dipakai sebagai balasan konsumen. Di modal pengaturan, `Simpan Perubahan` ikut meng-commit draft skenario atau karakter yang masih terbuka; draft yang belum lengkap akan memblok save dan menampilkan peringatan. Timeout closing sekarang branch-aware: bila pesan terakhir berasal dari `consumer`, konsumen tetap menutup chat tanpa mengonfirmasi solusi yang tidak ada; bila pesan terakhir dari `agent`, acknowledgement singkat hanya boleh muncul jika solusi eksplisit memang terdeteksi. Setelah sesi selesai, tombol dan modal menampilkan indikator kenaikan biaya sesi terakhir (`+Rp`) berdasarkan selisih total usage bulan berjalan sebelum-vs-sesudah sesi.
 - **Dokumen Terkait**: `docs/KETIK_KNOWN_ISSUE_TIMEOUT_CONTEXT_HISTORY.md`, `docs/KETIK_PDKT_SETTINGS_DRAFT_AUTOCOMMIT.md`, `docs/MONITORING_TOKEN_USAGE_BILLING.md`.
 
-## 3. PDKT (Email Simulation)
+## 3. PDKT (Paham Dulu Kasih Tanggapan)
 Workspace untuk latihan korespondensi email yang terstandarisasi.
 
 - **Fungsi**: Simulasi penulisan email balasan untuk keluhan atau pertanyaan pelanggan.
@@ -38,7 +46,7 @@ Workspace untuk latihan korespondensi email yang terstandarisasi.
 - **Catatan Teknis**: Output model untuk draft email awal dan evaluasi QA divalidasi dulu sebagai string valid sebelum diparse sebagai JSON. Subject email awal dijaga realistis, boleh kosong, dan tidak boleh menjadi clue utama inti masalah. Di modal pengaturan, `Simpan Perubahan` ikut meng-commit draft skenario atau karakter yang masih terbuka; draft yang belum lengkap akan memblok save dan menampilkan peringatan. PDKT sekarang juga memiliki quick-view `Usage Bulan Ini` di bawah tombol `Riwayat`, dengan akumulasi khusus modul `pdkt`. Setelah sesi selesai, tombol dan modal menampilkan indikator kenaikan biaya sesi terakhir (`+Rp`) berdasarkan selisih total usage bulan berjalan sebelum-vs-sesudah sesi. Untuk sesi yang evaluasinya masih async, ditampilkan delta provisional + label "masih diproses" yang auto-update saat evaluasi selesai.
 - **Dokumen Terkait**: `docs/PDKT_EMAIL_COMPOSER_REFRESH_V1.md`, `docs/KETIK_PDKT_SETTINGS_DRAFT_AUTOCOMMIT.md`, `docs/MONITORING_TOKEN_USAGE_BILLING.md`.
 
-## 4. TELEFUN (Phone Simulation)
+## 4. TELEFUN (Telephone Fun)
 Modul simulasi komunikasi suara untuk melatih intonasi dan kecepatan respon telepon.
 
 - **Fungsi**: Mempersiapkan peserta untuk menangani panggilan masuk/keluar melalui simulasi suara berbasis AI.
@@ -48,7 +56,7 @@ Modul simulasi komunikasi suara untuk melatih intonasi dan kecepatan respon tele
 - **Catatan Teknis**: Response AI untuk pembuka panggilan, balasan konsumen, dan scoring memakai fallback aman bila provider mengembalikan payload kosong atau tidak valid. Call AI Telefun sekarang ikut tercatat ke usage billing bulanan melalui action `voice_tts`, `chat_response`, `first_message`, dan `score_generation`, tetapi belum memiliki quick-view modal tersendiri.
 - **Dokumen Terkait**: `docs/MONITORING_TOKEN_USAGE_BILLING.md`.
 
-## 5. KTP / Profiler (Database Peserta)
+## 5. KTP / Profiler (Kotak Tool Profil)
 Sistem manajemen database terstruktur untuk peserta training dan agen aktif.
 
 - **Fungsi**: Penyimpanan terpusat data diri, riwayat training, dan penugasan tim.
@@ -59,7 +67,7 @@ Sistem manajemen database terstruktur untuk peserta training dan agen aktif.
   - **Team Management**: Pengaturan daftar tim yang dinamis.
 - **Catatan Teknis**: File peserta/foto memakai Supabase Storage bucket `profiler-foto`. Flow export/slide bergantung pada route protected dan beberapa halaman profiler memakai rendering dinamis agar data terbaru terbaca.
 
-## 6. SIDAK (QA Analyzer)
+## 6. SIDAK (Sistem Informasi Data Analisis Kualitas)
 Platform analytics kualitas untuk memantau performa agent secara mendalam.
 
 - **Fungsi**: Mengolah data temuan QA menjadi wawasan yang dapat ditindaklanjuti.

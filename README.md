@@ -7,6 +7,13 @@
 
 **Trainers SuperApp** adalah platform internal untuk operasional contact center: simulasi kerja berbasis AI, database peserta/agen, monitoring aktivitas dan usage AI, serta quality assurance SIDAK.
 
+Nama modul yang dipakai di repo ini adalah:
+- **KETIK**: Kelas Etika & Trik Komunikasi
+- **PDKT**: Paham Dulu Kasih Tanggapan
+- **TELEFUN**: Telephone Fun
+- **KTP**: Kotak Tool Profil
+- **SIDAK**: Sistem Informasi Data Analisis Kualitas
+
 ## Status Aplikasi Saat Ini
 
 - **Unified Dashboard**: Pusat kendali protected app dengan shortcut modul, aktivitas, monitoring lintas akun, dan manajemen user.

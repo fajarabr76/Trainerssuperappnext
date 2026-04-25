@@ -13,6 +13,7 @@ export interface AppModuleConfig {
   id: 'dashboard' | 'ketik' | 'pdkt' | 'telefun' | 'profiler' | 'qa-analyzer' | 'monitoring';
   title: string;
   shortTitle: string;
+  expandedTitle: string;
   description: string;
   href: string;
   icon: LucideIcon;
@@ -27,6 +28,7 @@ export const APP_MODULES: AppModuleConfig[] = [
     id: 'dashboard',
     title: 'Unified Dashboard',
     shortTitle: 'Dashboard',
+    expandedTitle: 'Unified Dashboard',
     description: 'Pusat kendali untuk memantau performa, aktivitas, dan prioritas kerja harian.',
     href: '/dashboard',
     icon: LayoutDashboard,
@@ -37,6 +39,7 @@ export const APP_MODULES: AppModuleConfig[] = [
     id: 'ketik',
     title: 'KETIK',
     shortTitle: 'Ketik',
+    expandedTitle: 'Kelas Etika & Trik Komunikasi',
     description: 'Simulasi chat layanan untuk melatih komunikasi tertulis yang empatik dan solutif.',
     href: '/ketik',
     icon: MessageSquare,
@@ -47,6 +50,7 @@ export const APP_MODULES: AppModuleConfig[] = [
     id: 'pdkt',
     title: 'PDKT',
     shortTitle: 'PDKT',
+    expandedTitle: 'Paham Dulu Kasih Tanggapan',
     description: 'Workspace korespondensi email untuk standardisasi tanggapan layanan konsumen.',
     href: '/pdkt',
     icon: Mail,
@@ -57,6 +61,7 @@ export const APP_MODULES: AppModuleConfig[] = [
     id: 'telefun',
     title: 'TELEFUN',
     shortTitle: 'Telefun',
+    expandedTitle: 'Telephone Fun',
     description: 'Simulasi komunikasi suara untuk melatih percakapan telepon yang presisi dan profesional.',
     href: '/telefun',
     icon: Phone,
@@ -67,6 +72,7 @@ export const APP_MODULES: AppModuleConfig[] = [
     id: 'profiler',
     title: 'KTP',
     shortTitle: 'KTP',
+    expandedTitle: 'Kotak Tool Profil',
     description: 'Database profil agen dan peserta untuk operasional training yang lebih rapi dan terstruktur.',
     href: '/profiler',
     icon: Users,
@@ -78,6 +84,7 @@ export const APP_MODULES: AppModuleConfig[] = [
     id: 'qa-analyzer',
     title: 'SIDAK',
     shortTitle: 'SIDAK',
+    expandedTitle: 'Sistem Informasi Data Analisis Kualitas',
     description: 'Analytics kualitas untuk membaca pola temuan, ranking, dan area perbaikan lintas tim.',
     href: '/qa-analyzer/dashboard',
     icon: BarChart3,
@@ -98,6 +105,7 @@ export const APP_MODULES: AppModuleConfig[] = [
     id: 'monitoring',
     title: 'Monitoring',
     shortTitle: 'Monitoring',
+    expandedTitle: 'Monitoring',
     description: 'Ringkasan manajemen untuk memantau aktivitas dan operasional pengguna.',
     href: '/dashboard/monitoring',
     icon: Activity,

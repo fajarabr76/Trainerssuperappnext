@@ -190,8 +190,9 @@ export default async function DashboardPage() {
                     <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${module.accentSoftClassName} ${module.accentClassName}`}>
                       <module.icon className="h-5 w-5" />
                     </div>
-                    <div className="flex-1 overflow-hidden">
+                    <div className="flex-1 min-w-0 overflow-hidden">
                       <p className="text-sm font-semibold tracking-tight text-foreground/90">{module.title}</p>
+                      <p className="text-[11px] font-medium leading-4 text-muted-foreground">{module.expandedTitle}</p>
                       <p className="mt-0.5 truncate text-xs text-muted-foreground pr-2">{module.description}</p>
                     </div>
                     <div className="mr-2 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
@@ -228,6 +229,7 @@ export default async function DashboardPage() {
                     <ArrowRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground" />
                   </div>
                   <h4 className="text-lg font-semibold tracking-tight">{module.title}</h4>
+                  <p className="mt-1 text-sm font-medium leading-5 text-muted-foreground">{module.expandedTitle}</p>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">{module.description}</p>
                   <div className="mt-auto pt-5 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">Buka Modul</div>
                 </DashboardShortcutLink>
