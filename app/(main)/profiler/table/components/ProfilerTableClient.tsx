@@ -30,8 +30,8 @@ import {
   deletePeserta, 
 } from '../../actions';
 
-const inputClass = "w-full px-4 py-3 rounded-xl border border-border/40 bg-background text-sm text-foreground placeholder-foreground/20 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background";
-const labelClass = "block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2 px-1";
+const inputClass = "w-full min-w-0 min-h-11 px-4 py-2.5 rounded-xl border border-border/40 bg-background text-sm leading-5 text-foreground placeholder-foreground/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background";
+const labelClass = "block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground mb-1.5 select-none";
 const _sectionClass = "bg-card border border-border/40 rounded-[2rem] p-6 space-y-6 shadow-sm";
 
 // ── Move Folder Modal ─────────────────────────────────────────
@@ -208,6 +208,27 @@ const MoveFolderModal: React.FC<{
   );
 };
 
+// ── Helper components for EditModal ───────────────────────────
+const SectionTitle = ({ children, accent = true }: { children: React.ReactNode; accent?: boolean }) => (
+  <div className="flex items-center gap-3 mb-4">
+    {accent && <div className="w-1 h-5 bg-primary/40 rounded-full" />}
+    <h3 className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.12em]">{children}</h3>
+  </div>
+);
+
+const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <div className="min-w-0 flex flex-col gap-1.5">
+    <label className={labelClass}>{label}</label>
+    {children}
+  </div>
+);
+
+const SectionCard = ({ children }: { children: React.ReactNode }) => (
+  <section className="rounded-[1.75rem] border border-border/30 bg-background/35 p-5 sm:p-6 space-y-5 shadow-sm">
+    {children}
+  </section>
+);
+
 // ── EditModal ─────────────────────────────────────────────────
 const EditModal: React.FC<{
   peserta: Peserta;
@@ -330,13 +351,13 @@ const EditModal: React.FC<{
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.98, y: 30 }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="bg-card w-full sm:max-w-3xl sm:rounded-[2.5rem] rounded-t-[2.5rem] border border-border/40 overflow-hidden shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] flex flex-col max-h-[95vh]"
+          className="bg-card w-full sm:max-w-3xl sm:rounded-[2.5rem] rounded-t-[2.5rem] border border-border/40 overflow-hidden shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] flex flex-col max-h-[92vh]"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-8 py-6 border-b border-border/40 shrink-0 bg-background/50 backdrop-blur-sm">
+          <div className="flex items-center justify-between px-6 sm:px-8 py-5 border-b border-border/40 shrink-0 bg-background/50 backdrop-blur-sm">
             <div>
               <h2 className="text-xl font-black text-foreground tracking-tighter">Profil Peserta</h2>
-              <p className="text-xs font-bold text-muted-foreground/50 uppercase tracking-widest mt-1">Data & Konfigurasi Visual</p>
+              <p className="text-xs font-bold text-muted-foreground/50 uppercase tracking-[0.12em] mt-1">Data & Konfigurasi Visual</p>
             </div>
             <div className="flex items-center gap-3">
               {!isReadOnly && (
@@ -364,7 +385,7 @@ const EditModal: React.FC<{
             </div>
           </div>
 
-          <div className="overflow-y-auto flex-1 px-8 py-8 space-y-10 custom-scrollbar">
+          <div className="overflow-y-auto flex-1 px-6 sm:px-8 py-8 pb-28 space-y-10 custom-scrollbar">
             {/* Visual Section */}
             <div className="space-y-6">
               <div className="flex items-center gap-3">
@@ -436,66 +457,80 @@ const EditModal: React.FC<{
             </div>
 
             {/* Form Fields Grouped */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              <div className="space-y-8">
-                <div className="space-y-6">
-                   <div className="flex items-center gap-3">
-                    <div className="w-1 h-5 bg-primary/40 rounded-full" />
-                    <h3 className="text-[11px] font-black text-muted-foreground uppercase tracking-widest px-1">Identitas Utama</h3>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-6 gap-y-6 xl:items-start">
+              {/* Left column: Identitas, Data Sensitif, Catatan */}
+              <div className="flex flex-col gap-5 self-start">
+                <SectionCard>
+                  <SectionTitle>Identitas Utama</SectionTitle>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2"><Field label="Nama Lengkap *"><input type="text" className={inputClass} value={form.nama || ''} onChange={e => set('nama', e.target.value)} /></Field></div>
+                    <div className="md:col-span-2"><Field label="Tim Terdaftar"><select className={inputClass} value={form.tim || ''} onChange={e => set('tim', e.target.value)}>{timList.map(t => <option key={t} value={t}>{t}</option>)}</select></Field></div>
+                    <div className="md:col-span-2"><Field label="Level Jabatan"><select className={inputClass} value={form.jabatan || ''} onChange={e => set('jabatan', e.target.value as Jabatan)}>{Object.entries(labelJabatan).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field></div>
+                    <div><Field label="NIP OJK"><input type="text" className={inputClass} value={form.nip_ojk || ''} onChange={e => set('nip_ojk', e.target.value)} /></Field></div>
+                    <div><Field label="Bergabung di 157"><input type="date" className={inputClass} value={form.bergabung_date || ''} onChange={e => set('bergabung_date', e.target.value)} /></Field></div>
                   </div>
-                  <div className="space-y-5">
-                    <div><label className={labelClass}>Nama Lengkap *</label><input type="text" className={inputClass} value={form.nama || ''} onChange={e => set('nama', e.target.value)} /></div>
-                    <div><label className={labelClass}>Tim Terdaftar</label><select className={inputClass} value={form.tim || ''} onChange={e => set('tim', e.target.value)}>{timList.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                    <div><label className={labelClass}>Level Jabatan</label><select className={inputClass} value={form.jabatan || ''} onChange={e => set('jabatan', e.target.value as Jabatan)}>{Object.entries(labelJabatan).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
-                    <div><label className={labelClass}>NIP OJK</label><input type="text" className={inputClass} value={form.nip_ojk || ''} onChange={e => set('nip_ojk', e.target.value)} /></div>
-                  </div>
-                </div>
+                </SectionCard>
 
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-1 h-5 bg-primary/40 rounded-full" />
-                    <h3 className="text-[11px] font-black text-muted-foreground uppercase tracking-widest px-1">Kontak & Keamanan</h3>
+                <SectionCard>
+                  <SectionTitle>Data Sensitif</SectionTitle>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2"><Field label="No. KTP"><input type="text" maxLength={16} className={inputClass} value={form.no_ktp || ''} onChange={e => set('no_ktp', e.target.value)} /></Field></div>
+                    <div><Field label="No. NPWP"><input type="text" className={inputClass} value={form.no_npwp || ''} onChange={e => set('no_npwp', e.target.value)} /></Field></div>
+                    <div><Field label="Nomor Rekening"><input type="text" className={inputClass} value={form.nomor_rekening || ''} onChange={e => set('nomor_rekening', e.target.value)} /></Field></div>
+                    <div className="md:col-span-2"><Field label="Nama Bank"><input type="text" className={inputClass} value={form.nama_bank || ''} onChange={e => set('nama_bank', e.target.value)} /></Field></div>
+                    <div className="md:col-span-2"><Field label="Alamat Tinggal"><textarea rows={4} placeholder="Masukkan alamat lengkap..." className={inputClass + " resize-none leading-relaxed"} value={form.alamat_tinggal || ''} onChange={e => set('alamat_tinggal', e.target.value)} /></Field></div>
+                    <div className="md:col-span-2"><Field label="Status Tempat Tinggal"><select className={inputClass} value={form.status_tempat_tinggal || ''} onChange={e => set('status_tempat_tinggal', e.target.value as any)}><option value="">Pilih</option><option value="Milik Sendiri">Milik Sendiri</option><option value="Milik Orang Tua">Milik Orang Tua</option><option value="Kost/Sewa">Kost/Sewa</option><option value="Lainnya">Lainnya</option></select></Field></div>
                   </div>
-                  <div className="space-y-5">
-                    <div><label className={labelClass}>Email Official</label><input type="email" className={inputClass} value={form.email_ojk || ''} onChange={e => set('email_ojk', e.target.value)} /></div>
-                    <div><label className={labelClass}>WhatsApp Aktif</label><input type="text" className={inputClass} value={form.no_telepon || ''} onChange={e => set('no_telepon', e.target.value)} /></div>
+                </SectionCard>
+
+                <SectionCard>
+                  <SectionTitle>Catatan & Keterangan</SectionTitle>
+                  <div className="grid grid-cols-1 gap-4">
+                    <Field label="Catatan Tambahan"><textarea rows={3} placeholder="Prestasi, bakat, hobi, atau hal unik lainnya..." className={inputClass + " resize-none"} value={form.catatan_tambahan || ''} onChange={e => set('catatan_tambahan', e.target.value)} /></Field>
+                    <Field label="Keterangan"><textarea rows={2} placeholder="Catatan umum lainnya..." className={inputClass + " resize-none"} value={form.keterangan || ''} onChange={e => set('keterangan', e.target.value)} /></Field>
                   </div>
-                </div>
+                </SectionCard>
               </div>
 
-              <div className="space-y-8">
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-1 h-5 bg-primary/40 rounded-full" />
-                    <h3 className="text-[11px] font-black text-muted-foreground uppercase tracking-widest px-1">Informasi Personal</h3>
+              {/* Right column: Personal, Kontak, Latar Belakang */}
+              <div className="flex flex-col gap-5 self-start">
+                <SectionCard>
+                  <SectionTitle>Informasi Personal</SectionTitle>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><Field label="Gender"><select className={inputClass} value={form.jenis_kelamin || ''} onChange={e => set('jenis_kelamin', e.target.value as any)}><option value="">Pilih</option><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option></select></Field></div>
+                    <div><Field label="Agama"><select className={inputClass} value={form.agama || ''} onChange={e => set('agama', e.target.value as any)}><option value="">Pilih</option>{['Islam','Kristen','Katolik','Hindu','Buddha','Konghucu'].map(a => <option key={a} value={a}>{a}</option>)}</select></Field></div>
+                    <div className="md:col-span-2"><Field label="Tanggal Lahir"><input type="date" className={inputClass} value={form.tgl_lahir || ''} onChange={e => set('tgl_lahir', e.target.value)} /></Field></div>
+                    <div className="md:col-span-2"><Field label="Status Perkawinan"><select className={inputClass} value={form.status_perkawinan || ''} onChange={e => set('status_perkawinan', e.target.value as any)}><option value="">Pilih</option><option value="Belum Menikah">Belum Menikah</option><option value="Menikah">Menikah</option><option value="Cerai">Cerai</option></select></Field></div>
+                    <div className="md:col-span-2"><Field label="Pendidikan"><select className={inputClass} value={form.pendidikan || ''} onChange={e => set('pendidikan', e.target.value as any)}><option value="">Pilih</option>{['SMA','D3','S1','S2','S3'].map(p => <option key={p} value={p}>{p}</option>)}</select></Field></div>
                   </div>
-                  <div className="grid grid-cols-2 gap-5">
-                    <div className="col-span-1"><label className={labelClass}>Gender</label><select className={inputClass} value={form.jenis_kelamin || ''} onChange={e => set('jenis_kelamin', e.target.value as any)}><option value="">Pilih</option><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option></select></div>
-                    <div className="col-span-1"><label className={labelClass}>Agama</label><select className={inputClass} value={form.agama || ''} onChange={e => set('agama', e.target.value as any)}><option value="">Pilih</option>{['Islam','Kristen','Katolik','Hindu','Buddha','Konghucu'].map(a => <option key={a} value={a}>{a}</option>)}</select></div>
-                    <div className="col-span-2"><label className={labelClass}>Tanggal Lahir</label><input type="date" className={inputClass} value={form.tgl_lahir || ''} onChange={e => set('tgl_lahir', e.target.value)} /></div>
-                    <div className="col-span-2"><label className={labelClass}>Status Tempat Tinggal</label><select className={inputClass} value={form.status_tempat_tinggal || ''} onChange={e => set('status_tempat_tinggal', e.target.value as any)}><option value="">Pilih</option><option value="Milik Sendiri">Milik Sendiri</option><option value="Milik Orang Tua">Milik Orang Tua</option><option value="Kost/Sewa">Kost/Sewa</option><option value="Lainnya">Lainnya</option></select></div>
-                  </div>
-                </div>
+                </SectionCard>
 
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-1 h-5 bg-primary/40 rounded-full" />
-                    <h3 className="text-[11px] font-black text-muted-foreground uppercase tracking-widest px-1">Pendidikan & Catatan</h3>
+                <SectionCard>
+                  <SectionTitle>Kontak & Keamanan</SectionTitle>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2"><Field label="Email Official"><input type="email" className={inputClass} value={form.email_ojk || ''} onChange={e => set('email_ojk', e.target.value)} /></Field></div>
+                    <div><Field label="WhatsApp Aktif"><input type="text" className={inputClass} value={form.no_telepon || ''} onChange={e => set('no_telepon', e.target.value)} /></Field></div>
+                    <div><Field label="No. Telepon Darurat"><input type="text" className={inputClass} value={form.no_telepon_darurat || ''} onChange={e => set('no_telepon_darurat', e.target.value)} /></Field></div>
+                    <div><Field label="Nama Kontak Darurat"><input type="text" className={inputClass} value={form.nama_kontak_darurat || ''} onChange={e => set('nama_kontak_darurat', e.target.value)} /></Field></div>
+                    <div><Field label="Hubungan Kontak Darurat"><select className={inputClass} value={form.hubungan_kontak_darurat || ''} onChange={e => set('hubungan_kontak_darurat', e.target.value as any)}><option value="">Pilih</option><option value="Orang Tua">Orang Tua</option><option value="Saudara">Saudara</option><option value="Pasangan">Pasangan</option><option value="Teman">Teman</option></select></Field></div>
                   </div>
-                  <div className="space-y-5">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="col-span-2"><label className={labelClass}>Lembaga Pendidikan</label><input type="text" className={inputClass} value={form.nama_lembaga || ''} onChange={e => set('nama_lembaga', e.target.value)} /></div>
-                      <div className="col-span-2"><label className={labelClass}>Jurusan</label><input type="text" className={inputClass} value={form.jurusan || ''} onChange={e => set('jurusan', e.target.value)} /></div>
-                    </div>
-                    <div><label className={labelClass}>Keterangan Tambahan</label><textarea rows={3} placeholder="..." className={inputClass + " resize-none"} value={form.keterangan || ''} onChange={e => set('keterangan', e.target.value)} /></div>
+                </SectionCard>
+
+                <SectionCard>
+                  <SectionTitle>Latar Belakang</SectionTitle>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2"><Field label="Lembaga Pendidikan"><input type="text" className={inputClass} value={form.nama_lembaga || ''} onChange={e => set('nama_lembaga', e.target.value)} /></Field></div>
+                    <div className="md:col-span-2"><Field label="Jurusan"><input type="text" className={inputClass} value={form.jurusan || ''} onChange={e => set('jurusan', e.target.value)} /></Field></div>
+                    <div className="md:col-span-2"><Field label="Previous Company"><input type="text" className={inputClass} value={form.previous_company || ''} onChange={e => set('previous_company', e.target.value)} /></Field></div>
+                    <div className="md:col-span-2"><Field label="Pengalaman Contact Center"><select className={inputClass} value={form.pengalaman_cc || ''} onChange={e => set('pengalaman_cc', e.target.value as any)}><option value="">Pilih</option><option value="Pernah">Pernah</option><option value="Tidak Pernah">Tidak Pernah</option></select></Field></div>
                   </div>
-                </div>
+                </SectionCard>
               </div>
             </div>
           </div>
 
           {/* Footer Actions */}
-          <div className="p-8 border-t border-border/40 bg-muted/20 shrink-0 flex flex-col sm:flex-row gap-4">
+          <div className="shrink-0 p-6 sm:p-8 border-t border-border/40 bg-card/95 backdrop-blur flex flex-col sm:flex-row gap-4">
             {!isReadOnly && (
               <button 
                 onClick={handleSave} 
@@ -753,7 +788,7 @@ export default function ProfilerTableClient({
 
   return (
     <div className={`h-full overflow-auto bg-background/50 backdrop-blur-sm relative flex flex-col ${selectMode && selectedIds.size > 0 ? 'pb-28' : ''}`}>
-      <div className="mx-auto w-full max-w-6xl space-y-4 px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+      <div className="mx-auto w-full max-w-6xl flex flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
 
         {/* ── Tabs Navigation ── */}
         <div className="flex items-center gap-1 p-1 bg-muted/40 rounded-2xl w-fit border border-border/40 backdrop-blur-sm self-center sm:self-start">
@@ -774,30 +809,31 @@ export default function ProfilerTableClient({
           </button>
         </div>
 
-        {/* ── Top bar ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
+        {/* ── Header + Actions ── */}
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          {/* Left: Navigation & Batch Identity */}
+          <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => {
                 if (sortMode) { cancelSort(); return; }
                 if (selectMode) { toggleSelectMode(); return; }
                 router.push('/profiler');
               }}
-              className="w-12 h-12 flex items-center justify-center bg-card border border-border/40 rounded-2xl text-primary hover:bg-muted transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="h-11 w-11 flex shrink-0 items-center justify-center bg-card border border-border/40 rounded-2xl text-primary hover:bg-muted transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               title={sortMode || selectMode ? 'Batal' : 'Kembali'}
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <div className="relative" ref={dropdownRef}>
+            <div className="relative min-w-0" ref={dropdownRef}>
               <button
                 onClick={() => setShowFolderDropdown(!showFolderDropdown)}
-                className="group flex flex-col items-start hover:bg-muted p-2 -m-2 rounded-2xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="group flex flex-col items-start hover:bg-muted p-2 -m-2 rounded-2xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-w-0"
               >
-                <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                  {batchName}
-                  <ChevronDown className={`w-4 h-4 text-primary transition-transform duration-300 ${showFolderDropdown ? 'rotate-180' : ''}`} />
+                <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2 min-w-0">
+                  <span className="truncate max-w-[200px] sm:max-w-[320px]">{batchName}</span>
+                  <ChevronDown className={`w-4 h-4 shrink-0 text-primary transition-transform duration-300 ${showFolderDropdown ? 'rotate-180' : ''}`} />
                 </h1>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2 mt-1 shrink-0">
                   <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Database Peserta</span>
                   <span className="w-1 h-1 rounded-full bg-border" />
                   <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
@@ -812,7 +848,7 @@ export default function ProfilerTableClient({
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute top-full left-0 mt-4 w-72 bg-card/95 border border-border/40 rounded-3xl shadow-2xl z-[100] overflow-hidden backdrop-blur-xl"
+                    className="absolute top-full left-0 mt-4 w-80 max-w-[calc(100vw-2rem)] bg-card/95 border border-border/40 rounded-3xl shadow-2xl z-[100] overflow-hidden backdrop-blur-xl"
                   >
                     <div className="max-h-80 overflow-y-auto p-4 space-y-5 custom-scrollbar">
                       {initialYears.map(year => {
@@ -830,14 +866,14 @@ export default function ProfilerTableClient({
                                     router.push(`/profiler/table?batch=${encodeURIComponent(folder.name)}`);
                                     setShowFolderDropdown(false);
                                   }}
-                                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                                  className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-2xl text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                                     folder.name === batchName
                                       ? 'bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20'
                                   : 'hover:bg-muted text-muted-foreground hover:text-foreground'
                                   }`}
                                 >
                                   <span className="truncate">{folder.name}</span>
-                                  {folder.name === batchName && <Check className="w-3.5 h-3.5" />}
+                                  {folder.name === batchName && <Check className="w-3.5 h-3.5 shrink-0" />}
                                 </button>
                               ))}
                             </div>
@@ -851,28 +887,31 @@ export default function ProfilerTableClient({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Right: Action Toolbar — stable container across modes */}
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
+            {/* Add button */}
             {!isReadOnly && !sortMode && !selectMode && (
               <button
                 onClick={() => router.push(`/profiler/add?batch=${encodeURIComponent(batchName)}`)}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-primary hover:opacity-90 text-primary-foreground rounded-2xl text-xs font-bold shadow-lg shadow-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="h-11 inline-flex items-center gap-2 px-5 bg-primary hover:opacity-90 text-primary-foreground rounded-2xl text-xs font-bold shadow-lg shadow-primary/10 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <Plus className="w-5 h-5" /> Tambah Peserta
               </button>
             )}
 
+            {/* Utility group — always visible except during sort/select */}
             {!sortMode && !selectMode && (
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setDensity((prev) => (prev === 'comfortable' ? 'compact' : 'comfortable'))}
-                  className="w-12 h-12 flex items-center justify-center bg-card border border-border/40 rounded-2xl text-muted-foreground hover:text-foreground transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="h-11 w-11 flex items-center justify-center bg-card border border-border/40 rounded-2xl text-muted-foreground hover:text-foreground transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   title={density === 'comfortable' ? 'Mode Ringkas' : 'Mode Nyaman'}
                 >
                   <Activity className="w-5 h-5" />
                 </button>
                 <button
                   onClick={() => router.push(`/profiler/export?batch=${encodeURIComponent(batchName)}`)}
-                  className="w-12 h-12 flex items-center justify-center bg-card border border-border/40 rounded-2xl text-muted-foreground hover:text-foreground transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="h-11 w-11 flex items-center justify-center bg-card border border-border/40 rounded-2xl text-muted-foreground hover:text-foreground transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   title="Ekspor"
                 >
                   <Download className="w-5 h-5" />
@@ -880,11 +919,12 @@ export default function ProfilerTableClient({
               </div>
             )}
 
+            {/* Select / Sort group */}
             {!isReadOnly && (
-              <div className="flex items-center bg-card border border-border/40 rounded-2xl p-1 gap-1 shadow-sm">
+              <div className="flex items-center bg-card border border-border/40 rounded-2xl h-11 p-1 gap-1 shadow-sm">
                 <button
                   onClick={toggleSelectMode}
-                  className={`p-2.5 rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                  className={`h-9 w-9 flex items-center justify-center rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                     selectMode ? 'bg-primary text-primary-foreground shadow-md shadow-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                   }`}
                   title="Pilih Banyak"
@@ -897,14 +937,14 @@ export default function ProfilerTableClient({
                     <button
                       onClick={saveOrder}
                       disabled={savingOrder || !orderChanged}
-                      className="p-2.5 bg-emerald-500 text-white rounded-xl shadow-md shadow-emerald-500/20 hover:bg-emerald-600 disabled:opacity-50 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="h-9 w-9 flex items-center justify-center bg-emerald-500 text-white rounded-xl shadow-md shadow-emerald-500/20 hover:bg-emerald-600 disabled:opacity-50 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       title="Simpan Urutan"
                     >
                       <Save className="w-5 h-5" />
                     </button>
                     <button
                       onClick={cancelSort}
-                      className="p-2.5 text-destructive hover:bg-destructive/5 rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="h-9 w-9 flex items-center justify-center text-destructive hover:bg-destructive/5 rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       title="Batal"
                     >
                       <X className="w-5 h-5" />
@@ -913,7 +953,7 @@ export default function ProfilerTableClient({
                 ) : (
                   <button
                     onClick={onSortClick}
-                    className="p-2.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="h-9 w-9 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     title="Atur Urutan"
                   >
                     <ArrowUpDown className="w-5 h-5" />
@@ -924,18 +964,27 @@ export default function ProfilerTableClient({
           </div>
         </div>
 
-        {/* ── Search & Filter ── */}
-        <div className="flex flex-col md:flex-row gap-4 items-stretch">
-          <div className="relative flex-1 group">
+        {/* ── Search & Filter Panel ── */}
+        <div className="bg-card border border-border/40 rounded-2xl p-4 space-y-3 shadow-sm">
+          <div className="relative group">
             <Inbox className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <input
               type="text"
               placeholder="Cari nama, NIP, atau email..."
-              className="w-full pl-11 pr-4 py-3 bg-card border border-border/40 rounded-2xl text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+              className="w-full pl-11 pr-12 py-2.5 bg-background border border-border/40 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-            {searchQuery && (
+            {hasActiveFilters && (
+              <button
+                onClick={resetFilters}
+                className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 px-2 py-1 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
+                title="Reset semua filter"
+              >
+                <FilterX className="w-3 h-3" /> Reset
+              </button>
+            )}
+            {!hasActiveFilters && searchQuery && (
               <button 
                 onClick={() => setSearchQuery('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-muted rounded-lg transition-colors"
@@ -944,6 +993,22 @@ export default function ProfilerTableClient({
               </button>
             )}
           </div>
+
+          {/* Tim filter chips inside the panel */}
+          {!sortMode && allTims.length > 1 && (
+            <div className="flex gap-1.5 flex-wrap">
+              {allTims.map(tim => (
+                <button key={tim} onClick={() => setFilterTim(tim)}
+                  className={`px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    (tim === 'all' ? filterTim === 'all' : filterTim.toLowerCase() === tim.toLowerCase())
+                      ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/10'
+                      : 'bg-background text-muted-foreground hover:text-foreground border-border/40 hover:border-primary/30'
+                  }`}>
+                  {tim === 'all' ? 'Semua Tim' : tim}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {feedback && (
@@ -968,22 +1033,6 @@ export default function ProfilerTableClient({
             title="Memuat folder tujuan"
             description="Data folder sedang disiapkan. Mohon tunggu sebentar."
           />
-        )}
-
-        {/* ── Tim filter ── */}
-        {!sortMode && allTims.length > 1 && (
-          <div className="flex gap-2 flex-wrap pb-2">
-            {allTims.map(tim => (
-              <button key={tim} onClick={() => setFilterTim(tim)}
-                className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                  (tim === 'all' ? filterTim === 'all' : filterTim.toLowerCase() === tim.toLowerCase())
-                    ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/10'
-                    : 'bg-card text-muted-foreground hover:text-foreground border-border/40 hover:border-border shadow-sm'
-                }`}>
-                {tim === 'all' ? 'Semua Tim' : tim}
-              </button>
-            ))}
-          </div>
         )}
 
         {/* ── List Peserta ── */}
@@ -1036,7 +1085,7 @@ export default function ProfilerTableClient({
                   onDragOver={sortMode ? e => handleDragOver(e, i) : undefined}
                   onDragLeave={sortMode ? handleDragLeave : undefined}
                   onDragEnd={sortMode ? handleDragEnd : undefined}
-                  className={`group relative flex items-center gap-4 transition-all duration-300 ${
+                  className={`group relative flex items-center gap-4 transition-colors ${
                     sortMode 
                       ? isDragging 
                         ? 'opacity-40 bg-primary/5 cursor-grabbing scale-[0.98]' 
@@ -1075,7 +1124,7 @@ export default function ProfilerTableClient({
                         if (selectMode && rowId) { toggleSelect(rowId); return; }
                         setSelectedPeserta(p);
                       }}
-                      className={`rounded-[1.25rem] border border-border/40 overflow-hidden bg-muted/20 transition-all duration-500 group-hover:scale-105 group-hover:shadow-xl group-hover:shadow-primary/5 cursor-pointer ${
+                      className={`rounded-[1.25rem] border border-border/40 overflow-hidden bg-muted/20 transition-colors group-hover:border-primary/40 cursor-pointer ${
                         density === 'compact' ? 'w-10 h-10 sm:w-11 sm:h-11' : 'w-12 h-12 sm:w-14 sm:h-14'
                       }`}
                     >
@@ -1122,12 +1171,12 @@ export default function ProfilerTableClient({
                       )}
                     </div>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
-                        <div className="w-1 h-1 rounded-full bg-border" />
-                        {p.tim || 'Tanpa Tim'}
+                      <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5 min-w-0">
+                        <div className="w-1 h-1 rounded-full bg-border shrink-0" />
+                        <span className="truncate max-w-[140px]">{p.tim || 'Tanpa Tim'}</span>
                       </span>
                       {p.nip_ojk && (
-                        <span className="text-[11px] text-muted-foreground/60 font-mono tracking-tighter">
+                        <span className="text-[11px] text-muted-foreground/60 font-mono tracking-tighter truncate max-w-[120px]">
                           #{p.nip_ojk}
                         </span>
                       )}
@@ -1136,7 +1185,7 @@ export default function ProfilerTableClient({
 
                   {/* Desktop Actions */}
                   {!isReadOnly && !sortMode && !selectMode && (
-                    <div className="hidden sm:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0">
+                    <div className="hidden sm:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
