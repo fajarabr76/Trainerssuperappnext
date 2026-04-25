@@ -30,26 +30,33 @@ Menyimpan data profil user yang terintegrasi dengan `auth.users`.
 **Penting:** Tabel ini **TIDAK** memiliki kolom `avatar_url` atau `updated_at`. Gunakan konstanta `PROFILE_FIELDS` dari `app/lib/authz.ts` untuk canonical auth profile read. Untuk kueri feature-specific, pilih subset kolom yang memang diperlukan, tetapi tetap batasi hanya pada field yang benar-benar ada di skema ini agar tidak terjadi *query failure*.
 
 ### 2. `public.results`
-Menyimpan hasil simulasi dari modul Ketik, PDKT, dan Telefun.
+Menyimpan hasil simulasi legacy/kompatibilitas dari modul Ketik dan Telefun, serta menjadi salah satu sumber monitoring histori lama.
 - `user_id` (UUID): Referensi ke `profiles`.
 - `module` (Text): Nama modul.
 - `score` (Integer): Skor hasil simulasi.
 - `feedback` (Text): Saran perbaikan dari AI/System.
 - `history` (JSONB): Log interaksi selama simulasi.
 
-### 3. Modul Profiler (KTP)
+**Catatan Saat Ini:** KETIK memakai `ketik_history` sebagai sumber utama riwayat sesi dan menulis `results.details.legacy_history_id` untuk kompatibilitas monitoring/delete mapping. PDKT memakai `pdkt_history` sebagai sumber utama karena evaluasi berjalan async.
+
+### 3. Modul Simulasi
+- **`ketik_history`**: Riwayat sesi KETIK per user, termasuk skenario, identitas konsumen, dan messages.
+- **`pdkt_history`**: Riwayat sesi PDKT per user, email thread, config, waktu pengerjaan, dan hasil evaluasi async.
+- **`user_settings`**: Settings modul yang disimpan per user untuk KETIK, PDKT, dan TELEFUN. Modul tetap local-first di browser, lalu sync ke Supabase saat user login.
+
+### 4. Modul Profiler (KTP)
 - **`profiler_years`**: Daftar tahun database.
 - **`profiler_folders`**: Batch atau grup peserta (mendukung struktur folder bertingkat).
 - **`profiler_peserta`**: Data detail peserta (NIK, Alamat, Foto, dll).
 - **`profiler_tim_list`**: Daftar tim operasional yang tersedia.
 
-### 4. Modul SIDAK (QA Analyzer)
+### 5. Modul SIDAK (QA Analyzer)
 - **`qa_periods`**: Definisi periode audit kualitas.
 - **`qa_temuan`**: Data utama audit (Agent, Tim, Temuan, Status).
 - **`qa_indicators`**: Daftar parameter penilaian audit.
 - **`qa_categories`**: Pengelompokan indikator temuan (Pareto mapping).
 
-### 5. Monitoring AI Usage & Billing
+### 6. Monitoring AI Usage & Billing
 - **`ai_usage_logs`**: Log 1 baris per AI call sukses final. Menyimpan `request_id` unik, `user_id`, `provider`, `model_id`, `module`, `action`, token input/output/total, snapshot harga input/output per 1 juta token, snapshot kurs USD/IDR, serta estimasi biaya USD dan IDR.
 - **`ai_pricing_settings`**: Harga token input/output per model kanonik. Lookup model mengikuti normalisasi `normalizeModelId()` agar alias lama tetap jatuh ke pricing yang benar.
 - **`ai_billing_settings`**: Riwayat nilai kurs global USD ke IDR. Request baru memakai kurs terbaru saat request terjadi, sementara histori lama tetap memakai snapshot kurs yang sudah tersimpan di `ai_usage_logs`.
@@ -82,4 +89,7 @@ Sistem menggunakan fungsi `public.get_auth_role()` untuk mengambil role user saa
 ## Storage
 Aplikasi menggunakan Supabase Storage bucket:
 - `profiler-foto`: Menyimpan foto aset peserta (KTP/Profiler).
-- `qa-reports`: (Opsional) Tempat penyimpanan dokumen laporan yang di-generate.
+- `reports`: Menyimpan dokumen laporan AI SIDAK yang di-generate.
+- `telefun-recordings`: Menyimpan rekaman Telefun jika fitur rekaman digunakan.
+
+Backup database via `pg_dump` hanya mencakup schema/data PostgreSQL dan metadata storage. File fisik di bucket Storage harus dibackup terpisah melalui `npm run backup:supabase:storage`; lihat `docs/SUPABASE_LOCAL_BACKUP.md`.

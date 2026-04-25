@@ -37,7 +37,9 @@
 - Dev server: `npm run dev` (binds to port `3000`).
 - Lint: `npm run lint`.
 - Type check: `npm run type-check` runs `next build`, so it performs a production build and runs ESLint.
+- Focused SIDAK tests: `npm run test:sidak`.
 - Build: `npm run build`. Build also lints because `next.config.ts` sets `eslint.ignoreDuringBuilds = false`.
+- Supabase local backup: `npm run backup:supabase`, `npm run backup:supabase:storage`, or `npm run backup:supabase:all`.
 
 ## Verified Structure
 
@@ -134,6 +136,6 @@ Jangan jadikan overwrite penuh sebagai default behavior. Default behavior agent 
 
 ## Verification Notes
 
-- There is no test script in `package.json`.
+- There is no general `npm test` script in `package.json`, but focused SIDAK coverage is available via `npm run test:sidak`.
 - For focused verification, default to `npm run lint` and the smallest relevant app flow; use `npm run type-check` when you need full build-level validation.
 - Because `type-check` is a full build with linting, it is slower and can surface runtime/build integration issues beyond TypeScript.

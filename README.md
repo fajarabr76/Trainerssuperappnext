@@ -5,44 +5,52 @@
 [![Supabase](https://img.shields.io/badge/Supabase-Backend-green?logo=supabase)](https://supabase.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
 
-**Trainers SuperApp** adalah platform internal komprehensif untuk operasional contact center—mencakup pelatihan interaktif, simulasi kerja, database peserta (KTP), monitoring operasional, dan quality assurance (SIDAK).
+**Trainers SuperApp** adalah platform internal untuk operasional contact center: simulasi kerja berbasis AI, database peserta/agen, monitoring aktivitas dan usage AI, serta quality assurance SIDAK.
 
-## 🚀 Fitur Utama
+## Status Aplikasi Saat Ini
 
-- **Unified Dashboard**: Pusat kendali dengan ringkasan performa dan log aktivitas real-time.
-- **KETIK (Chat)**: Simulasi interaksi chat berbasis AI untuk melatih empati dan solusi.
-- **PDKT (Email)**: Simulasi korespondensi email profesional dengan feedback otomatis.
-- **TELEFUN (Phone)**: Simulasi panggilan suara untuk melatih intonasi dan presisi bicara.
-- **Profiler (KTP)**: Manajemen database peserta training dengan struktur folder hierarkis.
-- **SIDAK (QA Analyzer)**: Dashboard analytics kualitas dengan filosofi *"The Path to Zero"*.
-- **User Management**: Sistem approval akun dan manajemen role (RBAC) yang ketat.
+- **Unified Dashboard**: Pusat kendali protected app dengan shortcut modul, aktivitas, monitoring lintas akun, dan manajemen user.
+- **KETIK**: Simulasi chat layanan berbasis AI, history tersimpan di Supabase, settings local-first plus sync akun, serta quick-view `Usage Bulan Ini`.
+- **PDKT**: Simulasi email dengan composer-style reply, evaluasi async, history Supabase, quick-view usage, dan status evaluasi `processing/completed/failed`.
+- **TELEFUN**: Simulasi percakapan telepon dengan pembuka, respons, TTS, dan scoring AI; usage tercatat di monitoring pusat.
+- **Profiler / KTP**: Database peserta dan agen dengan folder bertingkat, import/export, slides, tim, foto, dan workflow export.
+- **SIDAK / QA Analyzer**: Dashboard kualitas, input temuan, ranking, laporan data/AI, aturan clean-session, dan guardrail scoring versioned rules.
+- **Monitoring Usage & Billing**: Rekap token dan biaya AI bulanan berbasis WIB, editor harga/kurs untuk role yang diizinkan, dan snapshot biaya per request sukses.
+- **Supabase Local Backup**: Script backup database dan Storage lokal untuk snapshot manual operasional.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Frontend**: Next.js 15 (App Router), React 19, TypeScript.
 - **Styling**: Tailwind CSS 4, Motion/React (Framer Motion).
-- **Backend**: Supabase (Auth, DB, RLS, Storage).
-- **Charts**: Recharts.
+- **Backend**: Supabase Auth, PostgreSQL, RLS, Storage, Server Actions, dan beberapa Route Handlers.
+- **AI Providers**: Gemini dan OpenRouter melalui wrapper server-side.
+- **Charts & Export**: Recharts, ExcelJS, xlsx, jsPDF, docx, pptxgenjs, html2canvas.
 
 ---
 
-## 📚 Dokumentasi Teknis
+## Dokumentasi Teknis
 
 Untuk pemahaman lebih dalam mengenai sistem, silakan merujuk ke dokumen berikut:
 
-1.  **[System Architecture](docs/architecture.md)**: Gambaran besar teknis dan struktur folder.
-2.  **[Modules Guide](docs/modules.md)**: Detail fungsionalitas setiap modul aplikasi.
-3.  **[Auth & RBAC](docs/auth-rbac.md)**: Panduan keamanan, role, dan sistem approval.
-4.  **[Database Schema](docs/database.md)**: Struktur tabel dan kebijakan keamanan data (RLS).
-5.  **[Design Guidelines](docs/design-guidelines.md)**: Standar visual, komponen, dan prinsip UI/UX.
+1. **[Documentation Index](docs/README.md)**: Peta dokumentasi yang paling aman dibaca pertama.
+2. **[System Architecture](docs/architecture.md)**: Gambaran teknis, struktur folder, data flow, dan command operasional.
+3. **[Modules Guide](docs/modules.md)**: Status fungsional setiap modul aplikasi.
+4. **[Auth & RBAC](docs/auth-rbac.md)**: Role, approval akun, route guard, dan kontrak profile read.
+5. **[Database Schema](docs/database.md)**: Tabel utama, RLS, usage billing, dan Storage.
+6. **[Monitoring Usage & Billing](docs/MONITORING_TOKEN_USAGE_BILLING.md)**: Kontrak usage AI, billing Rupiah, dan smoke test.
+7. **[Supabase Local Backup](docs/SUPABASE_LOCAL_BACKUP.md)**: Backup database dan Storage lokal.
+8. **[Design Guidelines](docs/design-guidelines.md)**: Standar visual, komponen, dan prinsip UI/UX.
 
 ---
 
-## 💻 Memulai Pengembangan
+## Memulai Pengembangan
 
 ### Prasyarat
 - Node.js 20+
-- Akun Supabase (untuk database dan auth)
+- `npm` (repo memakai `package-lock.json`)
+- Akun Supabase untuk Auth, database, RLS, dan Storage
+- API key Gemini/OpenRouter jika menjalankan fitur AI
+- PostgreSQL client tools jika menjalankan backup lokal (`pg_dump`, `pg_restore`, `psql`)
 
 ### Instalasi
 1. Kloning repositori:
@@ -53,21 +61,42 @@ Untuk pemahaman lebih dalam mengenai sistem, silakan merujuk ke dokumen berikut:
    ```bash
    npm install
    ```
-3. Konfigurasi Environment:
-   Salin `.env.example` ke `.env.local` dan isi nilainya:
+3. Buat `.env.local` secara manual. Repo ini belum menyediakan `.env.example`.
    ```env
    NEXT_PUBLIC_SUPABASE_URL=your_url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key
+   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+   GEMINI_API_KEY=your_gemini_key
+   OPENROUTER_API_KEY=your_openrouter_key
+   NEXT_PUBLIC_APP_URL=http://localhost:3000
    ```
 4. Jalankan mode pengembangan:
    ```bash
    npm run dev
    ```
 
-## 📝 Catatan Pengembangan
+## Command Operasional
+
+```bash
+npm run dev
+npm run lint
+npm run type-check
+npm run test:sidak
+npm run build
+npm run backup:supabase
+npm run backup:supabase:storage
+npm run backup:supabase:all
+```
+
+`npm run type-check` menjalankan `next build`, sehingga validasi ini lebih berat daripada type-check murni dan juga memicu linting build.
+
+## Catatan Pengembangan
 - Gunakan direktori `app/(main)` untuk halaman aplikasi utama yang diproteksi auth.
-- Semua mutasi data harus melalui **Server Actions** di `app/actions` atau folder modul terkait.
+- Mutasi data default melalui **Server Actions** di `app/actions` atau folder modul terkait; Route Handlers dipakai untuk flow server-only tertentu seperti evaluasi async PDKT.
+- Gunakan `app/lib/ai-models.ts` sebagai sumber kebenaran model AI.
+- Migration SQL berada di `supabase/migrations/`, tetapi tidak otomatis diterapkan oleh `next build`.
+- Backup lokal masuk ke `local-backups/` dan tidak boleh di-commit.
 - Patuhi standar visual di [Design Guidelines](docs/design-guidelines.md).
 
-## 📄 Lisensi
+## Lisensi
 Private Internal Project.

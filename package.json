@@ -11,7 +11,10 @@
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
     "type-check": "next build",
     "test:sidak": "vitest run tests/sidak",
-    "test:sidak:watch": "vitest tests/sidak"
+    "test:sidak:watch": "vitest tests/sidak",
+    "backup:supabase": "bash scripts/backup-supabase.sh",
+    "backup:supabase:storage": "node scripts/backup-supabase-storage.mjs",
+    "backup:supabase:all": "npm run backup:supabase && npm run backup:supabase:storage"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

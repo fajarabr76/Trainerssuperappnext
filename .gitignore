@@ -52,3 +52,6 @@ supabase_rbac_setup.sql
 
 # Local Codex plugin config
 .codex-plugin/.mcp.json
+
+# Local Supabase backups
+local-backups/

@@ -12,6 +12,7 @@ Dashboard tunggal yang berfungsi sebagai pusat informasi bagi semua tingkatan us
   - **Monitoring**: (Trainer/Leader/Admin) Memantau histori simulasi lintas akun, agregasi penggunaan token bulanan, dan editor harga/kurs untuk role yang diizinkan.
   - **User Management**: (Hanya Admin) Menyetujui pendaftaran, mengubah role, atau menghapus akun.
 - **Catatan Teknis**: Halaman `/dashboard/monitoring` tetap menjadi permukaan terproteksi utama untuk histori simulasi dan usage billing bulanan. Periode default penggunaan token selalu mengikuti WIB / `Asia/Jakarta`, bukan timezone browser.
+- **Dokumen Terkait**: `docs/MONITORING_TOKEN_USAGE_BILLING.md`, `docs/auth-rbac.md`.
 
 ## 2. KETIK (Simulation Chat)
 Ruang simulasi untuk melatih kemampuan komunikasi tertulis melalui media chat.
@@ -19,9 +20,11 @@ Ruang simulasi untuk melatih kemampuan komunikasi tertulis melalui media chat.
 - **Fungsi**: Peserta berinteraksi dengan AI yang berperan sebagai pelanggan dalam berbagai skenario.
 - **Fitur Utama**:
   - **Skenario Dinamis**: Latihan berdasarkan berbagai tingkat kesulitan.
-  - **AI feedback**: Analisis otomatis terhadap respon peserta menggunakan model Gemini.
-  - **Riwayat Sesi**: Peserta bisa meninjau kembali percakapan sebelumnya.
-- **Catatan Teknis**: Respons AI divalidasi sebagai string terlebih dahulu lalu disanitasi sebelum ditampilkan atau dipakai sebagai balasan konsumen. Di modal pengaturan, `Simpan Perubahan` ikut meng-commit draft skenario atau karakter yang masih terbuka; draft yang belum lengkap akan memblok save dan menampilkan peringatan. Timeout closing sekarang branch-aware: bila pesan terakhir berasal dari `consumer`, konsumen tetap menutup chat tanpa mengonfirmasi solusi yang tidak ada; bila pesan terakhir dari `agent`, acknowledgement singkat hanya boleh muncul jika solusi eksplisit memang terdeteksi. KETIK sekarang juga memiliki quick-view `Usage Bulan Ini` di bawah tombol `Riwayat`, dengan akumulasi khusus modul `ketik`. Setelah sesi selesai, tombol dan modal menampilkan indikator kenaikan biaya sesi terakhir (`+Rp`) berdasarkan selisih total usage bulan berjalan sebelum-vs-sesudah sesi.
+  - **Roleplay Konsumen**: Balasan AI difokuskan sebagai konsumen chat natural, bukan evaluator.
+  - **Riwayat Sesi**: Peserta bisa meninjau kembali percakapan sebelumnya dari `ketik_history`.
+  - **Usage Bulanan**: Quick-view `Usage Bulan Ini` di bawah tombol `Riwayat`.
+- **Catatan Teknis**: KETIK tidak menjalankan evaluasi/scoring otomatis seperti PDKT; modul ini menyimpan history chat sebagai sumber utama dan tetap membuat row `results` kompatibilitas dengan `legacy_history_id`. Respons AI divalidasi sebagai string terlebih dahulu lalu disanitasi sebelum ditampilkan atau dipakai sebagai balasan konsumen. Di modal pengaturan, `Simpan Perubahan` ikut meng-commit draft skenario atau karakter yang masih terbuka; draft yang belum lengkap akan memblok save dan menampilkan peringatan. Timeout closing sekarang branch-aware: bila pesan terakhir berasal dari `consumer`, konsumen tetap menutup chat tanpa mengonfirmasi solusi yang tidak ada; bila pesan terakhir dari `agent`, acknowledgement singkat hanya boleh muncul jika solusi eksplisit memang terdeteksi. Setelah sesi selesai, tombol dan modal menampilkan indikator kenaikan biaya sesi terakhir (`+Rp`) berdasarkan selisih total usage bulan berjalan sebelum-vs-sesudah sesi.
+- **Dokumen Terkait**: `docs/KETIK_KNOWN_ISSUE_TIMEOUT_CONTEXT_HISTORY.md`, `docs/KETIK_PDKT_SETTINGS_DRAFT_AUTOCOMMIT.md`, `docs/MONITORING_TOKEN_USAGE_BILLING.md`.
 
 ## 3. PDKT (Email Simulation)
 Workspace untuk latihan korespondensi email yang terstandarisasi.
@@ -33,15 +36,17 @@ Workspace untuk latihan korespondensi email yang terstandarisasi.
   - **Riwayat Ringkas**: History sesi bisa di-collapse agar detail utama tetap fokus.
   - **Feedback Analitik**: Evaluasi kualitas bahasa dan ketepatan solusi tetap dipertahankan.
 - **Catatan Teknis**: Output model untuk draft email awal dan evaluasi QA divalidasi dulu sebagai string valid sebelum diparse sebagai JSON. Subject email awal dijaga realistis, boleh kosong, dan tidak boleh menjadi clue utama inti masalah. Di modal pengaturan, `Simpan Perubahan` ikut meng-commit draft skenario atau karakter yang masih terbuka; draft yang belum lengkap akan memblok save dan menampilkan peringatan. PDKT sekarang juga memiliki quick-view `Usage Bulan Ini` di bawah tombol `Riwayat`, dengan akumulasi khusus modul `pdkt`. Setelah sesi selesai, tombol dan modal menampilkan indikator kenaikan biaya sesi terakhir (`+Rp`) berdasarkan selisih total usage bulan berjalan sebelum-vs-sesudah sesi. Untuk sesi yang evaluasinya masih async, ditampilkan delta provisional + label "masih diproses" yang auto-update saat evaluasi selesai.
+- **Dokumen Terkait**: `docs/PDKT_EMAIL_COMPOSER_REFRESH_V1.md`, `docs/KETIK_PDKT_SETTINGS_DRAFT_AUTOCOMMIT.md`, `docs/MONITORING_TOKEN_USAGE_BILLING.md`.
 
 ## 4. TELEFUN (Phone Simulation)
 Modul simulasi komunikasi suara untuk melatih intonasi dan kecepatan respon telepon.
 
-- **Fungsi**: Mempersiapkan peserta untuk menangani panggilan masuk/keluar (saat ini dalam tahap pengembangan/pembatasan fitur tertentu).
+- **Fungsi**: Mempersiapkan peserta untuk menangani panggilan masuk/keluar melalui simulasi suara berbasis AI.
 - **Fitur Utama**:
   - **Voice Interface**: Simulasi visual panggilan telepon.
   - **Context Modal**: Informasi data pelanggan yang muncul saat panggilan berlangsung.
 - **Catatan Teknis**: Response AI untuk pembuka panggilan, balasan konsumen, dan scoring memakai fallback aman bila provider mengembalikan payload kosong atau tidak valid. Call AI Telefun sekarang ikut tercatat ke usage billing bulanan melalui action `voice_tts`, `chat_response`, `first_message`, dan `score_generation`, tetapi belum memiliki quick-view modal tersendiri.
+- **Dokumen Terkait**: `docs/MONITORING_TOKEN_USAGE_BILLING.md`.
 
 ## 5. KTP / Profiler (Database Peserta)
 Sistem manajemen database terstruktur untuk peserta training dan agen aktif.
@@ -52,6 +57,7 @@ Sistem manajemen database terstruktur untuk peserta training dan agen aktif.
   - **Import/Export**: Mendukung pemrosesan data massal via Excel (ExcelJS).
   - **Profile Slides**: Representasi visual profil peserta yang bisa diekspor sebagai gambar.
   - **Team Management**: Pengaturan daftar tim yang dinamis.
+- **Catatan Teknis**: File peserta/foto memakai Supabase Storage bucket `profiler-foto`. Flow export/slide bergantung pada route protected dan beberapa halaman profiler memakai rendering dinamis agar data terbaru terbaca.
 
 ## 6. SIDAK (QA Analyzer)
 Platform analytics kualitas untuk memantau performa agent secara mendalam.
@@ -67,3 +73,4 @@ Platform analytics kualitas untuk memantau performa agent secara mendalam.
 - **Catatan Stabilitas SIDAK**: Untuk mencegah regresi skor/kepatuhan dan clean-session handling, ikuti guardrails di `docs/SIDAK_SCORING_GUARDRAILS.md` sebelum merge dan sebelum deploy.
 - **Catatan Clean Session**: Sesi tanpa temuan tetap dianggap audit valid untuk skor dan audited population, tetapi tidak boleh menambah total temuan, pareto, donut, atau defect ranking.
 - **Riwayat Isu**: Investigasi mismatch skor detail agent sudah ditutup. Ringkasan penutupan ada di `docs/SIDAK_KNOWN_ISSUE_AGENT_DETAIL_SCORE.md`.
+- **Dokumen Terkait**: `docs/SIDAK_SCORING_GUARDRAILS.md`, `docs/QA_SMOKE_TEST_VERSIONED_RULES.md`, `docs/SIDAK_KNOWN_ISSUE_SERVICE_DEFAULT_CSO_CALL.md`, `docs/SIDAK_KNOWN_ISSUE_RANKING_COMPLETENESS_PARAMETER_ORDER.md`.
