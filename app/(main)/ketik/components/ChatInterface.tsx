@@ -8,7 +8,6 @@ import { ChatMessage, SessionConfig, Scenario, PacingMeta } from '@/app/types';
 import { generateConsumerResponse } from '../services/geminiService';
 import DiceBearAvatar from '@/app/components/DiceBearAvatar';
 import { classifyTextBand, isSlowEligible, calculatePacingDelay, calculateFollowUpDelay, isAgentGivingSolution } from '../services/responsePacing';
-import { getLastNonSystemSpeaker, getLastAgentMessage, allowSolutionAcknowledgement } from '../services/timeoutContext';
 
 interface ChatInterfaceProps {
   config: SessionConfig;
@@ -121,7 +120,7 @@ function normalizeMessagesForDisplay(messages: ChatMessage[]): ChatMessage[] {
   return normalized;
 }
 
-type SessionPhase = 'active' | 'closing_by_timeout' | 'closed';
+type SessionPhase = 'active' | 'expired' | 'closed';
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ 
   config,
@@ -195,117 +194,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   }, [inputText]);
 
-  const handleSessionTimeout = useCallback(async () => {
+  const handleSessionTimeout = useCallback(() => {
     if (sessionPhase !== 'active') return;
 
-    setSessionPhase('closing_by_timeout');
-    setIsLoading(true);
     clearPendingTimeouts();
-    
-    try {
-      const currentHistory = [...messages];
-      const lastSpeaker = getLastNonSystemSpeaker(currentHistory);
-      const lastAgentText = getLastAgentMessage(currentHistory);
-      const hasSolution = allowSolutionAcknowledgement(lastAgentText);
-
-      let timeoutPrompt = '';
-
-      if (lastSpeaker === 'consumer') {
-        timeoutPrompt = `WAKTU SIMULASI SUDAH HABIS SAAT INI. Anda HARUS menutup percakapan sekarang juga secara natural sebagai konsumen.
-- Pesan terakhir dalam percakapan adalah dari ANDA (konsumen). Agen TIDAK mengirim balasan baru setelah itu.
-- DILARANG membuat kalimat yang seolah-olah mengonfirmasi solusi, arahan, atau langkah dari agen yang tidak ada.
-- DILARANG menulis kalimat seperti "oh jadi harus…", "baik pak berarti…", atau bentuk pengakuan solusi lainnya.
-- Penutup harus berdiri sendiri sebagai inisiatif konsumen untuk mengakhiri chat.
-- Berikan alasan manusiawi yang singkat dan wajar, misalnya harus pergi, sinyal jelek, baterai habis, sedang rapat, atau mau lanjut nanti.
-- Jika masih perlu, Anda boleh menambahkan satu pesan penutup singkat setelahnya dengan [BREAK].
-- Jangan gunakan [NO_RESPONSE].`;
-      } else if (lastSpeaker === 'agent' && !hasSolution) {
-        timeoutPrompt = `WAKTU SIMULASI SUDAH HABIS SAAT INI. Anda HARUS menutup percakapan sekarang juga secara natural sebagai konsumen.
-- Agen mengirim pesan terakhir, tetapi pesan itu TIDAK berisi solusi atau langkah tindakan yang eksplisit.
-- Penutup harus netral. DILARANG menyebut "solusi", "langkah", atau mengonfirmasi tindakan yang tidak pernah diberikan agen.
-- Anda boleh berterima kasih atas penjelasan agen, lalu menutup percakapan secara singkat.
-- Berikan alasan manusiawi yang singkat dan wajar untuk mengakhiri chat, misalnya harus pergi, sinyal jelek, baterai habis, atau mau lanjut nanti.
-- Jika masih perlu, Anda boleh menambahkan satu pesan penutup singkat setelahnya dengan [BREAK].
-- Jangan gunakan [NO_RESPONSE].`;
-      } else {
-        timeoutPrompt = `WAKTU SIMULASI SUDAH HABIS SAAT INI. Anda HARUS menutup percakapan sekarang juga secara natural sebagai konsumen.
-- Agen mengirim pesan terakhir yang berisi arahan atau solusi. Anda BOLEH mengakui inti langkah terakhir secara SINGKAT (maksimal satu kalimat), lalu menutup percakapan.
-- Jangan mengulang seluruh solusi agen. Cukup satu acknowledgement ringan seperti "baik, nanti saya coba langkah itu" atau "mengerti, terima kasih arahannya".
-- Setelah acknowledgement, berikan alasan manusiawi yang singkat untuk mengakhiri chat, misalnya harus pergi, sinyal jelek, baterai habis, atau mau lanjut nanti.
-- Jika masih perlu, Anda boleh menambahkan satu pesan penutup singkat setelahnya dengan [BREAK].
-- Jangan gunakan [NO_RESPONSE].`;
-      }
-
-      const result = await generateConsumerResponse(
-        config,
-        scenario,
-        currentHistory,
-        timeoutPrompt,
-        {
-          remainingSeconds: 0,
-          elapsedSeconds,
-          totalDurationSeconds: config.simulationDuration * 60,
-        },
-        { module: 'ketik', action: 'session_timeout' }
-      );
-
-      if (!result.success) {
-        setIsLoading(false);
-        setSessionPhase('closed');
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: 'error-' + Date.now(),
-            sender: 'system',
-            text: 'error' in result ? result.error : 'Terjadi kesalahan.',
-            timestamp: new Date(),
-          },
-        ]);
-        return;
-      }
-
-      const responseText = result.text;
-      if (responseText !== '[NO_RESPONSE]') {
-        const rawParts = responseText.split('[BREAK]').map(p => p.trim()).filter(p => p);
-        const parts = normalizeGeneratedParts(rawParts);
-        const pacingMode = config.responsePacingMode || 'realistic';
-        const remaining = 0;
-        let delay = 0;
-
-        for (let i = 0; i < parts.length; i += 1) {
-          const part = parts[i];
-          const isFirst = i === 0;
-          const pacingResult = isFirst
-            ? calculatePacingDelay({ mode: pacingMode, band: 'short', remainingSeconds: remaining, isClosingByTimeout: true })
-            : calculateFollowUpDelay({ mode: pacingMode, followUpIndex: i, remainingSeconds: remaining, isClosingByTimeout: true });
-
-          delay += pacingResult.delayMs;
-          const timeoutId = window.setTimeout(() => {
-            setMessages(prev => normalizeMessagesForDisplay([...prev, {
-              id: Date.now().toString() + Math.random(),
-              sender: part.sender,
-              text: part.text,
-              timestamp: new Date(),
-              pacingMeta: pacingResult.meta,
-            }]));
-          }, delay);
-          pendingTimeoutsRef.current.push(timeoutId);
-        }
-        const finishId = window.setTimeout(() => {
-          setIsLoading(false);
-          setSessionPhase('closed');
-        }, delay);
-        pendingTimeoutsRef.current.push(finishId);
-      } else {
-        setIsLoading(false);
-        setSessionPhase('closed');
-      }
-    } catch (error) {
-      console.error("Error generating timeout response", error);
-      setIsLoading(false);
-      setSessionPhase('closed');
-    }
-  }, [config, elapsedSeconds, messages, scenario, sessionPhase, clearPendingTimeouts]);
+    setIsLoading(false);
+    setSessionPhase('expired');
+  }, [sessionPhase, clearPendingTimeouts, setIsLoading]);
 
   // Countdown Timer Logic
   useEffect(() => {
@@ -344,7 +239,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [isReviewMode, messages.length, config.identity.name]);
 
   const handleSend = async () => {
-    if (!inputText.trim() || sessionPhase !== 'active') return;
+    if (!inputText.trim() || (sessionPhase !== 'active' && sessionPhase !== 'expired')) return;
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
@@ -357,6 +252,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setMessages(prev => [...prev, userMsg]);
     setInputText('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
+
+    if (sessionPhase !== 'active' || timeLeft <= 0) {
+      return;
+    }
 
     setIsLoading(true);
 
@@ -473,12 +372,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
+
 
   const applyTemplate = () => {
     const hour = new Date().getHours();
@@ -572,11 +466,19 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
             {!isReviewMode ? (
                 <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-module-ketik">Online</span>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground tabular-nums">
-                      {formatTime(elapsedSeconds)}
-                    </span>
-                    <span className="w-1 h-1 bg-module-ketik rounded-full animate-pulse"></span>
+                    {sessionPhase === 'expired' ? (
+                      <>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">Waktu Habis</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-module-ketik">Online</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground tabular-nums">
+                          {formatTime(elapsedSeconds)}
+                        </span>
+                        <span className="w-1 h-1 bg-module-ketik rounded-full animate-pulse"></span>
+                      </>
+                    )}
                 </div>
             ) : (
                 <div className="flex items-center gap-2 mt-0.5">
@@ -732,20 +634,31 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       </div>
 
       {/* Input Area */}
-      {!isReviewMode && sessionPhase === 'active' ? (
+      {!isReviewMode && (sessionPhase === 'active' || sessionPhase === 'expired') ? (
         <div className="module-clean-toolbar p-6 border-t z-40 shrink-0 relative">
           <div className="absolute inset-x-0 -top-12 h-12 bg-gradient-to-t from-card to-transparent pointer-events-none" />
           
-          {/* Template Button */}
-          <div className="flex justify-center mb-6">
-             <button 
-                onClick={applyTemplate}
-                className="module-clean-button-secondary flex items-center gap-2.5 px-6 py-2.5 rounded-2xl shadow-sm text-[10px] font-black uppercase tracking-widest text-module-ketik transition-all group"
-             >
-                <Sparkles className="w-3.5 h-3.5 group-hover:rotate-12 transition-transform" />
-                <span>Gunakan Template Salam</span>
-             </button>
-          </div>
+          {sessionPhase === 'expired' && (
+            <div className="max-w-4xl mx-auto mb-4">
+              <div className="module-clean-panel rounded-2xl px-4 py-2.5 text-center">
+                <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                  Waktu habis &bull; Konsumen tidak akan membalas
+                </span>
+              </div>
+            </div>
+          )}
+
+          {sessionPhase === 'active' && (
+            <div className="flex justify-center mb-6">
+               <button
+                  onClick={applyTemplate}
+                  className="module-clean-button-secondary flex items-center gap-2.5 px-6 py-2.5 rounded-2xl shadow-sm text-[10px] font-black uppercase tracking-widest text-module-ketik transition-all group"
+               >
+                  <Sparkles className="w-3.5 h-3.5 group-hover:rotate-12 transition-transform" />
+                  <span>Gunakan Template Salam</span>
+               </button>
+            </div>
+          )}
 
           <div className="max-w-4xl mx-auto flex items-end gap-4">
               <div className="module-clean-input-shell flex-1 rounded-[2rem] border-2 flex flex-col px-6 py-2.5 focus-within:border-module-ketik transition-all shadow-inner">
@@ -754,7 +667,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       ref={textareaRef}
                       value={inputText}
                       onChange={(e) => setInputText(e.target.value)}
-                      onKeyDown={handleKeyPress}
                       placeholder="Tulis pesan Anda..."
                       className="w-full bg-transparent border-none outline-none resize-none max-h-48 min-h-[40px] py-1 text-base text-foreground placeholder-foreground/50 font-medium"
                       rows={1}
