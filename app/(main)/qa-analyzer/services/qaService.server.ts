@@ -51,6 +51,10 @@ import {
   type CountableFindingLike,
   type PhantomFindingLike,
 } from './sidakAggregation';
+import {
+  getDashboardRangeDataFromSummary,
+  getDashboardRangeTrendFromSummary,
+} from './summaryReader.server';
 
 const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -571,6 +575,20 @@ const cachedFetchDashboardRangeData = unstable_cache(
     if (!serviceSupabase) return null;
 
     const folderIds = decodeFolderIds(folderIdsKey);
+
+    // V1: try summary tables first (global scope only)
+    const fromSummary = await getDashboardRangeDataFromSummary(
+      serviceSupabase,
+      serviceType,
+      year,
+      startMonth,
+      endMonth,
+      folderIds
+    );
+    if (fromSummary) {
+      return fromSummary;
+    }
+
     const { data, error } = await serviceSupabase.rpc('get_qa_dashboard_range_data', {
       p_service_type: serviceType,
       p_year: year,
@@ -602,6 +620,20 @@ const cachedFetchDashboardRangeTrend = unstable_cache(
     if (!serviceSupabase) return null;
 
     const folderIds = decodeFolderIds(folderIdsKey);
+
+    // V1: try summary tables first (global scope only)
+    const fromSummary = await getDashboardRangeTrendFromSummary(
+      serviceSupabase,
+      serviceType,
+      year,
+      startMonth,
+      endMonth,
+      folderIds
+    );
+    if (fromSummary) {
+      return fromSummary;
+    }
+
     const { data, error } = await serviceSupabase.rpc('get_qa_dashboard_range_trend_data', {
       p_service_type: serviceType,
       p_year: year,

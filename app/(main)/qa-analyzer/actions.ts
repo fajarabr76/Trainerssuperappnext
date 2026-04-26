@@ -28,9 +28,54 @@ function revalidateQaPerformanceCaches(agentId?: string) {
 function revalidateQaTemuanCaches(agentId?: string) {
   revalidatePath('/qa-analyzer/input');
   revalidateTag(QA_AGENT_DETAIL_TAG);
+  revalidateTag(QA_DASHBOARD_RANGE_TAG);
 
   if (agentId) {
     revalidatePath(`/qa-analyzer/agents/${agentId}`);
+  }
+}
+
+async function refreshQaDashboardSummary(supabase: Awaited<ReturnType<typeof createClient>>, periodId?: string) {
+  if (!periodId) return;
+  const { error } = await supabase.rpc('refresh_qa_dashboard_summary_for_period', {
+    p_period_id: periodId,
+    p_folder_key: '__ALL__',
+  });
+  if (error) {
+    console.warn('[Summary] Rebuild failed for period', periodId, error.message);
+  }
+}
+
+async function invalidateQaDashboardSummaryForService(supabase: Awaited<ReturnType<typeof createClient>>, serviceType?: string) {
+  if (!serviceType) return;
+
+  const { error: err1 } = await supabase
+    .from('qa_dashboard_period_summary')
+    .delete()
+    .eq('service_type', serviceType)
+    .eq('folder_key', '__ALL__');
+  if (err1) {
+    console.warn('[Summary] Invalidation failed for service', serviceType, err1.message);
+    return;
+  }
+
+  const { error: err2 } = await supabase
+    .from('qa_dashboard_indicator_period_summary')
+    .delete()
+    .eq('service_type', serviceType)
+    .eq('folder_key', '__ALL__');
+  if (err2) {
+    console.warn('[Summary] Invalidation failed for service', serviceType, err2.message);
+    return;
+  }
+
+  const { error: err3 } = await supabase
+    .from('qa_dashboard_agent_period_summary')
+    .delete()
+    .eq('service_type', serviceType)
+    .eq('folder_key', '__ALL__');
+  if (err3) {
+    console.warn('[Summary] Invalidation failed for service', serviceType, err3.message);
   }
 }
 
@@ -488,6 +533,7 @@ export async function createTemuanBatchAction(
     });
 
     revalidateQaTemuanCaches(peserta_id);
+    await refreshQaDashboardSummary(supabase, period_id);
     
     return { data: data ?? [] };
   } catch (err: any) {
@@ -531,6 +577,9 @@ export async function updateTemuanAction(
     }
     
     revalidateQaTemuanCaches(data?.peserta_id);
+    if (data?.qa_periods?.id) {
+      await refreshQaDashboardSummary(supabase, data.qa_periods.id);
+    }
     
     return { data };
   } catch (err: any) {
@@ -559,7 +608,7 @@ export async function deleteTemuanAction(id: string): Promise<{ success: boolean
       return { success: false, error: 'Akses ditolak: Role tidak memiliki izin untuk aksi ini' };
     }
     
-    const { data: current } = await supabase.from('qa_temuan').select('peserta_id').eq('id', id).single();
+    const { data: current } = await supabase.from('qa_temuan').select('peserta_id, period_id').eq('id', id).single();
     
     const { error } = await supabase.from('qa_temuan').delete().eq('id', id);
     if (error) {
@@ -577,6 +626,7 @@ export async function deleteTemuanAction(id: string): Promise<{ success: boolean
     });
     
     revalidateQaTemuanCaches(current?.peserta_id);
+    await refreshQaDashboardSummary(supabase, current?.period_id);
     return { success: true };
   } catch (err: any) {
     const norm = normalizeQaActionError(err, 'Gagal menghapus temuan.');
@@ -721,6 +771,7 @@ export async function createPerfectScoreSessionAction(
     });
 
     revalidateQaTemuanCaches(peserta_id);
+    await refreshQaDashboardSummary(supabase, period_id);
     
     return { data: data ?? [] };
   } catch (err: any) {
@@ -872,6 +923,8 @@ export async function updateServiceWeightAction(
     revalidateQaPerformanceCaches();
     revalidateTag('indicators');
 
+    await invalidateQaDashboardSummaryForService(supabase, serviceType);
+
     return { data };
   } catch (err) {
     const norm = normalizeQaActionError(err, 'Gagal memperbarui bobot.');
@@ -940,6 +993,10 @@ export async function publishRuleVersionAction(versionId: string, effectivePerio
   revalidatePath('/qa-analyzer/input');
   revalidateQaPerformanceCaches();
   revalidateTag('indicators');
+
+  const { createClient } = await import('@/app/lib/supabase/server');
+  const supabase = await createClient();
+  await refreshQaDashboardSummary(supabase, effectivePeriodId);
   
   return published;
 }
