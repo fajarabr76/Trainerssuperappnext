@@ -55,3 +55,12 @@ supabase_rbac_setup.sql
 
 # Local Supabase backups
 local-backups/
+
+# OpenCode local config (contains API tokens)
+opencode.json
+
+# TestSprite temporary artifacts
+testsprite_tests/tmp/
+
+# Deprecated submodules / gitlinks
+agent-guardrails-template
