@@ -79,6 +79,7 @@ function MainLayoutContent({
 
       <MaintenanceModal 
         isOpen={isMaintenanceOpen}
+        role={role}
       />
       
       <AccessDeniedModal 

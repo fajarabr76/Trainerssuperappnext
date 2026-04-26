@@ -8,9 +8,10 @@ import { useTelefunWarning } from '@/app/context/TelefunWarningContext';
 
 interface MaintenanceModalProps {
   isOpen: boolean;
+  role?: string;
 }
 
-export const MaintenanceModal = ({ isOpen }: MaintenanceModalProps) => {
+export const MaintenanceModal = ({ isOpen, role }: MaintenanceModalProps) => {
   const router = useRouter();
   const { closeMaintenance } = useTelefunWarning();
 
@@ -18,6 +19,9 @@ export const MaintenanceModal = ({ isOpen }: MaintenanceModalProps) => {
     closeMaintenance();
     router.push('/dashboard');
   };
+
+  const normalizedRole = role?.toLowerCase().trim();
+  const isAllowedRole = ['admin', 'trainer', 'trainers'].includes(normalizedRole || '');
 
   return (
     <AnimatePresence>
@@ -47,23 +51,29 @@ export const MaintenanceModal = ({ isOpen }: MaintenanceModalProps) => {
               Akses Dibatasi
             </h3>
             
-            <p className="text-sm text-muted-foreground leading-relaxed mb-8 font-medium px-4">
+            <p className="text-sm text-muted-foreground leading-relaxed mb-2 font-medium px-4">
               Modul ini tidak berjalan dengan baik pada aplikasi ini. <br />
               <span className="text-destructive font-bold">Silakan menghubungi trainer</span> untuk informasi lebih lanjut.
             </p>
             
+            <p className="text-xs text-muted-foreground leading-relaxed mb-8 font-medium px-4">
+              Modul Telefun hanya dapat diakses oleh role <span className="text-foreground font-bold">Trainer</span>.
+            </p>
+
             <div className="flex flex-col gap-3">
-              <a
-                href="https://ai.studio/apps/348f1688-2144-42b8-bbd7-656b6e25718e"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-4 bg-primary text-primary-foreground rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg flex items-center justify-center gap-3"
-              >
-                <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
-                  <span className="text-[10px] font-black">LITE</span>
-                </div>
-                Berpindah ke App Lite
-              </a>
+              {isAllowedRole && (
+                <a
+                  href="https://ai.studio/apps/348f1688-2144-42b8-bbd7-656b6e25718e"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-4 bg-primary text-primary-foreground rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg flex items-center justify-center gap-3"
+                >
+                  <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
+                    <span className="text-[10px] font-black">LITE</span>
+                  </div>
+                  Berpindah ke App Lite
+                </a>
+              )}
               
               <button
                 onClick={handleRedirect}
