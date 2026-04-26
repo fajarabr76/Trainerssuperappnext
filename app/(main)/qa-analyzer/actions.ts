@@ -4,7 +4,7 @@ import { createClient } from '@/app/lib/supabase/server';
 import { getCurrentUserContext, hasRole } from '@/app/lib/authz';
 import {
   ServiceType, Category, ScoringMode, ServiceWeight, DEFAULT_SERVICE_WEIGHTS,
-  TopAgentData, ExportData
+  TopAgentData, ExportData, AgentDirectoryEntry
 } from './lib/qa-types';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import {
@@ -634,14 +634,26 @@ export async function deleteTemuanAction(id: string): Promise<{ success: boolean
   }
 }
 
-export async function getAgentsByFolderAction(batch: string): Promise<{ data: any[]; error?: string }> {
+export async function getAgentsByFolderAction(batch: string, includeExcluded?: boolean): Promise<{ data: any[]; error?: string }> {
   try {
     await assertQaActionAccess(['trainer', 'admin']);
     const { qaServiceServer } = await import('./services/qaService.server');
-    const data = await qaServiceServer.getAgentsByFolder(batch);
+    const data = await qaServiceServer.getAgentsByFolder(batch, includeExcluded);
     return { data };
   } catch (err) {
     const norm = normalizeQaActionError(err, 'Gagal mengambil daftar agent.');
+    return { data: [], error: norm.message };
+  }
+}
+
+export async function getAllAgentDirectoryAction(year?: number): Promise<{ data: AgentDirectoryEntry[]; error?: string }> {
+  try {
+    await assertQaActionAccess(['trainer', 'leader', 'admin']);
+    const { qaServiceServer } = await import('./services/qaService.server');
+    const data = await qaServiceServer.getAgentDirectorySummary(year, true);
+    return { data };
+  } catch (err) {
+    const norm = normalizeQaActionError(err, 'Gagal mengambil data directory agent.');
     return { data: [], error: norm.message };
   }
 }

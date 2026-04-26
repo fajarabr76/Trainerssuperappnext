@@ -1060,8 +1060,15 @@ export const qaServiceServer = {
     };
   },
 
-  async getAgentDirectorySummary(year: number = new Date().getFullYear()) {
+  async getAgentDirectorySummary(year: number = new Date().getFullYear(), includeExcluded?: boolean) {
     const startedAt = measureStart();
+
+    if (includeExcluded) {
+      const accurate = await this.getAgentListWithScores(year, true);
+      logServerMetric('qa.agentDirectorySummary.all-data', startedAt, { year, count: accurate.length });
+      return accurate;
+    }
+
     let cachedSummary: AgentDirectoryEntry[] | null = null;
 
     try {
@@ -1079,9 +1086,6 @@ export const qaServiceServer = {
     }
 
     try {
-      // Keep directory scores aligned with the detail page by using the same
-      // TypeScript scoring path, which already paginates qa_temuan fetches past
-      // the 1000-row PostgREST cap.
       const accurate = await this.getAgentListWithScores(year);
       if (!Array.isArray(accurate)) {
         throw new Error('Invalid agent directory summary payload');
@@ -1104,7 +1108,7 @@ export const qaServiceServer = {
     }
   },
 
-  async getAgentListWithScores(year: number = new Date().getFullYear()) {
+  async getAgentListWithScores(year: number = new Date().getFullYear(), includeExcluded?: boolean) {
     const supabase = await createClient();
     const loadScoringContext = createScoringContextLoader();
     // 1. Fetch agents
@@ -1113,7 +1117,9 @@ export const qaServiceServer = {
       .select('id, nama, tim, batch_name, foto_url, jabatan')
       .order('nama');
     if (agentError) throw agentError;
-    const agents = (agentData ?? []).filter(a => !isAgentExcluded(a.tim, a.batch_name, a.jabatan));
+    const agents = includeExcluded
+      ? (agentData ?? [])
+      : (agentData ?? []).filter(a => !isAgentExcluded(a.tim, a.batch_name, a.jabatan));
 
     // 2. Initial service client (bypass RLS for all aggregate lookups)
     const serviceClient = getServiceSupabase() || supabase;
@@ -1441,50 +1447,61 @@ export const qaServiceServer = {
   },
 
 
-  async getAgentsByFolder(batch: string) {
+  async getAgentsByFolder(batch: string, includeExcluded?: boolean) {
     const supabase = await createClient();
-    const { data, error } = await supabase
+
+    const excludeFilter = (a: { tim?: string | null; batch_name?: string | null; jabatan?: string | null }) =>
+      includeExcluded ? true : !isAgentExcluded(a.tim, a.batch_name, a.jabatan);
+
+    const mapAgent = (a: { id: string; nama: string; tim: string; batch_name: string; jabatan?: string | null }) => ({
+      id: a.id,
+      nama: a.nama,
+      tim: a.tim,
+      batch: a.batch_name,
+      jabatan: a.jabatan
+    });
+
+    const normalized = batch.trim().toLowerCase();
+
+    const isSpecialTeam = (b: string) => {
+      const n = b.trim().toLowerCase();
+      return n === 'bko' || n === 'slik' || n === 'tim bko';
+    };
+
+    if (!isSpecialTeam(batch)) {
+      const { data, error } = await supabase
+        .from('profiler_peserta')
+        .select('id, nama, tim, batch_name, jabatan')
+        .eq('batch_name', batch)
+        .order('nama');
+      if (error) throw error;
+      return (data ?? []).filter(excludeFilter).map(mapAgent);
+    }
+
+    const { data: batchData, error: batchError } = await supabase
       .from('profiler_peserta')
       .select('id, nama, tim, batch_name, jabatan')
       .eq('batch_name', batch)
       .order('nama');
-    if (error) throw error;
-    const byBatch = (data ?? [])
-      .filter((a) => !isAgentExcluded(a.tim, a.batch_name, a.jabatan))
-      .map((a) => ({
-        id: a.id,
-        nama: a.nama,
-        tim: a.tim,
-        batch: a.batch_name,
-        jabatan: a.jabatan
-      }));
+    if (batchError) throw batchError;
 
-    if (byBatch.length > 0) {
-      return byBatch;
-    }
-
-    const normalized = batch.trim().toLowerCase();
-    const isSpecialTeam = normalized === 'bko' || normalized === 'slik';
-    if (!isSpecialTeam) {
-      return byBatch;
-    }
-
+    const ilikeTerm = normalized === 'tim bko' ? 'BKO' : batch;
     const { data: teamData, error: teamError } = await supabase
       .from('profiler_peserta')
       .select('id, nama, tim, batch_name, jabatan')
-      .ilike('tim', `%${batch}%`)
+      .ilike('tim', `%${ilikeTerm}%`)
       .order('nama');
-
     if (teamError) throw teamError;
-    return (teamData ?? [])
-      .filter((a) => !isAgentExcluded(a.tim, a.batch_name, a.jabatan))
-      .map((a) => ({
-        id: a.id,
-        nama: a.nama,
-        tim: a.tim,
-        batch: a.batch_name,
-        jabatan: a.jabatan
-      }));
+
+    const seen = new Set<string>();
+    const merged = [...(batchData ?? []), ...(teamData ?? [])];
+    return merged
+      .filter((a) => {
+        if (seen.has(a.id)) return false;
+        seen.add(a.id);
+        return excludeFilter(a);
+      })
+      .map(mapAgent);
   },
 
   // ── Rule Versioning Management ──────────────────────────────

@@ -14,6 +14,7 @@ import {
   unwrapIndicator,
   unwrapPeriod,
   ServiceType,
+  isAgentExcluded,
 } from '../../../lib/qa-types';
 import { User } from '@supabase/supabase-js';
 import {
@@ -529,7 +530,15 @@ export function useAgentDetail({
     indicators: data.indicators, personalTrend, monthlySummaries, topTickets, groupedFindingsByMonth, availableServiceTypes,
     automatedCoaching, scrollToSection, startEdit, handleEditSave, handleDelete,
     handleExport,
-    handleTambahTemuan: () => router.push(`/qa-analyzer/entry?agentId=${agentId}&name=${encodeURIComponent(agent.nama)}`),
+    handleTambahTemuan: () => {
+      const isExcluded = isAgentExcluded(agent.tim, agent.batch_name, agent.jabatan);
+      const params = new URLSearchParams({
+        folder: agent.batch_name || agent.tim || '',
+        agentId,
+      });
+      if (isExcluded) params.set('showAll', '1');
+      router.push(`/qa-analyzer/input?${params.toString()}`);
+    },
     setEditingTemuan, availableYears,
     trendStartMonth, trendEndMonth, handleTrendRangeChange,
     selectedTeam, handleTeamChange, handleAgentChange, teams, agentsInTeam, loadingAgents,

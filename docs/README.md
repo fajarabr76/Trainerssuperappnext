@@ -20,6 +20,7 @@ Dokumen ini adalah peta baca untuk kondisi aplikasi Trainers SuperApp saat ini. 
 - `docs/SIDAK_LOGIC_AND_SCORING.md`: Penjelasan logika bisnis SIDAK, rumus skor, clean-session, dan cara perhitungan.
 - `docs/QA_SMOKE_TEST_VERSIONED_RULES.md`: Checklist smoke test SIDAK untuk scoring, ranking, dan clean-session.
 - `docs/SIDAK_SCORING_GUARDRAILS.md`: Guardrail wajib sebelum mengubah scoring atau agregasi SIDAK.
+- `docs/SIDAK_KNOWN_ISSUE_HISTORICAL_AGENT_INPUT.md`: Toggle data keseluruhan untuk input agent historis/excluded, normalisasi `Tim BKO`, dan link `INPUT AUDIT`.
 
 ## Catatan Regresi Penting
 
@@ -30,6 +31,7 @@ Dokumen ini adalah peta baca untuk kondisi aplikasi Trainers SuperApp saat ini. 
 - `docs/SIDAK_KNOWN_ISSUE_AGENT_DETAIL_SCORE.md`: Penutupan mismatch skor detail agent.
 - `docs/SIDAK_KNOWN_ISSUE_SERVICE_DEFAULT_CSO_CALL.md`: Service default CSO-vs-Call di input SIDAK.
 - `docs/SIDAK_KNOWN_ISSUE_RANKING_COMPLETENESS_PARAMETER_ORDER.md`: Ranking completeness dan urutan parameter dashboard.
+- `docs/SIDAK_KNOWN_ISSUE_HISTORICAL_AGENT_INPUT.md`: Input temuan untuk agent historis/excluded dan pencegahan route 404 dari detail agent.
 
 ## Verifikasi Umum
 

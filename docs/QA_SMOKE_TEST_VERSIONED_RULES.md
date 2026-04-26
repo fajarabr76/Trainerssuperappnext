@@ -91,3 +91,13 @@ Checklist ini dipakai setelah migration:
 - [ ] Ulangi poin di atas pada agent dengan tim `Telepon` sebagai kontrol; default harus tetap `call`.
 - [ ] Verifikasi bahwa semua jalur code memakai `resolveServiceTypeFromTeam()` dari `qa-types.ts`, bukan chain `includes()` atau `TIM_TO_DEFAULT_SERVICE[...] ?? 'call'` inline.
 - [ ] Verifikasi bahwa `getTemuanByAgentPeriod(...)` dipanggil dengan argumen `serviceType` ketika service sudah diketahui, sehingga prefetch tidak mengambil semua service sekaligus.
+
+## M. Historical/Excluded Agent Input Check
+- [ ] Buka `/qa-analyzer/agents`; pastikan default tetap menampilkan data filtered/non-excluded.
+- [ ] Aktifkan toggle `Tampilkan Data Keseluruhan`; pastikan agent historis/excluded muncul tanpa mengubah default route access.
+- [ ] Dari detail agent non-excluded, klik `INPUT AUDIT`; pastikan menuju `/qa-analyzer/input?folder=...&agentId=...` dan tidak membuka `/qa-analyzer/entry`.
+- [ ] Dari detail agent excluded, klik `INPUT AUDIT`; pastikan URL membawa `showAll=1`, toggle input aktif, dan agent langsung terpilih.
+- [ ] Di `/qa-analyzer/input`, aktifkan toggle `Tampilkan Data Keseluruhan`; pastikan folder/agent all-data muncul dan pilihan lama di-reset.
+- [ ] Pastikan opsi BKO hanya tampil sebagai `Tim BKO`, bukan `BKO` dan `Tim BKO` sekaligus.
+- [ ] Pilih `Tim BKO`; pastikan daftar agent menggabungkan `batch_name = Tim BKO` dan `tim` yang mengandung `BKO` tanpa duplikasi.
+- [ ] Pilih periode lama untuk agent historis; pastikan indikator/temuan tetap mengikuti service aktif dan prefetch memakai `serviceType`.

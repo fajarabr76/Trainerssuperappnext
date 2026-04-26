@@ -42,6 +42,7 @@ export const TIM_TO_DEFAULT_SERVICE: Record<string, ServiceType> = {
   'Email': 'email',
   'Mix': 'cso',
   'BKO': 'bko',
+  'Tim BKO': 'bko',
   'SLIK': 'slik'
 };
 

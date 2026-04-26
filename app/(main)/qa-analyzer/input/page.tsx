@@ -31,6 +31,7 @@ export default async function QaInputPage({ searchParams }: PageProps) {
   const folderParam = typeof sParams.folder === 'string' ? sParams.folder : undefined;
   const agentIdParam = typeof sParams.agentId === 'string' ? sParams.agentId : undefined;
   const periodIdParam = typeof sParams.periodId === 'string' ? sParams.periodId : undefined;
+  const showAllParam = sParams.showAll === '1';
 
   // Initial common data. Keep the RSC render resilient after submit revalidation.
   const [foldersResult, periodsResult, weightsResult] = await Promise.allSettled([
@@ -53,10 +54,12 @@ export default async function QaInputPage({ searchParams }: PageProps) {
   const allPeriods = periodsResult.status === 'fulfilled' ? periodsResult.value : [];
   const allWeights = weightsResult.status === 'fulfilled' ? weightsResult.value : DEFAULT_SERVICE_WEIGHTS;
 
-  const priorityQaTeams = ['BKO', 'SLIK'];
-  const initialFolders = Array.from(
+  const priorityQaTeams = ['Tim BKO', 'SLIK'];
+  const allFoldersWithTeams = Array.from(
     new Set([...allFolders, ...priorityQaTeams])
-  ).filter(f => !EXCLUDED_FOLDERS.includes(f.toLowerCase().trim()));
+  );
+  const initialFolders = allFoldersWithTeams
+    .filter(f => !EXCLUDED_FOLDERS.includes(f.toLowerCase().trim()));
   const initialPeriods = allPeriods;
 
   // Selective pre-fetching based on params
@@ -71,7 +74,7 @@ export default async function QaInputPage({ searchParams }: PageProps) {
   if (folderParam) {
     initialStep = 'agent';
     try {
-      initialAgents = await qaServiceServer.getAgentsByFolder(folderParam);
+      initialAgents = await qaServiceServer.getAgentsByFolder(folderParam, showAllParam || undefined);
     } catch (e) {
       console.error("Error pre-fetching agents list:", e);
     }
@@ -113,6 +116,7 @@ export default async function QaInputPage({ searchParams }: PageProps) {
       role={role} 
       profile={profile as Profile}
       initialFolders={initialFolders}
+      allFolders={allFoldersWithTeams}
       initialPeriods={initialPeriods}
       initialWeights={allWeights}
       initialAgents={initialAgents}
@@ -123,6 +127,7 @@ export default async function QaInputPage({ searchParams }: PageProps) {
       initialFolder={folderParam}
       initialService={initialService}
       initialPeriod={initialPeriod}
+      initialShowAll={showAllParam}
     />
   );
 }

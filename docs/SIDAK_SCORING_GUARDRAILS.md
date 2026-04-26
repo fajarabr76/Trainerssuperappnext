@@ -4,6 +4,7 @@ Dokumen ini dibuat untuk mencegah regresi SIDAK pada scoring, audited population
 
 Status issue detail agent: `resolved`. Ringkasan penutupan ada di `docs/SIDAK_KNOWN_ISSUE_AGENT_DETAIL_SCORE.md`.
 Status issue ranking completeness + parameter order: `resolved`. Ringkasan penutupan ada di `docs/SIDAK_KNOWN_ISSUE_RANKING_COMPLETENESS_PARAMETER_ORDER.md`.
+Status issue historical/excluded agent input: `resolved`. Ringkasan penutupan ada di `docs/SIDAK_KNOWN_ISSUE_HISTORICAL_AGENT_INPUT.md`.
 
 ## Ringkasan Akar Masalah
 
@@ -101,6 +102,24 @@ Checklist review:
 - [ ] Chart parameter dashboard memakai urutan yang sama dengan toggle.
 - [ ] Tie-break urutan parameter stabil saat total temuan sama.
 
+### 7) Historical Agent Input Harus Lewat Toggle All-Data
+
+- Default `/qa-analyzer/agents` dan `/qa-analyzer/input` tetap filtered memakai `isAgentExcluded(...)`.
+- Kebutuhan input periode lama untuk agent yang sudah promosi/pindah jabatan wajib memakai toggle `Tampilkan Data Keseluruhan`, bukan menghapus filter default.
+- `includeExcluded` hanya boleh aktif saat toggle all-data atau query `showAll=1` aktif.
+- Tombol `INPUT AUDIT` dari `/qa-analyzer/agents/[id]` wajib menuju `/qa-analyzer/input`, bukan route lama/nonexistent.
+- Jika agent terkena `isAgentExcluded(...)`, link `INPUT AUDIT` wajib membawa `showAll=1` agar input page langsung memuat agent historis.
+- Opsi BKO di UI input harus menjadi satu pilihan `Tim BKO`; jangan tampilkan `BKO` dan `Tim BKO` sebagai dua folder terpisah.
+- Special team `Tim BKO`, `BKO`, dan `SLIK` di `getAgentsByFolder(...)` wajib merge `batch_name` exact match + `tim ILIKE`, lalu de-dupe berdasarkan `id`.
+
+Checklist review:
+- [ ] Tidak ada route `/qa-analyzer/entry` yang dipakai dari detail agent.
+- [ ] `handleTambahTemuan` membangun URL `/qa-analyzer/input` dengan `folder` dan `agentId`.
+- [ ] Agent excluded membawa `showAll=1` dari detail agent ke input page.
+- [ ] `input/page.tsx` meneruskan `includeExcluded` saat prefetch jika `showAll=1`.
+- [ ] Toggle all-data di input mereset folder, agent, period, temuan, dan form state.
+- [ ] `Tim BKO` resolve ke service `bko` dan tidak menimbulkan opsi `BKO` duplikat.
+
 ## Deployment Checklist
 
 1. Apply migration terbaru SIDAK (termasuk fix scoring/dashboard):
@@ -124,6 +143,8 @@ Checklist review:
 - Fokus smoke tambahan:
   - ranking tetap lengkap saat dataset besar
   - toggle parameter dashboard mengikuti urutan total temuan
+  - toggle `Tampilkan Data Keseluruhan` di `/qa-analyzer/agents` dan `/qa-analyzer/input`
+  - tombol `INPUT AUDIT` dari detail agent menuju `/qa-analyzer/input`, bukan 404
 
 Gunakan `npm run test:sidak` sebagai verifikasi wajib setiap ada perubahan clean-session semantics, ranking/top agents, fallback dashboard/trend, atau migration RPC SIDAK terkait audited population.
 

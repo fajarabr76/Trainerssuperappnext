@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 import {
   X, Check, ChevronRight,
   FolderOpen, User as UserIcon, CalendarDays, Plus, Trash2,
   Pencil, Upload, Download, FileSpreadsheet,
-  Menu, Sun, Moon, Loader2
+  Menu, Sun, Moon, Loader2, Eye, EyeOff
 } from 'lucide-react';
 
 import { useTheme } from 'next-themes';
@@ -340,6 +340,7 @@ interface QaInputClientProps {
   role: string;
   profile: Profile | null;
   initialFolders: string[];
+  allFolders: string[];
   initialPeriods: QAPeriod[];
   initialAgents?: Agent[];
   initialAgent?: Agent;
@@ -350,17 +351,19 @@ interface QaInputClientProps {
   initialService?: ServiceType;
   initialPeriod?: QAPeriod | null;
   initialWeights?: Record<ServiceType, ServiceWeight>;
+  initialShowAll?: boolean;
 }
 
-export default function QaInputClient({ 
-  role, 
-  initialFolders, initialPeriods, 
+export default function QaInputClient({
+  role,
+  initialFolders, allFolders, initialPeriods,
   initialAgents, initialAgent, initialIndicators, initialTemuan,
   initialStep = 'folder',
   initialFolder,
   initialService,
   initialPeriod,
   initialWeights,
+  initialShowAll = false,
 }: QaInputClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -368,6 +371,7 @@ export default function QaInputClient({
   const { theme, setTheme } = useTheme();
 
   const [step, setStep]         = useState<Step>(initialStep);
+  const [showAllData, setShowAllData] = useState(initialShowAll);
   const [folders, _setFolders]   = useState<string[]>(initialFolders);
   const [agents, setAgents]     = useState<Agent[]>(initialAgents ?? []);
   const [periods, _setPeriods]   = useState<QAPeriod[]>(initialPeriods);
@@ -379,6 +383,8 @@ export default function QaInputClient({
   const [selectedPeriod, setSelectedPeriod] = useState<QAPeriod | null>(initialPeriod ?? null);
   const [serviceOverride, setServiceOverride] = useState<ServiceType | null>(null);
   const [weights, _setWeights] = useState<Record<ServiceType, ServiceWeight>>(initialWeights ?? DEFAULT_SERVICE_WEIGHTS);
+
+  const displayFolders = showAllData ? allFolders : folders;
 
   const effectiveService = useMemo(
     () => computeEffectiveService(serviceOverride, selectedAgent?.tim, initialService),
@@ -429,6 +435,18 @@ export default function QaInputClient({
     router.refresh();
   };
 
+  const handleToggleShowAll = useCallback((value: boolean) => {
+    setShowAllData(value);
+    setSelectedFolder(null);
+    setSelectedAgent(null);
+    setSelectedPeriod(null);
+    setTemuan([]);
+    setAgents([]);
+    setStep('folder');
+    setErrorMsg(null);
+    setSuccessMsg(null);
+  }, []);
+
   useEffect(() => {
     const ap = searchParams.get('agentId');
     if (ap && agents.length > 0 && !selectedAgent) {
@@ -440,7 +458,7 @@ export default function QaInputClient({
   const handleSelectFolder = async (folder: string) => {
     setSelectedFolder(folder); setSelectedAgent(null); setSelectedPeriod(null); setTemuan([]); setLoading(true);
     try {
-      const { data: agentList, error } = await getAgentsByFolderAction(folder);
+      const { data: agentList, error } = await getAgentsByFolderAction(folder, showAllData || undefined);
       if (error) {
         setErrorMsg(error);
         return;
@@ -811,9 +829,22 @@ export default function QaInputClient({
 
             {!loading && step === 'folder' && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2"><FolderOpen className="w-5 h-5 text-primary"/><h2 className="text-lg font-bold">Pilih Folder</h2></div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2"><FolderOpen className="w-5 h-5 text-primary"/><h2 className="text-lg font-bold">Pilih Folder</h2></div>
+                  <button
+                    onClick={() => handleToggleShowAll(!showAllData)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border shrink-0 ${
+                      showAllData
+                        ? 'bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-500/20'
+                        : 'bg-background border-border/50 text-muted-foreground hover:border-amber-500/40'
+                    }`}
+                  >
+                    {showAllData ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                    {showAllData ? 'Data Terfilter' : 'Tampilkan Data Keseluruhan'}
+                  </button>
+                </div>
                 <div className="grid gap-2">
-                  {folders.map(f => (
+                  {displayFolders.map(f => (
                     <button key={f} onClick={() => handleSelectFolder(f)} className="flex items-center gap-4 px-5 py-4 bg-card border border-border hover:border-primary/40 rounded-2xl text-left transition-all group">
                       <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><FolderOpen className="w-5 h-5 text-primary"/></div>
                       <span className="flex-1 font-semibold">{f}</span>

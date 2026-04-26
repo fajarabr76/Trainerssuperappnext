@@ -1,16 +1,17 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { 
   Users, Search, ChevronRight, TrendingUp, TrendingDown, 
-  Minus
+  Minus, Eye, EyeOff
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { scoreColor } from "../../lib/qa-types";
 import type { AgentDirectoryEntry } from "../../lib/qa-types";
+import { getAllAgentDirectoryAction } from '../../actions';
 import QaStatePanel from '../../components/QaStatePanel';
 
 interface AgentDirectoryClientProps {
@@ -22,20 +23,60 @@ interface AgentDirectoryClientProps {
 
 export default function AgentDirectoryClient({ 
   initialAgents,
-  initialBatches
+  initialBatches,
 }: AgentDirectoryClientProps) {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [selectedBatch, setSelectedBatch] = useState<string>('all');
   const [visibleCount, setVisibleCount] = useState(24);
+  const [showAllData, setShowAllData] = useState(false);
+  const [allAgents, setAllAgents] = useState<AgentDirectoryEntry[] | null>(null);
+  const [loadingAll, setLoadingAll] = useState(false);
+
+  const toggleShowAll = useCallback(async () => {
+    if (showAllData) {
+      setShowAllData(false);
+      setSearch('');
+      setSelectedBatch('all');
+      return;
+    }
+    if (allAgents) {
+      setShowAllData(true);
+      setSearch('');
+      setSelectedBatch('all');
+      return;
+    }
+    setLoadingAll(true);
+    try {
+      const { data } = await getAllAgentDirectoryAction();
+      if (data) {
+        setAllAgents(data);
+        setShowAllData(true);
+        setSearch('');
+        setSelectedBatch('all');
+      }
+    } catch {
+      // silent
+    } finally {
+      setLoadingAll(false);
+    }
+  }, [showAllData, allAgents]);
+
+  const activeAgents = showAllData && allAgents ? allAgents : initialAgents;
+  const activeBatches = useMemo(() => {
+    if (!showAllData || !allAgents) return initialBatches;
+    const set = new Set<string>();
+    allAgents.forEach(a => { if (a.batch_name) set.add(a.batch_name); });
+    return [...set].sort();
+  }, [showAllData, allAgents, initialBatches]);
 
   const filteredAgents = useMemo(() => {
-    return initialAgents.filter(a => {
+    return activeAgents.filter(a => {
       const matchSearch = a.nama.toLowerCase().includes(search.toLowerCase());
       const matchBatch = selectedBatch === 'all' || a.batch_name === selectedBatch;
       return matchSearch && matchBatch;
     });
-  }, [initialAgents, search, selectedBatch]);
+  }, [activeAgents, search, selectedBatch]);
 
   const visibleAgents = useMemo(() => filteredAgents.slice(0, visibleCount), [filteredAgents, visibleCount]);
 
@@ -58,7 +99,25 @@ export default function AgentDirectoryClient({
             <h1 className="text-3xl font-black tracking-tighter text-foreground">Direktori Agent</h1>
           </div>
 
-          <div className="flex items-center gap-6 w-full sm:w-auto">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <button
+              onClick={toggleShowAll}
+              disabled={loadingAll}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border shrink-0 ${
+                showAllData
+                  ? 'bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-500/20'
+                  : 'bg-background border-border/50 text-muted-foreground hover:border-amber-500/40'
+              }`}
+            >
+              {loadingAll ? (
+                <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              ) : showAllData ? (
+                <EyeOff className="w-3.5 h-3.5" />
+              ) : (
+                <Eye className="w-3.5 h-3.5" />
+              )}
+              {showAllData ? 'Data Terfilter' : 'Tampilkan Data Keseluruhan'}
+            </button>
              <div className="relative group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-all duration-300" />
               <input 
@@ -66,7 +125,7 @@ export default function AgentDirectoryClient({
                 placeholder="Cari nama agent..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full sm:w-72 lg:w-96 h-12 pl-12 pr-4 bg-foreground/5 border border-border/50 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-background transition-all"
+                className="w-full sm:w-64 lg:w-72 h-12 pl-12 pr-4 bg-foreground/5 border border-border/50 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-background transition-all"
               />
             </div>
           </div>
@@ -80,7 +139,7 @@ export default function AgentDirectoryClient({
             >
               Semua Batch
             </button>
-            {initialBatches.map(b => (
+            {activeBatches.map(b => (
               <button 
                 key={b}
                 onClick={() => setSelectedBatch(b)}
