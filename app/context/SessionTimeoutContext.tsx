@@ -59,7 +59,7 @@ export const SessionTimeoutProvider: React.FC<{ children: React.ReactNode }> = (
     const getInitialUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
-      if (user && !localStorage.getItem('trainers_login_time')) {
+      if (user) {
         localStorage.setItem('trainers_login_time', Date.now().toString());
       }
     };
@@ -68,7 +68,7 @@ export const SessionTimeoutProvider: React.FC<{ children: React.ReactNode }> = (
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
-      if (event === 'SIGNED_IN' && session?.user) {
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
         localStorage.setItem('trainers_login_time', Date.now().toString());
       } else if (event === 'SIGNED_OUT') {
         localStorage.removeItem('trainers_login_time');
@@ -117,13 +117,17 @@ export const SessionTimeoutProvider: React.FC<{ children: React.ReactNode }> = (
   useEffect(() => {
     const checkMaxLifetime = () => {
       const loginTimeStr = localStorage.getItem('trainers_login_time');
-      if (loginTimeStr && user) {
-        const loginTime = parseInt(loginTimeStr);
-        const elapsed = Date.now() - loginTime;
-        
-        if (elapsed > AUTH_MAX_LIFETIME) {
-          signOut();
-        }
+      if (!loginTimeStr || !user) return;
+
+      const loginTime = parseInt(loginTimeStr, 10);
+      if (Number.isNaN(loginTime)) {
+        localStorage.setItem('trainers_login_time', Date.now().toString());
+        return;
+      }
+
+      const elapsed = Date.now() - loginTime;
+      if (elapsed > AUTH_MAX_LIFETIME) {
+        signOut();
       }
     };
 

@@ -72,7 +72,24 @@ Setiap refactor yang menyentuh auth flow atau tabel `profiles` wajib memeriksa p
 - Jalankan `npm run lint` dan `npm run type-check`.
 - Lakukan smoke test login minimal untuk akun `approved`, `pending`, `rejected`, dan skenario pembacaan profil transient.
 
-### 7. Smoke Test Wajib Setelah Auth/Profile Refactor
+### 7. Client-Side Session Lifetime Guard
+
+Aplikasi menerapkan batas sesi client-side melalui `SessionTimeoutProvider` di `app/context/SessionTimeoutContext.tsx` yang membungkus seluruh layout `(main)`.
+
+- **`trainers_login_time`** adalah baseline client-side di `localStorage` yang mencatat waktu login terakhir. Value ini digunakan oleh max-lifetime check untuk memaksa sign out setelah sesi aktif melebihi `AUTH_MAX_LIFETIME` (8 jam).
+- **Timestamp wajib di-refresh saat login baru atau `INITIAL_SESSION`**. `AuthModal` membersihkan `trainers_login_time` dan `trainers_last_activity` sebelum redirect setelah `signInWithPassword` sukses. `SessionTimeoutProvider` selalu menimpa `trainers_login_time` dengan `Date.now()` saat `getInitialUser()` menemukan user atau saat `onAuthStateChange` menerima event `SIGNED_IN` / `INITIAL_SESSION`.
+- **Jangan memakai kondisi `if (!localStorage.getItem('trainers_login_time'))`** saat set timestamp. Kondisi itu menyebabkan timestamp lama dari sesi sebelumnya tetap dipakai setelah full page reload. Pada login pertama setelah user tidak aktif lama, max-lifetime check berikutnya bisa membaca timestamp basi itu sebagai sesi yang sudah melewati 8 jam dan memanggil `signOut()`.
+- **Guard untuk data rusak**: Jika `trainers_login_time` kosong, invalid, atau bukan angka valid, max-lifetime check akan menimpanya dengan `Date.now()` alih-alih memaksa sign out.
+- **Idle timeout**: Setelah 30 menit tidak ada aktivitas (`AUTH_SESSION_TIMEOUT`), modal peringatan muncul dengan countdown 5 menit (`AUTH_GRACE_PERIOD_SEC`). Jika countdown habis, `signOut({ scope: 'global' })` dipanggil dan `trainers_login_time` serta `trainers_last_activity` dibersihkan.
+- **Cross-tab sync**: `useIdleTimeout` menggunakan `localStorage` key `trainers_last_activity` untuk menyinkronkan status idle antar tab.
+
+File terkait:
+- `app/context/SessionTimeoutContext.tsx`
+- `app/lib/hooks/useIdleTimeout.ts`
+- `app/components/IdleWarningModal.tsx`
+- `app/constants.ts` (`AUTH_SESSION_TIMEOUT`, `AUTH_GRACE_PERIOD_SEC`, `AUTH_MAX_LIFETIME`)
+
+### 8. Smoke Test Wajib Setelah Auth/Profile Refactor
 
 - Login akun `approved` role `agent` harus berhasil dan mendarat di `/dashboard`.
 - Login akun `pending` harus selalu berakhir di `/waiting-approval`.
@@ -112,3 +129,6 @@ Catatan:
 - `app/lib/supabase/middleware.ts`
 - `app/lib/authz.ts`
 - `docs/AUTH_KNOWN_ISSUE_TRANSIENT_PROFILE_READS.md`
+- `app/context/SessionTimeoutContext.tsx`
+- `app/lib/hooks/useIdleTimeout.ts`
+- `app/components/IdleWarningModal.tsx`

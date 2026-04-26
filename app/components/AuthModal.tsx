@@ -133,6 +133,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', init
         }
 
         const nextPath = await resolvePostLoginPath(session.user.id);
+        localStorage.removeItem('trainers_login_time');
+        localStorage.removeItem('trainers_last_activity');
         window.location.assign(nextPath);
         return;
       }
