@@ -15,6 +15,7 @@ Dokumen ini adalah peta baca untuk kondisi aplikasi Trainers SuperApp saat ini. 
 
 - `docs/MONITORING_TOKEN_USAGE_BILLING.md`: Kontrak usage AI bulanan, billing Rupiah, pricing/kurs, quick-view modul, dan smoke test.
 - `docs/SUPABASE_LOCAL_BACKUP.md`: Backup lokal Supabase database dan Storage.
+- `docs/VERCEL_RES_OPTIMIZATION.md`: Catatan optimasi Vercel RES, hasil Tahap 0-3, guardrail performa, dan gate persetujuan sebelum auth/cache/dependency cleanup.
 - `docs/QA_DASHBOARD_SUMMARY_ROLLUP_STAGING.md`: Scope commit, catatan file Supabase CLI, dan checklist testing staging untuk summary rollup dashboard SIDAK.
 - `docs/SIDAK_LOGIC_AND_SCORING.md`: Penjelasan logika bisnis SIDAK, rumus skor, clean-session, dan cara perhitungan.
 - `docs/QA_SMOKE_TEST_VERSIONED_RULES.md`: Checklist smoke test SIDAK untuk scoring, ranking, dan clean-session.
