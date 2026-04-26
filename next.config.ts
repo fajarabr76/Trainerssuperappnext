@@ -52,13 +52,12 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
-    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'picsum.photos',
+        hostname: 'kkeiiwyyefaofljippnj.supabase.co',
         port: '',
-        pathname: '/**',
+        pathname: '/storage/v1/object/public/**',
       },
       {
         protocol: 'https',

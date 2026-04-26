@@ -1,7 +1,7 @@
 import React from 'react';
 import { Metadata } from 'next';
 import { profilerServiceServer } from '../services/profilerService.server';
-import ProfilerAnalyticsClient from './components/ProfilerAnalyticsClient';
+import ProfilerAnalyticsClient from './components/ProfilerAnalyticsClientLoader';
 import { requirePageAccess } from '@/app/lib/authz';
 
 export const metadata: Metadata = {

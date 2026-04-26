@@ -1,4 +1,4 @@
-import QaDashboardClient from './QaDashboardClient';
+import QaDashboardClient from './QaDashboardClientLoader';
 import { qaServiceServer } from '../services/qaService.server';
 import { profilerServiceServer } from '../../profiler/services/profilerService.server';
 import { EXCLUDED_FOLDERS } from '../lib/qa-types';

@@ -1,7 +1,4 @@
-'use client';
-
 import React, { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
 import {
   Activity,
   BarChart3,
@@ -97,17 +94,12 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
   return (
     <>
       {/* Mobile Overlay (Higher Z-Index) */}
-      <AnimatePresence>
-        {isMobileMenuOpen && setIsMobileMenuOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm lg:hidden" 
-            onClick={() => setIsMobileMenuOpen(false)} 
-          />
-        )}
-      </AnimatePresence>
+      {isMobileMenuOpen && setIsMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm lg:hidden" 
+          onClick={() => setIsMobileMenuOpen(false)} 
+        />
+      )}
 
       <aside
         onMouseEnter={() => isSidebarCollapsed && setIsSidebarHovered(true)}
@@ -121,10 +113,10 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
                 <BarChart3 className="h-5 w-5" />
               </div>
               {!effectiveIsCollapsed && (
-                <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col">
+                <div className="flex flex-col">
                   <span className="text-sm font-semibold tracking-tight">Trainers SuperApp</span>
                   <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Unified workspace</span>
-                </motion.div>
+                </div>
               )}
             </Link>
 
@@ -194,32 +186,25 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
                     </>
                   )}
                 </button>
-                <AnimatePresence>
-                  {isQaExpanded && !effectiveIsCollapsed && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="space-y-1 px-2 pb-2 pl-11 pt-2">
-                        {qaModule.children?.filter((item) => isRoleAllowed(role, item.allowedRoles)).map((item) => (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            className={`block rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-[0.2em] transition ${
-                              pathname === item.href || pathname?.startsWith(`${item.href}/`)
-                                ? 'bg-primary text-primary-foreground shadow-sm'
-                                : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'
-                            }`}
-                          >
-                            {item.title}
-                          </Link>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                <div
+                  className={`overflow-hidden transition-all duration-300 ${isQaExpanded && !effectiveIsCollapsed ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
+                >
+                  <div className="space-y-1 px-2 pb-2 pl-11 pt-2">
+                    {qaModule.children?.filter((item) => isRoleAllowed(role, item.allowedRoles)).map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`block rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-[0.2em] transition ${
+                          pathname === item.href || pathname?.startsWith(`${item.href}/`)
+                            ? 'bg-primary text-primary-foreground shadow-sm'
+                            : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'
+                        }`}
+                      >
+                        {item.title}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 

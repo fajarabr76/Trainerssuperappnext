@@ -2,7 +2,7 @@ import React from 'react';
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { profilerServiceServer } from '../services/profilerService.server';
-import ProfilerTableClient from './components/ProfilerTableClient';
+import ProfilerTableClient from './components/ProfilerTableClientLoader';
 import { requirePageAccess } from '@/app/lib/authz';
 
 export const dynamic = 'force-dynamic';
