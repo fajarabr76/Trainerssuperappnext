@@ -181,10 +181,14 @@ export class LiveSession {
       if (!configuredWsUrl) {
         throw new Error("NEXT_PUBLIC_TELEFUN_WS_URL tidak terkonfigurasi.");
       }
-      const wsUrl = normalizeTelefunWebSocketUrl(configuredWsUrl);
+      
+      const wsUrlBase = normalizeTelefunWebSocketUrl(configuredWsUrl);
+      const wsUrlWithToken = new URL(wsUrlBase);
+      wsUrlWithToken.searchParams.set('token', sbSession.access_token);
+      const wsUrl = wsUrlWithToken.toString();
 
-      // Connect to Railway WebSocket Proxy
-      const ws = new WebSocket(wsUrl, sbSession.access_token);
+      // Connect to Railway WebSocket Proxy (No subprotocol to avoid handshake 1006)
+      const ws = new WebSocket(wsUrl);
       
       this.session = {
         sendRealtimeInput: (params: { media: { mimeType: string, data: string } }) => {
@@ -258,6 +262,8 @@ export class LiveSession {
             this.onError?.(new Error("Koneksi WebSocket ditolak: sesi login tidak valid. Silakan login ulang."));
           } else if (e.code === 4003) {
             this.onError?.(new Error("Koneksi WebSocket ditolak: origin Vercel belum diizinkan di Railway."));
+          } else if (e.code === 1006) {
+            this.onError?.(new Error("Koneksi WebSocket terputus mendadak (1006). Pastikan server Telefun di Railway sedang aktif dan dapat dijangkau."));
           } else if (e.code === 1011) {
             this.onError?.(new Error("Koneksi WebSocket gagal: server Telefun tidak bisa terhubung ke Gemini."));
           } else if (e.reason) {

@@ -27,14 +27,15 @@ wss.on('connection', async (ws, req) => {
     return;
   }
 
-  const protocol = req.headers['sec-websocket-protocol'];
-  if (!protocol) {
+  const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+  const token = url.searchParams.get('token');
+
+  if (!token) {
     ws.close(4001, 'Unauthorized: Missing Token');
     return;
   }
 
-  // Token is expected to be passed via protocol
-  const token = protocol;
+  // Verify Supabase Token
   const authResult = await verifyToken(token);
 
   if (!authResult.success) {

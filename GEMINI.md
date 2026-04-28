@@ -48,7 +48,7 @@ This document provides context and working instructions for AI assistants operat
 Telefun live simulation runs as a standalone Node.js service (in `apps/telefun-server`) to support long-running WebSocket connections.
 - **Railway Env:** `PORT`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `GEMINI_API_KEY`, `ALLOWED_ORIGINS`.
 - **Frontend Env:** `NEXT_PUBLIC_TELEFUN_WS_URL`.
-- **Auth:** Client sends Supabase access token via `Sec-WebSocket-Protocol`. Server validates token using `supabase.auth.getUser()`.
+- **Auth:** Client sends Supabase access token via query parameter `token` (to avoid WebSocket 1006 handshake issues on proxies). Server validates token using `supabase.auth.getUser()`.
 
 ## Verified Structure
 
