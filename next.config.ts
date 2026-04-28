@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
       base-uri 'self';
       form-action 'self';
       frame-ancestors 'none';
-      connect-src 'self' https://*.supabase.co https://*.googleapis.com https://generativelanguage.googleapis.com;
+      connect-src 'self' https://*.supabase.co https://*.googleapis.com https://generativelanguage.googleapis.com wss://*.railway.app;
       upgrade-insecure-requests;
     `.replace(/\s{2,}/g, ' ').trim();
 
@@ -45,7 +45,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()',
+            value: 'camera=(), microphone=(self), geolocation=()',
           },
         ],
       },
