@@ -218,7 +218,7 @@ export class LiveSession {
           setup: {
             model: `models/${TELEFUN_LIVE_MODEL}`,
             generationConfig: {
-              responseModalities: ["audio"],
+              responseModalities: ["AUDIO"],
               speechConfig: {
                 voiceConfig: {
                   prebuiltVoiceConfig: { voiceName }

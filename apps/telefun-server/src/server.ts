@@ -102,9 +102,31 @@ wss.on('connection', async (ws, req) => {
     });
 
     geminiWs.on('message', (data) => {
-      // Forward from Gemini to Client
+      const raw = data.toString();
+      if (raw.startsWith('{"serverContent":{"modelTurn"')) {
+        if (ws.readyState === WebSocket.OPEN) ws.send(raw);
+        return;
+      }
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed.error) {
+          console.error('[Telefun] Gemini error payload:', JSON.stringify(parsed.error));
+        } else if (parsed.setupComplete) {
+          console.log('[Telefun] Gemini setupComplete received');
+        } else if (parsed.serverContent?.interrupted) {
+          console.log('[Telefun] Gemini interrupted');
+        } else if (parsed.serverContent?.turnComplete) {
+          console.log('[Telefun] Gemini turnComplete');
+        } else if (parsed.serverContent?.modelTurn) {
+          // audio chunk - skip logging to avoid spam
+        } else {
+          console.log(`[Telefun] Gemini message: ${Object.keys(parsed).join(',')}`);
+        }
+      } catch {
+        console.log('[Telefun] Gemini non-JSON message, length:', raw.length);
+      }
       if (ws.readyState === WebSocket.OPEN) {
-        ws.send(data.toString());
+        ws.send(raw);
       }
     });
 
@@ -119,12 +141,27 @@ wss.on('connection', async (ws, req) => {
     });
 
     ws.on('message', (data) => {
-      // Forward from Client to Gemini with queueing
+      const raw = data.toString();
+      if (raw.startsWith('{"realtimeInput"')) {
+        if (isGeminiOpen) geminiWs.send(raw);
+        else messageQueue.push(raw);
+        return;
+      }
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed.setup) {
+          console.log('[Telefun] Client setup message received, model:', parsed.setup.model);
+        } else {
+          console.log(`[Telefun] Client message: ${Object.keys(parsed).join(',')}`);
+        }
+      } catch {
+        console.log('[Telefun] Client non-JSON message, length:', raw.length);
+      }
       if (isGeminiOpen) {
-        geminiWs.send(data.toString());
+        geminiWs.send(raw);
       } else {
         console.log('[Telefun] Queueing client message (Gemini not ready)');
-        messageQueue.push(data.toString());
+        messageQueue.push(raw);
       }
     });
 
