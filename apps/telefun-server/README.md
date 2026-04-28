@@ -29,3 +29,14 @@ npm run start
 - Build Command: `npm install && npm run build`
 - Start Command: `npm run start`
 - Ensure all environment variables are set.
+
+## Deployment Gotcha
+- `npm run start` executes `node dist/server.js`, so Railway must run `npm run build` before starting the service.
+- If a deploy logs `[Telefun] User connected` and `[Telefun] Connected to Gemini Live API` but never logs `[Telefun] Client setup message received`, the running container may still be using a stale `dist/server.js` build.
+- After a successful deploy of the current proxy code, a healthy call should log:
+  ```text
+  [Telefun] User connected: ...
+  [Telefun] Connected to Gemini Live API
+  [Telefun] Client setup message received, model: models/gemini-3.1-flash-live-preview
+  [Telefun] Gemini setupComplete received
+  ```

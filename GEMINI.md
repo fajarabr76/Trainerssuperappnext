@@ -49,6 +49,7 @@ Telefun live simulation runs as a standalone Node.js service (in `apps/telefun-s
 - **Railway Env:** `PORT`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `GEMINI_API_KEY`, `ALLOWED_ORIGINS`.
 - **Frontend Env:** `NEXT_PUBLIC_TELEFUN_WS_URL`.
 - **Auth:** Client sends Supabase access token via query parameter `token` (to avoid WebSocket 1006 handshake issues on proxies). Server validates token using `supabase.auth.getUser()`.
+- **Build gotcha:** Railway must run `npm install && npm run build` before `npm run start` because the service starts from `dist/server.js`. If the logs show `Connected to Gemini Live API` but never `Client setup message received`, check `docs/TELEFUN_KNOWN_ISSUE_RAILWAY_STALE_DIST.md`.
 
 ## Verified Structure
 
