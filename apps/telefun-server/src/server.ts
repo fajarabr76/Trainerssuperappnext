@@ -83,7 +83,7 @@ wss.on('connection', async (ws, req) => {
     console.log(`[Telefun] User connected: ${authResult.user?.email}`);
 
     // Connect to Gemini Multimodal Live (using BidiGenerateContent endpoint compatible with latest SDK patterns)
-    const geminiUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${env.GEMINI_API_KEY}`;
+    const geminiUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${env.GEMINI_API_KEY}`;
     const geminiWs = new WebSocket(geminiUrl);
 
     const messageQueue: string[] = [];
@@ -111,6 +111,12 @@ wss.on('connection', async (ws, req) => {
         const parsed = JSON.parse(raw);
         if (parsed.error) {
           console.error('[Telefun] Gemini error payload:', JSON.stringify(parsed.error));
+          // Forward error to client and terminate — client is waiting for setupComplete that will never come
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(raw);
+            ws.close(1011, `Gemini error: ${(parsed.error as { message?: string }).message?.slice(0, 100) || 'Unknown'}`);
+          }
+          return;
         } else if (parsed.setupComplete) {
           console.log('[Telefun] Gemini setupComplete received');
         } else if (parsed.serverContent?.interrupted) {
@@ -131,13 +137,18 @@ wss.on('connection', async (ws, req) => {
     });
 
     geminiWs.on('error', (err) => {
-      console.error('[Telefun] Gemini WS Error:', err);
+      console.error('[Telefun] Gemini WS Error:', err.message || err);
       ws.close(1011, 'Gemini API Error');
     });
 
     geminiWs.on('close', (code, reason) => {
       console.log(`[Telefun] Gemini WS Closed: ${code} ${reason}`);
-      ws.close(code, reason.toString());
+      // Sanitize: WebSocket spec only allows 1000, 1001, 1003-1013, and 3000-4999 from app code.
+      // Invalid codes (e.g. 1005, 1006, 1015) thrown by ws.close() would crash the handler.
+      const safeCode = (code >= 3000 && code <= 4999) || (code >= 1000 && code <= 1013) ? code : 1011;
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close(safeCode, reason.toString().slice(0, 123));
+      }
     });
 
     ws.on('message', (data) => {
@@ -188,4 +199,6 @@ server.listen(env.PORT, '0.0.0.0', () => {
   console.log(`🚀 Telefun Server running on http://0.0.0.0:${env.PORT}`);
   console.log(`   - Environment: ${env.NODE_ENV}`);
   console.log(`   - Allowed Origins: ${env.ALLOWED_ORIGINS}`);
+  console.log(`   - Gemini Endpoint: v1beta BidiGenerateContent`);
+  console.log(`   - Gemini API Key: ${env.GEMINI_API_KEY ? '***' + env.GEMINI_API_KEY.slice(-4) : 'MISSING ⚠️'}`);
 });
