@@ -13,7 +13,7 @@ export default function DiceBearAvatar({
   name,
   size = 48,
   className = '',
-  style = 'adventurer',
+  style = 'lorelei',
 }: DiceBearAvatarProps) {
   const [hasError, setHasError] = useState(false);
 
@@ -22,7 +22,7 @@ export default function DiceBearAvatar({
   }
 
   const seed = encodeURIComponent(name);
-  const src = `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}`;
+  const src = `https://api.dicebear.com/9.x/${style}/svg?seed=${seed}`;
 
   return (
     <Image

@@ -15,7 +15,12 @@ const envSchema = z.object({
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  console.error('❌ Invalid environment variables:', parsed.error.format());
+  console.error('❌ [Telefun] Invalid or missing environment variables:');
+  const errors = parsed.error.flatten().fieldErrors;
+  Object.entries(errors).forEach(([field, messages]) => {
+    console.error(`   - ${field}: ${messages?.join(', ')}`);
+  });
+  console.error('\n   Please check your Railway variables or .env file.\n');
   process.exit(1);
 }
 
