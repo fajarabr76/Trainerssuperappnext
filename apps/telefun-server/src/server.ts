@@ -33,14 +33,23 @@ const server = createServer((req, res) => {
 
 const wss = new WebSocketServer({ server });
 
+function normalizeOrigin(raw: string): string {
+  try {
+    const u = new URL(raw);
+    return `${u.protocol}//${u.host}`;
+  } catch {
+    return raw.replace(/\/+$/, '');
+  }
+}
+
 const allowedOrigins = env.ALLOWED_ORIGINS === '*'
   ? []
-  : env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean);
+  : env.ALLOWED_ORIGINS.split(',').map((o) => normalizeOrigin(o.trim())).filter(Boolean);
 
 wss.on('connection', async (ws, req) => {
   try {
     const origin = req.headers.origin;
-    if (env.ALLOWED_ORIGINS !== '*' && origin && !allowedOrigins.includes(origin)) {
+    if (env.ALLOWED_ORIGINS !== '*' && origin && !allowedOrigins.includes(normalizeOrigin(origin))) {
       console.warn(`[Telefun] Rejected connection from unauthorized origin: ${origin}`);
       ws.close(4003, 'Forbidden Origin');
       return;
