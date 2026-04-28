@@ -108,23 +108,14 @@ export class LiveSession {
       const trackSettings = track.getSettings();
       const streamSampleRate = trackSettings.sampleRate || 44100;
 
-      // Input context matches microphone sample rate
       this.inputAudioContext = new AudioContextClass({ sampleRate: streamSampleRate });
-      // Output context matches Gemini's 24kHz output
       this.outputAudioContext = new AudioContextClass({ sampleRate: 24000 });
 
-      // Setup recording destination in the output context (which will have both AI and Mic)
       this.recordingDestination = this.outputAudioContext.createMediaStreamDestination();
-      
-      // Connect AI audio to recording destination (done in playAudioChunk)
-      
-      // Connect Microphone to recording destination
-      // We need to bridge the stream to the outputAudioContext
       this.micSourceForRecording = this.outputAudioContext.createMediaStreamSource(this.stream);
       this.micSourceForRecording.connect(this.recordingDestination);
 
       try {
-        // Use a standard mimeType that's widely supported
         const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
           ? 'audio/webm;codecs=opus' 
           : 'audio/webm';
@@ -145,12 +136,11 @@ export class LiveSession {
           }
         };
         
-        this.mediaRecorder.start(1000); // Collect data every second
+        this.mediaRecorder.start(1000);
       } catch (e) {
         console.warn("[Telefun] MediaRecorder initialization failed:", e);
       }
 
-      // Resume contexts if needed
       const resumeContexts = async () => {
         if (this.inputAudioContext?.state === 'suspended') await this.inputAudioContext.resume();
         if (this.outputAudioContext?.state === 'suspended') await this.outputAudioContext.resume();
@@ -161,12 +151,97 @@ export class LiveSession {
 
       this.calculatePlaybackRate();
 
-      currentStep = "Menghubungkan ke Gemini Live...";
+      currentStep = "Menghubungkan ke Proxy Gemini...";
       this.onStatusChange?.(currentStep);
 
-      throw new Error(
-        "Telefun Live dinonaktifkan sementara sampai proxy server-side untuk Gemini Live selesai dihardening."
-      );
+      // Get Supabase Session
+      const { createClient } = await import('@/app/lib/supabase/client');
+      const supabase = createClient();
+      const { data: { session: sbSession } } = await supabase.auth.getSession();
+      
+      if (!sbSession) {
+        throw new Error("Sesi tidak valid. Harap login ulang.");
+      }
+
+      const wsUrl = process.env.NEXT_PUBLIC_TELEFUN_WS_URL;
+      if (!wsUrl) {
+        throw new Error("NEXT_PUBLIC_TELEFUN_WS_URL tidak terkonfigurasi.");
+      }
+
+      // Connect to Railway WebSocket Proxy
+      const ws = new WebSocket(wsUrl, sbSession.access_token);
+      
+      this.session = {
+        sendRealtimeInput: (params: { media: { mimeType: string, data: string } }) => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+              realtimeInput: {
+                mediaChunks: [params.media]
+              }
+            }));
+          }
+        },
+        close: () => {
+          ws.close();
+        }
+      };
+
+      ws.onopen = () => {
+        console.log("[Telefun] WebSocket Proxy connected");
+        
+        // Send Setup
+        const voiceName = this.config.consumerType.id === 'marah' ? 'Fenrir' : 'Kore';
+        
+        // Force the official Gemini Live model for the transport session
+        const TELEFUN_LIVE_MODEL = "gemini-3.1-flash-live-preview";
+
+        const setupMessage = {
+          setup: {
+            model: `models/${TELEFUN_LIVE_MODEL}`,
+            generationConfig: {
+              responseModalities: ["audio"],
+              speechConfig: {
+                voiceConfig: {
+                  prebuiltVoiceConfig: { voiceName }
+                }
+              }
+            },
+            systemInstruction: {
+              parts: [{ text: this.buildSystemInstruction() }]
+            }
+          }
+        };
+        ws.send(JSON.stringify(setupMessage));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          
+          if (message.setupComplete) {
+            console.log("[Telefun] Gemini Setup Complete");
+            this.onConnect?.();
+            this.onStatusChange?.("Tersambung");
+            this.startAudioInput();
+          }
+
+          this.handleMessage(message);
+        } catch (e) {
+          console.error("[Telefun] Error parsing message:", e);
+        }
+      };
+
+      ws.onerror = (e) => {
+        console.error("[Telefun] WebSocket Error:", e);
+        this.onError?.(new Error("Koneksi WebSocket Gagal"));
+      };
+
+      ws.onclose = (e) => {
+        console.log("[Telefun] WebSocket Closed:", e.code, e.reason);
+        if (!this.isDisconnected) {
+          this.disconnect();
+        }
+      };
 
     } catch (err: unknown) {
       console.error("[Telefun] Connection setup failed:", err);
@@ -262,9 +337,13 @@ export class LiveSession {
 
   private async handleMessage(message: LiveServerMessage) {
     const modelTurn = message.serverContent?.modelTurn;
-    if (modelTurn?.parts?.[0]?.inlineData?.data) {
-      const base64Audio = modelTurn.parts[0].inlineData.data;
-      this.playAudioChunk(base64Audio);
+    if (modelTurn?.parts) {
+      // Process all parts as Gemini 3.1 Flash Live can return multiple parts in one event
+      for (const part of modelTurn.parts) {
+        if (part.inlineData?.data) {
+          this.playAudioChunk(part.inlineData.data);
+        }
+      }
     }
 
     if (message.serverContent?.interrupted) {

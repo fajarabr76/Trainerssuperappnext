@@ -14,7 +14,10 @@
     "test:sidak:watch": "vitest tests/sidak",
     "backup:supabase": "bash scripts/backup-supabase.sh",
     "backup:supabase:storage": "node scripts/backup-supabase-storage.mjs",
-    "backup:supabase:all": "npm run backup:supabase && npm run backup:supabase:storage"
+    "backup:supabase:all": "npm run backup:supabase && npm run backup:supabase:storage",
+    "telefun:dev": "npm --prefix apps/telefun-server run dev",
+    "telefun:build": "npm --prefix apps/telefun-server run build",
+    "telefun:start": "npm --prefix apps/telefun-server run start"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
