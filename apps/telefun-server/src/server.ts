@@ -48,6 +48,59 @@ const allowedOrigins = env.ALLOWED_ORIGINS === '*'
 
 wss.on('connection', async (ws, req) => {
   try {
+    // --- CRITICAL: Register ALL client WS handlers SYNCHRONOUSLY before any await ---
+    // Node.js EventEmitter discards events without listeners. If the client sends
+    // a message (e.g. setup) during the async verifyToken window (~100ms), the
+    // 'message' event fires but no handler catches it → message is permanently lost.
+    // Fix: buffer everything immediately, process after auth + Gemini setup complete.
+
+    const pendingMessages: string[] = [];
+    let geminiWs: WebSocket | null = null;
+    let isGeminiOpen = false;
+
+    ws.on('message', (data) => {
+      const raw = data.toString();
+      // Fast-path audio chunks
+      if (raw.startsWith('{"realtimeInput"')) {
+        if (geminiWs && isGeminiOpen) geminiWs.send(raw);
+        else pendingMessages.push(raw);
+        return;
+      }
+      // Log non-audio messages
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed.setup) {
+          console.log('[Telefun] Client setup message received, model:', parsed.setup.model);
+        } else {
+          console.log(`[Telefun] Client message: ${Object.keys(parsed).join(',')}`);
+        }
+      } catch {
+        console.log('[Telefun] Client non-JSON message, length:', raw.length);
+      }
+      // Forward or queue
+      if (geminiWs && isGeminiOpen) {
+        geminiWs.send(raw);
+      } else {
+        console.log('[Telefun] Queueing client message (Gemini not ready)');
+        pendingMessages.push(raw);
+      }
+    });
+
+    ws.on('close', () => {
+      console.log('[Telefun] Client connection closed');
+      if (geminiWs && (geminiWs.readyState === WebSocket.OPEN || geminiWs.readyState === WebSocket.CONNECTING)) {
+        geminiWs.close();
+      }
+    });
+
+    ws.on('error', (err) => {
+      console.error('[Telefun] Client WS Error:', err);
+      if (geminiWs && (geminiWs.readyState === WebSocket.OPEN || geminiWs.readyState === WebSocket.CONNECTING)) {
+        geminiWs.close();
+      }
+    });
+
+    // --- Synchronous validation (no await, safe before message handler) ---
     const origin = req.headers.origin;
     if (env.ALLOWED_ORIGINS !== '*' && origin && !allowedOrigins.includes(normalizeOrigin(origin))) {
       console.warn(`[Telefun] Rejected connection from unauthorized origin: ${origin}`);
@@ -56,22 +109,19 @@ wss.on('connection', async (ws, req) => {
     }
 
     const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
-    
-    // Optional: Only accept connections to root or specific path
     if (url.pathname !== '/' && url.pathname !== '/ws') {
       ws.close(4000, 'Invalid Path');
       return;
     }
 
     const token = url.searchParams.get('token');
-
     if (!token) {
       console.warn('[Telefun] Missing token in query params');
       ws.close(4001, 'Unauthorized: Missing Token');
       return;
     }
 
-    // Verify Supabase Token
+    // --- Async auth (messages arriving during this window are now safely buffered) ---
     const authResult = await verifyToken(token);
 
     if (!authResult.success) {
@@ -80,23 +130,26 @@ wss.on('connection', async (ws, req) => {
       return;
     }
 
+    // Client may have disconnected while we were verifying
+    if (ws.readyState !== WebSocket.OPEN) {
+      console.log('[Telefun] Client disconnected during auth');
+      return;
+    }
+
     console.log(`[Telefun] User connected: ${authResult.user?.email}`);
 
-    // Connect to Gemini Multimodal Live (using BidiGenerateContent endpoint compatible with latest SDK patterns)
+    // --- Connect to Gemini Multimodal Live ---
     const geminiUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${env.GEMINI_API_KEY}`;
-    const geminiWs = new WebSocket(geminiUrl);
-
-    const messageQueue: string[] = [];
-    let isGeminiOpen = false;
+    geminiWs = new WebSocket(geminiUrl);
 
     geminiWs.on('open', () => {
       console.log('[Telefun] Connected to Gemini Live API');
       isGeminiOpen = true;
-      // Flush queue
-      while (messageQueue.length > 0) {
-        const msg = messageQueue.shift();
+      // Flush all pending messages (including setup message from client)
+      while (pendingMessages.length > 0) {
+        const msg = pendingMessages.shift();
         if (msg) {
-          geminiWs.send(msg);
+          geminiWs!.send(msg);
         }
       }
     });
@@ -138,55 +191,17 @@ wss.on('connection', async (ws, req) => {
 
     geminiWs.on('error', (err) => {
       console.error('[Telefun] Gemini WS Error:', err.message || err);
-      ws.close(1011, 'Gemini API Error');
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close(1011, 'Gemini API Error');
+      }
     });
 
     geminiWs.on('close', (code, reason) => {
       console.log(`[Telefun] Gemini WS Closed: ${code} ${reason}`);
       // Sanitize: WebSocket spec only allows 1000, 1001, 1003-1013, and 3000-4999 from app code.
-      // Invalid codes (e.g. 1005, 1006, 1015) thrown by ws.close() would crash the handler.
       const safeCode = (code >= 3000 && code <= 4999) || (code >= 1000 && code <= 1013) ? code : 1011;
       if (ws.readyState === WebSocket.OPEN) {
         ws.close(safeCode, reason.toString().slice(0, 123));
-      }
-    });
-
-    ws.on('message', (data) => {
-      const raw = data.toString();
-      if (raw.startsWith('{"realtimeInput"')) {
-        if (isGeminiOpen) geminiWs.send(raw);
-        else messageQueue.push(raw);
-        return;
-      }
-      try {
-        const parsed = JSON.parse(raw);
-        if (parsed.setup) {
-          console.log('[Telefun] Client setup message received, model:', parsed.setup.model);
-        } else {
-          console.log(`[Telefun] Client message: ${Object.keys(parsed).join(',')}`);
-        }
-      } catch {
-        console.log('[Telefun] Client non-JSON message, length:', raw.length);
-      }
-      if (isGeminiOpen) {
-        geminiWs.send(raw);
-      } else {
-        console.log('[Telefun] Queueing client message (Gemini not ready)');
-        messageQueue.push(raw);
-      }
-    });
-
-    ws.on('close', () => {
-      console.log('[Telefun] Client connection closed');
-      if (geminiWs.readyState === WebSocket.OPEN || geminiWs.readyState === WebSocket.CONNECTING) {
-        geminiWs.close();
-      }
-    });
-
-    ws.on('error', (err) => {
-      console.error('[Telefun] Client WS Error:', err);
-      if (geminiWs.readyState === WebSocket.OPEN || geminiWs.readyState === WebSocket.CONNECTING) {
-        geminiWs.close();
       }
     });
   } catch (err) {
