@@ -193,9 +193,9 @@ export class LiveSession {
       this.session = {
         sendRealtimeInput: (params: { media: { mimeType: string, data: string } }) => {
           if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
+             ws.send(JSON.stringify({
               realtimeInput: {
-                mediaChunks: [params.media]
+                audio: params.media
               }
             }));
           }
