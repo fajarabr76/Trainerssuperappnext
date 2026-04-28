@@ -1,9 +1,12 @@
 import 'server-only';
 
+import { unstable_cache } from 'next/cache';
 import { createAdminClient } from '@/app/lib/supabase/admin';
 import type { ChatMessage } from '@/app/types';
 import type { EmailMessage, SessionConfig as PdktSessionConfig, EvaluationResult as PdktEvaluationResult } from '@/app/(main)/pdkt/types';
 import type { UnifiedHistory } from './types';
+
+export const MONITORING_CACHE_TAG = 'monitoring-history';
 
 type RoleProfile = {
   id: string;
@@ -42,18 +45,20 @@ function createTelefunSignature(entry: Pick<UnifiedHistory, 'user_id' | 'scenari
   ].join('::');
 }
 
-export async function getMonitoringHistory(): Promise<UnifiedHistory[]> {
+export const getMonitoringHistory = unstable_cache(
+  async (): Promise<UnifiedHistory[]> => {
   try {
     const admin = createAdminClient();
     const [ketikRes, pdktRes, telefunHistoryRes, telefunResultsRes] = await Promise.all([
-      admin.from('ketik_history').select('*').order('date', { ascending: false }),
-      admin.from('pdkt_history').select('*').order('timestamp', { ascending: false }),
-      admin.from('telefun_history').select('*').order('date', { ascending: false }),
+      admin.from('ketik_history').select('id, user_id, date, scenario_title, messages').order('date', { ascending: false }).limit(200),
+      admin.from('pdkt_history').select('id, user_id, timestamp, config, emails, evaluation, time_taken, evaluation_status').order('timestamp', { ascending: false }).limit(200),
+      admin.from('telefun_history').select('id, user_id, date, scenario_title, duration, recording_url').order('date', { ascending: false }).limit(200),
       admin
         .from('results')
         .select('id, user_id, module, score, details, history, created_at')
         .eq('module', 'telefun')
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+        .limit(200),
     ]);
 
     if (ketikRes.error) console.error('[monitoring] Failed to read ketik_history:', ketikRes.error);
@@ -173,4 +178,7 @@ export async function getMonitoringHistory(): Promise<UnifiedHistory[]> {
     console.error('[monitoring] Failed to assemble unified monitoring history:', error);
     return [];
   }
-}
+},
+['monitoring-history-data'],
+{ revalidate: 300, tags: [MONITORING_CACHE_TAG] }
+);

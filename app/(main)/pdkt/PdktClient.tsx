@@ -93,9 +93,10 @@ const PdktPage: React.FC = () => {
 
     const { data, error } = await supabase
       .from('pdkt_history')
-      .select('*')
+      .select('id, user_id, timestamp, config, emails, evaluation, evaluation_status, evaluation_error, evaluation_started_at, evaluation_completed_at, time_taken')
       .eq('user_id', user.id)
-      .order('timestamp', { ascending: false });
+      .order('timestamp', { ascending: false })
+      .limit(50);
 
     if (error) { 
       console.error('Error fetching PDKT history:', {
@@ -127,7 +128,7 @@ const PdktPage: React.FC = () => {
 
     const { data, error } = await supabase
       .from('pdkt_history')
-      .select('*')
+      .select('id, user_id, timestamp, config, emails, evaluation, evaluation_status, evaluation_error, evaluation_started_at, evaluation_completed_at, time_taken')
       .eq('id', sessionId)
       .eq('user_id', user.id)
       .single();
@@ -157,7 +158,7 @@ const PdktPage: React.FC = () => {
 
     const timer = window.setInterval(() => {
       void refreshCurrentSession(currentSessionId);
-    }, 4000);
+    }, 10000);
 
     return () => window.clearInterval(timer);
   }, [currentSessionId, evaluationStatus, refreshCurrentSession, view]);
@@ -168,7 +169,7 @@ const PdktPage: React.FC = () => {
 
     const runId = sessionRunIdRef.current;
     let attempts = 0;
-    const maxAttempts = 30; // 30 * 4s = 2 menit
+    const maxAttempts = 18;
 
     const timer = window.setInterval(async () => {
       attempts++;
@@ -212,7 +213,7 @@ const PdktPage: React.FC = () => {
       } catch (e) {
         console.warn('[PDKT] Post-close polling exception:', e);
       }
-    }, 4000);
+    }, 10000);
 
     return () => window.clearInterval(timer);
   }, [closedSessionId, closedSessionBaseline, user]);

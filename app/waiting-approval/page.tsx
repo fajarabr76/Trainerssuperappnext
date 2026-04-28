@@ -50,7 +50,7 @@ export default function WaitingApprovalPage() {
     };
 
     void checkStatus();
-    const interval = setInterval(() => void checkStatus(), 30000);
+    const interval = setInterval(() => void checkStatus(), 60000);
     return () => clearInterval(interval);
   }, [router, supabase]);
 

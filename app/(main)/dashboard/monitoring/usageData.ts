@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { unstable_cache } from 'next/cache';
 import { createAdminClient } from '@/app/lib/supabase/admin';
 import { AI_MODELS } from '@/app/lib/ai-models';
 
@@ -51,7 +52,9 @@ export interface UsageFilters {
   module?: string;
 }
 
-export async function getUsageAggregation(filters: UsageFilters): Promise<UsageAggregation[]> {
+export const USAGE_CACHE_TAG = 'usage-aggregation';
+
+async function getUsageAggregationInternal(filters: UsageFilters): Promise<UsageAggregation[]> {
   try {
     const admin = createAdminClient();
     const { start, end } = getWibMonthBounds(filters.year, filters.month);
@@ -150,6 +153,16 @@ export async function getUsageAggregation(filters: UsageFilters): Promise<UsageA
     console.error('[Usage] Exception while fetching usage aggregation:', error);
     return [];
   }
+}
+
+export async function getUsageAggregation(filters: UsageFilters): Promise<UsageAggregation[]> {
+  const cacheKey = `usage-${filters.year}-${filters.month}-${filters.module || 'all'}`;
+  const cached = unstable_cache(
+    () => getUsageAggregationInternal(filters),
+    [cacheKey],
+    { revalidate: 600, tags: [USAGE_CACHE_TAG] }
+  );
+  return cached();
 }
 
 export interface UserUsageSummary {

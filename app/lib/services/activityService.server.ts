@@ -16,7 +16,7 @@ export const activityServiceServer = {
     
     const { data, error } = await supabase
       .from('activity_logs')
-      .select('*')
+      .select('id, user_id, user_name, action, module, type, created_at')
       .order('created_at', { ascending: false })
       .limit(limit);
       

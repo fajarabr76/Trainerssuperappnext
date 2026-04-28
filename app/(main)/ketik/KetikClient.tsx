@@ -74,9 +74,10 @@ export default function AppKetik() {
       if (!user?.id) return;
       const { data, error } = await supabase
         .from('ketik_history')
-        .select('*')
+        .select('id, user_id, date, created_at, scenario_title, consumer_name, consumer_phone, consumer_city, messages')
         .eq('user_id', user.id)
-        .order('date', { ascending: false });
+        .order('date', { ascending: false })
+        .limit(50);
 
       if (error) {
         console.error('Error fetching ketik_history:', error);
