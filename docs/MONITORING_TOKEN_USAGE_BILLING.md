@@ -7,7 +7,7 @@ Dokumen ini menjelaskan kontrak fitur monitoring token bulanan, billing Rupiah, 
 Fitur ini menambahkan observabilitas usage AI lintas modul dengan dua permukaan utama:
 
 - `/dashboard/monitoring` untuk rekap lintas akun
-- quick-view `Usage Bulan Ini` di modul `KETIK` dan `PDKT` untuk user login
+- quick-view usage bulanan di modul `KETIK`, `PDKT`, dan `TELEFUN` untuk user login
 
 Tujuan utamanya:
 
@@ -45,12 +45,13 @@ Tab `Harga & Kurs`:
 
 ### 2. Quick-view Modul
 
-KETIK dan PDKT menampilkan tombol `Usage Bulan Ini` tepat di bawah `Riwayat`.
+KETIK dan PDKT menampilkan tombol `Usage Bulan Ini` tepat di bawah `Riwayat`. Telefun menampilkan tombol `Usage` di action stack halaman utama.
 
 Scope quick-view:
 
 - KETIK hanya menghitung `module = 'ketik'`
 - PDKT hanya menghitung `module = 'pdkt'`
+- TELEFUN hanya menghitung `module = 'telefun'`
 
 Isi modal:
 
@@ -61,7 +62,7 @@ Isi modal:
 - estimasi billing Rupiah
 - label periode aktif, misalnya `1 April 2026 - 30 April 2026 WIB`
 
-Telefun dan QA Analyzer ikut tercatat dalam monitoring usage bulanan, tetapi tidak memiliki quick-view modal khusus.
+QA Analyzer ikut tercatat dalam monitoring usage bulanan, tetapi tidak memiliki quick-view modal khusus.
 
 #### Indikator Kenaikan Biaya Sesi (`+Rp`)
 
@@ -81,6 +82,12 @@ Setelah sesi selesai, tombol `Usage Bulan Ini` dan bagian atas modal menampilkan
 - Jika user menutup sesi saat evaluasi masih `processing`, sistem menampilkan **delta provisional** + label "masih diproses".
 - Setelah evaluasi selesai (status berubah ke `completed`/`failed`), sistem melakukan polling ringan (interval 4 detik, max 2 menit) untuk refetch usage dan recompute delta final.
 - Jika polling timeout, label "masih diproses" dihapus dan delta terakhir dipertahankan.
+
+**Alur khusus Telefun:**
+
+- Baseline usage diambil saat panggilan dimulai dan delta dihitung ulang setelah rekaman sesi selesai diproses.
+- Usage live audio real-time Gemini Live melalui WebSocket proxy tidak otomatis memiliki metadata token dari browser stream. Usage Telefun yang tercatat berasal dari call non-live yang melewati wrapper server-side `generateGeminiContent()` dengan `usageContext`.
+- Jika sesi hanya memakai stream live dan tidak memicu call non-live yang mengembalikan metadata token, modal usage tetap valid tetapi tidak wajib bertambah.
 
 **Session-run guard:**
 
@@ -201,6 +208,8 @@ Catatan:
   - jika evaluasi masih `processing` saat sesi ditutup, pastikan badge/modal menampilkan delta provisional + label "masih diproses"
   - setelah evaluasi selesai, pastikan nilai delta auto-update tanpa perlu refresh halaman
 - Jalankan flow Telefun yang memicu AI call, lalu cek usage muncul untuk modul `telefun`
+  - buka modal `Usage` Telefun dan pastikan periode/call/token/biaya membaca module `telefun`
+  - setelah sesi selesai dan ada usage baru, pastikan badge `+Rp` muncul di tombol `Usage`
 - Jalankan pembuatan narasi laporan QA Analyzer, lalu cek usage muncul untuk modul `qa-analyzer`
 - Uji boundary akhir bulan WIB dengan request dekat pergantian bulan; request harus masuk ke bulan WIB yang benar
 - Login sebagai `leader`; pastikan tab `Penggunaan Token` ada, tetapi tab `Harga & Kurs` tidak ada
@@ -210,7 +219,7 @@ Catatan:
 
 - tidak ada backfill histori lama
 - tidak ada export CSV/XLSX usage
-- quick-view hanya tersedia untuk KETIK dan PDKT
+- quick-view tersedia untuk KETIK, PDKT, dan TELEFUN; QA Analyzer hanya lewat monitoring pusat
 - jika model belum punya pricing atau provider tidak memberi metadata token, request user tetap berjalan tetapi usage tidak tercatat
 - delta sesi dihitung dari selisih total usage bulan berjalan (bukan per `request_id` individual)
 - jika ada lag logging/persist, nilai awal boleh provisional lalu disinkronkan (khusus PDKT async)

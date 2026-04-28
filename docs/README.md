@@ -14,6 +14,7 @@ Dokumen ini adalah peta baca untuk kondisi aplikasi Trainers SuperApp saat ini. 
 ## Operasional
 
 - `docs/MONITORING_TOKEN_USAGE_BILLING.md`: Kontrak usage AI bulanan, billing Rupiah, pricing/kurs, quick-view modul, dan smoke test.
+- `docs/TELEFUN_OPERATIONAL_RUNBOOK.md`: Kontrak runtime Telefun, WebSocket proxy Railway, env, storage rekaman, usage, dan smoke test.
 - `docs/SUPABASE_LOCAL_BACKUP.md`: Backup lokal Supabase database dan Storage.
 - `docs/VERCEL_RES_OPTIMIZATION.md`: Catatan optimasi Vercel RES, hasil Tahap 0-3, guardrail performa, dan gate persetujuan sebelum auth/cache/dependency cleanup.
 - `docs/QA_DASHBOARD_SUMMARY_ROLLUP_STAGING.md`: Scope commit, catatan file Supabase CLI, dan checklist testing staging untuk summary rollup dashboard SIDAK.
@@ -28,6 +29,7 @@ Dokumen ini adalah peta baca untuk kondisi aplikasi Trainers SuperApp saat ini. 
 - `docs/KETIK_KNOWN_ISSUE_TIMEOUT_CONTEXT_HISTORY.md`: Timeout, konteks chat, dan history KETIK.
 - `docs/KETIK_PDKT_SETTINGS_DRAFT_AUTOCOMMIT.md`: Draft settings modal KETIK/PDKT yang harus ikut tersimpan saat `Simpan Perubahan`.
 - `docs/PDKT_EMAIL_COMPOSER_REFRESH_V1.md`: Refresh UI composer PDKT.
+- `docs/TELEFUN_KNOWN_ISSUE_RAILWAY_STALE_DIST.md`: Diagnostik Telefun saat Railway menjalankan `dist/server.js` lama.
 - `docs/SIDAK_KNOWN_ISSUE_AGENT_DETAIL_SCORE.md`: Penutupan mismatch skor detail agent.
 - `docs/SIDAK_KNOWN_ISSUE_SERVICE_DEFAULT_CSO_CALL.md`: Service default CSO-vs-Call di input SIDAK.
 - `docs/SIDAK_KNOWN_ISSUE_RANKING_COMPLETENESS_PARAMETER_ORDER.md`: Ranking completeness dan urutan parameter dashboard.

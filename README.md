@@ -19,7 +19,7 @@ Nama modul yang dipakai di repo ini adalah:
 - **Unified Dashboard**: Pusat kendali protected app dengan shortcut modul, aktivitas, monitoring lintas akun, dan manajemen user.
 - **KETIK**: Simulasi chat layanan berbasis AI, history tersimpan di Supabase, settings local-first plus sync akun, serta quick-view `Usage Bulan Ini`.
 - **PDKT**: Simulasi email dengan composer-style reply, evaluasi async, history Supabase, quick-view usage, dan status evaluasi `processing/completed/failed`.
-- **TELEFUN**: Simulasi percakapan telepon dengan pembuka, respons, TTS, dan scoring AI; usage tercatat di monitoring pusat.
+- **TELEFUN**: Simulasi percakapan telepon berbasis Gemini Live melalui WebSocket proxy, history `telefun_history`, quick-view `Usage`, dan monitoring pusat.
 - **Profiler / KTP**: Database peserta dan agen dengan folder bertingkat, import/export, slides, tim, foto, dan workflow export.
 - **SIDAK / QA Analyzer**: Dashboard kualitas, input temuan, ranking, laporan data/AI, aturan clean-session, dan guardrail scoring versioned rules.
 - **Monitoring Usage & Billing**: Rekap token dan biaya AI bulanan berbasis WIB, editor harga/kurs untuk role yang diizinkan, dan snapshot biaya per request sukses.
@@ -45,8 +45,9 @@ Untuk pemahaman lebih dalam mengenai sistem, silakan merujuk ke dokumen berikut:
 4. **[Auth & RBAC](docs/auth-rbac.md)**: Role, approval akun, route guard, dan kontrak profile read.
 5. **[Database Schema](docs/database.md)**: Tabel utama, RLS, usage billing, dan Storage.
 6. **[Monitoring Usage & Billing](docs/MONITORING_TOKEN_USAGE_BILLING.md)**: Kontrak usage AI, billing Rupiah, dan smoke test.
-7. **[Supabase Local Backup](docs/SUPABASE_LOCAL_BACKUP.md)**: Backup database dan Storage lokal.
-8. **[Design Guidelines](docs/design-guidelines.md)**: Standar visual, komponen, dan prinsip UI/UX.
+7. **[Telefun Operational Runbook](docs/TELEFUN_OPERATIONAL_RUNBOOK.md)**: Runtime Telefun, WebSocket proxy Railway, env, usage, dan smoke test.
+8. **[Supabase Local Backup](docs/SUPABASE_LOCAL_BACKUP.md)**: Backup database dan Storage lokal.
+9. **[Design Guidelines](docs/design-guidelines.md)**: Standar visual, komponen, dan prinsip UI/UX.
 
 ---
 
@@ -76,6 +77,7 @@ Untuk pemahaman lebih dalam mengenai sistem, silakan merujuk ke dokumen berikut:
    GEMINI_API_KEY=your_gemini_key
    OPENROUTER_API_KEY=your_openrouter_key
    NEXT_PUBLIC_APP_URL=http://localhost:3000
+   NEXT_PUBLIC_TELEFUN_WS_URL=ws://localhost:3001/ws
    ```
 4. Jalankan mode pengembangan:
    ```bash
@@ -93,9 +95,13 @@ npm run build
 npm run backup:supabase
 npm run backup:supabase:storage
 npm run backup:supabase:all
+npm run telefun:dev
+npm run telefun:build
+npm run telefun:start
 ```
 
 `npm run type-check` menjalankan `next build`, sehingga validasi ini lebih berat daripada type-check murni dan juga memicu linting build.
+`npm run telefun:*` menjalankan service WebSocket proxy di `apps/telefun-server`; gunakan bersama `npm run dev` saat menguji voice flow Telefun lokal.
 
 ## Catatan Pengembangan
 - Gunakan direktori `app/(main)` untuk halaman aplikasi utama yang diproteksi auth.

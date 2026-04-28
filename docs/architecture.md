@@ -25,6 +25,8 @@ graph TD
     NextServer -->|SQL / Auth| Supabase[(Supabase / PostgreSQL)]
     API -->|Admin SQL / Async Jobs| Supabase
     Frontend -->|Realtime / Client SDK| Supabase
+    Frontend -->|WebSocket Voice| TelefunProxy[Telefun Node Proxy]
+    TelefunProxy -->|Gemini Live WebSocket| GeminiLive[Gemini Live API]
     NextServer -->|AI Analysis| AIProviders[Gemini / OpenRouter]
     API -->|AI Evaluation| AIProviders
 ```
@@ -35,7 +37,8 @@ graph TD
 3. **Route Handlers**: Dipakai untuk flow server-only tertentu yang butuh endpoint eksplisit, misalnya evaluasi async PDKT di `app/api/pdkt/evaluate`.
 4. **Supabase**: Menangani autentikasi user, penyimpanan data persisten, RLS, dan media Storage.
 5. **RLS (Row Level Security)**: Memastikan keamanan data di tingkat database berdasarkan role user (Admin, Trainer, Leader, Agent).
-6. **AI Providers**: Modul simulasi dan beberapa flow laporan memakai provider abstraction server-side yang saat ini mendukung Gemini dan OpenRouter.
+6. **Telefun Proxy**: Flow voice real-time Telefun memakai service Node terpisah di `apps/telefun-server` untuk memvalidasi token Supabase lalu meneruskan audio ke Gemini Live API.
+7. **AI Providers**: Modul simulasi dan beberapa flow laporan memakai provider abstraction server-side yang saat ini mendukung Gemini dan OpenRouter.
 
 ## Directory Structure
 
@@ -54,6 +57,8 @@ Struktur folder proyek mengikuti konvensi Next.js App Router:
 │   ├── components/       # Shared UI Components (Card, Button, Sidebar, dll)
 │   ├── lib/              # Core logic, services, hooks, & Supabase client
 │   └── actions/          # Server Actions untuk mutasi data
+├── apps/
+│   └── telefun-server/   # Node WebSocket proxy untuk Gemini Live Telefun
 ├── scripts/              # Tooling operasional repo, termasuk backup Supabase
 ├── public/               # Asset statis (image, fonts, icons)
 ├── supabase/             # Konfigurasi Supabase & Migrasi SQL
@@ -89,6 +94,15 @@ Environment utama yang dipakai aplikasi:
 - `GEMINI_API_KEY`
 - `OPENROUTER_API_KEY`
 - `NEXT_PUBLIC_APP_URL`
+- `NEXT_PUBLIC_TELEFUN_WS_URL`
+
+Environment khusus `apps/telefun-server`:
+
+- `PORT`
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `GEMINI_API_KEY`
+- `ALLOWED_ORIGINS`
 
 Repo ini belum menyediakan `.env.example`; buat `.env.local` secara manual. Wrapper Supabase tertentu memiliki placeholder agar build/dev helper tidak langsung crash saat public env kosong, tetapi runtime fitur auth/admin/AI tetap membutuhkan env yang benar.
 

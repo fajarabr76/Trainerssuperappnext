@@ -49,12 +49,14 @@ Workspace untuk latihan korespondensi email yang terstandarisasi.
 ## 4. TELEFUN (Telephone Fun)
 Modul simulasi komunikasi suara untuk melatih intonasi dan kecepatan respon telepon.
 
-- **Fungsi**: Mempersiapkan peserta untuk menangani panggilan masuk/keluar melalui simulasi suara berbasis AI.
+- **Fungsi**: Mempersiapkan peserta untuk menangani panggilan telepon melalui simulasi suara berbasis AI.
 - **Fitur Utama**:
-  - **Voice Interface**: Simulasi visual panggilan telepon.
-  - **Context Modal**: Informasi data pelanggan yang muncul saat panggilan berlangsung.
-- **Catatan Teknis**: Response AI untuk pembuka panggilan, balasan konsumen, dan scoring memakai fallback aman bila provider mengembalikan payload kosong atau tidak valid. Call AI Telefun sekarang ikut tercatat ke usage billing bulanan melalui action `voice_tts`, `chat_response`, `first_message`, dan `score_generation`, tetapi belum memiliki quick-view modal tersendiri.
-- **Dokumen Terkait**: `docs/MONITORING_TOKEN_USAGE_BILLING.md`.
+  - **Live Voice Interface**: Panggilan dimulai dari ringtone, izin mikrofon, koneksi WebSocket proxy, lalu status `Tersambung` setelah Gemini Live mengirim `setupComplete`.
+  - **Hold & Mute**: User bisa mute mikrofon dan menahan panggilan; hold pertama memakai timer 60 detik, hold berikutnya 180 detik.
+  - **Recording & History**: Rekaman browser dibuat sebagai blob URL, disimpan ke local history, lalu sesi login dipersist ke `telefun_history` dan row kompatibilitas `results`.
+  - **Usage Bulanan**: Quick-view `Usage` tersedia di halaman Telefun dengan akumulasi khusus modul `telefun`.
+- **Catatan Teknis**: Runtime voice real-time memakai client `LiveSession` di `app/(main)/telefun/services/geminiService.ts` dan proxy Node terpisah di `apps/telefun-server`. Frontend membutuhkan `NEXT_PUBLIC_TELEFUN_WS_URL`; proxy Railway membutuhkan `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `GEMINI_API_KEY`, dan `ALLOWED_ORIGINS`. Sesi live memakai model transport `gemini-3.1-flash-live-preview`, sedangkan pembuka/respons fallback/scoring non-live tetap lewat wrapper server-side `generateGeminiContent()` dan tercatat ke usage billing dengan action `voice_tts`, `chat_response`, `first_message`, dan `score_generation`. Akses UI Telefun masih diberi warning/maintenance gate: role `admin` dan `trainer` bisa lanjut ke modul, sedangkan role lain diarahkan kembali.
+- **Dokumen Terkait**: `docs/TELEFUN_OPERATIONAL_RUNBOOK.md`, `docs/TELEFUN_KNOWN_ISSUE_RAILWAY_STALE_DIST.md`, `docs/MONITORING_TOKEN_USAGE_BILLING.md`.
 
 ## 5. KTP / Profiler (Kotak Tool Profil)
 Sistem manajemen database terstruktur untuk peserta training dan agen aktif.

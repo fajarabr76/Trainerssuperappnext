@@ -120,7 +120,7 @@ Kontrak akses untuk fitur monitoring usage billing:
 
 Catatan:
 - `leader` tetap dapat melihat agregasi usage lintas akun, tetapi tidak menerima editor pricing/kurs dari server.
-- `agent` tidak memiliki akses ke monitoring lintas akun, tetapi tetap dapat melihat quick-view usage miliknya sendiri di KETIK dan PDKT.
+- `agent` tidak memiliki akses ke monitoring lintas akun, tetapi tetap dapat melihat quick-view usage miliknya sendiri di modul pribadi yang menyediakan quick-view. Pada snapshot sekarang quick-view tersedia di KETIK, PDKT, dan TELEFUN; akses UI TELEFUN tetap melewati warning gate modul.
 - Detail perilaku fitur dan smoke test operasional ada di `docs/MONITORING_TOKEN_USAGE_BILLING.md`.
 
 ## Referensi Guardrail

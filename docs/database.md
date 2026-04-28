@@ -42,6 +42,7 @@ Menyimpan hasil simulasi legacy/kompatibilitas dari modul Ketik dan Telefun, ser
 ### 3. Modul Simulasi
 - **`ketik_history`**: Riwayat sesi KETIK per user, termasuk skenario, identitas konsumen, dan messages.
 - **`pdkt_history`**: Riwayat sesi PDKT per user, email thread, config, waktu pengerjaan, dan hasil evaluasi async.
+- **`telefun_history`**: Riwayat sesi TELEFUN per user, termasuk skenario, identitas konsumen, durasi, URL rekaman, skor, dan feedback. Row ini menjadi sumber utama histori Telefun; `results` tetap diisi untuk kompatibilitas monitoring lama melalui `details.legacy_history_id`.
 - **`user_settings`**: Settings modul yang disimpan per user untuk KETIK, PDKT, dan TELEFUN. Modul tetap local-first di browser, lalu sync ke Supabase saat user login.
 
 ### 4. Modul Profiler (KTP)
@@ -92,4 +93,4 @@ Aplikasi menggunakan Supabase Storage bucket:
 - `reports`: Menyimpan dokumen laporan AI SIDAK yang di-generate.
 - `telefun-recordings`: Menyimpan rekaman Telefun jika fitur rekaman digunakan.
 
-Backup database via `pg_dump` hanya mencakup schema/data PostgreSQL dan metadata storage. File fisik di bucket Storage harus dibackup terpisah melalui `npm run backup:supabase:storage`; lihat `docs/SUPABASE_LOCAL_BACKUP.md`.
+Backup database via `pg_dump` hanya mencakup schema/data PostgreSQL dan metadata storage. File fisik di bucket Storage harus dibackup terpisah melalui `npm run backup:supabase:storage`; lihat `docs/SUPABASE_LOCAL_BACKUP.md`. Untuk Telefun, backup yang lengkap berarti row `telefun_history` berada di dump database dan object audio di bucket `telefun-recordings` ikut masuk backup Storage bila rekaman sudah diunggah ke Supabase Storage.
