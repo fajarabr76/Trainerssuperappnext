@@ -15,7 +15,9 @@ const server = createServer((req, res) => {
 
 const wss = new WebSocketServer({ server });
 
-const allowedOrigins = env.ALLOWED_ORIGINS === '*' ? [] : env.ALLOWED_ORIGINS.split(',');
+const allowedOrigins = env.ALLOWED_ORIGINS === '*'
+  ? []
+  : env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean);
 
 wss.on('connection', async (ws, req) => {
   const origin = req.headers.origin;
@@ -46,7 +48,7 @@ wss.on('connection', async (ws, req) => {
   const geminiUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${env.GEMINI_API_KEY}`;
   const geminiWs = new WebSocket(geminiUrl);
 
-  const messageQueue: any[] = [];
+  const messageQueue: string[] = [];
   let isGeminiOpen = false;
 
   geminiWs.on('open', () => {
@@ -55,7 +57,9 @@ wss.on('connection', async (ws, req) => {
     // Flush queue
     while (messageQueue.length > 0) {
       const msg = messageQueue.shift();
-      geminiWs.send(msg);
+      if (msg) {
+        geminiWs.send(msg);
+      }
     }
   });
 

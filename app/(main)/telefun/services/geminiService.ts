@@ -7,6 +7,20 @@ const _STABLE_VOICE_MAP = {
   female: 'Kore'
 };
 
+function normalizeTelefunWebSocketUrl(rawUrl: string): string {
+  try {
+    const url = new URL(rawUrl);
+    if (url.protocol === 'https:') url.protocol = 'wss:';
+    if (url.protocol === 'http:') url.protocol = 'ws:';
+    if (url.protocol !== 'wss:' && url.protocol !== 'ws:') {
+      throw new Error('Invalid WebSocket protocol');
+    }
+    return url.toString();
+  } catch {
+    throw new Error("NEXT_PUBLIC_TELEFUN_WS_URL harus berupa URL WebSocket yang valid.");
+  }
+}
+
 /**
  * Kelas untuk menangani sesi Live Voice Gemini
  */
@@ -163,10 +177,11 @@ export class LiveSession {
         throw new Error("Sesi tidak valid. Harap login ulang.");
       }
 
-      const wsUrl = process.env.NEXT_PUBLIC_TELEFUN_WS_URL;
-      if (!wsUrl) {
+      const configuredWsUrl = process.env.NEXT_PUBLIC_TELEFUN_WS_URL;
+      if (!configuredWsUrl) {
         throw new Error("NEXT_PUBLIC_TELEFUN_WS_URL tidak terkonfigurasi.");
       }
+      const wsUrl = normalizeTelefunWebSocketUrl(configuredWsUrl);
 
       // Connect to Railway WebSocket Proxy
       const ws = new WebSocket(wsUrl, sbSession.access_token);
@@ -239,6 +254,15 @@ export class LiveSession {
       ws.onclose = (e) => {
         console.log("[Telefun] WebSocket Closed:", e.code, e.reason);
         if (!this.isDisconnected) {
+          if (e.code === 4001) {
+            this.onError?.(new Error("Koneksi WebSocket ditolak: sesi login tidak valid. Silakan login ulang."));
+          } else if (e.code === 4003) {
+            this.onError?.(new Error("Koneksi WebSocket ditolak: origin Vercel belum diizinkan di Railway."));
+          } else if (e.code === 1011) {
+            this.onError?.(new Error("Koneksi WebSocket gagal: server Telefun tidak bisa terhubung ke Gemini."));
+          } else if (e.reason) {
+            this.onError?.(new Error(`Koneksi WebSocket ditutup: ${e.reason}`));
+          }
           this.disconnect();
         }
       };

@@ -1,10 +1,25 @@
 import type { NextConfig } from "next";
 
+function getTelefunWebSocketCspSource() {
+  const rawUrl = process.env.NEXT_PUBLIC_TELEFUN_WS_URL;
+  if (!rawUrl) return '';
+
+  try {
+    const url = new URL(rawUrl);
+    const protocol = url.protocol === 'https:' ? 'wss:' : url.protocol === 'http:' ? 'ws:' : url.protocol;
+    if (protocol !== 'wss:' && protocol !== 'ws:') return '';
+    return `${protocol}//${url.host}`;
+  } catch {
+    return '';
+  }
+}
+
 const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: false,
   },
   async headers() {
+    const telefunWsSource = getTelefunWebSocketCspSource();
     const cspHeader = `
       default-src 'self';
       script-src 'self' 'unsafe-eval' 'unsafe-inline';
@@ -15,7 +30,7 @@ const nextConfig: NextConfig = {
       base-uri 'self';
       form-action 'self';
       frame-ancestors 'none';
-      connect-src 'self' https://*.supabase.co https://*.googleapis.com https://generativelanguage.googleapis.com wss://*.railway.app;
+      connect-src 'self' https://*.supabase.co https://*.googleapis.com https://generativelanguage.googleapis.com wss://*.railway.app wss://*.up.railway.app ${telefunWsSource};
       upgrade-insecure-requests;
     `.replace(/\s{2,}/g, ' ').trim();
 
