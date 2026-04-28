@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { AlertTriangle, Home } from 'lucide-react';
+import { AlertTriangle, Home, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTelefunWarning } from '@/app/context/TelefunWarningContext';
 
@@ -13,11 +13,17 @@ interface MaintenanceModalProps {
 
 export const MaintenanceModal = ({ isOpen, role }: MaintenanceModalProps) => {
   const router = useRouter();
-  const { closeMaintenance } = useTelefunWarning();
+  const { closeMaintenance, grantTelefunAccess } = useTelefunWarning();
 
   const handleRedirect = () => {
     closeMaintenance();
     router.push('/dashboard');
+  };
+
+  const handleEnterTelefun = () => {
+    grantTelefunAccess();
+    closeMaintenance();
+    router.push('/telefun');
   };
 
   const normalizedRole = role?.toLowerCase().trim();
@@ -48,31 +54,50 @@ export const MaintenanceModal = ({ isOpen, role }: MaintenanceModalProps) => {
             </div>
             
             <h3 className="text-xl font-black text-foreground mb-4 tracking-tight">
-              Akses Dibatasi
+              {isAllowedRole ? 'Modul Dalam Pengembangan' : 'Akses Dibatasi'}
             </h3>
             
             <p className="text-sm text-muted-foreground leading-relaxed mb-2 font-medium px-4">
-              Modul ini tidak berjalan dengan baik pada aplikasi ini. <br />
-              <span className="text-destructive font-bold">Silakan menghubungi trainer</span> untuk informasi lebih lanjut.
+              {isAllowedRole ? (
+                <>Modul ini masih dalam pengembangan dan mungkin tidak berjalan stabil. Anda dapat melanjutkan atau menggunakan versi Lite yang lebih stabil.</>
+              ) : (
+                <>
+                  Modul ini tidak berjalan dengan baik pada aplikasi ini. <br />
+                  <span className="text-destructive font-bold">Silakan menghubungi trainer</span> untuk informasi lebih lanjut.
+                </>
+              )}
             </p>
             
-            <p className="text-xs text-muted-foreground leading-relaxed mb-8 font-medium px-4">
-              Modul Telefun hanya dapat diakses oleh role <span className="text-foreground font-bold">Trainer</span>.
-            </p>
+            {!isAllowedRole && (
+              <p className="text-xs text-muted-foreground leading-relaxed mb-8 font-medium px-4">
+                Modul Telefun hanya dapat diakses oleh role <span className="text-foreground font-bold">Trainer</span>.
+              </p>
+            )}
+
+            {isAllowedRole && <div className="mb-6" />}
 
             <div className="flex flex-col gap-3">
               {isAllowedRole && (
-                <a
-                  href="https://ai.studio/apps/348f1688-2144-42b8-bbd7-656b6e25718e"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-4 bg-primary text-primary-foreground rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg flex items-center justify-center gap-3"
-                >
-                  <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
-                    <span className="text-[10px] font-black">LITE</span>
-                  </div>
-                  Berpindah ke App Lite
-                </a>
+                <>
+                  <button
+                    onClick={handleEnterTelefun}
+                    className="w-full py-4 bg-primary text-primary-foreground rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg flex items-center justify-center gap-3"
+                  >
+                    <ArrowRight className="w-5 h-5" />
+                    Lanjut ke Telefun
+                  </button>
+                  <a
+                    href="https://ai.studio/apps/348f1688-2144-42b8-bbd7-656b6e25718e"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-4 bg-secondary text-secondary-foreground rounded-2xl font-bold hover:bg-secondary/80 transition-all border border-border/50 flex items-center justify-center gap-3"
+                  >
+                    <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
+                      <span className="text-[10px] font-black">LITE</span>
+                    </div>
+                    Berpindah ke App Lite
+                  </a>
+                </>
               )}
               
               <button

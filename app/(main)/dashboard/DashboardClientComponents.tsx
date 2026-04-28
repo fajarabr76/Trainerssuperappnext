@@ -1,33 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { useTelefunWarning } from '@/app/context/TelefunWarningContext';
 import { Trash2, Activity, Clock, Target, Users, AlertCircle, TrendingDown, TrendingUp, Loader2 } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { MonthRangePicker } from '@/app/components/ui/MonthRangePicker';
 import { getDashboardTrendByRangeAction } from './actions';
 import { deleteActivityAction } from './activities/actions';
-
-export function DashboardShortcutLink({ href, id, children, className }: { href: string, id: string, children: React.ReactNode, className?: string }) {
-  const { openMaintenance } = useTelefunWarning();
-  return (
-    <Link
-      href={href}
-      className={className}
-      onClick={(e) => {
-        if (id === 'telefun') {
-          e.preventDefault();
-          openMaintenance();
-        }
-      }}
-    >
-      {children}
-    </Link>
-  );
-}
 
 export function DashboardActivityClient({ 
   initialRecentLogs,

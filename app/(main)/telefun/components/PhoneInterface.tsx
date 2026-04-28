@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { SessionConfig } from '../types';
+import { SessionConfig } from '@/app/types';
 import { LiveSession } from '../services/geminiService';
 import DiceBearAvatar from '@/app/components/DiceBearAvatar';
 

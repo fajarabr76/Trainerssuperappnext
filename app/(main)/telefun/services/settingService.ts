@@ -1,23 +1,10 @@
 import { createClient } from '@/app/lib/supabase/client';
-import { AppSettings } from '../types';
-import { DEFAULT_SCENARIOS, DEFAULT_CONSUMER_TYPES } from '../constants';
+import { AppSettings } from '@/app/types';
+import { defaultTelefunSettings } from '../data';
+import { parseTelefunSettings } from '../constants';
 
 const supabase = createClient();
 const LOCAL_STORAGE_KEY = 'telefun_app_settings_v1';
-
-export const defaultTelefunSettings: AppSettings = {
-  scenarios: DEFAULT_SCENARIOS,
-  consumerTypes: DEFAULT_CONSUMER_TYPES,
-  identitySettings: {
-      displayName: '',
-      gender: 'male',
-      phoneNumber: '',
-      city: ''
-  },
-  selectedModel: 'gemini-2.5-flash-native-audio-preview-12-2025',
-  preferredConsumerTypeId: 'random',
-  maxCallDuration: 5
-};
 
 function saveToLocal(settings: AppSettings) {
   if (typeof window !== 'undefined') {
@@ -29,16 +16,7 @@ function loadFromLocal(): AppSettings | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    
-    // Merge with defaults
-    return {
-         ...defaultTelefunSettings,
-         ...parsed,
-         scenarios: parsed.scenarios && Array.isArray(parsed.scenarios) ? parsed.scenarios : DEFAULT_SCENARIOS,
-         consumerTypes: parsed.consumerTypes && Array.isArray(parsed.consumerTypes) ? parsed.consumerTypes : DEFAULT_CONSUMER_TYPES,
-    };
+    return raw ? parseTelefunSettings(JSON.parse(raw)) : null;
   } catch {
     return null;
   }
@@ -63,13 +41,17 @@ export async function saveTelefunSettings(settings: AppSettings): Promise<void> 
 
   const { error } = await supabase
     .from('user_settings')
-    .upsert({ 
-      user_id: user.id, 
-      settings: updatedSettings, 
-      updated_at: new Date().toISOString() 
+    .upsert({
+      user_id: user.id,
+      settings: updatedSettings,
+      updated_at: new Date().toISOString()
     }, { onConflict: 'user_id' });
 
-  if (error) console.error('[Telefun Settings] Error:', error.message);
+  if (error) {
+    console.error('[Telefun Settings] Gagal menyimpan ke Supabase:', error.message);
+  } else {
+    console.log('[Telefun Settings] Pengaturan berhasil disimpan ke Supabase');
+  }
 }
 
 export async function loadTelefunSettings(): Promise<AppSettings> {
@@ -83,11 +65,19 @@ export async function loadTelefunSettings(): Promise<AppSettings> {
       .maybeSingle();
 
     if (!error && data?.settings?.telefun) {
-      const settings = data.settings.telefun;
-      saveToLocal(settings);
-      return settings;
+      console.log('[Telefun Settings] Pengaturan dimuat dari Supabase');
+      const parsed = parseTelefunSettings(data.settings.telefun);
+      saveToLocal(parsed);
+      return parsed;
     }
   }
 
-  return loadFromLocal() || defaultTelefunSettings;
+  const local = loadFromLocal();
+  if (local) {
+    console.log('[Telefun Settings] Pengaturan dimuat dari localStorage');
+    return local;
+  }
+
+  console.log('[Telefun Settings] Menggunakan pengaturan default');
+  return defaultTelefunSettings;
 }

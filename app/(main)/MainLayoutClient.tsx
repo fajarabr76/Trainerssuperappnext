@@ -29,14 +29,22 @@ function MainLayoutContent({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const { isMaintenanceOpen, openMaintenance } = useTelefunWarning();
+  const { isMaintenanceOpen, openMaintenance, hasTelefunAccess, revokeTelefunAccess } = useTelefunWarning();
   const { isAccessDeniedOpen, openAccessDenied } = useAccessDenied();
+  const prevPathnameRef = React.useRef(pathname);
 
   // Auto-trigger if someone tries to access /telefun directly
   React.useEffect(() => {
-    if (pathname === '/telefun') {
+    if (pathname === '/telefun' && !hasTelefunAccess) {
       openMaintenance();
     }
+    
+    // Reset access only when user navigates AWAY from /telefun (was on telefun, now not)
+    if (prevPathnameRef.current === '/telefun' && pathname !== '/telefun') {
+      revokeTelefunAccess();
+    }
+    
+    prevPathnameRef.current = pathname;
     
     // Check for restricted modules for Agent role
     if (role?.toLowerCase() === 'agent' || role?.toLowerCase() === 'agents') {
@@ -45,7 +53,7 @@ function MainLayoutContent({
         router.push('/dashboard');
       }
     }
-  }, [pathname, openMaintenance, openAccessDenied, role, router]);
+  }, [pathname, openMaintenance, openAccessDenied, role, router, hasTelefunAccess, revokeTelefunAccess]);
 
   return (
     <div className="flex h-screen bg-background overflow-hidden font-sans text-foreground selection:bg-primary/20">
@@ -67,8 +75,8 @@ function MainLayoutContent({
       </div>
 
       <div className="flex-1 flex flex-col h-full w-full overflow-y-auto relative">
-        {/* Hide content if we are on /telefun to ensure "tanpa masuk ke modul" */}
-        {pathname === '/telefun' ? (
+        {/* Hide content if we are on /telefun and user hasn't granted access yet */}
+        {pathname === '/telefun' && !hasTelefunAccess ? (
           <div className="flex-1 bg-background flex items-center justify-center">
             <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
           </div>

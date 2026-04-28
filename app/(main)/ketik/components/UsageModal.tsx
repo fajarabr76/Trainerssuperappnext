@@ -9,7 +9,7 @@ import type { UsageDelta } from '@/app/lib/usage-snapshot';
 interface UsageModalProps {
   isOpen: boolean;
   onClose: () => void;
-  module: 'ketik' | 'pdkt';
+  module: 'ketik' | 'pdkt' | 'telefun';
   sessionDelta?: UsageDelta | null;
   sessionDeltaPending?: boolean;
 }
@@ -53,7 +53,7 @@ export const UsageModal: React.FC<UsageModalProps> = ({ isOpen, onClose, module,
 
   if (!isOpen) return null;
 
-  const moduleLabel = module === 'ketik' ? 'Ketik' : 'PDKT';
+  const moduleLabel = module === 'ketik' ? 'Ketik' : module === 'pdkt' ? 'PDKT' : 'Telefun';
 
   return (
     <div data-module={module} className="module-clean-app module-clean-modal fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-4 md:p-6">

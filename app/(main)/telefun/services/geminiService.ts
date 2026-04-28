@@ -1,9 +1,6 @@
 import { LiveServerMessage } from "@google/genai";
 import { generateGeminiContent } from '@/app/actions/gemini';
-import { SessionConfig, Scenario } from "../types";
-import { createClient } from "@/app/lib/supabase/client";
-
-const _supabase = createClient();
+import { SessionConfig, Scenario } from '@/app/types';
 
 const _STABLE_VOICE_MAP = {
   male: 'Fenrir',

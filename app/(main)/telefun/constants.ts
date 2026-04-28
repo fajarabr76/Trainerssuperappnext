@@ -1,4 +1,48 @@
-import { Scenario, ConsumerType, ConsumerDifficulty } from './types';
+import { AppSettings, Scenario, ConsumerType, ConsumerDifficulty } from '@/app/types';
+
+const mergeWithDefaults = <T extends { id: string; isCustom?: boolean; description?: string }>(
+  stored: T[],
+  defaults: T[]
+): T[] => {
+  if (!Array.isArray(stored)) return defaults;
+  const storedMap = new Map(stored.map(item => [item.id, item]));
+  const merged = [...stored];
+  defaults.forEach(defItem => {
+    if (!storedMap.has(defItem.id)) {
+      merged.push(defItem);
+    } else {
+      const existingIndex = merged.findIndex(item => item.id === defItem.id);
+      if (existingIndex !== -1 && !merged[existingIndex].isCustom) {
+        const existing = merged[existingIndex];
+        const isOldDefault = existing.description?.startsWith('Anda ');
+        if (isOldDefault || existing.description === defItem.description) {
+          const preserveIsActive = (existing as any).isActive;
+          merged[existingIndex] = {
+            ...defItem,
+            ...(preserveIsActive !== undefined ? { isActive: preserveIsActive } : {}),
+          };
+        }
+      }
+    }
+  });
+  return merged;
+};
+
+export const parseTelefunSettings = (parsed: Record<string, unknown>): AppSettings => ({
+  scenarios: mergeWithDefaults(parsed.scenarios as Scenario[], DEFAULT_SCENARIOS),
+  consumerTypes: mergeWithDefaults(parsed.consumerTypes as ConsumerType[], DEFAULT_CONSUMER_TYPES),
+  activeConsumerTypeId: (parsed.activeConsumerTypeId as string) || 'random',
+  preferredConsumerTypeId: (parsed.preferredConsumerTypeId as string) || 'random',
+  identitySettings: {
+    displayName: (parsed.identitySettings as Record<string, unknown>)?.displayName as string || '',
+    gender: (parsed.identitySettings as Record<string, unknown>)?.gender as 'male' | 'female' || 'male',
+    phoneNumber: (parsed.identitySettings as Record<string, unknown>)?.phoneNumber as string || '',
+    city: (parsed.identitySettings as Record<string, unknown>)?.city as string || '',
+    signatureName: (parsed.identitySettings as Record<string, unknown>)?.signatureName as string || '',
+  },
+  selectedModel: (parsed.selectedModel as string) || 'gemini-3.1-flash-lite-preview',
+  maxCallDuration: (parsed.maxCallDuration as number) || 5,
+});
 
 export const DEFAULT_SCENARIOS: Scenario[] = [
   {
@@ -46,46 +90,42 @@ export const DEFAULT_SCENARIOS: Scenario[] = [
 ];
 
 export const DEFAULT_CONSUMER_TYPES: ConsumerType[] = [
-  { 
-    id: 'marah', 
-    name: 'Marah & Emosional', 
-    description: 'Konsumen sangat marah, emosional, dan tidak sabaran. Merasa dirugikan dan menuntut solusi instan. Sering menggunakan tanda seru.',
+  {
+    id: 'marah',
+    name: 'Marah & Emosional',
+    description: 'Konsumen sangat marah, nada bicara tinggi, emosional, dan tidak sabaran. Merasa dirugikan dan menuntut solusi instan. Sering meninggikan suara, memotong pembicaraan agen, dan menggunakan kalimat pendek yang tegas. Tetap terdengar seperti orang sungguhan yang sedang komplain via telepon, bukan karakter fiksi.',
     difficulty: ConsumerDifficulty.Hard
   },
-  { 
-    id: 'bingung', 
-    name: 'Bingung & Gaptek', 
-    description: 'Konsumen kebingungan, tidak terlalu paham teknologi (gaptek), dan sering bertanya ulang untuk memastikan hal-hal dasar.',
+  {
+    id: 'bingung',
+    name: 'Bingung & Gaptek',
+    description: 'Konsumen awam, agak bingung, dan kurang paham istilah teknis atau alur prosedur. Sering minta penjelasan ulang dengan bahasa sederhana, banyak jeda dan gumaman ("ehm", "anu", "begitu ya?"). Tetap terasa natural seperti orang yang benar-benar butuh dibantu, bukan dibuat bodoh-bodohan.',
     difficulty: ConsumerDifficulty.Medium
   },
-  { 
-    id: 'kritis', 
-    name: 'Kritis & Detail', 
-    description: 'Konsumen sangat kritis, menanyakan detail aturan, dasar hukum, dan tidak mudah percaya dengan jawaban template. Ingin tahu SOP-nya.',
+  {
+    id: 'kritis',
+    name: 'Kritis & Detail',
+    description: 'Konsumen teliti, skeptis, dan cepat menangkap jawaban yang terasa template atau normatif. Suka meminta dasar aturan, alur resmi, atau SOP yang relevan. Tetap bicara sebagai konsumen yang cerdas dan hati-hati, bukan seperti auditor atau pegawai internal. Pertanyaan spesifik dan terstruktur.',
     difficulty: ConsumerDifficulty.Hard
   },
-  { 
-    id: 'ramah', 
-    name: 'Ramah & Kooperatif', 
-    description: 'Konsumen sangat ramah, sopan, dan kooperatif dalam memberikan data yang diminta. Sangat menghargai bantuan petugas.',
+  {
+    id: 'ramah',
+    name: 'Ramah & Kooperatif',
+    description: 'Konsumen sopan, tenang, dan kooperatif. Mau mengikuti arahan agen dan memberikan data yang diminta, tetapi tetap punya masalah yang ingin diselesaikan. Gaya bicara hangat dan wajar, tidak terlalu formal. Sering mengucapkan terima kasih dan menghargai bantuan agen.',
     difficulty: ConsumerDifficulty.Easy
   },
-  { 
-    id: 'terburu-buru', 
-    name: 'Terburu-buru', 
-    description: 'Konsumen sedang dalam perjalanan atau rapat, ingin jawaban singkat dan cepat tanpa banyak basa-basi.',
+  {
+    id: 'terburu-buru',
+    name: 'Terburu-buru',
+    description: 'Konsumen sedang sempit waktu, misalnya di jalan atau di sela kerja. Ingin jawaban cepat, langsung, dan praktis. Mudah memotong pembicaraan yang terlalu panjang, tetapi tetap realistis dan tidak asal marah. Cenderung memberi respons singkat dan mendesak.',
     difficulty: ConsumerDifficulty.Medium
   },
-  { 
-    id: 'pasrah', 
-    name: 'Pasrah & Sedih', 
-    description: 'Konsumen merasa putus asa karena masalah keuangan ini, berbicara dengan nada sedih dan memohon bantuan.',
+  {
+    id: 'pasrah',
+    name: 'Pasrah & Sedih',
+    description: 'Konsumen lelah dan putus asa karena masalahnya belum selesai. Nada bicara sedih, khawatir, dan penuh harap saat menghubungi OJK. Tetap manusiawi, tidak melodramatis, dan cenderung mencari kepastian langkah berikutnya. Sering menghela napas atau bicara pelan.',
     difficulty: ConsumerDifficulty.Medium
   }
 ];
 
-export const AI_MODELS = [
-  { id: 'gemini-2.5-flash-native-audio-preview-12-2025', name: 'Gemini 2.5 Flash Audio', description: 'Model audio native dengan latensi rendah.' },
-];
-
-
+export { AI_MODELS } from '@/app/lib/ai-models';

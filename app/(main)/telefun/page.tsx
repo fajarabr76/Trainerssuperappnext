@@ -1,13 +1,19 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SettingsModal } from './components/SettingsModal';
 import { HistoryModal } from './components/HistoryModal';
+import { UsageModal } from './components/UsageModal';
 import { PhoneInterface } from './components/PhoneInterface';
-import { AppSettings, Scenario } from './types';
-import { Settings, PhoneCall, History, Play } from 'lucide-react';
-import { loadTelefunSettings, saveTelefunSettings, defaultTelefunSettings } from './services/settingService';
+import { AppSettings, Scenario, SessionConfig, Identity } from '@/app/types';
+import { Settings, PhoneCall, History, Play, BarChart3 } from 'lucide-react';
+import { loadTelefunSettings, saveTelefunSettings } from './services/settingService';
+import { defaultTelefunSettings } from './data';
+import { generateScore } from './services/geminiService';
+import { persistTelefunSession } from './actions';
+import { getMyModuleUsage } from '@/app/actions/usage';
+import { type UsageSnapshot, computeUsageDelta, formatCompactIdr } from '@/app/lib/usage-snapshot';
 import { createClient } from '@/app/lib/supabase/client';
 import ModuleWorkspaceIntro from '@/app/components/ModuleWorkspaceIntro';
 
@@ -26,16 +32,18 @@ export default function TelefunPage() {
   const [settings, setSettings] = useState<AppSettings>(defaultTelefunSettings);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isUsageOpen, setIsUsageOpen] = useState(false);
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [sessionDelta, setSessionDelta] = useState<ReturnType<typeof computeUsageDelta>>(null);
+  const sessionBaselineRef = useRef<UsageSnapshot | null>(null);
+  const sessionRunIdRef = useRef(0);
 
-  // Load Settings
   useEffect(() => {
     const init = async () => {
       const saved = await loadTelefunSettings();
       setSettings(saved);
-      
-      // Load History from localStorage
+
       const savedHistory = localStorage.getItem('telefun_history');
       if (savedHistory) {
         try {
@@ -44,7 +52,7 @@ export default function TelefunPage() {
           console.error("Failed to parse history", e);
         }
       }
-      
+
       setIsLoading(false);
     };
     init();
@@ -57,64 +65,129 @@ export default function TelefunPage() {
 
   const startCall = (scenario?: Scenario) => {
     const activeScenarios = settings.scenarios.filter(s => s.isActive);
+    if (activeScenarios.length === 0) {
+      alert('Pilih minimal satu skenario di Pengaturan.');
+      setIsSettingsOpen(true);
+      return;
+    }
     const finalScenario = scenario || activeScenarios[Math.floor(Math.random() * activeScenarios.length)];
     setSelectedScenario(finalScenario);
+    setSessionDelta(null);
+    sessionBaselineRef.current = null;
+    const runId = ++sessionRunIdRef.current;
+
+    void getMyModuleUsage('telefun').then((usage) => {
+      if (usage && runId === sessionRunIdRef.current) {
+        sessionBaselineRef.current = {
+          total_calls: usage.total_calls,
+          total_tokens: usage.total_tokens,
+          total_cost_idr: usage.total_cost_idr,
+          periodLabel: usage.periodLabel,
+        };
+      }
+    });
+
     setView('chat');
   };
 
-  const handleEndCall = async (recordingUrl?: string, consumerName?: string) => {
-    if (recordingUrl && selectedScenario) {
-      // 1. Generate Score
-      const { score, feedback } = await import('./services/geminiService').then(m => 
-        m.generateScore(
-          {
-            scenarios: [selectedScenario],
-            consumerType: settings.consumerTypes.find(ct => ct.id === settings.preferredConsumerTypeId) || settings.consumerTypes[0],
-            identity: {
-              name: settings.identitySettings.displayName,
-              city: settings.identitySettings.city,
-              phone: settings.identitySettings.phoneNumber,
-              gender: settings.identitySettings.gender
-            },
-            model: settings.selectedModel,
-            maxCallDuration: settings.maxCallDuration
-          },
-          selectedScenario,
-          0 // Duration not easily tracked here yet
-        )
-      );
+  const handleEndSessionOnly = () => {
+    setView('home');
+  };
 
-      // 2. Save to local history (existing)
+  const handleEndCall = async (recordingUrl?: string, consumerName?: string) => {
+    // FAIL 2 Fix: Add validation that recordingUrl is a valid blob URL
+    const isValidUrl = recordingUrl && (recordingUrl.startsWith('blob:') || recordingUrl.startsWith('http'));
+    
+    if (isValidUrl && selectedScenario) {
+      let score = 0;
+      let feedback = '';
+      const consumerType = settings.consumerTypes.find(ct => ct.id === settings.preferredConsumerTypeId) || settings.consumerTypes[0];
+      const identity: Identity = {
+        name: settings.identitySettings.displayName,
+        city: settings.identitySettings.city,
+        phone: settings.identitySettings.phoneNumber,
+        gender: settings.identitySettings.gender,
+      };
+      const sessionConfig: SessionConfig = {
+        scenarios: [selectedScenario],
+        consumerType,
+        identity,
+        model: settings.selectedModel,
+        simulationDuration: settings.maxCallDuration || 5,
+        responsePacingMode: 'realistic',
+        maxCallDuration: settings.maxCallDuration,
+      };
+
+      try {
+        const scoring = await generateScore(sessionConfig, selectedScenario, 0);
+        score = scoring.score;
+        feedback = scoring.feedback;
+      } catch (e) {
+        console.error('[Telefun] Scoring error:', e);
+      }
+
       const newRecord: CallRecord = {
         id: Date.now().toString(),
         date: new Date().toISOString(),
         url: recordingUrl,
         consumerName: consumerName || settings.identitySettings.displayName || 'Konsumen',
         scenarioTitle: selectedScenario?.title || 'Telepon Umum',
-        duration: 0
+        duration: 0,
       };
       const updatedHistory = [newRecord, ...recordings];
       setRecordings(updatedHistory);
       localStorage.setItem('telefun_history', JSON.stringify(updatedHistory));
 
-      // 3. Save to results table (new)
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const resultData = {
-          user_id: user.id,
-          module: 'telefun',
-          score: score,
-          details: {
-            scenario: selectedScenario.title,
-            feedback: feedback,
-            consumer: consumerName || settings.identitySettings.displayName || 'Konsumen',
-            recordingUrl: recordingUrl
-          }
-        };
-        await supabase.from('results').insert([resultData]);
+        const result = await persistTelefunSession({
+          userId: user.id,
+          scenarioTitle: selectedScenario.title,
+          consumerName: consumerName || settings.identitySettings.displayName || 'Konsumen',
+          consumerPhone: settings.identitySettings.phoneNumber,
+          consumerCity: settings.identitySettings.city,
+          duration: 0,
+          recordingUrl,
+          score,
+          feedback,
+        });
+
+        if (result.success && result.session) {
+          setRecordings(prev => {
+            const exists = prev.some(r => r.id === result.session!.id);
+            if (exists) return prev;
+            return [{
+              id: result.session!.id,
+              date: result.session!.date,
+              url: result.session!.recording_url,
+              consumerName: result.session!.consumer_name,
+              scenarioTitle: result.session!.scenario_title,
+              duration: result.session!.duration,
+            }, ...prev];
+          });
+        }
       }
     }
+
+    const runId = sessionRunIdRef.current;
+    try {
+      const afterUsage = await getMyModuleUsage('telefun');
+      if (afterUsage && runId === sessionRunIdRef.current) {
+        const after: UsageSnapshot = {
+          total_calls: afterUsage.total_calls,
+          total_tokens: afterUsage.total_tokens,
+          total_cost_idr: afterUsage.total_cost_idr,
+          periodLabel: afterUsage.periodLabel,
+        };
+        const delta = computeUsageDelta(sessionBaselineRef.current, after);
+        setSessionDelta(delta);
+      }
+    } catch (e) {
+      console.warn('[Telefun] Failed to fetch post-session usage:', e);
+    }
+
+    sessionBaselineRef.current = null;
     setView('home');
   };
 
@@ -151,7 +224,7 @@ export default function TelefunPage() {
             <ModuleWorkspaceIntro
               eyebrow="Voice Simulation Trainer"
               title="Siapkan simulasi telepon dari workspace yang lebih terpadu."
-              description="Meskipun modul ini masih berada dalam mode maintenance pada akses umum, struktur home-nya kini mengikuti pola unified platform yang sama untuk persiapan rollout berikutnya."
+              description="Simulasi panggilan telepon dengan konsumen AI untuk melatih kemampuan penanganan keluhan."
               accentClassName="text-module-telefun"
               accentSoftClassName="bg-module-telefun/10"
               icon={<PhoneCall className="h-8 w-8" />}
@@ -185,19 +258,33 @@ export default function TelefunPage() {
                     <History className="h-4 w-4 opacity-70" />
                     <span>Riwayat</span>
                   </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.01, y: -1 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => setIsUsageOpen(true)}
+                    className="inline-flex h-14 w-full items-center justify-center gap-3 rounded-2xl border border-primary/20 bg-primary/10 px-6 text-[11px] font-black uppercase tracking-[0.22em] text-primary transition"
+                  >
+                    <BarChart3 className="h-4 w-4 opacity-70" />
+                    <span>Usage</span>
+                    {sessionDelta && sessionDelta.costIdr > 0 && (
+                      <span className="ml-1 text-[9px] font-bold text-primary/70">
+                        +{formatCompactIdr(sessionDelta.costIdr)}
+                      </span>
+                    )}
+                  </motion.button>
                 </>
               }
             />
           </motion.div>
         ) : (
-          <motion.div 
+          <motion.div
             key="chat"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex flex-col bg-background"
           >
-            <PhoneInterface 
+            <PhoneInterface
               config={{
                 scenarios: [selectedScenario],
                 consumerType: settings.consumerTypes.find(ct => ct.id === settings.preferredConsumerTypeId) || settings.consumerTypes[0],
@@ -208,27 +295,35 @@ export default function TelefunPage() {
                   gender: settings.identitySettings.gender
                 },
                 model: settings.selectedModel,
+                simulationDuration: settings.maxCallDuration || 5,
+                responsePacingMode: 'realistic',
                 maxCallDuration: settings.maxCallDuration
               }}
-              onEndSession={handleEndCall}
+              onEndSession={handleEndSessionOnly}
               onRecordingReady={(url, name) => handleEndCall(url, name)}
             />
           </motion.div>
         )}
       </AnimatePresence>
 
-      <SettingsModal 
+      <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         settings={settings}
         onSave={handleSaveSettings}
       />
-      <HistoryModal 
+      <HistoryModal
         isOpen={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
         history={recordings}
         onDeleteSession={handleDeleteSession}
         onClearHistory={handleClearHistory}
+      />
+      <UsageModal
+        isOpen={isUsageOpen}
+        onClose={() => setIsUsageOpen(false)}
+        sessionDelta={sessionDelta}
+        sessionDeltaPending={false}
       />
     </div>
   );

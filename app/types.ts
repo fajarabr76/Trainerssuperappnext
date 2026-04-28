@@ -9,6 +9,7 @@ export interface Identity {
   city: string;
   phone: string;
   signatureName?: string;
+  gender?: 'male' | 'female';
 }
 
 export interface ConsumerIdentitySettings {
@@ -16,6 +17,7 @@ export interface ConsumerIdentitySettings {
   signatureName: string;
   phoneNumber: string;
   city: string;
+  gender?: 'male' | 'female';
 }
 
 export interface ConsumerType {
@@ -59,15 +61,18 @@ export interface SessionConfig {
   model: string;
   simulationDuration: number;
   responsePacingMode: 'realistic' | 'training_fast';
+  maxCallDuration?: number;
 }
 
 export interface AppSettings {
   scenarios: Scenario[];
   consumerTypes: ConsumerType[];
   activeConsumerTypeId: string;
+  preferredConsumerTypeId?: string;
   identitySettings: ConsumerIdentitySettings;
   selectedModel: string;
   simulationDuration?: number;
+  maxCallDuration?: number;
   responsePacingMode?: 'realistic' | 'training_fast';
 }
 

@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { AppSettings, ConsumerIdentitySettings, Scenario, ConsumerType } from '../types';
-import { ConsumerDifficulty } from '@/app/types';
+import { AppSettings, ConsumerIdentitySettings, Scenario, ConsumerType, ConsumerDifficulty } from '@/app/types';
 import { AI_MODELS } from '../constants';
 import { Clock, Trash2, X, Plus, Check, Edit2, User, Settings, FileText, Users, Image as ImageIcon, Save } from 'lucide-react';
 import { motion } from 'motion/react';

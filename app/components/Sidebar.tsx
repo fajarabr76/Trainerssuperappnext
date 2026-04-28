@@ -30,7 +30,7 @@ interface SidebarProps {
 export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuOpen }: SidebarProps) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
-  const { openMaintenance } = useTelefunWarning();
+  const { openMaintenance, hasTelefunAccess } = useTelefunWarning();
   const { openAccessDenied } = useAccessDenied();
   const { signOut } = useSessionTimeout();
 
@@ -150,7 +150,7 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
                 href={module.href}
                 className={navItemClass(pathname === module.href)}
                 onClick={(event) => {
-                  if (module.id === 'telefun') {
+                  if (module.id === 'telefun' && !hasTelefunAccess) {
                     event.preventDefault();
                     openMaintenance();
                   }
