@@ -187,8 +187,6 @@ export class LiveSession {
       wsUrlWithToken.searchParams.set('token', sbSession.access_token);
       const wsUrl = wsUrlWithToken.toString();
 
-      console.log("[Telefun] Connecting to Proxy:", wsUrlBase);
-
       // Connect to Railway WebSocket Proxy (No subprotocol to avoid handshake 1006)
       const ws = new WebSocket(wsUrl);
       

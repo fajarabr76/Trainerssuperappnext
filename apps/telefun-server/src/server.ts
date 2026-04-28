@@ -20,8 +20,7 @@ const server = createServer((req, res) => {
       timestamp: new Date().toISOString(),
       config: {
         supabase: !!env.SUPABASE_URL && !!env.SUPABASE_ANON_KEY,
-        gemini: !!env.GEMINI_API_KEY,
-        origins: env.ALLOWED_ORIGINS
+        gemini: !!env.GEMINI_API_KEY
       }
     };
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -32,10 +31,7 @@ const server = createServer((req, res) => {
   res.end();
 });
 
-const wss = new WebSocketServer({ 
-  server,
-  handleProtocols: () => false // Explicitly reject all subprotocols
-});
+const wss = new WebSocketServer({ server });
 
 const allowedOrigins = env.ALLOWED_ORIGINS === '*'
   ? []
