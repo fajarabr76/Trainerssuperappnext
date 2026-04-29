@@ -165,11 +165,11 @@ export default function MonitoringClient({
   const [searchTerm, setSearchTerm] = useState("");
   const [filterModule, setFilterModule] = useState("all");
   const [selectedResult, setSelectedResult] = useState<UnifiedHistory | null>(null);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [usageFilterModule, setUsageFilterModule] = useState("all");
   const [usageMonth, setUsageMonth] = useState(initialWibMonth);
   const [usageYear, setUsageYear] = useState(initialWibYear);
   const [usageData, setUsageData] = useState<UsageAggregation[]>(initialUsage);
+  const [breakdownUserId, setBreakdownUserId] = useState<string | null>(null);
   const [usageLoading, setUsageLoading] = useState(false);
   const [pricingData, setPricingData] = useState<PricingEditorEntry[]>(initialPricing);
   const [billingRate, setBillingRate] = useState<number | null>(initialBilling?.usd_to_idr_rate ?? null);
@@ -196,6 +196,12 @@ export default function MonitoringClient({
     if (activeTab !== 'usage') return;
     fetchUsage(usageYear, usageMonth, usageFilterModule, searchTerm);
   }, [activeTab, usageYear, usageMonth, usageFilterModule, searchTerm, fetchUsage]);
+
+  useEffect(() => {
+    if (breakdownUserId && !usageData.some((u) => u.user_id === breakdownUserId)) {
+      setBreakdownUserId(null);
+    }
+  }, [usageData, breakdownUserId]);
 
   const handleSavePricing = async (modelId: string, inputPrice: number, outputPrice: number) => {
     setSaveFeedback(null);
@@ -242,9 +248,29 @@ export default function MonitoringClient({
     return matchesSearch && matchesModule;
   });
 
-  const selectedUserUsage = selectedUserId
-    ? usageData.find(u => u.user_id === selectedUserId) || null
-    : null;
+  function getUserDisplayName(u: { user_name?: string | null; user_email?: string | null }): string {
+    return u.user_name || u.user_email?.split('@')[0] || 'Unknown';
+  }
+
+  const breakdownRows = (() => {
+    const sources = breakdownUserId
+      ? usageData.filter((u) => u.user_id === breakdownUserId)
+      : usageData;
+    return sources.flatMap((u) =>
+      u.models.map((m) => ({
+        user_id: u.user_id,
+        user_name: getUserDisplayName(u),
+        user_email: u.user_email,
+        model_id: m.model_id,
+        module: m.module,
+        calls: m.calls,
+        input_tokens: m.input_tokens,
+        output_tokens: m.output_tokens,
+        total_tokens: m.total_tokens,
+        cost_idr: m.cost_idr,
+      }))
+    );
+  })();
 
   const getDurationString = (result: UnifiedHistory) => {
     if (result.duration_seconds <= 0) return "--:--";
@@ -459,9 +485,9 @@ export default function MonitoringClient({
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                 <div className="relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input 
-                    type="text" 
-                    placeholder="Cari email..." 
+                  <input
+                    type="text"
+                    placeholder="Cari pengguna..."
                     className="w-full pl-12 pr-4 py-3 bg-card border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-medium"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -542,12 +568,12 @@ export default function MonitoringClient({
                         usageData.map((usage) => (
                           <tr
                             key={usage.user_id}
-                            onClick={() => setSelectedUserId(selectedUserId === usage.user_id ? null : usage.user_id)}
+                            onClick={() => setBreakdownUserId(breakdownUserId === usage.user_id ? null : usage.user_id)}
                             className="hover:bg-foreground/[0.02] transition-colors group cursor-pointer"
                           >
                             <td className="px-8 py-6">
                                 <div className="flex flex-col">
-                                    <span className="text-sm font-black tracking-tight">{usage.user_email?.split('@')[0] || 'Unknown'}</span>
+                                    <span className="text-sm font-black tracking-tight">{getUserDisplayName(usage)}</span>
                                     <span className="text-[10px] opacity-40 lowercase">{usage.user_role || 'agent'}</span>
                                 </div>
                             </td>
@@ -564,48 +590,68 @@ export default function MonitoringClient({
                 </div>
               </div>
 
-              <AnimatePresence>
-                {selectedUserUsage && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 20 }}
-                    className="bg-card border border-border rounded-[2.5rem] overflow-hidden shadow-2xl relative"
-                  >
-                    <div className="p-6 border-b border-border">
-                      <h3 className="text-lg font-black tracking-tight">
-                        Breakdown per Model — {selectedUserUsage.user_email?.split('@')[0] || 'Unknown'}
-                      </h3>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="bg-foreground/[0.02] border-b border-border">
-                            <th className="px-8 py-4 font-black text-[10px] uppercase tracking-widest opacity-40">Model</th>
-                            <th className="px-8 py-4 font-black text-[10px] uppercase tracking-widest opacity-40 text-center">Calls</th>
-                            <th className="px-8 py-4 font-black text-[10px] uppercase tracking-widest opacity-40 text-right">Input</th>
-                            <th className="px-8 py-4 font-black text-[10px] uppercase tracking-widest opacity-40 text-right">Output</th>
-                            <th className="px-8 py-4 font-black text-[10px] uppercase tracking-widest opacity-40 text-right">Total</th>
-                            <th className="px-8 py-4 font-black text-[10px] uppercase tracking-widest opacity-40 text-right">Biaya</th>
+              <div className="bg-card border border-border rounded-[2.5rem] overflow-hidden shadow-2xl relative">
+                <div className="p-6 border-b border-border flex items-center justify-between">
+                  <h3 className="text-lg font-black tracking-tight">Breakdown per Model</h3>
+                  <div className="relative">
+                    <select
+                      className="px-4 py-2 bg-background border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none font-medium text-sm"
+                      value={breakdownUserId ?? 'all'}
+                      onChange={(e) => setBreakdownUserId(e.target.value === 'all' ? null : e.target.value)}
+                    >
+                      <option value="all">Semua Pengguna</option>
+                      {usageData.map((u) => (
+                        <option key={u.user_id} value={u.user_id}>
+                          {getUserDisplayName(u)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-foreground/[0.02] border-b border-border">
+                        <th className="px-8 py-4 font-black text-[10px] uppercase tracking-widest opacity-40">Pengguna</th>
+                        <th className="px-8 py-4 font-black text-[10px] uppercase tracking-widest opacity-40">Modul</th>
+                        <th className="px-8 py-4 font-black text-[10px] uppercase tracking-widest opacity-40">Model</th>
+                        <th className="px-8 py-4 font-black text-[10px] uppercase tracking-widest opacity-40 text-center">Calls</th>
+                        <th className="px-8 py-4 font-black text-[10px] uppercase tracking-widest opacity-40 text-right">Input</th>
+                        <th className="px-8 py-4 font-black text-[10px] uppercase tracking-widest opacity-40 text-right">Output</th>
+                        <th className="px-8 py-4 font-black text-[10px] uppercase tracking-widest opacity-40 text-right">Total</th>
+                        <th className="px-8 py-4 font-black text-[10px] uppercase tracking-widest opacity-40 text-right">Biaya</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {breakdownRows.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="px-8 py-12 text-center">
+                            <div className="flex flex-col items-center gap-4">
+                              <BarChart3 className="w-8 h-8 text-foreground/10" />
+                              <span className="text-xs font-black uppercase tracking-widest opacity-40">Tidak ada breakdown untuk filter ini.</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        breakdownRows.map((row, idx) => (
+                          <tr key={`${row.user_id}-${row.model_id}-${row.module}-${idx}`} className="hover:bg-foreground/[0.02] transition-colors">
+                            <td className="px-8 py-4 text-sm font-bold">{row.user_name}</td>
+                            <td className="px-8 py-4">
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] bg-foreground/5">{row.module}</span>
+                            </td>
+                            <td className="px-8 py-4 text-sm font-bold font-mono text-[11px]">{row.model_id}</td>
+                            <td className="px-8 py-4 text-center text-sm font-bold">{row.calls}</td>
+                            <td className="px-8 py-4 text-right text-sm font-bold">{formatTokenCount(row.input_tokens)}</td>
+                            <td className="px-8 py-4 text-right text-sm font-bold">{formatTokenCount(row.output_tokens)}</td>
+                            <td className="px-8 py-4 text-right text-sm font-bold">{formatTokenCount(row.total_tokens)}</td>
+                            <td className="px-8 py-4 text-right text-sm font-black text-primary">{formatIdr(row.cost_idr)}</td>
                           </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                          {selectedUserUsage.models.map((m) => (
-                            <tr key={m.model_id} className="hover:bg-foreground/[0.02] transition-colors">
-                              <td className="px-8 py-4 text-sm font-bold">{m.model_id}</td>
-                              <td className="px-8 py-4 text-center text-sm font-bold">{m.calls}</td>
-                              <td className="px-8 py-4 text-right text-sm font-bold">{formatTokenCount(m.input_tokens)}</td>
-                              <td className="px-8 py-4 text-right text-sm font-bold">{formatTokenCount(m.output_tokens)}</td>
-                              <td className="px-8 py-4 text-right text-sm font-bold">{formatTokenCount(m.total_tokens)}</td>
-                              <td className="px-8 py-4 text-right text-sm font-black text-primary">{formatIdr(m.cost_idr)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </>
           )}
 

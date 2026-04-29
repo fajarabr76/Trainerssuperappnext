@@ -40,8 +40,9 @@ export async function getFilteredUsage(options: {
   if (options.search) {
     const q = options.search.toLowerCase();
     return data.filter((u) => {
-      const email = u.user_email || '';
-      return email.toLowerCase().includes(q);
+      const email = (u.user_email || '').toLowerCase();
+      const name = (u.user_name || '').toLowerCase();
+      return email.includes(q) || name.includes(q);
     });
   }
 

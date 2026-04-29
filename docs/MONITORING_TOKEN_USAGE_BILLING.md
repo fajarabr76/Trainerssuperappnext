@@ -28,14 +28,21 @@ Halaman monitoring tetap satu route dengan tiga tab:
 Tab `Penggunaan Token`:
 
 - default ke bulan berjalan WIB / `Asia/Jakarta`
-- mendukung filter `bulan`, `tahun`, `akun`, dan `module`
+- mendukung filter `bulan`, `tahun`, dan `module`
+- pencarian `Cari pengguna...` mencakup nama akun (`full_name`) dan email
+- label akun di tabel utama dan breakdown ditampilkan dari `user_name` (full_name), fallback ke email (bagian sebelum `@`), fallback terakhir `Unknown`
 - tabel utama menampilkan agregasi per akun:
   - call sukses
   - input tokens
   - output tokens
   - total tokens
   - billing IDR
-- saat satu akun dipilih, tabel breakdown per model ditampilkan di bawah
+- baris akun dapat diklik untuk menyeleksi pengguna di breakdown
+- tabel breakdown menampilkan data per pengguna, modul, dan model:
+  - breakdown di-agregasi per `model_id + module`, sehingga model yang sama di modul berbeda tidak tercampur
+  - kolom: Pengguna, Modul, Model, Calls, Input, Output, Total, Biaya
+  - dropdown `Semua Pengguna` / pengguna spesifik untuk menyaring breakdown tanpa harus mengklik baris tabel utama
+  - jika pengguna yang dipilih di dropdown tidak lagi muncul di hasil filter/seach/bulan baru, auto-reset ke `Semua Pengguna`
 
 Tab `Harga & Kurs`:
 
@@ -214,6 +221,10 @@ Catatan:
 - Uji boundary akhir bulan WIB dengan request dekat pergantian bulan; request harus masuk ke bulan WIB yang benar
 - Login sebagai `leader`; pastikan tab `Penggunaan Token` ada, tetapi tab `Harga & Kurs` tidak ada
 - Uji race condition: mulai sesi baru sebelum fetch baseline sesi sebelumnya selesai, pastikan delta yang ditampilkan sesuai dengan sesi terakhir (bukan sesi sebelumnya)
+- Buka tab `Penggunaan Token`, pastikan tabel breakdown menampilkan kolom Pengguna, Modul, dan Model secara terpisah
+- Pastikan model yang sama di modul berbeda (misal `gemini-2.5-flash` di `ketik` dan `pdkt`) muncul sebagai baris breakdown terpisah
+- Pilih satu pengguna dari dropdown breakdown, lalu ganti bulan/filter/search; pastikan jika pengguna tersebut tidak ada di data baru, dropdown auto-reset ke `Semua Pengguna`
+- Ketik di kolom `Cari pengguna...` menggunakan nama atau email; pastikan hasil filter mencakup kecocokan di kedua field
 
 ## Batasan v1
 

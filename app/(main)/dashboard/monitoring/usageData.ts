@@ -29,6 +29,7 @@ export function getCurrentWibMonth(): { year: number; month: number } {
 export interface UsageAggregation {
   user_id: string;
   user_email: string | null;
+  user_name: string | null;
   user_role: string | null;
   total_calls: number;
   total_input_tokens: number;
@@ -37,6 +38,7 @@ export interface UsageAggregation {
   total_cost_idr: number;
   models: Array<{
     model_id: string;
+    module: string;
     calls: number;
     input_tokens: number;
     output_tokens: number;
@@ -83,15 +85,15 @@ async function getUsageAggregationInternal(filters: UsageFilters): Promise<Usage
     const userIds = [...new Set(logs.map((log) => log.user_id))];
     const { data: profiles } = await admin
       .from('profiles')
-      .select('id, email, role')
+      .select('id, email, role, full_name')
       .in('id', userIds);
 
-    const profileMap: Record<string, { email: string | null; role: string | null }> = {};
+    const profileMap: Record<string, { email: string | null; role: string | null; full_name: string | null }> = {};
     (profiles || []).forEach((p) => {
-      profileMap[p.id] = { email: p.email, role: p.role };
+      profileMap[p.id] = { email: p.email, role: p.role, full_name: p.full_name };
     });
 
-    const userAgg: Record<string, Omit<UsageAggregation, 'user_email' | 'user_role' | 'models'> & { models: Record<string, Omit<UsageAggregation['models'][0], 'model_id'>> }> = {};
+    const userAgg: Record<string, Omit<UsageAggregation, 'user_email' | 'user_name' | 'user_role' | 'models'> & { models: Record<string, Omit<UsageAggregation['models'][0], 'model_id' | 'module'>> }> = {};
 
     for (const log of logs) {
       if (!userAgg[log.user_id]) {
@@ -113,8 +115,9 @@ async function getUsageAggregationInternal(filters: UsageFilters): Promise<Usage
       agg.total_tokens += log.total_tokens || 0;
       agg.total_cost_idr += log.estimated_cost_idr || 0;
 
-      if (!agg.models[log.model_id]) {
-        agg.models[log.model_id] = {
+      const modelKey = `${log.model_id}|${log.module}`;
+      if (!agg.models[modelKey]) {
+        agg.models[modelKey] = {
           calls: 0,
           input_tokens: 0,
           output_tokens: 0,
@@ -123,7 +126,7 @@ async function getUsageAggregationInternal(filters: UsageFilters): Promise<Usage
         };
       }
 
-      const modelAgg = agg.models[log.model_id];
+      const modelAgg = agg.models[modelKey];
       modelAgg.calls += 1;
       modelAgg.input_tokens += log.input_tokens || 0;
       modelAgg.output_tokens += log.output_tokens || 0;
@@ -134,20 +137,27 @@ async function getUsageAggregationInternal(filters: UsageFilters): Promise<Usage
     return Object.values(userAgg).map((agg) => ({
       user_id: agg.user_id,
       user_email: profileMap[agg.user_id]?.email || null,
+      user_name: profileMap[agg.user_id]?.full_name || null,
       user_role: profileMap[agg.user_id]?.role || null,
       total_calls: agg.total_calls,
       total_input_tokens: agg.total_input_tokens,
       total_output_tokens: agg.total_output_tokens,
       total_tokens: agg.total_tokens,
       total_cost_idr: agg.total_cost_idr,
-      models: Object.entries(agg.models).map(([model_id, m]) => ({
-        model_id,
-        calls: m.calls,
-        input_tokens: m.input_tokens,
-        output_tokens: m.output_tokens,
-        total_tokens: m.total_tokens,
-        cost_idr: m.cost_idr,
-      })),
+      models: Object.entries(agg.models).map(([key, m]) => {
+        const sep = key.indexOf('|');
+        const model_id = sep !== -1 ? key.slice(0, sep) : key;
+        const mod = sep !== -1 ? key.slice(sep + 1) : '';
+        return {
+          model_id,
+          module: mod,
+          calls: m.calls,
+          input_tokens: m.input_tokens,
+          output_tokens: m.output_tokens,
+          total_tokens: m.total_tokens,
+          cost_idr: m.cost_idr,
+        };
+      }),
     }));
   } catch (error) {
     console.error('[Usage] Exception while fetching usage aggregation:', error);
