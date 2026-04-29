@@ -59,10 +59,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     }
   }, [isOpen, settings]);
 
-  const handleClose = () => {
-    onClose();
-  };
-
   if (!isOpen) return null;
 
   const categories = Array.from(new Set(localSettings.scenarios.map(s => s.category)));
@@ -141,11 +137,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     }, 100);
   };
 
-  const handleCancelScenarioForm = () => {
-    setIsScenarioFormOpen(false);
-    resetScenarioForm();
-  };
-
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files) as File[];
@@ -172,7 +163,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   };
 
   const handleSaveScenario = () => {
-    if (!newScenarioTitle || !newScenarioDesc) return;
+    if (!isScenarioDraftValid()) return;
     const category = isNewCategoryInput ? newScenarioCategory : newScenarioCategory || "Umum";
     
     if (editingScenarioId) {
@@ -237,13 +228,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     }, 100);
   };
 
-  const handleCancelConsumerForm = () => {
-    setIsConsumerFormOpen(false);
-    resetConsumerForm();
-  };
-
   const handleSaveConsumer = () => {
-    if (!newConsumerName || !newConsumerDesc) return;
+    if (!isConsumerDraftValid()) return;
 
     if (editingConsumerId) {
       setLocalSettings(prev => ({
@@ -284,9 +270,194 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     }
   };
 
+  const hasScenarioDraftContent = () => {
+    if (!isScenarioFormOpen) return false;
+    if (editingScenarioId) {
+      const original = localSettings.scenarios.find(s => s.id === editingScenarioId);
+      if (!original) return true;
+      const category = isNewCategoryInput ? newScenarioCategory : newScenarioCategory || "Umum";
+      return (
+        category !== original.category ||
+        newScenarioTitle !== original.title ||
+        newScenarioDesc !== original.description ||
+        newScenarioScript !== (original.script || '') ||
+        JSON.stringify(newScenarioImages) !== JSON.stringify(original.images || [])
+      );
+    }
+    return !!(newScenarioTitle || newScenarioDesc || newScenarioScript || newScenarioImages.length > 0 || newScenarioCategory);
+  };
+
+  const hasConsumerDraftContent = () => {
+    if (!isConsumerFormOpen) return false;
+    if (editingConsumerId) {
+      const original = localSettings.consumerTypes.find(c => c.id === editingConsumerId);
+      if (!original) return true;
+      return (
+        newConsumerName !== original.name ||
+        newConsumerDesc !== original.description ||
+        newConsumerDifficulty !== original.difficulty
+      );
+    }
+    return !!(
+      newConsumerName ||
+      newConsumerDesc ||
+      newConsumerDifficulty !== ConsumerDifficulty.Medium
+    );
+  };
+
+  const isScenarioDraftDirty = () => hasScenarioDraftContent();
+
+  const isScenarioDraftValid = () => {
+    if (!newScenarioTitle) return false;
+    if (!newScenarioDesc) return false;
+    const category = isNewCategoryInput ? newScenarioCategory : newScenarioCategory || "Umum";
+    if (!category) return false;
+    return true;
+  };
+
+  const applyScenarioDraft = (base: AppSettings): AppSettings | null => {
+    if (!isScenarioDraftDirty() || !isScenarioDraftValid()) return null;
+    const category = isNewCategoryInput ? newScenarioCategory : newScenarioCategory || "Umum";
+
+    if (editingScenarioId) {
+      return {
+        ...base,
+        scenarios: base.scenarios.map(s =>
+          s.id === editingScenarioId
+            ? {
+                ...s,
+                category,
+                title: newScenarioTitle,
+                description: newScenarioDesc,
+                script: newScenarioScript,
+                images: newScenarioImages
+              }
+            : s
+        )
+      };
+    } else {
+      const newScenario: Scenario = {
+        id: `s-${Date.now()}`,
+        category,
+        title: newScenarioTitle,
+        description: newScenarioDesc,
+        script: newScenarioScript,
+        isActive: true,
+        images: newScenarioImages
+      };
+      return {
+        ...base,
+        scenarios: [...base.scenarios, newScenario]
+      };
+    }
+  };
+
+  const isConsumerDraftDirty = () => hasConsumerDraftContent();
+
+  const isConsumerDraftValid = () => {
+    if (!newConsumerName) return false;
+    if (!newConsumerDesc) return false;
+    return true;
+  };
+
+  const applyConsumerDraft = (base: AppSettings): AppSettings | null => {
+    if (!isConsumerDraftDirty() || !isConsumerDraftValid()) return null;
+
+    if (editingConsumerId) {
+      return {
+        ...base,
+        consumerTypes: base.consumerTypes.map(c =>
+          c.id === editingConsumerId
+            ? { ...c, name: newConsumerName, description: newConsumerDesc, difficulty: newConsumerDifficulty }
+            : c
+        )
+      };
+    } else {
+      const newConsumer: ConsumerType = {
+        id: `c-${Date.now()}`,
+        name: newConsumerName,
+        description: newConsumerDesc,
+        difficulty: newConsumerDifficulty,
+        isCustom: true
+      };
+      return {
+        ...base,
+        consumerTypes: [...base.consumerTypes, newConsumer]
+      };
+    }
+  };
+
+  const hasUnsavedChanges = () => {
+    if (hasScenarioDraftContent() || hasConsumerDraftContent()) return true;
+
+    const original = JSON.stringify(settings);
+    const current = JSON.stringify(localSettings);
+    return original !== current;
+  };
+
   const handleSave = () => {
-    onSave(localSettings);
+    const scenarioDirty = isScenarioDraftDirty();
+    const consumerDirty = isConsumerDraftDirty();
+
+    if (scenarioDirty && !isScenarioDraftValid()) {
+      setActiveTab('scenarios');
+      setTimeout(() => {
+        document.getElementById('scenario-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+      alert('Skenario yang sedang Anda buat belum lengkap. Isi judul dan deskripsi masalah terlebih dahulu, atau klik Batal untuk membatalkan skenario.');
+      return;
+    }
+
+    if (consumerDirty && !isConsumerDraftValid()) {
+      setActiveTab('consumers');
+      setTimeout(() => {
+        document.getElementById('consumer-form')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      alert('Karakter yang sedang Anda buat belum lengkap. Isi nama dan deskripsi karakteristik terlebih dahulu, atau klik Batal untuk membatalkan karakter.');
+      return;
+    }
+
+    let finalSettings = localSettings;
+    if (scenarioDirty) {
+      const applied = applyScenarioDraft(finalSettings);
+      if (applied) finalSettings = applied;
+    }
+    if (consumerDirty) {
+      const applied = applyConsumerDraft(finalSettings);
+      if (applied) finalSettings = applied;
+    }
+
+    if (scenarioDirty || consumerDirty) {
+      setLocalSettings(finalSettings);
+      if (scenarioDirty) resetScenarioForm();
+      if (consumerDirty) resetConsumerForm();
+    }
+
+    onSave(finalSettings);
     onClose();
+  };
+
+  const handleClose = () => {
+    if (hasUnsavedChanges()) {
+      if (!window.confirm('Perubahan belum disimpan. Yakin ingin keluar?')) return;
+    }
+    onClose();
+  };
+
+  const handleCancelScenarioForm = () => {
+    if (hasScenarioDraftContent()) {
+      if (!window.confirm('Skenario belum disimpan. Buang perubahan?')) return;
+    }
+    setIsScenarioFormOpen(false);
+    resetScenarioForm();
+  };
+
+  const handleCancelConsumerForm = () => {
+    if (hasConsumerDraftContent()) {
+      if (!window.confirm('Karakter belum disimpan. Buang perubahan?')) return;
+    }
+    setIsConsumerFormOpen(false);
+    resetConsumerForm();
   };
 
   const tabs = [
@@ -297,11 +468,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-[150] flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-[150] flex items-center justify-center p-4" onClick={handleClose}>
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        onClick={(e) => e.stopPropagation()}
         className="bg-card w-full max-w-5xl max-h-[90vh] rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden border border-border"
       >
         
@@ -544,7 +716,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                         </div>
                         <div className="col-span-2 flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-white/10">
                              <button onClick={handleCancelScenarioForm} className="px-6 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 font-bold hover:bg-gray-100 dark:hover:bg-[#2C2C2E] transition-all">Batal</button>
-                             <button onClick={handleSaveScenario} disabled={!newScenarioTitle} className="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed">Simpan</button>
+                               <button onClick={handleSaveScenario} disabled={!isScenarioDraftValid()} className="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed">Simpan</button>
                         </div>
                     </div>
                 </div>
@@ -682,7 +854,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                           </div>
                           <div className="flex justify-end gap-3 pt-2">
                               <button onClick={handleCancelConsumerForm} className="px-6 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 font-bold hover:bg-gray-100 dark:hover:bg-[#2C2C2E] transition-all">Batal</button>
-                              <button onClick={handleSaveConsumer} className="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all">Simpan</button>
+                               <button onClick={handleSaveConsumer} disabled={!isConsumerDraftValid()} className="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed">Simpan</button>
                           </div>
                       </div>
                   </div>
