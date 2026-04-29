@@ -70,6 +70,7 @@ Ini menghilangkan bug stale-state saat save global membaca snapshot settings yan
 - Draft yang belum lengkap tidak ikut disimpan dan akan menghentikan save total dengan peringatan yang jelas.
 - Draft kosong yang tidak sedang aktif tidak memblok proses save.
 - Di Telefun, perubahan difficulty pada karakter baru juga dihitung sebagai draft aktif supaya tidak hilang saat modal ditutup.
+- Di Telefun, perubahan toggle `Ikuti Skrip` atau `Sangat Kreatif` pada edit skenario juga dihitung sebagai draft aktif walaupun teks skrip tidak berubah.
 
 ## Regression Guard
 
@@ -80,6 +81,7 @@ Ini menghilangkan bug stale-state saat save global membaca snapshot settings yan
 - [ ] `onSave(...)` harus menerima `finalSettings` yang sudah mematerialisasi draft, bukan snapshot state lama.
 - [ ] PDKT tetap mempertahankan preflight localStorage size check setelah `finalSettings` terbentuk.
 - [ ] Di Telefun, ubah difficulty karakter baru lalu tekan `X` atau backdrop; warning konfirmasi harus muncul.
+- [ ] Di Telefun, edit skenario yang sudah punya skrip lalu matikan `Ikuti Skrip` dan klik `Simpan Perubahan`; `scenario.script` harus ikut kosong setelah modal dibuka ulang.
 
 ## Smoke Steps Singkat
 

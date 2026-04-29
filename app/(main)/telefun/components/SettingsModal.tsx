@@ -29,6 +29,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   const [newScenarioTitle, setNewScenarioTitle] = useState('');
   const [newScenarioDesc, setNewScenarioDesc] = useState('');
   const [newScenarioScript, setNewScenarioScript] = useState('');
+  const [isScenarioScriptEnabled, setIsScenarioScriptEnabled] = useState(false);
   const [newScenarioImages, setNewScenarioImages] = useState<string[]>([]);
 
   // Consumer Form State
@@ -109,6 +110,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     setNewScenarioTitle('');
     setNewScenarioDesc('');
     setNewScenarioScript('');
+    setIsScenarioScriptEnabled(false);
     setNewScenarioCategory('');
     setNewScenarioImages([]);
     setIsNewCategoryInput(false);
@@ -128,6 +130,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     setNewScenarioTitle(scenario.title);
     setNewScenarioDesc(scenario.description);
     setNewScenarioScript(scenario.script || '');
+    setIsScenarioScriptEnabled(Boolean(scenario.script?.trim()));
     setNewScenarioImages(scenario.images || []);
     setIsNewCategoryInput(!categories.includes(scenario.category));
     
@@ -176,7 +179,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                 category, 
                 title: newScenarioTitle, 
                 description: newScenarioDesc, 
-                script: newScenarioScript,
+                script: isScenarioScriptEnabled ? newScenarioScript : '',
                 images: newScenarioImages
               }
             : s
@@ -188,7 +191,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
         category,
         title: newScenarioTitle,
         description: newScenarioDesc,
-        script: newScenarioScript,
+        script: isScenarioScriptEnabled ? newScenarioScript : '',
         isActive: true,
         images: newScenarioImages
       };
@@ -276,15 +279,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
       const original = localSettings.scenarios.find(s => s.id === editingScenarioId);
       if (!original) return true;
       const category = isNewCategoryInput ? newScenarioCategory : newScenarioCategory || "Umum";
+      const originalScriptEnabled = Boolean(original.script?.trim());
       return (
         category !== original.category ||
         newScenarioTitle !== original.title ||
         newScenarioDesc !== original.description ||
+        isScenarioScriptEnabled !== originalScriptEnabled ||
         newScenarioScript !== (original.script || '') ||
         JSON.stringify(newScenarioImages) !== JSON.stringify(original.images || [])
       );
     }
-    return !!(newScenarioTitle || newScenarioDesc || newScenarioScript || newScenarioImages.length > 0 || newScenarioCategory);
+    return !!(
+      newScenarioTitle ||
+      newScenarioDesc ||
+      isScenarioScriptEnabled ||
+      newScenarioScript ||
+      newScenarioImages.length > 0 ||
+      newScenarioCategory
+    );
   };
 
   const hasConsumerDraftContent = () => {
@@ -329,7 +341,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                 category,
                 title: newScenarioTitle,
                 description: newScenarioDesc,
-                script: newScenarioScript,
+                script: isScenarioScriptEnabled ? newScenarioScript : '',
                 images: newScenarioImages
               }
             : s
@@ -341,7 +353,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
         category,
         title: newScenarioTitle,
         description: newScenarioDesc,
-        script: newScenarioScript,
+        script: isScenarioScriptEnabled ? newScenarioScript : '',
         isActive: true,
         images: newScenarioImages
       };
@@ -678,8 +690,71 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                             <textarea className="w-full rounded-xl border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#2C2C2E] p-3 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none resize-none" rows={3} value={newScenarioDesc} onChange={(e) => setNewScenarioDesc(e.target.value)} />
                         </div>
                         <div className="col-span-2">
-                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Instruksi Khusus Simulasi (Opsional)</label>
-                             <textarea className="w-full rounded-xl border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#2C2C2E] p-3 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none resize-none" rows={3} value={newScenarioScript} onChange={(e) => setNewScenarioScript(e.target.value)} placeholder="Berikan instruksi tambahan untuk perilaku simulasi..." />
+                             <div className="flex items-center justify-between gap-4 mb-2">
+                               <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Skrip Percakapan</label>
+                               <button
+                                 type="button"
+                                 onClick={() => setIsScenarioScriptEnabled((prev) => !prev)}
+                                 className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-[10px] font-bold uppercase tracking-widest transition-all ${
+                                   isScenarioScriptEnabled
+                                     ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-500/20'
+                                     : 'bg-gray-50 dark:bg-[#2C2C2E] text-gray-400 dark:text-gray-500 border-gray-200 dark:border-white/10'
+                                 }`}
+                               >
+                                 <span
+                                   className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
+                                     isScenarioScriptEnabled
+                                       ? 'bg-blue-500 border-blue-500 text-white'
+                                       : 'border-gray-300 dark:border-gray-600 bg-transparent text-transparent'
+                                   }`}
+                                 >
+                                   <Check className="w-3 h-3" />
+                                 </span>
+                                 {isScenarioScriptEnabled ? 'Ikuti Skrip' : 'Sangat Kreatif'}
+                               </button>
+                             </div>
+                             <textarea
+                               className={`w-full rounded-xl border p-3 text-sm outline-none resize-none transition-all ${
+                                 isScenarioScriptEnabled
+                                   ? 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#2C2C2E] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500'
+                                   : 'border-gray-200 dark:border-white/5 bg-gray-50/50 dark:bg-[#1C1C1E]/50 text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                               }`}
+                               rows={12}
+                               value={newScenarioScript}
+                               onChange={(e) => setNewScenarioScript(e.target.value)}
+                               disabled={!isScenarioScriptEnabled}
+                               placeholder={`Contoh format 1 - Dialog:
+Agent: Selamat pagi, ada yang bisa saya bantu?
+Konsumen: Mas saya ada masalah transaksi.
+Agent: Baik, transaksi seperti apa ya?
+Konsumen: Tadi pagi ada transaksi kartu kredit yang saya tidak kenal.
+
+Contoh format 2 - Alur:
+Awal:
+- Konsumen membuka telepon dengan nada panik dan singkat.
+- Menyebut ada transaksi kartu kredit yang tidak dikenali.
+
+Jika agen bertanya detail:
+- Konsumen menyebut transaksi terjadi tadi pagi.
+- Nilai transaksi sekitar Rp3.250.000.
+- Konsumen tidak pernah memberikan OTP ke siapa pun.
+
+Jika agen memberi arahan pemblokiran:
+- Konsumen mulai sedikit tenang.
+- Lalu bertanya apakah dana masih bisa diselamatkan.
+
+Akhir:
+- Konsumen berterima kasih setelah mendapat langkah lanjut.`}
+                             />
+                             <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                               Checklist <span className="font-bold text-gray-900 dark:text-white">Ikuti Skrip</span> untuk mengaktifkan kolom ini. Saat tidak dicentang, konsumen akan dibiarkan lebih bebas dan kreatif mengikuti konteks skenario. Saat dicentang, AI akan berusaha mengikuti skrip sebagai panduan alur.
+                             </p>
+                             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                               Anda bisa menulis skrip dalam format dialog seperti <span className="font-bold text-gray-900 dark:text-white">Agent:</span> /
+                               <span className="font-bold text-gray-900 dark:text-white"> Konsumen:</span> atau dalam format poin alur seperti
+                               <span className="font-bold text-gray-900 dark:text-white"> Awal</span>, <span className="font-bold text-gray-900 dark:text-white">Jika agen bertanya</span>,
+                               dan <span className="font-bold text-gray-900 dark:text-white">Akhir</span>. AI akan tetap menjawab secara natural sesuai pertanyaan agen dan situasi percakapan.
+                             </p>
                         </div>
                         <div className="col-span-2">
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Lampiran Gambar</label>

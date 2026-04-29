@@ -691,7 +691,25 @@ export class LiveSession {
     PENTING: Jika ditanya agen, sebutkan data di atas. JANGAN MENGARANG data identitas baru yang berbeda.
     
     MASALAH ANDA: ${s?.title || "Masalah Umum"}. ${s?.description || "Ingin bertanya sesuatu."}
-    ${s?.script ? `\nSKRIP/ALUR PERCAKAPAN (PANDUAN): ${s.script}\nIkuti alur informasi di atas secara bertahap sesuai respon agen.` : ''}
+    ${s?.script ? `\nSKRIP PERCAKAPAN (PANDUAN ALUR):
+Gunakan skrip berikut sebagai panduan utama arah percakapan, informasi penting, dan urutan eskalasi masalah.
+- Skrip bisa ditulis dalam DUA FORMAT, dan Anda harus bisa memahami keduanya:
+  1. FORMAT DIALOG, mis. "Agent: ..." dan "Konsumen: ..."
+  2. FORMAT POIN ALUR, mis. "Awal:", "Jika agen bertanya:", "Akhir:", dst.
+- Jika skrip berbentuk FORMAT DIALOG:
+  - Perlakukan bagian "Agent" sebagai contoh pemicu atau arah percakapan dari agen.
+  - Perlakukan bagian "Konsumen" sebagai contoh respons, nada bicara, dan informasi yang perlu Anda keluarkan secara bertahap.
+  - Jangan menyalin dialog mentah-mentah; adaptasikan dengan percakapan aktual.
+- Jika skrip berbentuk FORMAT POIN ALUR:
+  - Ikuti tahapan, kondisi, emosi, dan informasi penting yang tertulis sebagai panduan perilaku.
+- IKUTI inti alur, fakta penting, emosi, dan konteks dari skrip ini semampunya.
+- JANGAN menyalin skrip secara verbatim atau terdengar seperti membaca naskah.
+- JANGAN berikan semua informasi sekaligus; buka informasi sedikit demi sedikit sesuai pertanyaan agen dan alur percakapan yang natural.
+- BOLEH menyimpang dari urutan skrip bila diperlukan agar percakapan tetap realistis, menjawab pertanyaan agen dengan relevan, atau menutup percakapan secara natural.
+- Jika ada konflik antara skrip, pertanyaan agen, dan kondisi percakapan aktual, prioritaskan respons yang paling natural namun tetap konsisten dengan inti masalah pada skrip.
+
+Isi skrip:
+${s.script}\n` : ''}
     ${timeLimitInstruction}
     ${pacingInstruction}
     
@@ -759,6 +777,28 @@ export const generateConsumerResponse = async (
   scenario: Scenario,
   history: { role: 'agent' | 'consumer'; text: string }[]
 ): Promise<string> => {
+  const scriptInstruction = scenario.script
+    ? `SKRIP PERCAKAPAN (PANDUAN ALUR):
+Gunakan skrip berikut sebagai panduan utama arah percakapan, informasi penting, dan urutan eskalasi masalah.
+- Skrip bisa ditulis dalam DUA FORMAT, dan Anda harus bisa memahami keduanya:
+  1. FORMAT DIALOG, mis. "Agent: ..." dan "Konsumen: ..."
+  2. FORMAT POIN ALUR, mis. "Awal:", "Jika agen bertanya:", "Akhir:", dst.
+- Jika skrip berbentuk FORMAT DIALOG:
+  - Perlakukan bagian "Agent" sebagai contoh pemicu atau arah percakapan dari agen.
+  - Perlakukan bagian "Konsumen" sebagai contoh respons, nada bicara, dan informasi yang perlu Anda keluarkan secara bertahap.
+  - Jangan menyalin dialog mentah-mentah; adaptasikan dengan percakapan aktual.
+- Jika skrip berbentuk FORMAT POIN ALUR:
+  - Ikuti tahapan, kondisi, emosi, dan informasi penting yang tertulis sebagai panduan perilaku.
+- IKUTI inti alur, fakta penting, emosi, dan konteks dari skrip ini semampunya.
+- JANGAN menyalin skrip secara verbatim atau terdengar seperti membaca naskah.
+- JANGAN berikan semua informasi sekaligus; buka informasi sedikit demi sedikit sesuai pertanyaan agen dan alur percakapan yang natural.
+- BOLEH menyimpang dari urutan skrip bila diperlukan agar percakapan tetap realistis, menjawab pertanyaan agen dengan relevan, atau menutup percakapan secara natural.
+- Jika ada konflik antara skrip, pertanyaan agen, dan kondisi percakapan aktual, prioritaskan respons yang paling natural namun tetap konsisten dengan inti masalah pada skrip.
+
+Isi skrip:
+${scenario.script}`
+    : '';
+
   const systemInstruction = `
     Anda berperan sebagai konsumen Kontak OJK 157 melalui TELEPON.
     IDENTITAS ANDA:
@@ -767,6 +807,8 @@ export const generateConsumerResponse = async (
     
     Sifat Anda: ${config.consumerType.description}.
     Masalah Anda: ${scenario.description}.
+    
+    ${scriptInstruction}
     
     ATURAN PERCAKAPAN TELEPON:
     1. Berikan respon yang sangat singkat dan natural layaknya orang berbicara di telepon.
@@ -804,6 +846,17 @@ export const generateFirstCallMessage = async (
   config: SessionConfig,
   scenario: Scenario
 ): Promise<string> => {
+  const scriptInstruction = scenario.script
+    ? `SKRIP PERCAKAPAN (PANDUAN ALUR):
+Gunakan skrip berikut sebagai panduan utama arah percakapan, informasi penting, dan urutan eskalasi masalah.
+- IKUTI inti alur, fakta penting, emosi, dan konteks dari skrip ini semampunya.
+- JANGAN menyalin skrip secara verbatim atau terdengar seperti membaca naskah.
+- JANGAN berikan semua informasi sekaligus; buka informasi sedikit demi sedikit sesuai pertanyaan agen dan alur percakapan yang natural.
+
+Isi skrip:
+${scenario.script}`
+    : '';
+
   const systemInstruction = `
     Anda berperan sebagai konsumen Kontak OJK 157 melalui TELEPON.
     IDENTITAS ANDA:
@@ -812,6 +865,8 @@ export const generateFirstCallMessage = async (
     
     Sifat Anda: ${config.consumerType.description}.
     Masalah Anda: ${scenario.description}.
+    
+    ${scriptInstruction}
     
     TUGAS:
     Berikan pesan pembuka telepon yang singkat dan natural (misal: "Halo, selamat siang", "Halo, dengan OJK?", "Halo, saya mau tanya...").
