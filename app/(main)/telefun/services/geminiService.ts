@@ -243,6 +243,15 @@ export class LiveSession {
             },
             systemInstruction: {
               parts: [{ text: this.buildSystemInstruction() }]
+            },
+            realtimeInputConfig: {
+              automaticActivityDetection: {
+                disabled: false,
+                startOfSpeechSensitivity: "START_SENSITIVITY_LOW",
+                endOfSpeechSensitivity: "END_SENSITIVITY_LOW",
+                prefixPaddingMs: 300,
+                silenceDurationMs: 800
+              }
             }
           }
         };
@@ -691,6 +700,8 @@ export class LiveSession {
     2. Abaikan suara bising kecil atau gumaman agen, teruskan bicara sampai kalimatmu selesai.
     3. Jika agen menyela panjang, barulah berhenti. Tapi jika hanya "hmm" atau suara kecil, LANJUTKAN.
     4. TAHAN INTERUPSI: Jika kamu mendengar suara napas, batuk, atau 'hmm', JANGAN BERHENTI. Terus bicara sampai poinmu selesai.
+    5. JANGAN MENGAKHIRI PERCAKAPAN HANYA KARENA AGEN MERESPONS SINGKAT seperti "iya", "baik", "oke", "kemudian", "lanjut", "hmm", "ya", "sip", "betul". Respons singkat ini BUKAN tanda percakapan selesai.
+    6. Jika agen memberi respons singkat (acknowledgment), LANJUTKAN eksposisi masalahmu atau ajukan pertanyaan baru. Jangan menutup telepon hanya karena agen merespons singkat.
     
     ATURAN ROLEPLAY:
     1. JANGAN PERNAH MENAWARKAN BANTUAN. Kamu pelanggan, kamu yang butuh bantuan.
@@ -701,6 +712,8 @@ export class LiveSession {
     - ${genderInstruction}
     - JANGAN BERUBAH MENJADI LAWAN JENIS APAPUN YANG TERJADI.
     - Pertahankan pitch dan tone suara dari awal sampai akhir.
+    - JANGAN meniru atau menyesuaikan suara dengan suara agen. Tetap pada karakter suaramu sendiri.
+    - Jika suara mulai terdengar berubah, SEGERA kembalikan ke pitch dan tone asli.
     
     KARAKTER & EMOSI:
     - ${emotionInstruction}

@@ -60,6 +60,23 @@ Telefun sekarang membawa pengaturan tempo respons yang mengikuti pola settings K
 
 Implementasi runtime-nya berada di `app/(main)/telefun/components/SettingsModal.tsx`, `app/(main)/telefun/page.tsx`, dan `app/(main)/telefun/services/geminiService.ts`.
 
+## Sensitivitas Bicara Live
+
+Gemini Live di Telefun sekarang memakai `realtimeInputConfig.automaticActivityDetection` untuk membuat endpointing lebih stabil saat user memberi respons pendek.
+
+- `startOfSpeechSensitivity`: `START_SENSITIVITY_LOW`
+- `endOfSpeechSensitivity`: `END_SENSITIVITY_LOW`
+- `prefixPaddingMs`: `300`
+- `silenceDurationMs`: `800`
+
+Efek operasionalnya:
+
+- kata singkat seperti `iya`, `baik`, `oke`, atau `kemudian` tidak mudah dianggap sebagai akhir giliran bicara
+- percakapan tetap mengandalkan konteks prompt dan audio runtime, bukan deteksi diam yang terlalu agresif
+- ini terpisah dari dead-air detector internal yang hanya memicu prompt saat user benar-benar diam terlalu lama
+
+Kalau user melaporkan sesi berhenti saat merespons singkat, cek first-level ini dulu sebelum menyimpulkan masalah ada di prompt atau runtime proxy.
+
 ## Command
 
 Dari root repo:
@@ -231,11 +248,12 @@ Checklist manual setelah deploy:
 7. Di Railway, pastikan log healthy call berurutan sampai `Gemini setupComplete received`.
 8. Uji mute dan hold, lalu resume panggilan. Pastikan **mute tidak me-restart call atau memutar ringtone ulang**.
 9. Pastikan **indikator input suara naik saat bicara** dan turun saat diam/mute.
-10. Biarkan mute/diam sekitar 7 detik setelah tersambung; pastikan konsumen memanggil user secara natural tanpa memutus telepon.
-11. Aktifkan hold; pastikan dead-air prompt **tidak muncul selama hold**.
-12. Akhiri panggilan dan pastikan riwayat muncul di modal `Riwayat` dengan nama konsumen yang sama dengan UI saat panggilan.
-13. Untuk user login, cek `telefun_history` terisi dan monitoring histori menampilkan sesi Telefun.
-14. Jalankan panggilan singkat, akhiri sesi, lalu cek `ai_usage_logs` bertambah 1 row `telefun / voice_live`. Buka modal `Usage` dan cek module `telefun` bertambah.
+10. Ucapkan respons singkat seperti `iya`, `baik`, atau `kemudian`; pastikan sesi tidak berhenti mendadak dan percakapan tetap lanjut.
+11. Biarkan mute/diam sekitar 7 detik setelah tersambung; pastikan konsumen memanggil user secara natural tanpa memutus telepon.
+12. Aktifkan hold; pastikan dead-air prompt **tidak muncul selama hold**.
+13. Akhiri panggilan dan pastikan riwayat muncul di modal `Riwayat` dengan nama konsumen yang sama dengan UI saat panggilan.
+14. Untuk user login, cek `telefun_history` terisi dan monitoring histori menampilkan sesi Telefun.
+15. Jalankan panggilan singkat, akhiri sesi, lalu cek `ai_usage_logs` bertambah 1 row `telefun / voice_live`. Buka modal `Usage` dan cek module `telefun` bertambah.
 
 ## Debug Cepat
 
