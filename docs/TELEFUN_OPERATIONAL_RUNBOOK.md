@@ -47,6 +47,19 @@ Fungsi `resolveFinalIdentity(identitySettings)` diterapkan di `startCall` sebelu
 
 Voice Gemini Live sekarang dipilih berdasarkan `config.identity.gender`, bukan berdasarkan `consumerType.id`.
 
+## Tempo Respons Konsumen
+
+Telefun sekarang membawa pengaturan tempo respons yang mengikuti pola settings KETIK:
+
+- `responsePacingMode: 'realistic' | 'training_fast'`
+- Default aktif untuk Telefun adalah `realistic`
+- Settings lama yang belum punya field ini akan dibaca sebagai `realistic`
+- Pengaturan ini memengaruhi tempo bicara konsumen di voice live, bukan isi skenario atau identitas
+- Mode `realistic` memakai pacing lebih natural dan instruksi prompt yang mendorong jeda, respons bertahap, dan interupsi yang tidak terlalu agresif
+- Mode `training_fast` mempertahankan tempo yang lebih cepat untuk latihan berulang
+
+Implementasi runtime-nya berada di `app/(main)/telefun/components/SettingsModal.tsx`, `app/(main)/telefun/page.tsx`, dan `app/(main)/telefun/services/geminiService.ts`.
+
 ## Command
 
 Dari root repo:

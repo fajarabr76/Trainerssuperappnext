@@ -617,14 +617,20 @@ export class LiveSession {
   private calculatePlaybackRate() {
     const s = this.config.scenarios[0];
     const c = this.config.consumerType;
+    const pacingMode = this.config.responsePacingMode || 'realistic';
     const combinedText = (c.name + " " + c.description + " " + (s?.title || "") + " " + (s?.description || "")).toLowerCase();
 
+    let baseRate = 1.0;
     if (combinedText.includes("marah") || combinedText.includes("panik") || combinedText.includes("ngeyel") || combinedText.includes("emosi") || combinedText.includes("kasar") || combinedText.includes("darurat") || combinedText.includes("tinggi")) {
-      this.playbackRate = 1.05;
+      baseRate = 1.05;
     } else if (combinedText.includes("sedih") || combinedText.includes("memelas") || combinedText.includes("bingung") || combinedText.includes("gaptek") || combinedText.includes("ragu") || combinedText.includes("lemas") || combinedText.includes("takut")) {
-      this.playbackRate = 0.95;
+      baseRate = 0.95;
+    }
+
+    if (pacingMode === 'realistic') {
+      this.playbackRate = Math.max(0.90, baseRate - 0.03);
     } else {
-      this.playbackRate = 1.0;
+      this.playbackRate = baseRate;
     }
   }
 
@@ -632,6 +638,7 @@ export class LiveSession {
     const s = this.config.scenarios[0];
     const c = this.config.consumerType;
     const identity = this.config.identity;
+    const pacingMode = this.config.responsePacingMode || 'realistic';
 
     let emotionInstruction = "";
     if (c.name.toLowerCase().includes("marah") || c.name.toLowerCase().includes("ngeyel")) {
@@ -641,6 +648,20 @@ export class LiveSession {
     } else {
       emotionInstruction = `EMOSI: ${c.description}. Bicara natural.`;
     }
+
+    const pacingInstruction = pacingMode === 'realistic'
+      ? `
+    TEMPO RESPONS (REALISTIS):
+    1. Bicara dengan tempo natural seperti orang menelepon sungguhan. Beri jeda antar kalimat.
+    2. Jangan langsung menumpahkan semua keluhan sekaligus. Sampaikan bertahap sesuai respon agen.
+    3. Jangan memotong agen terlalu cepat. Dengarkan dulu penjelasan agen sebelum merespons.
+    4. Gunakan gumaman natural seperti "hmm", "oh begitu", "iya..." saat agen sedang menjelaskan.
+    5. Jika bingung atau perlu waktu berpikir, beri jeda sebelum menjawab. Jangan langsung bicara.
+    6. Jangan mengajukan banyak pertanyaan sekaligus. Satu pertanyaan per giliran.`
+      : `
+    TEMPO RESPONS (LATIHAN CEPAT):
+    1. Respons lebih cepat agar latihan lebih efisien.
+    2. Tetap natural tapi jangan terlalu banyak jeda panjang.`;
 
     const genderInstruction = identity.gender === 'male'
       ? "SUARA: LAKI-LAKI (Bapak-bapak). Gunakan suara berat."
@@ -663,6 +684,7 @@ export class LiveSession {
     MASALAH ANDA: ${s?.title || "Masalah Umum"}. ${s?.description || "Ingin bertanya sesuatu."}
     ${s?.script ? `\nSKRIP/ALUR PERCAKAPAN (PANDUAN): ${s.script}\nIkuti alur informasi di atas secara bertahap sesuai respon agen.` : ''}
     ${timeLimitInstruction}
+    ${pacingInstruction}
     
     ATURAN BICARA (SANGAT PENTING):
     1. JANGAN PERNAH BERHENTI MENDADAK DI TENGAH KALIMAT. Selesaikan pikiranmu.

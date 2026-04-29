@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { AppSettings, ConsumerIdentitySettings, Scenario, ConsumerType, ConsumerDifficulty } from '@/app/types';
 import { AI_MODELS } from '../constants';
-import { Clock, Trash2, X, Plus, Check, Edit2, User, Settings, FileText, Users, Image as ImageIcon, Save } from 'lucide-react';
+import { Clock, Trash2, X, Plus, Check, Edit2, User, Settings, FileText, Users, Image as ImageIcon, Save, Zap } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface SettingsModalProps {
@@ -821,12 +821,75 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                                 </div>
                             );
                         })}
-                    </div>
-                 </section>
-              </div>
-          )}
+                     </div>
+                  </section>
 
-        </div>
+                  {/* Tempo Respons Konsumen */}
+                  <section className="space-y-6">
+                     <div className="bg-white dark:bg-[#1C1C1E] p-6 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm">
+                       <div className="flex items-start gap-4">
+                         <div className="w-12 h-12 rounded-2xl bg-teal-500/10 flex items-center justify-center shrink-0">
+                           <Zap className="w-6 h-6 text-teal-500" />
+                         </div>
+                         <div>
+                            <h3 className="font-bold text-gray-900 dark:text-white text-lg">Tempo Respons Konsumen</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                                Pengaturan ini memengaruhi kecepatan dan naturalitas respons konsumen. Tidak mengubah isi skenario atau karakter.
+                            </p>
+                         </div>
+                       </div>
+                     </div>
+
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                         <div
+                             onClick={() => setLocalSettings(prev => ({ ...prev, responsePacingMode: 'realistic' }))}
+                             className={`cursor-pointer p-6 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-3 text-center relative group ${
+                                 (localSettings.responsePacingMode || 'realistic') === 'realistic'
+                                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10'
+                                 : 'border-transparent bg-white dark:bg-[#1C1C1E] hover:bg-gray-50 dark:hover:bg-[#2C2C2E]'
+                             }`}
+                         >
+                             <Zap className={`w-8 h-8 ${(localSettings.responsePacingMode || 'realistic') === 'realistic' ? 'text-blue-500' : 'text-gray-300 dark:text-gray-600'}`} />
+                             <span className={`text-base font-bold tracking-tight ${(localSettings.responsePacingMode || 'realistic') === 'realistic' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>
+                               Realistis
+                             </span>
+                             <span className="text-xs text-gray-500 dark:text-gray-400 font-medium text-center leading-relaxed">
+                               Variasi tempo seperti manusia asli. Ada jeda pendek dan panjang yang natural.
+                             </span>
+                             {(localSettings.responsePacingMode || 'realistic') === 'realistic' && (
+                               <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/20 z-10">
+                                 <Check className="w-3.5 h-3.5 text-white" />
+                               </div>
+                             )}
+                         </div>
+
+                         <div
+                             onClick={() => setLocalSettings(prev => ({ ...prev, responsePacingMode: 'training_fast' }))}
+                             className={`cursor-pointer p-6 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-3 text-center relative group ${
+                                 (localSettings.responsePacingMode || 'realistic') === 'training_fast'
+                                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10'
+                                 : 'border-transparent bg-white dark:bg-[#1C1C1E] hover:bg-gray-50 dark:hover:bg-[#2C2C2E]'
+                             }`}
+                         >
+                             <Zap className={`w-8 h-8 ${(localSettings.responsePacingMode || 'realistic') === 'training_fast' ? 'text-blue-500' : 'text-gray-300 dark:text-gray-600'}`} />
+                             <span className={`text-base font-bold tracking-tight ${(localSettings.responsePacingMode || 'realistic') === 'training_fast' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>
+                               Cepat untuk Latihan
+                             </span>
+                             <span className="text-xs text-gray-500 dark:text-gray-400 font-medium text-center leading-relaxed">
+                               Respons lebih cepat. Cocok untuk latihan berulang tanpa menunggu lama.
+                             </span>
+                             {(localSettings.responsePacingMode || 'realistic') === 'training_fast' && (
+                               <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/20 z-10">
+                                 <Check className="w-3.5 h-3.5 text-white" />
+                               </div>
+                             )}
+                         </div>
+                     </div>
+                  </section>
+               </div>
+           )}
+
+         </div>
       </motion.div>
     </div>
   );

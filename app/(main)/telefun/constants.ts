@@ -42,6 +42,10 @@ export const parseTelefunSettings = (parsed: Record<string, unknown>): AppSettin
   },
   selectedModel: (parsed.selectedModel as string) || 'gemini-3.1-flash-lite-preview',
   maxCallDuration: (parsed.maxCallDuration as number) || 5,
+  responsePacingMode:
+    (parsed.responsePacingMode === 'realistic' || parsed.responsePacingMode === 'training_fast')
+      ? parsed.responsePacingMode
+      : 'realistic',
 });
 
 export const DEFAULT_SCENARIOS: Scenario[] = [

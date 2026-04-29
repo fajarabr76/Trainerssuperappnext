@@ -86,7 +86,7 @@ export default function TelefunPage() {
       identity: resolvedIdentity,
       model: settings.selectedModel,
       simulationDuration: settings.maxCallDuration || 5,
-      responsePacingMode: 'realistic',
+      responsePacingMode: settings.responsePacingMode || 'realistic',
       maxCallDuration: settings.maxCallDuration,
     };
     setActiveSessionConfig(sessionConfig);
