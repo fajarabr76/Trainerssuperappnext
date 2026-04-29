@@ -6,10 +6,11 @@ import { SettingsModal } from './components/SettingsModal';
 import { HistoryModal } from './components/HistoryModal';
 import { UsageModal } from './components/UsageModal';
 import { PhoneInterface } from './components/PhoneInterface';
-import { AppSettings, Scenario, SessionConfig, Identity } from '@/app/types';
+import { AppSettings, Scenario, SessionConfig } from '@/app/types';
 import { Settings, PhoneCall, History, Play, BarChart3 } from 'lucide-react';
 import { loadTelefunSettings, saveTelefunSettings } from './services/settingService';
 import { defaultTelefunSettings } from './data';
+import { resolveFinalIdentity } from './constants';
 import { generateScore } from './services/geminiService';
 import { persistTelefunSession } from './actions';
 import { getMyModuleUsage } from '@/app/actions/usage';
@@ -34,6 +35,7 @@ export default function TelefunPage() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isUsageOpen, setIsUsageOpen] = useState(false);
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
+  const [activeSessionConfig, setActiveSessionConfig] = useState<SessionConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [sessionDelta, setSessionDelta] = useState<ReturnType<typeof computeUsageDelta>>(null);
   const sessionBaselineRef = useRef<UsageSnapshot | null>(null);
@@ -72,6 +74,23 @@ export default function TelefunPage() {
     }
     const finalScenario = scenario || activeScenarios[Math.floor(Math.random() * activeScenarios.length)];
     setSelectedScenario(finalScenario);
+
+    const consumerType = settings.preferredConsumerTypeId === 'random'
+      ? settings.consumerTypes[Math.floor(Math.random() * settings.consumerTypes.length)]
+      : (settings.consumerTypes.find(ct => ct.id === settings.preferredConsumerTypeId) || settings.consumerTypes[0]);
+    const resolvedIdentity = resolveFinalIdentity(settings.identitySettings);
+
+    const sessionConfig: SessionConfig = {
+      scenarios: [finalScenario],
+      consumerType,
+      identity: resolvedIdentity,
+      model: settings.selectedModel,
+      simulationDuration: settings.maxCallDuration || 5,
+      responsePacingMode: 'realistic',
+      maxCallDuration: settings.maxCallDuration,
+    };
+    setActiveSessionConfig(sessionConfig);
+
     setSessionDelta(null);
     sessionBaselineRef.current = null;
     const runId = ++sessionRunIdRef.current;
@@ -95,28 +114,12 @@ export default function TelefunPage() {
   };
 
   const handleEndCall = async (recordingUrl?: string, consumerName?: string) => {
-    // FAIL 2 Fix: Add validation that recordingUrl is a valid blob URL
+    const sessionConfig = activeSessionConfig;
     const isValidUrl = recordingUrl && (recordingUrl.startsWith('blob:') || recordingUrl.startsWith('http'));
     
-    if (isValidUrl && selectedScenario) {
+    if (isValidUrl && selectedScenario && sessionConfig) {
       let score = 0;
       let feedback = '';
-      const consumerType = settings.consumerTypes.find(ct => ct.id === settings.preferredConsumerTypeId) || settings.consumerTypes[0];
-      const identity: Identity = {
-        name: settings.identitySettings.displayName,
-        city: settings.identitySettings.city,
-        phone: settings.identitySettings.phoneNumber,
-        gender: settings.identitySettings.gender,
-      };
-      const sessionConfig: SessionConfig = {
-        scenarios: [selectedScenario],
-        consumerType,
-        identity,
-        model: settings.selectedModel,
-        simulationDuration: settings.maxCallDuration || 5,
-        responsePacingMode: 'realistic',
-        maxCallDuration: settings.maxCallDuration,
-      };
 
       try {
         const scoring = await generateScore(sessionConfig, selectedScenario, 0);
@@ -126,11 +129,13 @@ export default function TelefunPage() {
         console.error('[Telefun] Scoring error:', e);
       }
 
+      const finalConsumerName = consumerName || sessionConfig.identity.name;
+
       const newRecord: CallRecord = {
         id: Date.now().toString(),
         date: new Date().toISOString(),
         url: recordingUrl,
-        consumerName: consumerName || settings.identitySettings.displayName || 'Konsumen',
+        consumerName: finalConsumerName,
         scenarioTitle: selectedScenario?.title || 'Telepon Umum',
         duration: 0,
       };
@@ -144,9 +149,9 @@ export default function TelefunPage() {
         const result = await persistTelefunSession({
           userId: user.id,
           scenarioTitle: selectedScenario.title,
-          consumerName: consumerName || settings.identitySettings.displayName || 'Konsumen',
-          consumerPhone: settings.identitySettings.phoneNumber,
-          consumerCity: settings.identitySettings.city,
+          consumerName: finalConsumerName,
+          consumerPhone: sessionConfig.identity.phone,
+          consumerCity: sessionConfig.identity.city,
           duration: 0,
           recordingUrl,
           score,
@@ -285,20 +290,7 @@ export default function TelefunPage() {
             className="fixed inset-0 z-50 flex flex-col bg-background"
           >
             <PhoneInterface
-              config={{
-                scenarios: [selectedScenario],
-                consumerType: settings.consumerTypes.find(ct => ct.id === settings.preferredConsumerTypeId) || settings.consumerTypes[0],
-                identity: {
-                  name: settings.identitySettings.displayName,
-                  city: settings.identitySettings.city,
-                  phone: settings.identitySettings.phoneNumber,
-                  gender: settings.identitySettings.gender
-                },
-                model: settings.selectedModel,
-                simulationDuration: settings.maxCallDuration || 5,
-                responsePacingMode: 'realistic',
-                maxCallDuration: settings.maxCallDuration
-              }}
+              config={activeSessionConfig!}
               onEndSession={handleEndSessionOnly}
               onRecordingReady={(url, name) => handleEndCall(url, name)}
             />

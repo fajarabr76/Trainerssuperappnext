@@ -1,4 +1,4 @@
-import { AppSettings, Scenario, ConsumerType, ConsumerDifficulty } from '@/app/types';
+import { AppSettings, Scenario, ConsumerType, ConsumerDifficulty, Identity, ConsumerIdentitySettings } from '@/app/types';
 
 const mergeWithDefaults = <T extends { id: string; isCustom?: boolean; description?: string }>(
   stored: T[],
@@ -127,5 +127,66 @@ export const DEFAULT_CONSUMER_TYPES: ConsumerType[] = [
     difficulty: ConsumerDifficulty.Medium
   }
 ];
+
+export interface DefaultProfile {
+  name: string;
+  phone: string;
+  city: string;
+  gender: 'male' | 'female';
+}
+
+export const DEFAULT_IDENTITY_POOL: DefaultProfile[] = [
+  { name: 'Agus Setiawan', phone: '0812-3456-7890', city: 'Jakarta', gender: 'male' },
+  { name: 'Siti Rahayu', phone: '0813-4567-8901', city: 'Bandung', gender: 'female' },
+  { name: 'Budi Hartono', phone: '0814-5678-9012', city: 'Surabaya', gender: 'male' },
+  { name: 'Dewi Lestari', phone: '0815-6789-0123', city: 'Medan', gender: 'female' },
+  { name: 'Hendra Wijaya', phone: '0816-7890-1234', city: 'Semarang', gender: 'male' },
+  { name: 'Rina Marlina', phone: '0817-8901-2345', city: 'Yogyakarta', gender: 'female' },
+  { name: 'Andi Pratama', phone: '0818-9012-3456', city: 'Makassar', gender: 'male' },
+  { name: 'Fitri Handayani', phone: '0819-0123-4567', city: 'Palembang', gender: 'female' },
+  { name: 'Rudi Hermawan', phone: '0821-1234-5678', city: 'Tangerang', gender: 'male' },
+  { name: 'Mega Ayuningtyas', phone: '0822-2345-6789', city: 'Bekasi', gender: 'female' },
+  { name: 'Dian Permana', phone: '0823-3456-7890', city: 'Depok', gender: 'male' },
+  { name: 'Lina Kusuma', phone: '0824-4567-8901', city: 'Bogor', gender: 'female' },
+];
+
+export function resolveFinalIdentity(identitySettings: ConsumerIdentitySettings): Identity {
+  const hasName = (identitySettings.displayName ?? '').trim().length > 0;
+  const hasPhone = (identitySettings.phoneNumber ?? '').trim().length > 0;
+  const hasCity = (identitySettings.city ?? '').trim().length > 0;
+
+  const allEmpty = !hasName && !hasPhone && !hasCity;
+  const allFilled = hasName && hasPhone && hasCity;
+
+  if (allEmpty) {
+    const profile = DEFAULT_IDENTITY_POOL[Math.floor(Math.random() * DEFAULT_IDENTITY_POOL.length)];
+    return {
+      name: profile.name,
+      phone: profile.phone,
+      city: profile.city,
+      gender: profile.gender,
+      signatureName: identitySettings.signatureName,
+    };
+  }
+
+  if (allFilled) {
+    return {
+      name: identitySettings.displayName,
+      phone: identitySettings.phoneNumber,
+      city: identitySettings.city,
+      gender: identitySettings.gender ?? 'male',
+      signatureName: identitySettings.signatureName,
+    };
+  }
+
+  const profile = DEFAULT_IDENTITY_POOL[Math.floor(Math.random() * DEFAULT_IDENTITY_POOL.length)];
+  return {
+    name: hasName ? identitySettings.displayName : profile.name,
+    phone: hasPhone ? identitySettings.phoneNumber : profile.phone,
+    city: hasCity ? identitySettings.city : profile.city,
+    gender: hasName ? (identitySettings.gender ?? 'male') : profile.gender,
+    signatureName: identitySettings.signatureName,
+  };
+}
 
 export { AI_MODELS } from '@/app/lib/ai-models';

@@ -12,11 +12,40 @@ Telefun terdiri dari dua runtime:
 Flow live call:
 
 1. User melewati maintenance/warning gate Telefun.
-2. `PhoneInterface` meminta izin mikrofon dan membuat `LiveSession`.
-3. `LiveSession` membaca Supabase session browser dan membuka `NEXT_PUBLIC_TELEFUN_WS_URL?token=<access_token>`.
-4. Proxy memvalidasi origin, path `/` atau `/ws`, dan access token Supabase.
-5. Proxy membuka WebSocket Gemini Live API dan meneruskan setup/audio dua arah.
-6. UI baru masuk status `Tersambung` setelah Gemini mengirim `setupComplete`.
+2. `startCall` di `page.tsx` memilih skenario aktif, tipe konsumen, dan menyelesaikan identitas final via `resolveFinalIdentity()`.
+3. `PhoneInterface` meminta izin mikrofon dan membuat `LiveSession` dengan `SessionConfig` final.
+4. `LiveSession` membaca Supabase session browser dan membuka `NEXT_PUBLIC_TELEFUN_WS_URL?token=<access_token>`.
+5. Proxy memvalidasi origin, path `/` atau `/ws`, dan access token Supabase.
+6. Proxy membuka WebSocket Gemini Live API dan meneruskan setup/audio dua arah.
+7. UI baru masuk status `Tersambung` setelah Gemini mengirim `setupComplete`.
+
+## Identitas Konsumen Default
+
+Telefun tidak lagi menampilkan fallback generik (`Konsumen Simulasi`, `Nomor tidak tersedia`, `Kota belum diatur`).
+
+### Pool Profil Default
+
+File `app/(main)/telefun/constants.ts` menyimpan `DEFAULT_IDENTITY_POOL` berisi 12 profil konsumen Indonesia (nama, nomor telepon, kota, gender). Pool ini bersifat runtime-only dan tidak memerlukan migration database.
+
+### Logika Resolusi Identitas
+
+Fungsi `resolveFinalIdentity(identitySettings)` diterapkan di `startCall` sebelum layar panggilan muncul:
+
+- **Semua field kosong** → pilih satu profil acak dari pool; semua atribut (nama, nomor, kota, gender) diambil dari profil yang sama.
+- **Semua field terisi** → gunakan identitas custom trainer apa adanya.
+- **Sebagian terisi** → isi bagian yang kosong dari satu profil default acak, sehingga identitas tetap lengkap dan konsisten dalam satu sesi.
+
+### Konsistensi Identitas Final
+
+`SessionConfig` final disimpan di state `activeSessionConfig` dan dipakai konsisten oleh:
+
+- `PhoneInterface` (nama, nomor, kota, inisial avatar)
+- Gemini Live prompt (`buildSystemInstruction`) — NAMA, LOKASI/DOMISILI, NOMOR HP, gender
+- Gemini Live voice selection (`Fenrir` untuk laki-laki, `Kore` untuk perempuan)
+- Scoring (`generateScore`)
+- Recording callback dan histori (`persistTelefunSession`, `telefun_history`)
+
+Voice Gemini Live sekarang dipilih berdasarkan `config.identity.gender`, bukan berdasarkan `consumerType.id`.
 
 ## Command
 
@@ -42,13 +71,20 @@ npm run start
 
 ## Environment
 
-Frontend Next.js:
+Frontend Next.js (`.env.local` di root repo):
 
 ```env
 NEXT_PUBLIC_TELEFUN_WS_URL=wss://<telefun-server-domain>/ws
 ```
 
-Telefun server:
+Untuk lokal, kedua service harus berjalan bersamaan:
+
+```env
+# .env.local di root project
+NEXT_PUBLIC_TELEFUN_WS_URL=ws://localhost:3001/ws
+```
+
+Telefun server (`.env` di folder `apps/telefun-server`):
 
 ```env
 PORT=3001
@@ -59,6 +95,23 @@ ALLOWED_ORIGINS=http://localhost:3000,https://<vercel-domain>
 ```
 
 `ALLOWED_ORIGINS=*` valid untuk development, tetapi production sebaiknya dibatasi ke origin aplikasi.
+
+### Menjalankan Telefun di Localhost
+
+1. Pastikan `.env.local` root sudah berisi `NEXT_PUBLIC_TELEFUN_WS_URL=ws://localhost:3001/ws`.
+2. Jalankan proxy server di terminal terpisah:
+   ```bash
+   cd apps/telefun-server
+   npm install
+   npm run dev
+   ```
+3. Jalankan frontend Next.js:
+   ```bash
+   npm run dev
+   ```
+4. Buka `http://localhost:3000/telefun` dan mulai panggilan.
+
+Tanpa proxy server yang aktif, `LiveSession.connect()` akan gagal dengan error WebSocket atau `NEXT_PUBLIC_TELEFUN_WS_URL tidak terkonfigurasi`.
 
 ## Railway Deploy
 
@@ -120,12 +173,15 @@ Checklist manual setelah deploy:
 
 1. Buka `/telefun` sebagai trainer/admin, lanjutkan dari warning modal.
 2. Pastikan browser meminta izin mikrofon.
-3. Mulai panggilan dan cek UI berpindah dari `Memanggil...` ke `Menghubungkan...` lalu `Tersambung`.
-4. Di Railway, pastikan log healthy call berurutan sampai `Gemini setupComplete received`.
-5. Uji mute dan hold, lalu resume panggilan.
-6. Akhiri panggilan dan pastikan riwayat muncul di modal `Riwayat`.
-7. Untuk user login, cek `telefun_history` terisi dan monitoring histori menampilkan sesi Telefun.
-8. Jika flow memicu call non-live, buka modal `Usage` dan cek module `telefun` bertambah.
+3. **Identitas default**: Kosongkan semua field identitas di Settings → Identitas, mulai panggilan, dan pastikan UI menampilkan nama, nomor, dan kota nyata dari pool default (bukan `Konsumen Simulasi`).
+4. **Identitas custom**: Isi identitas custom lengkap, mulai panggilan, dan pastikan UI menampilkan identitas custom tersebut.
+5. **Konsistensi gender & suara**: Dengan identitas perempuan, pastikan suara Gemini Live keluar dalam nada perempuan (`Kore`); dengan laki-laki, nada laki-laki (`Fenrir`).
+6. Mulai panggilan dan cek UI berpindah dari `Memanggil...` ke `Menghubungkan...` lalu `Tersambung`.
+7. Di Railway, pastikan log healthy call berurutan sampai `Gemini setupComplete received`.
+8. Uji mute dan hold, lalu resume panggilan.
+9. Akhiri panggilan dan pastikan riwayat muncul di modal `Riwayat` dengan nama konsumen yang sama dengan UI saat panggilan.
+10. Untuk user login, cek `telefun_history` terisi dan monitoring histori menampilkan sesi Telefun.
+11. Jika flow memicu call non-live, buka modal `Usage` dan cek module `telefun` bertambah.
 
 ## Debug Cepat
 

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { SessionConfig } from '@/app/types';
 import { LiveSession } from '../services/geminiService';
-import DiceBearAvatar from '@/app/components/DiceBearAvatar';
+import { Clock3, Mic, MicOff, Pause, PhoneOff, Play, UserRound } from 'lucide-react';
 
 interface PhoneInterfaceProps {
   config: SessionConfig;
@@ -296,6 +296,16 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const displayName = config.identity.name;
+  const displayPhone = config.identity.phone;
+  const displayCity = config.identity.city;
+  const initials = displayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase())
+    .join('');
+
   const handleEndCall = useCallback((reason?: string) => {
     stopHoldMusic();
     if (uiAudioContextRef.current && uiAudioContextRef.current.state !== 'closed') {
@@ -363,85 +373,78 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
   }
 
   return (
-    // MAIN CONTAINER: Flex Column for Mobile, Flex Row for Desktop
-    <div className="flex flex-col md:flex-row h-full w-full bg-background relative text-foreground overflow-hidden font-sans transition-colors duration-300">
+    <div className="flex h-full w-full flex-col overflow-hidden bg-[#f7faf8] text-slate-950 transition-colors duration-300 dark:bg-[#06110d] dark:text-white md:flex-row">
       
-      {/* --- SECTION 1: MAIN INFO (Avatar, Name, Status) --- */}
-      <div className="flex-1 flex flex-col relative z-10 w-full h-full">
+      <div className="relative z-10 flex h-full w-full flex-1 flex-col">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(16,185,129,0.16),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.78),transparent_44%)] dark:bg-[radial-gradient(circle_at_50%_20%,rgba(16,185,129,0.18),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.05),transparent_44%)]" />
         
-        {/* Header (Time) - Positioned at top of Main Info */}
-        <div className="flex justify-between items-center p-4 md:p-8 shrink-0">
-            <div className="flex items-center gap-3 bg-foreground/5 px-4 py-2 rounded-full backdrop-blur-sm border border-border shadow-sm">
-                <div className={`w-2.5 h-2.5 rounded-full ${connectionState === 'Tersambung' ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500'}`}></div>
-                <span className="text-sm font-medium tracking-wide text-foreground/80 font-mono">{formatTime(callDuration)}</span>
+        <div className="relative flex shrink-0 items-center justify-between p-4 md:p-8">
+            <div className="flex items-center gap-3 rounded-full border border-emerald-900/10 bg-white/80 px-4 py-2 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+                <div className={`h-2.5 w-2.5 rounded-full ${connectionState === 'Tersambung' ? 'animate-pulse bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]' : 'bg-rose-500'}`}></div>
+                <Clock3 className="h-4 w-4 text-slate-500 dark:text-white/45" />
+                <span className="font-mono text-sm font-semibold tracking-wide text-slate-700 dark:text-white/80">{formatTime(callDuration)}</span>
             </div>
         </div>
 
-        {/* Center Content - Wrapped in scrollable container */}
-        <div className="flex-1 overflow-y-auto px-4 md:px-12 w-full mx-auto pb-12">
-          <div className="flex flex-col items-center justify-center min-h-full py-8">
-             {/* Avatar Container */}
+        <div className="relative mx-auto flex w-full flex-1 overflow-y-auto px-4 pb-10 md:px-12">
+          <div className="flex min-h-full w-full flex-col items-center justify-center py-6">
             <div className="relative mb-8">
-                {/* Ring Animation (White Ripple when Ringing) */}
                 {isRinging && (
                     <>
-                    <div className="absolute inset-0 rounded-full bg-foreground/10 animate-ping"></div>
-                    <div className="absolute inset-0 rounded-full bg-foreground/5 animate-ping delay-150"></div>
+                    <div className="absolute inset-0 animate-ping rounded-full bg-emerald-500/20"></div>
+                    <div className="absolute inset-0 animate-ping rounded-full bg-emerald-500/10 delay-150"></div>
                     </>
                 )}
                 
-                {/* Hold Overlay */}
                 {isOnHold && (
-                    <div className="absolute inset-0 z-20 rounded-full bg-black/60 flex items-center justify-center backdrop-blur-sm animate-pulse border-4 border-yellow-500">
+                    <div className="absolute inset-0 z-20 flex items-center justify-center rounded-full border-4 border-amber-400 bg-black/65 backdrop-blur-sm">
                         <div className="text-center">
-                            <span className="block text-2xl">⏸</span>
-                            <span className="text-xs font-bold text-yellow-400 mt-1">HOLD</span>
+                            <Pause className="mx-auto h-7 w-7 fill-current text-amber-300" />
+                            <span className="mt-1 block text-xs font-bold text-amber-300">HOLD</span>
                             <div className="text-xl font-mono font-bold text-white mt-1">{formatTime(holdTimer)}</div>
                         </div>
                     </div>
                 )}
                 
-                {/* Voice Visualizer Ring */}
-                <div className={`absolute inset-0 rounded-full bg-foreground/5 scale-110 transition-transform duration-300 ${isAiSpeaking && !isOnHold ? 'animate-ping opacity-30' : 'opacity-0'}`}></div>
+                <div className={`absolute inset-0 scale-110 rounded-full bg-emerald-500/20 transition-transform duration-300 ${isAiSpeaking && !isOnHold ? 'animate-ping opacity-40' : 'opacity-0'}`}></div>
                 
-                <div className={`w-48 h-48 md:w-72 md:h-72 rounded-full overflow-hidden bg-foreground/5 shadow-2xl border border-border relative z-10 flex items-center justify-center transition-all ${isOnHold ? 'grayscale blur-sm' : 'grayscale-[0.2]'}`}>
-                    <DiceBearAvatar name={config.identity.name} size={288} className="w-full h-full rounded-full" />
+                <div className={`relative z-10 flex h-48 w-48 items-center justify-center overflow-hidden rounded-full border border-emerald-950/10 bg-gradient-to-br from-emerald-50 via-white to-teal-100 shadow-[0_28px_90px_rgba(15,23,42,0.16)] transition-all dark:border-white/10 dark:from-emerald-950 dark:via-slate-950 dark:to-teal-950 md:h-72 md:w-72 ${isOnHold ? 'grayscale blur-[1px]' : ''}`}>
+                    <div className="absolute inset-5 rounded-full border border-emerald-500/15" />
+                    <div className="absolute bottom-0 h-2/5 w-4/5 rounded-t-full bg-emerald-900/10 dark:bg-white/5" />
+                    <UserRound className="absolute top-10 h-20 w-20 text-emerald-700/30 dark:text-emerald-200/20 md:top-16 md:h-28 md:w-28" />
+                    <span className="relative mt-14 text-5xl font-black tracking-normal text-emerald-900 dark:text-emerald-100 md:mt-20 md:text-7xl">
+                      {initials}
+                    </span>
                 </div>
             </div>
 
-            {/* Info Text */}
-            <h1 className="text-3xl md:text-5xl font-bold mb-2 tracking-tight text-foreground text-center">{config.identity.name}</h1>
-            <p className="text-base md:text-xl text-muted-foreground mb-8 font-medium text-center">{config.identity.phone} • {config.identity.city}</p>
+            <h1 className="mb-2 text-center text-3xl font-bold tracking-normal text-slate-950 dark:text-white md:text-5xl">{displayName}</h1>
+            <p className="mb-8 text-center text-base font-medium text-slate-500 dark:text-white/55 md:text-xl">{displayPhone} / {displayCity}</p>
 
-            {/* AGENT VOICE INDICATOR */}
             {!isOnHold && connectionState === "Tersambung" && (
-                <div className="w-full max-w-sm md:max-w-md mb-8 flex flex-col gap-1">
-                    <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-1">
+                <div className="mb-8 flex w-full max-w-sm flex-col gap-1 md:max-w-md">
+                    <div className="mb-1 flex justify-between text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-white/45">
                         <span>Indikator Nada Suara Anda</span>
                         <span className={volStatus.color.replace('bg-', 'text-')}>{volStatus.label}</span>
                     </div>
-                    <div className="h-2 bg-foreground/10 rounded-full overflow-hidden border border-border relative">
-                        {/* Background Markers */}
-                        <div className="absolute left-[33%] top-0 bottom-0 w-px bg-foreground/10"></div>
-                        <div className="absolute left-[66%] top-0 bottom-0 w-px bg-foreground/10"></div>
+                    <div className="relative h-2 overflow-hidden rounded-full border border-emerald-950/10 bg-slate-950/10 dark:border-white/10 dark:bg-white/10">
+                        <div className="absolute bottom-0 left-[33%] top-0 w-px bg-white/25"></div>
+                        <div className="absolute bottom-0 left-[66%] top-0 w-px bg-white/25"></div>
                         
-                        {/* Active Bar */}
                         <div 
-                            className={`h-full rounded-full transition-all duration-100 ease-out shadow-[0_0_10px_rgba(255,255,255,0.2)] ${volStatus.color}`}
+                            className={`h-full rounded-full shadow-[0_0_14px_rgba(16,185,129,0.25)] transition-all duration-100 ease-out ${volStatus.color}`}
                             style={{ width: volStatus.width }}
                         ></div>
                     </div>
                 </div>
             )}
 
-            {/* Status Pill */}
-            <div className={`px-8 py-6 rounded-3xl border transition-all duration-300 ${statusBg} ${statusBorder} max-w-md md:max-w-2xl w-full text-center shadow-lg backdrop-blur-md`}>
+            <div className={`w-full max-w-md rounded-3xl border px-8 py-6 text-center shadow-lg backdrop-blur-md transition-all duration-300 md:max-w-2xl ${statusBg} ${statusBorder}`}>
                 <p className={`text-base md:text-xl font-semibold ${statusTextColor} animate-pulse`}>
                     {statusText}
                 </p>
             </div>
             
-            {/* Hold Warning text */}
             {isOnHold && holdTimer <= 10 && holdTimer > 0 && (
                  <p className="text-red-400 mt-2 font-bold animate-bounce">Waktu hold hampir habis!</p>
             )}
@@ -452,68 +455,45 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
         </div>
       </div>
 
-      {/* --- SECTION 2: CONTROLS SIDEBAR (Desktop) / BOTTOM BAR (Mobile) --- */}
       <div className="
         shrink-0 z-20 
-        bg-card/80 backdrop-blur-md border-t border-border md:border-t-0 md:border-l
+        bg-white/88 dark:bg-slate-950/82 backdrop-blur-md border-t border-slate-950/10 dark:border-white/10 md:border-t-0 md:border-l
         flex 
         flex-row justify-center items-center gap-6 md:gap-8 py-6 px-6  /* Mobile Styles */
         md:flex-col md:justify-center md:px-6 md:py-0 md:w-32 /* Desktop Styles */
       ">
          
-         {/* Hold Button */}
           <div className="flex flex-col items-center gap-2">
             <button 
                 onClick={toggleHold}
                 disabled={isRinging}
-                className={`p-4 md:p-5 rounded-full transition-all duration-200 border shadow-lg ${isOnHold ? 'bg-yellow-400 text-black border-yellow-400 hover:bg-yellow-300' : 'bg-foreground/5 text-foreground border-border hover:bg-foreground/10 disabled:opacity-50 disabled:cursor-not-allowed'}`}
+                className={`rounded-full border p-4 shadow-lg transition-all duration-200 md:p-5 ${isOnHold ? 'border-amber-400 bg-amber-400 text-black hover:bg-amber-300' : 'border-slate-950/10 bg-slate-950/5 text-slate-900 hover:bg-slate-950/10 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10'}`}
                 title={isOnHold ? "Resume Call" : "Put on Hold"}
             >
-                {isOnHold ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 md:h-7 md:w-7" viewBox="0 0 24 24" fill="currentColor">
-                        <path fillRule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clipRule="evenodd" />
-                    </svg>
-                ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 md:h-7 md:w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                )}
+                {isOnHold ? <Play className="h-6 w-6 fill-current md:h-7 md:w-7" /> : <Pause className="h-6 w-6 md:h-7 md:w-7" />}
             </button>
             <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground hidden md:block">Hold</span>
          </div>
 
-         {/* Mute Button */}
          <div className="flex flex-col items-center gap-2">
             <button 
                 onClick={() => setIsMuted(!isMuted)}
                 disabled={isOnHold || isRinging}
-                className={`p-4 md:p-5 rounded-full transition-all duration-200 border shadow-lg ${isMuted ? 'bg-foreground text-background border-foreground hover:opacity-90' : 'bg-foreground/5 text-foreground border-border hover:bg-foreground/10 disabled:opacity-50'}`}
+                className={`rounded-full border p-4 shadow-lg transition-all duration-200 md:p-5 ${isMuted ? 'border-slate-950 bg-slate-950 text-white hover:opacity-90 dark:border-white dark:bg-white dark:text-slate-950' : 'border-slate-950/10 bg-slate-950/5 text-slate-900 hover:bg-slate-950/10 disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10'}`}
                 title={isMuted ? "Unmute Microphone" : "Mute Microphone"}
             >
-                {isMuted ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 md:h-7 md:w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                    </svg>
-                ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 md:h-7 md:w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                    </svg>
-                )}
+                {isMuted ? <MicOff className="h-6 w-6 md:h-7 md:w-7" /> : <Mic className="h-6 w-6 md:h-7 md:w-7" />}
             </button>
             <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground hidden md:block">Mic</span>
          </div>
 
-         {/* End Call Button */}
          <div className="flex flex-col items-center gap-2">
              <button 
                 onClick={() => handleEndCall()}
-                className="p-5 md:p-6 bg-red-600 text-white rounded-full hover:bg-red-700 shadow-xl shadow-red-900/30 transform hover:scale-105 transition-all border border-red-500"
+                className="rounded-full border border-red-500 bg-red-600 p-5 text-white shadow-xl shadow-red-900/30 transition-all hover:scale-105 hover:bg-red-700 md:p-6"
                 title="End Call"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 md:h-9 md:w-9" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z" />
-                </svg>
+                <PhoneOff className="h-8 w-8 md:h-9 md:w-9" />
             </button>
             <span className="text-[10px] uppercase font-bold tracking-wider text-red-500/70 hidden md:block">Hangup</span>
          </div>

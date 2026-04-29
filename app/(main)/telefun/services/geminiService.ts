@@ -209,7 +209,7 @@ export class LiveSession {
         console.log("[Telefun] WebSocket Proxy connected");
         
         // Send Setup
-        const voiceName = this.config.consumerType.id === 'marah' ? 'Fenrir' : 'Kore';
+        const voiceName = this.config.identity.gender === 'male' ? 'Fenrir' : 'Kore';
         
         // Force the official Gemini Live model for the transport session
         const TELEFUN_LIVE_MODEL = "gemini-3.1-flash-live-preview";
@@ -606,8 +606,8 @@ export const generateConsumerVoice = async (
   prompt: string
 ): Promise<string | undefined> => {
   try {
-    const voiceName = config.consumerType.id === 'marah' ? 'Fenrir' : 'Kore';
-    
+    const voiceName = config.identity.gender === 'male' ? 'Fenrir' : 'Kore';
+
     const response = await generateGeminiContent({
       model: "gemini-2.5-flash-preview-tts",
       contents: [{ parts: [{ text: prompt }] }],

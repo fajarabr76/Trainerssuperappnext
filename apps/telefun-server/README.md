@@ -3,8 +3,19 @@
 Standalone long-running Node.js service for Telefun live flow proxying.
 
 ## Setup
+
+### Prerequisites
+
+Frontend Next.js harus punya env var berikut di `.env.local` root project:
+
+```env
+NEXT_PUBLIC_TELEFUN_WS_URL=ws://localhost:3001/ws
+```
+
+### Server `.env`
+
 1. `npm install`
-2. Create `.env`:
+2. Create `.env` di folder `apps/telefun-server`:
    ```env
    PORT=3001
    SUPABASE_URL=your-supabase-url
