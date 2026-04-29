@@ -167,6 +167,33 @@ Action usage aktif:
 
 Catatan penting: stream Gemini Live via WebSocket proxy tidak otomatis mencatat token usage dari browser audio real-time. Row `ai_usage_logs` Telefun berasal dari call yang melewati wrapper server-side `generateGeminiContent()` dan mengirim `usageContext`.
 
+## Audio Lifecycle & Mute
+
+- `PhoneInterface` memulai koneksi **sekali saja** saat `config` sesi berubah (panggilan baru).
+- Klik **Mute/Unmute** hanya memanggil `LiveSession.setMute(...)` tanpa me-restart call, memutus WebSocket, atau memutar ulang ringtone.
+- Callback `onRecordingReady` dan `onEndSession` distabilkan melalui `useRef` agar tidak memicu re-mount efek koneksi.
+
+## Indikator Input Suara
+
+- Indikator volume di `PhoneInterface` membaca nilai dari `LiveSession.analyzeVolume()`.
+- Perhitungan menggunakan **RMS (time-domain)** dari `analyser.getByteTimeDomainData()` dengan `fftSize = 1024`, bukan frequency average. Ini lebih responsif terhadap level suara manusia.
+- Saat **mute aktif**, indikator tetap menunjukkan `0` dan label UI menampilkan **"Mic Mute"**.
+
+## Dead-Air Detector
+
+`LiveSession` memiliki detektor diam otomatis untuk mencegah call mandeg saat user tidak berbicara:
+
+- **Trigger**: level mikrofon RMS di bawah `0.01` atau mute aktif selama **~7 detik** berturut-turut saat call sudah `Tersambung`.
+- **Cooldown**: minimal **12 detik** antar prompt dead-air agar konsumen tidak spam.
+- **Guard conditions**: tidak aktif saat:
+  - call sedang **hold** (`isHeld === true`)
+  - AI sedang berbicara (`isAiSpeaking === true`)
+  - call belum/belum lagi tersambung
+- **Prompt**: dikirim melalui WebSocket yang sama menggunakan payload `clientContent` turn teks ke Gemini Live. Konsumen memanggil user secara natural sesuai persona (misal: *"Halo, masih terhubung?"*, *"Kok diam aja sih?"*).
+- Timer dead-air direset otomatis saat user mulai berbicara lagi (RMS naik di atas threshold).
+
+> Edge-case hold: saat `setHold(true)` dipanggil, internal state `isAiSpeaking` langsung direset ke `false` agar dead-air detector bisa aktif dengan benar setelah resume (jika memang seharusnya).
+
 ## Smoke Test
 
 Checklist manual setelah deploy:
@@ -178,10 +205,13 @@ Checklist manual setelah deploy:
 5. **Konsistensi gender & suara**: Dengan identitas perempuan, pastikan suara Gemini Live keluar dalam nada perempuan (`Kore`); dengan laki-laki, nada laki-laki (`Fenrir`).
 6. Mulai panggilan dan cek UI berpindah dari `Memanggil...` ke `Menghubungkan...` lalu `Tersambung`.
 7. Di Railway, pastikan log healthy call berurutan sampai `Gemini setupComplete received`.
-8. Uji mute dan hold, lalu resume panggilan.
-9. Akhiri panggilan dan pastikan riwayat muncul di modal `Riwayat` dengan nama konsumen yang sama dengan UI saat panggilan.
-10. Untuk user login, cek `telefun_history` terisi dan monitoring histori menampilkan sesi Telefun.
-11. Jika flow memicu call non-live, buka modal `Usage` dan cek module `telefun` bertambah.
+8. Uji mute dan hold, lalu resume panggilan. Pastikan **mute tidak me-restart call atau memutar ringtone ulang**.
+9. Pastikan **indikator input suara naik saat bicara** dan turun saat diam/mute.
+10. Biarkan mute/diam sekitar 7 detik setelah tersambung; pastikan konsumen memanggil user secara natural tanpa memutus telepon.
+11. Aktifkan hold; pastikan dead-air prompt **tidak muncul selama hold**.
+12. Akhiri panggilan dan pastikan riwayat muncul di modal `Riwayat` dengan nama konsumen yang sama dengan UI saat panggilan.
+13. Untuk user login, cek `telefun_history` terisi dan monitoring histori menampilkan sesi Telefun.
+14. Jika flow memicu call non-live, buka modal `Usage` dan cek module `telefun` bertambah.
 
 ## Debug Cepat
 

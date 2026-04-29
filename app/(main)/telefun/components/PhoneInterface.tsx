@@ -38,6 +38,14 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
   const holdMusicOscillators = useRef<OscillatorNode[]>([]);
   const holdMusicGain = useRef<GainNode | null>(null);
 
+  // Stabilize callbacks/values used in mount effect to prevent re-connection on mute change
+  const onRecordingReadyRef = useRef(onRecordingReady);
+  onRecordingReadyRef.current = onRecordingReady;
+  const isMutedRef = useRef(isMuted);
+  isMutedRef.current = isMuted;
+  const onEndSessionRef = useRef(onEndSession);
+  onEndSessionRef.current = onEndSession;
+
   // Helper to get or create the UI AudioContext
   const getUiContext = () => {
     if (!uiAudioContextRef.current || uiAudioContextRef.current.state === 'closed') {
@@ -185,7 +193,7 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
             setConnectionState("Memanggil...");
             await playIncomingRing();
         }
-        
+
         // Check if still active after await
         if (!isActive) {
             console.log("[Telefun] Component unmounted during ringtone, aborting connection");
@@ -196,12 +204,12 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
         console.log("[Telefun] Ringtone finished, connecting to AI...");
         setIsRinging(false);
         setConnectionState("Menghubungkan...");
-        
+
         try {
             const session = new LiveSession(config);
             sessionRef.current = session;
             // Apply initial mute state in case user clicked it during ringing
-            session.setMute(isMuted);
+            session.setMute(isMutedRef.current);
 
             session.onStatusChange = (s) => {
                 console.log("[Telefun] Session status changed:", s);
@@ -216,13 +224,13 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
                 if (isActive) setIsAiSpeaking(speaking);
             };
             session.onVolumeChange = (vol) => {
-                if (isActive) setAgentVolume(vol); 
+                if (isActive) setAgentVolume(vol);
             };
             session.onRecordingComplete = (url) => {
                 console.log("[Telefun] Recording complete, URL ready");
-                onRecordingReady?.(url, config.identity.name);
+                onRecordingReadyRef.current?.(url, config.identity.name);
             };
-            
+
             console.log("[Telefun] Calling session.connect()");
             session.connect();
         } catch (err: unknown) {
@@ -245,7 +253,8 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
           uiAudioContextRef.current = null;
       }
     };
-  }, [config, isMuted, onRecordingReady, playIncomingRing, stopHoldMusic]); // Run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config]); // Only re-run when config changes (new call). Mute/callbacks must not trigger reconnect.
 
   // Call Duration Timer
   useEffect(() => {
@@ -309,14 +318,14 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
   const handleEndCall = useCallback((reason?: string) => {
     stopHoldMusic();
     if (uiAudioContextRef.current && uiAudioContextRef.current.state !== 'closed') {
-        try { 
-            uiAudioContextRef.current.close(); 
+        try {
+            uiAudioContextRef.current.close();
             uiAudioContextRef.current = null;
         } catch(_e){}
     }
     sessionRef.current?.disconnect();
-    onEndSession(reason);
-  }, [onEndSession, stopHoldMusic]);
+    onEndSessionRef.current(reason);
+  }, [stopHoldMusic]);
 
   // Auto Hangup on Timeout
   useEffect(() => {
@@ -424,16 +433,16 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
             {!isOnHold && connectionState === "Tersambung" && (
                 <div className="mb-8 flex w-full max-w-sm flex-col gap-1 md:max-w-md">
                     <div className="mb-1 flex justify-between text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-white/45">
-                        <span>Indikator Nada Suara Anda</span>
-                        <span className={volStatus.color.replace('bg-', 'text-')}>{volStatus.label}</span>
+                        <span>Indikator Input Suara Anda</span>
+                        <span className={volStatus.color.replace('bg-', 'text-')}>{isMuted ? 'Mic Mute' : volStatus.label}</span>
                     </div>
                     <div className="relative h-2 overflow-hidden rounded-full border border-emerald-950/10 bg-slate-950/10 dark:border-white/10 dark:bg-white/10">
                         <div className="absolute bottom-0 left-[33%] top-0 w-px bg-white/25"></div>
                         <div className="absolute bottom-0 left-[66%] top-0 w-px bg-white/25"></div>
-                        
-                        <div 
+
+                        <div
                             className={`h-full rounded-full shadow-[0_0_14px_rgba(16,185,129,0.25)] transition-all duration-100 ease-out ${volStatus.color}`}
-                            style={{ width: volStatus.width }}
+                            style={{ width: isMuted ? '5%' : volStatus.width }}
                         ></div>
                     </div>
                 </div>

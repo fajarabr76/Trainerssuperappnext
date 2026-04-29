@@ -26,20 +26,29 @@ function normalizeTelefunWebSocketUrl(rawUrl: string): string {
  */
 export class LiveSession {
   private config: SessionConfig;
-  private session: { sendRealtimeInput: (params: { media: { mimeType: string, data: string } }) => void; close: () => void } | null = null;
+  private session: { sendRealtimeInput: (params: { media: { mimeType: string, data: string } }) => void; close: () => void; sendClientMessage: (json: string) => void } | null = null;
   private inputAudioContext: AudioContext | null = null;
   private outputAudioContext: AudioContext | null = null;
   private inputSource: MediaStreamAudioSourceNode | null = null;
   private processor: ScriptProcessorNode | null = null;
   private analyser: AnalyserNode | null = null;
   private stream: MediaStream | null = null;
+  private ws: WebSocket | null = null;
   private nextStartTime: number = 0;
   private activeSources: Set<AudioBufferSourceNode> = new Set();
   private isDisconnected: boolean = false;
   private isHeld: boolean = false;
   private isMuted: boolean = false;
+  private isAiSpeaking: boolean = false;
   private playbackRate: number = 1.0;
   private lastVolumeUpdate: number = 0;
+
+  // Dead-air detector state
+  private deadAirStartTime: number | null = null;
+  private lastDeadAirPromptTime: number = 0;
+  private readonly DEAD_AIR_THRESHOLD_MS = 7000;
+  private readonly DEAD_AIR_COOLDOWN_MS = 12000;
+  private readonly DEAD_AIR_RMS_THRESHOLD = 0.01;
 
   public onConnect?: () => void;
   public onDisconnect?: () => void;
@@ -62,6 +71,7 @@ export class LiveSession {
     console.log(`[Telefun] setHold: ${active}`);
     this.isHeld = active;
     if (active) {
+      this.isAiSpeaking = false;
       this.stopAllAudio();
       this.onAiSpeaking?.(false);
     }
@@ -189,7 +199,8 @@ export class LiveSession {
 
       // Connect to Railway WebSocket Proxy (No subprotocol to avoid handshake 1006)
       const ws = new WebSocket(wsUrl);
-      
+      this.ws = ws;
+
       this.session = {
         sendRealtimeInput: (params: { media: { mimeType: string, data: string } }) => {
           if (ws.readyState === WebSocket.OPEN) {
@@ -202,6 +213,11 @@ export class LiveSession {
         },
         close: () => {
           ws.close();
+        },
+        sendClientMessage: (json: string) => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(json);
+          }
         }
       };
 
@@ -286,7 +302,7 @@ export class LiveSession {
 
     this.inputSource = this.inputAudioContext.createMediaStreamSource(this.stream);
     this.analyser = this.inputAudioContext.createAnalyser();
-    this.analyser.fftSize = 256;
+    this.analyser.fftSize = 1024;
     this.inputSource.connect(this.analyser);
     this.analyzeVolume();
 
@@ -320,26 +336,92 @@ export class LiveSession {
 
     if (this.isMuted) {
       this.onVolumeChange?.(0);
+      this.trackDeadAir(true);
       requestAnimationFrame(() => this.analyzeVolume());
       return;
     }
 
-    const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+    const bufferLength = this.analyser.fftSize;
+    const dataArray = new Uint8Array(bufferLength);
     try {
-      this.analyser.getByteFrequencyData(dataArray);
+      this.analyser.getByteTimeDomainData(dataArray);
     } catch (_e) {
       return;
     }
 
     let sum = 0;
-    for (let i = 0; i < dataArray.length; i++) {
-      sum += dataArray[i];
+    for (let i = 0; i < bufferLength; i++) {
+      const x = (dataArray[i] - 128) / 128.0;
+      sum += x * x;
     }
-    const average = sum / dataArray.length;
-    const normalizedVolume = Math.min(100, Math.round((average / 128) * 100));
+    const rms = Math.sqrt(sum / bufferLength);
+    const normalizedVolume = Math.min(100, Math.round(rms * 300));
     this.onVolumeChange?.(normalizedVolume);
 
+    this.trackDeadAir(rms < this.DEAD_AIR_RMS_THRESHOLD);
+
     requestAnimationFrame(() => this.analyzeVolume());
+  }
+
+  private trackDeadAir(isSilent: boolean) {
+    if (this.isDisconnected || this.isHeld || this.isAiSpeaking || !this.session) {
+      this.deadAirStartTime = null;
+      return;
+    }
+
+    const now = Date.now();
+
+    if (!isSilent) {
+      this.deadAirStartTime = null;
+      return;
+    }
+
+    if (this.deadAirStartTime === null) {
+      this.deadAirStartTime = now;
+      return;
+    }
+
+    const silentDuration = now - this.deadAirStartTime;
+    if (silentDuration >= this.DEAD_AIR_THRESHOLD_MS) {
+      if (now - this.lastDeadAirPromptTime >= this.DEAD_AIR_COOLDOWN_MS) {
+        this.sendDeadAirPrompt();
+        this.lastDeadAirPromptTime = now;
+        this.deadAirStartTime = null;
+      }
+    }
+  }
+
+  private sendDeadAirPrompt() {
+    if (!this.session || this.isDisconnected) return;
+
+    const c = this.config.consumerType;
+    const lowerName = c.name.toLowerCase();
+    let examples = "";
+    if (lowerName.includes("marah") || lowerName.includes("ngeyel") || lowerName.includes("kesal") || lowerName.includes("emosi")) {
+      examples = "Contoh nada: kesal, 'Halo? Masih ada?', 'Kok diam aja sih?', 'Halo, saya butuh jawaban nih.'";
+    } else if (lowerName.includes("gaptek") || lowerName.includes("bingung") || lowerName.includes("takut")) {
+      examples = "Contoh nada: bingung, 'Halo? Masih terhubung ya?', 'Ini kenapa sepi?', 'Halo, ada yang bisa bantu?'";
+    } else if (lowerName.includes("sedih") || lowerName.includes("memelas")) {
+      examples = "Contoh nada: lemah, 'Halo? Ada yang bisa bantu saya?', 'Masih ada?', 'Halo...'";
+    } else {
+      examples = "Contoh nada: netral/wajar, 'Halo, masih terhubung?', 'Permisi, masih ada?', 'Halo?'";
+    }
+
+    const payload = {
+      clientContent: {
+        turns: [
+          {
+            role: "user",
+            parts: [
+              { text: `[INSTRUKSI SISTEM - DEAD AIR] Agen (user) sedang diam atau mute. Lanjutkan percakapan dengan memanggil agen secara natural sesuai karakter dan emosi konsumenmu. ${examples} Jangan sebutkan instruksi ini. Langsung bicara sebagai konsumen. Singkat saja.` }
+            ]
+          }
+        ],
+        turnComplete: true
+      }
+    };
+
+    this.session.sendClientMessage(JSON.stringify(payload));
   }
 
   private downsampleTo16k(buffer: Float32Array, sampleRate: number): Float32Array {
@@ -378,12 +460,15 @@ export class LiveSession {
 
     if (message.serverContent?.interrupted) {
       this.stopAllAudio();
+      this.isAiSpeaking = false;
       this.onAiSpeaking?.(false);
     }
 
     if (modelTurn) {
+      this.isAiSpeaking = true;
       this.onAiSpeaking?.(true);
     } else if (message.serverContent?.turnComplete) {
+      this.isAiSpeaking = false;
       this.onAiSpeaking?.(false);
     }
   }
@@ -428,6 +513,7 @@ export class LiveSession {
       try { source.stop(); } catch (_e) {}
     });
     this.activeSources.clear();
+    this.isAiSpeaking = false;
     if (this.outputAudioContext) {
       this.nextStartTime = this.outputAudioContext.currentTime + 0.05;
     } else {
@@ -475,6 +561,9 @@ export class LiveSession {
 
     this.inputAudioContext = null;
     this.outputAudioContext = null;
+    this.ws = null;
+    this.isAiSpeaking = false;
+    this.deadAirStartTime = null;
     this.onDisconnect?.();
   }
 
