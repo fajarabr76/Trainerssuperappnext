@@ -93,8 +93,10 @@ Setelah sesi selesai, tombol `Usage Bulan Ini` dan bagian atas modal menampilkan
 **Alur khusus Telefun:**
 
 - Baseline usage diambil saat panggilan dimulai dan delta dihitung ulang setelah rekaman sesi selesai diproses.
-- Usage live audio real-time Gemini Live melalui WebSocket proxy tidak otomatis memiliki metadata token dari browser stream. Usage Telefun yang tercatat berasal dari call non-live yang melewati wrapper server-side `generateGeminiContent()` dengan `usageContext`.
-- Jika sesi hanya memakai stream live dan tidak memicu call non-live yang mengembalikan metadata token, modal usage tetap valid tetapi tidak wajib bertambah.
+- Usage live audio real-time Gemini Live melalui WebSocket proxy sekarang tercatat secara otomatis. Proxy menangkap `usageMetadata` dari pesan Gemini Live, melacak snapshot token terbesar selama sesi, dan meng-flush satu row `voice_live` ke `ai_usage_logs` saat koneksi ditutup.
+- Row non-live (`voice_tts`, `chat_response`, `first_message`, `score_generation`) tetap tercatat dari call yang melewati wrapper server-side `generateGeminiContent()` dengan `usageContext`.
+- Telefun v1 memakai rate audio-dominan sebagai blended default karena sesi live berisi audio input/output: input `$3.00 / 1M token`, output `$12.00 / 1M token`. Schema saat ini menyimpan estimasi blended per arah, bukan billing per modality. Input text, image/video, dan output text/thinking belum dipisah per modality.
+- Jika pricing model live belum tersedia (harga `0`), token/call tetap naik tetapi cost IDR tetap `0` sesuai konfigurasi pricing.
 
 **Session-run guard:**
 
@@ -155,7 +157,7 @@ Action `usageContext` yang saat ini aktif:
 |---|---|
 | `ketik` | `chat_response`, `session_timeout` |
 | `pdkt` | `init_email`, `evaluate_response` |
-| `telefun` | `voice_tts`, `chat_response`, `first_message`, `score_generation` |
+| `telefun` | `voice_live`, `voice_tts`, `chat_response`, `first_message`, `score_generation` |
 | `qa-analyzer` | `report_generation` |
 
 ## Pricing dan Kurs

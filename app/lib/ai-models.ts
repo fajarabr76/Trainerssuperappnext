@@ -24,6 +24,12 @@ export const AI_MODELS = [
     description: 'Model Gemma 4 31B untuk reasoning lebih dalam pada skenario lanjutan.', 
     provider: 'gemini' as const 
   },
+  { 
+    id: 'gemini-3.1-flash-live-preview', 
+    name: 'Gemini 3.1 Flash Live', 
+    description: 'Model live real-time untuk voice call Telefun via WebSocket.', 
+    provider: 'gemini' as const 
+  },
 
   // OpenRouter
   { 

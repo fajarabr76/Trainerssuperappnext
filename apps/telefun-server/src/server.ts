@@ -1,7 +1,14 @@
 import { createServer } from 'http';
+import { randomUUID } from 'crypto';
 import { WebSocketServer, WebSocket } from 'ws';
 import { env } from './env.js';
 import { verifyToken } from './auth.js';
+import {
+  type LiveUsageSnapshot,
+  parseUsageMetadata,
+  mergeSnapshot,
+  flushLiveUsage,
+} from './usage.js';
 
 // --- Process Resilience ---
 process.on('uncaughtException', (err) => {
@@ -57,6 +64,19 @@ wss.on('connection', async (ws, req) => {
     const pendingMessages: string[] = [];
     let geminiWs: WebSocket | null = null;
     let isGeminiOpen = false;
+
+    // --- Usage tracking (initialized before handlers to avoid TDZ on pre-auth close) ---
+    let authed = false;
+    let userId = '';
+    const requestId = `telefun-live-${randomUUID()}`;
+    let usageSnapshot: LiveUsageSnapshot | null = null;
+    let usageFlushed = false;
+
+    async function flushUsage() {
+      if (usageFlushed || !authed || !usageSnapshot) return;
+      usageFlushed = true;
+      await flushLiveUsage(requestId, userId, usageSnapshot);
+    }
 
     ws.on('message', (data) => {
       const raw = data.toString();
@@ -138,6 +158,10 @@ wss.on('connection', async (ws, req) => {
 
     console.log(`[Telefun] User connected: ${authResult.user?.email}`);
 
+    // --- Mark as authenticated (enables usage flush) ---
+    userId = authResult.user!.id;
+    authed = true;
+
     // --- Connect to Gemini Multimodal Live ---
     const geminiUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${env.GEMINI_API_KEY}`;
     geminiWs = new WebSocket(geminiUrl);
@@ -156,12 +180,21 @@ wss.on('connection', async (ws, req) => {
 
     geminiWs.on('message', (data) => {
       const raw = data.toString();
+      // Always check for usageMetadata before any fast-path return
+      if (raw.includes('"usageMetadata"')) {
+        try {
+          const parsed = JSON.parse(raw);
+          const meta = parseUsageMetadata(parsed.usageMetadata);
+          if (meta) usageSnapshot = mergeSnapshot(usageSnapshot, meta);
+        } catch { /* non-JSON or malformed, skip */ }
+      }
       if (raw.startsWith('{"serverContent":{"modelTurn"')) {
         if (ws.readyState === WebSocket.OPEN) ws.send(raw);
         return;
       }
       try {
         const parsed = JSON.parse(raw);
+
         if (parsed.error) {
           console.error('[Telefun] Gemini error payload:', JSON.stringify(parsed.error));
           // Forward error to client and terminate — client is waiting for setupComplete that will never come
@@ -198,6 +231,7 @@ wss.on('connection', async (ws, req) => {
 
     geminiWs.on('close', (code, reason) => {
       console.log(`[Telefun] Gemini WS Closed: ${code} ${reason}`);
+      flushUsage();
       // Sanitize: WebSocket spec only allows 1000, 1001, 1003-1013, and 3000-4999 from app code.
       const safeCode = (code >= 3000 && code <= 4999) || (code >= 1000 && code <= 1013) ? code : 1011;
       if (ws.readyState === WebSocket.OPEN) {

@@ -90,6 +90,7 @@ Telefun server (`.env` di folder `apps/telefun-server`):
 PORT=3001
 SUPABASE_URL=https://<project-ref>.supabase.co
 SUPABASE_ANON_KEY=<anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 GEMINI_API_KEY=<gemini-api-key>
 ALLOWED_ORIGINS=http://localhost:3000,https://<vercel-domain>
 ```
@@ -160,12 +161,22 @@ Telefun memiliki quick-view `Usage` di halaman utama dan tercatat di `/dashboard
 
 Action usage aktif:
 
+- `voice_live`
 - `voice_tts`
 - `chat_response`
 - `first_message`
 - `score_generation`
 
-Catatan penting: stream Gemini Live via WebSocket proxy tidak otomatis mencatat token usage dari browser audio real-time. Row `ai_usage_logs` Telefun berasal dari call yang melewati wrapper server-side `generateGeminiContent()` dan mengirim `usageContext`.
+Catatan penting: stream Gemini Live via WebSocket proxy sekarang tercatat secara otomatis. Proxy menangkap `usageMetadata` dari pesan upstream Gemini, melacak snapshot token terbesar selama sesi aktif, dan meng-flush satu row `voice_live` ke `ai_usage_logs` saat koneksi ditutup. Row non-live tetap tercatat dari call yang melewati wrapper server-side `generateGeminiContent()` dengan `usageContext`.
+
+Pricing resmi Gemini Live (Google billing per modality):
+- input text   $0.75 / 1M tokens
+- input audio  $3.00 / 1M tokens ($0.005 / minute)
+- input image  $1.00 / 1M tokens ($0.002 / minute)
+- output text  $4.50 / 1M tokens
+- output audio $12.00 / 1M tokens ($0.018 / minute)
+
+Karena schema `ai_pricing_settings` saat ini menyimpan satu harga input dan satu harga output per model (blended rate), Telefun v1 memakai rate audio sebagai default operasional: input $3.00 / 1M token, output $12.00 / 1M token. Billing tetap estimasi sampai schema mendukung breakdown token per modality.
 
 ## Audio Lifecycle & Mute
 
@@ -211,7 +222,7 @@ Checklist manual setelah deploy:
 11. Aktifkan hold; pastikan dead-air prompt **tidak muncul selama hold**.
 12. Akhiri panggilan dan pastikan riwayat muncul di modal `Riwayat` dengan nama konsumen yang sama dengan UI saat panggilan.
 13. Untuk user login, cek `telefun_history` terisi dan monitoring histori menampilkan sesi Telefun.
-14. Jika flow memicu call non-live, buka modal `Usage` dan cek module `telefun` bertambah.
+14. Jalankan panggilan singkat, akhiri sesi, lalu cek `ai_usage_logs` bertambah 1 row `telefun / voice_live`. Buka modal `Usage` dan cek module `telefun` bertambah.
 
 ## Debug Cepat
 
