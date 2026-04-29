@@ -3,6 +3,20 @@
 import { createClient } from '@/app/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
+export interface TelefunHistoryRecord {
+  id: string;
+  date: string;
+  scenario_title: string;
+  consumer_name: string;
+  consumer_phone: string | null;
+  consumer_city: string | null;
+  duration: number;
+  recording_url: string;
+  score: number;
+  feedback: string | null;
+  created_at: string;
+}
+
 export interface PersistTelefunSessionResult {
   success: boolean;
   session?: {
@@ -19,6 +33,110 @@ export interface PersistTelefunSessionResult {
   };
   warning?: string;
   error?: string;
+}
+
+export async function loadTelefunHistory(): Promise<{ success: boolean; records?: TelefunHistoryRecord[]; error?: string }> {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: 'Tidak dapat memverifikasi pengguna.' };
+  }
+
+  const { data, error } = await supabase
+    .from('telefun_history')
+    .select('id, date, scenario_title, consumer_name, consumer_phone, consumer_city, duration, recording_url, score, feedback, created_at')
+    .eq('user_id', user.id)
+    .order('date', { ascending: false });
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return {
+    success: true,
+    records: (data || []).map(row => ({
+      id: row.id,
+      date: row.date ?? row.created_at,
+      scenario_title: row.scenario_title,
+      consumer_name: row.consumer_name,
+      consumer_phone: row.consumer_phone,
+      consumer_city: row.consumer_city,
+      duration: row.duration,
+      recording_url: row.recording_url,
+      score: row.score,
+      feedback: row.feedback,
+      created_at: row.created_at,
+    })),
+  };
+}
+
+export async function deleteTelefunSession(sessionId: string): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: 'Tidak dapat memverifikasi pengguna.' };
+  }
+
+  const [historyResult, resultsResult] = await Promise.all([
+    supabase
+      .from('telefun_history')
+      .delete()
+      .eq('id', sessionId)
+      .eq('user_id', user.id),
+    supabase
+      .from('results')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('module', 'telefun')
+      .contains('details', { legacy_history_id: sessionId }),
+  ]);
+
+  if (historyResult.error) {
+    return { success: false, error: historyResult.error.message };
+  }
+  if (resultsResult.error) {
+    console.warn('[Telefun] Gagal menghapus baris results terkait:', resultsResult.error.message);
+  }
+
+  revalidatePath('/telefun');
+  revalidatePath('/dashboard/monitoring');
+
+  return { success: true };
+}
+
+export async function clearTelefunHistory(): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: 'Tidak dapat memverifikasi pengguna.' };
+  }
+
+  const [historyResult, resultsResult] = await Promise.all([
+    supabase
+      .from('telefun_history')
+      .delete()
+      .eq('user_id', user.id),
+    supabase
+      .from('results')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('module', 'telefun'),
+  ]);
+
+  if (historyResult.error) {
+    return { success: false, error: historyResult.error.message };
+  }
+  if (resultsResult.error) {
+    console.warn('[Telefun] Gagal menghapus baris results terkait:', resultsResult.error.message);
+  }
+
+  revalidatePath('/telefun');
+  revalidatePath('/dashboard/monitoring');
+
+  return { success: true };
 }
 
 export async function persistTelefunSession(params: {

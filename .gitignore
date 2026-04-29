@@ -24,6 +24,7 @@ yarn-error.log*
 # System
 .DS_Store
 .ruff_cache/
+.worktrees/
 
 # TypeScript build cache
 tsconfig.tsbuildinfo

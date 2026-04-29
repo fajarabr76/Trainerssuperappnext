@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Trash2, Phone, Clock, Download, History as HistoryIcon } from 'lucide-react';
 
@@ -11,14 +11,16 @@ interface CallRecord {
   consumerName: string;
   scenarioTitle: string;
   duration: number;
+  score?: number;
+  feedback?: string;
 }
 
 interface HistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   history: CallRecord[];
-  onDeleteSession: (id: string) => void;
-  onClearHistory: () => void;
+  onDeleteSession: (id: string) => Promise<void>;
+  onClearHistory: () => Promise<void>;
 }
 
 export const HistoryModal: React.FC<HistoryModalProps> = ({ 
@@ -28,6 +30,21 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
   onDeleteSession, 
   onClearHistory 
 }) => {
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [isClearing, setIsClearing] = useState(false);
+
+  const handleDelete = async (id: string) => {
+    setProcessingId(id);
+    await onDeleteSession(id);
+    setProcessingId(null);
+  };
+
+  const handleClear = async () => {
+    if (!confirm('Apakah Anda yakin ingin menghapus semua riwayat?')) return;
+    setIsClearing(true);
+    await onClearHistory();
+    setIsClearing(false);
+  };
   return (
     <AnimatePresence>
       {isOpen && (
@@ -62,10 +79,11 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
               <div className="flex items-center gap-3">
                 {history.length > 0 && (
                    <button 
-                    onClick={() => { if(confirm('Apakah Anda yakin ingin menghapus semua riwayat?')) onClearHistory(); }}
-                    className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-red-500 hover:bg-red-500/10 rounded-xl transition-all border border-red-500/20"
+                    onClick={handleClear}
+                    disabled={isClearing}
+                    className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-red-500 hover:bg-red-500/10 rounded-xl transition-all border border-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Hapus Semua
+                    {isClearing ? 'Menghapus...' : 'Hapus Semua'}
                   </button>
                 )}
                 <button 
@@ -120,11 +138,16 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                             <Download className="w-4 h-4" />
                           </a>
                           <button 
-                            onClick={() => onDeleteSession(rec.id)}
-                            className="p-3 bg-red-500/5 hover:bg-red-500/10 text-red-500 rounded-xl border border-red-500/10 transition-all"
+                            onClick={() => handleDelete(rec.id)}
+                            disabled={processingId === rec.id}
+                            className="p-3 bg-red-500/5 hover:bg-red-500/10 text-red-500 rounded-xl border border-red-500/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Hapus"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            {processingId === rec.id ? (
+                              <div className="w-4 h-4 border-2 border-red-500/30 border-t-red-500 rounded-full animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
                           </button>
                         </div>
                       </div>
