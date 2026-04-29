@@ -64,7 +64,7 @@ const MoveFolderModal: React.FC<{
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-background/40 backdrop-blur-md p-0 sm:p-4 overflow-hidden"
+      <div role="dialog" aria-modal="true" className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-background/40 backdrop-blur-md p-0 sm:p-4 overflow-hidden"
         onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
         <motion.div 
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -355,7 +355,7 @@ const EditModal: React.FC<{
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-background/40 backdrop-blur-md p-0 sm:p-4 overflow-hidden"
+      <div role="dialog" aria-modal="true" className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-background/40 backdrop-blur-md p-0 sm:p-4 overflow-hidden"
         onClick={e => { if (e.target === e.currentTarget) handleClose(); }}>
         <motion.div 
           initial={{ opacity: 0, scale: 0.98, y: 30 }}
@@ -474,7 +474,7 @@ const EditModal: React.FC<{
                 <SectionCard>
                   <SectionTitle>Identitas Utama</SectionTitle>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="md:col-span-2"><Field label="Nama Lengkap *"><input type="text" className={inputClass} value={form.nama || ''} onChange={e => set('nama', e.target.value)} /></Field></div>
+                    <div className="md:col-span-2"><Field label="Nama Lengkap *"><input type="text" className={inputClass} value={form.nama || ''} onChange={e => set('nama', e.target.value)} autoFocus /></Field></div>
                     <div className="md:col-span-2"><Field label="Tim Terdaftar"><select className={inputClass} value={form.tim || ''} onChange={e => set('tim', e.target.value)}>{timList.map(t => <option key={t} value={t}>{t}</option>)}</select></Field></div>
                     <div className="md:col-span-2"><Field label="Level Jabatan"><select className={inputClass} value={form.jabatan || ''} onChange={e => set('jabatan', e.target.value as Jabatan)}>{Object.entries(labelJabatan).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field></div>
                     <div><Field label="NIP OJK"><input type="text" className={inputClass} value={form.nip_ojk || ''} onChange={e => set('nip_ojk', e.target.value)} /></Field></div>
@@ -802,7 +802,7 @@ export default function ProfilerTableClient({
   };
 
   return (
-    <div className={`h-full overflow-auto bg-background/50 backdrop-blur-sm relative flex flex-col ${selectMode && selectedIds.size > 0 ? 'pb-28' : ''}`}>
+    <div className="relative h-full"><div className={`h-full overflow-auto bg-background/50 backdrop-blur-sm flex flex-col ${selectMode && selectedIds.size > 0 ? 'pb-28' : ''}`}>
       <div className="mx-auto w-full max-w-6xl flex flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
 
         {/* ── Tabs Navigation ── */}
@@ -1270,6 +1270,7 @@ export default function ProfilerTableClient({
           </div>
         </div>
       )}
+    </div>
 
       {selectedPeserta && (
         <EditModal peserta={selectedPeserta} timList={initialTimList}

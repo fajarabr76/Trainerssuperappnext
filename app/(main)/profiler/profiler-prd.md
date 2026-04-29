@@ -379,6 +379,8 @@ Tidak ada perubahan fungsional dari v1.0.
 #### 5.4.1 Mode Normal
 - List peserta dengan foto, nama, tim, jabatan. Klik baris → `EditModal`.
 - Filter per tim (chip selector). Tombol Tambah dan Slide View di header.
+- `EditModal` dan `MoveFolderModal` tampil sebagai modal viewport-fixed di luar container scroll table, supaya posisi dialog tidak ikut tertahan area `overflow-auto`.
+- Fokus awal diarahkan ke field pertama yang bisa diedit saat modal dibuka agar input langsung siap digunakan.
 
 #### 5.4.2 Mode Urutkan (Drag-to-Reorder)
 - Drag handle di kiri tiap baris. Indikator garis biru di posisi drop target.
@@ -444,6 +446,7 @@ Tidak ada perubahan dari v1.0. Folder picker dropdown, 4 format ekspor: Excel, C
 - Semua tombol memiliki label deskriptif atau `title` attribute.
 - Kontras warna memenuhi WCAG AA (4.5:1 untuk teks normal).
 - Focus management yang benar saat modal dibuka/ditutup.
+- Modal utama memakai semantic dialog markup (`role="dialog"` dan `aria-modal="true"`).
 
 ### 6.5 Maintainability
 
