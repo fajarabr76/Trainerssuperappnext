@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Trash2, Phone, Clock, Download, History as HistoryIcon } from 'lucide-react';
+import { X, Trash2, Phone, Clock, Download, History as HistoryIcon, Eye, FileDown } from 'lucide-react';
 
 interface CallRecord {
   id: string;
@@ -21,6 +21,31 @@ interface HistoryModalProps {
   history: CallRecord[];
   onDeleteSession: (id: string) => Promise<void>;
   onClearHistory: () => Promise<void>;
+  onReviewSession?: (record: CallRecord) => void;
+}
+
+function exportToCSV(history: CallRecord[]) {
+  const headers = ['Tanggal', 'Skenario', 'Nama Konsumen', 'Durasi (menit)', 'Skor', 'Feedback', 'URL Rekaman'];
+  const rows = history.map(r => [
+    new Date(r.date).toLocaleDateString('id-ID'),
+    r.scenarioTitle,
+    r.consumerName,
+    String(Math.round(r.duration / 60)),
+    r.score ?? '-',
+    (r.feedback ?? '').replace(/\n/g, ' '),
+    r.url,
+  ]);
+
+  const escapeCsv = (val: string) => `"${val.replace(/"/g, '""')}"`;
+  const csv = [headers, ...rows].map(row => row.map(escapeCsv).join(',')).join('\n');
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `telefun_history_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export const HistoryModal: React.FC<HistoryModalProps> = ({ 
@@ -28,7 +53,8 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
   onClose, 
   history, 
   onDeleteSession, 
-  onClearHistory 
+  onClearHistory,
+  onReviewSession,
 }) => {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [isClearing, setIsClearing] = useState(false);
@@ -78,13 +104,22 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
               </div>
               <div className="flex items-center gap-3">
                 {history.length > 0 && (
-                   <button 
-                    onClick={handleClear}
-                    disabled={isClearing}
-                    className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-red-500 hover:bg-red-500/10 rounded-xl transition-all border border-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isClearing ? 'Menghapus...' : 'Hapus Semua'}
-                  </button>
+                  <>
+                    <button 
+                      onClick={() => exportToCSV(history)}
+                      className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 rounded-xl transition-all border border-emerald-500/20"
+                      title="Ekspor ke CSV"
+                    >
+                      <FileDown className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={handleClear}
+                      disabled={isClearing}
+                      className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-red-500 hover:bg-red-500/10 rounded-xl transition-all border border-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isClearing ? 'Menghapus...' : 'Hapus Semua'}
+                    </button>
+                  </>
                 )}
                 <button 
                   onClick={onClose} 
@@ -129,6 +164,15 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                         </div>
                         
                         <div className="flex items-center gap-2">
+                          {onReviewSession && (
+                            <button 
+                              onClick={() => onReviewSession(rec)}
+                              className="p-3 bg-foreground/5 hover:bg-foreground/10 text-emerald-600 dark:text-emerald-400 rounded-xl border border-border transition-all"
+                              title="Lihat Detail"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                          )}
                           <a 
                             href={rec.url} 
                             download={`Telefun_${rec.consumerName}_${rec.id}.webm`}

@@ -67,7 +67,7 @@ export interface SessionConfig {
 export interface AppSettings {
   scenarios: Scenario[];
   consumerTypes: ConsumerType[];
-  activeConsumerTypeId: string;
+  activeConsumerTypeId?: string;
   preferredConsumerTypeId?: string;
   identitySettings: ConsumerIdentitySettings;
   selectedModel: string;

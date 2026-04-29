@@ -6,6 +6,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { HistoryModal } from './components/HistoryModal';
 import { UsageModal } from './components/UsageModal';
 import { PhoneInterface } from './components/PhoneInterface';
+import { ReviewModal } from './components/ReviewModal';
 import { AppSettings, Scenario, SessionConfig } from '@/app/types';
 import { Settings, PhoneCall, History, Play, BarChart3 } from 'lucide-react';
 import { loadTelefunSettings, saveTelefunSettings } from './services/settingService';
@@ -36,6 +37,8 @@ export default function TelefunClient() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isUsageOpen, setIsUsageOpen] = useState(false);
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [reviewRecord, setReviewRecord] = useState<CallRecord | null>(null);
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
   const [activeSessionConfig, setActiveSessionConfig] = useState<SessionConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -269,6 +272,11 @@ export default function TelefunClient() {
     localStorage.removeItem('telefun_history');
   };
 
+  const handleReviewSession = (record: CallRecord) => {
+    setReviewRecord(record);
+    setIsReviewOpen(true);
+  };
+
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center bg-background">
@@ -372,12 +380,18 @@ export default function TelefunClient() {
         history={recordings}
         onDeleteSession={handleDeleteSession}
         onClearHistory={handleClearHistory}
+        onReviewSession={handleReviewSession}
       />
       <UsageModal
         isOpen={isUsageOpen}
         onClose={() => setIsUsageOpen(false)}
         sessionDelta={sessionDelta}
         sessionDeltaPending={false}
+      />
+      <ReviewModal
+        isOpen={isReviewOpen}
+        onClose={() => setIsReviewOpen(false)}
+        record={reviewRecord}
       />
     </div>
   );

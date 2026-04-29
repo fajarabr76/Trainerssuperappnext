@@ -1,10 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { AppSettings, ConsumerIdentitySettings, Scenario, ConsumerType, ConsumerDifficulty } from '@/app/types';
-import { AI_MODELS } from '../constants';
-import { Clock, Trash2, X, Plus, Check, Edit2, User, Settings, FileText, Users, Image as ImageIcon, Save, Zap } from 'lucide-react';
+import { Clock, Trash2, X, Plus, Check, Edit2, User, Settings, FileText, Users, Save, Zap } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface SettingsModalProps {
@@ -138,31 +136,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     setTimeout(() => {
       document.getElementById('scenario-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files) as File[];
-      const MAX_SIZE = 500 * 1024; // 500KB limit per image
-
-      files.forEach(file => {
-        if (file.size > MAX_SIZE) {
-          alert(`File ${file.name} terlalu besar (>500KB). Mohon kompres gambar terlebih dahulu.`);
-          return;
-        }
-
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64String = reader.result as string;
-          setNewScenarioImages(prev => [...prev, base64String]);
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-  };
-
-  const removeImage = (index: number) => {
-    setNewScenarioImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSaveScenario = () => {
@@ -611,13 +584,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                           <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
                               {scenario.description}
                           </p>
-                           {scenario.images && scenario.images.length > 0 && (
-                              <div className="mt-2">
-                                   <span className="text-[10px] bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-md inline-flex items-center gap-1 font-medium">
-                                      <ImageIcon className="w-3 h-3" /> {scenario.images.length} Lampiran
-                                  </span>
-                              </div>
-                          )}
+                           {/* Scenario images hidden for Telefun */}
                       </div>
 
                       {/* Action */}
@@ -756,39 +723,7 @@ Akhir:
                                dan <span className="font-bold text-gray-900 dark:text-white">Akhir</span>. AI akan tetap menjawab secara natural sesuai pertanyaan agen dan situasi percakapan.
                              </p>
                         </div>
-                        <div className="col-span-2">
-                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Lampiran Gambar</label>
-                            <div className="flex items-center justify-center w-full">
-                                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 dark:hover:bg-[#2C2C2E] dark:bg-[#1C1C1E] hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500">
-                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                        <ImageIcon className="w-8 h-8 mb-3 text-gray-400" />
-                                        <p className="mb-2 text-sm text-gray-500 dark:text-gray-400"><span className="font-semibold">Klik untuk upload</span> atau drag and drop</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG (MAX. 500KB)</p>
-                                    </div>
-                                    <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
-                                </label>
-                            </div> 
-                            {newScenarioImages.length > 0 && (
-                              <div className="flex gap-3 mt-4 overflow-x-auto pb-2">
-                                {newScenarioImages.map((img, idx) => (
-                                  <div key={idx} className="relative w-20 h-20 shrink-0 group">
-                                  <div className="relative w-full h-full">
-                                    <Image 
-                                      src={img} 
-                                      alt={`Preview ${idx}`}
-                                      fill
-                                      className="object-cover rounded-xl border border-gray-200 dark:border-white/10"
-                                      unoptimized
-                                    />
-                                  </div>
-                                    <button onClick={() => removeImage(idx)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <X className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                        </div>
+                        {/* Scenario Images HIDDEN for Telefun Voice-only */}
                         <div className="col-span-2 flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-white/10">
                              <button onClick={handleCancelScenarioForm} className="px-6 py-2.5 rounded-xl text-gray-600 dark:text-gray-400 font-bold hover:bg-gray-100 dark:hover:bg-[#2C2C2E] transition-all">Batal</button>
                                <button onClick={handleSaveScenario} disabled={!isScenarioDraftValid()} className="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed">Simpan</button>
@@ -992,46 +927,8 @@ Akhir:
           {/* TAB 4: SYSTEM */}
           {activeTab === 'system' && (
               <div className="space-y-8">
-                 {/* AI Model Selection */}
-                 <section className="space-y-4">
-                    <div className="bg-white dark:bg-[#1C1C1E] p-6 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm">
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center shrink-0">
-                          <div className="text-2xl">🤖</div>
-                        </div>
-                        <div>
-                           <h3 className="font-bold text-gray-900 dark:text-white text-lg">Pilih Model Simulasi</h3>
-                           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                               Pilih model yang paling sesuai dengan kebutuhan latensi dan kecerdasan.
-                           </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-3">
-                        {AI_MODELS.map(model => {
-                            const isSelected = localSettings.selectedModel === model.id;
-                            return (
-                                <div 
-                                    key={model.id}
-                                    onClick={() => setLocalSettings(prev => ({ ...prev, selectedModel: model.id }))}
-                                    className={`cursor-pointer p-5 rounded-2xl border-2 transition-all flex items-center justify-between gap-4 group ${
-                                        isSelected 
-                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10' 
-                                        : 'border-transparent bg-white dark:bg-[#1C1C1E] hover:bg-gray-50 dark:hover:bg-[#2C2C2E]'
-                                    }`}
-                                >
-                                    <div>
-                                        <h4 className="font-bold text-gray-900 dark:text-white text-base">{model.name}</h4>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{model.description}</p>
-                                    </div>
-                                    {isSelected && <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center"><Check className="w-3.5 h-3.5 text-white" /></div>}
-                                </div>
-                            );
-                        })}
-                    </div>
-                 </section>
-
+                 {/* AI Model Selection - Hidden for Telefun as it uses hardcoded Live Model */}
+                 
                  {/* Simulation Duration Selection */}
                  <section className="space-y-4">
                     <div className="bg-white dark:bg-[#1C1C1E] p-6 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm">

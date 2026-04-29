@@ -31,7 +31,6 @@ const mergeWithDefaults = <T extends { id: string; isCustom?: boolean; descripti
 export const parseTelefunSettings = (parsed: Record<string, unknown>): AppSettings => ({
   scenarios: mergeWithDefaults(parsed.scenarios as Scenario[], DEFAULT_SCENARIOS),
   consumerTypes: mergeWithDefaults(parsed.consumerTypes as ConsumerType[], DEFAULT_CONSUMER_TYPES),
-  activeConsumerTypeId: (parsed.activeConsumerTypeId as string) || 'random',
   preferredConsumerTypeId: (parsed.preferredConsumerTypeId as string) || 'random',
   identitySettings: {
     displayName: (parsed.identitySettings as Record<string, unknown>)?.displayName as string || '',

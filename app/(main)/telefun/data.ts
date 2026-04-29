@@ -4,7 +4,6 @@ import { DEFAULT_SCENARIOS, DEFAULT_CONSUMER_TYPES } from './constants';
 export const defaultTelefunSettings: AppSettings = {
   scenarios: DEFAULT_SCENARIOS,
   consumerTypes: DEFAULT_CONSUMER_TYPES,
-  activeConsumerTypeId: 'random',
   preferredConsumerTypeId: 'random',
   identitySettings: {
     displayName: '',

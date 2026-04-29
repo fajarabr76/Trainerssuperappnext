@@ -15,6 +15,37 @@ This document provides context and working instructions for AI assistants operat
 - Gunakan subagent_type `general` untuk tugas research kompleks dan multi-step
 - Untuk tugas spesifik, gunakan specialized sub-agents yang sudah didefinisikan di bawah
 
+## Superpowers Skills
+
+Superpowers skills menentukan **process dan workflow** yang wajib diikuti sebelum mengeksekusi tugas. Skills dipanggil via `Skill` tool — gunakan setiap kali ada minimal 1% kemungkinan skill relevan dengan tugas.
+
+### Skill Priority
+1. **Process skills dulu** (brainstorming, debugging, verification) — menentukan HOW approach
+2. **Implementation skills kemudian** (TDD, writing-plans, dispatching-parallel-agents) — memandu execution
+
+### Skill Usage by Trigger
+
+| Skill | Trigger | Deskripsi |
+|---|---|---|
+| `brainstorming` | Sebelum creative work: fitur baru, komponen baru, perubahan behavior | Eksplorasi intent, requirements, dan design sebelum implementasi |
+| `systematic-debugging` | Bug, test failure, unexpected behavior | Investigasi terstruktur sebelum proposing fix |
+| `test-driven-development` | Implementasi fitur atau bugfix | Tulis test dulu, baru implementation |
+| `writing-plans` | Ada spec/requirements untuk multi-step task | Tulis rencana implementasi sebelum menyentuh kode |
+| `executing-plans` | Ada written plan untuk dieksekusi | Eksekusi plan dengan review checkpoints |
+| `dispatching-parallel-agents` | 2+ task independen tanpa shared state/dependency | Jalankan task secara paralel via subagent |
+| `subagent-driven-development` | Eksekusi implementation plan dengan task independen di session yang sama | Manfaatkan subagent untuk task paralel dalam satu session |
+| `requesting-code-review` | Setelah menyelesaikan task atau sebelum merge | Verifikasi hasil kerja memenuhi requirements |
+| `receiving-code-review` | Menerima feedback code review, sebelum implementasi saran | Technical rigor sebelum menerima/menolak saran review |
+| `finishing-a-development-branch` | Implementasi selesai, semua test pass | Panduan merge, PR, atau cleanup |
+| `using-git-worktrees` | Memulai feature work yang butuh isolasi dari workspace saat ini | Isolated git worktrees dengan smart directory selection |
+| `verification-before-completion` | Sebelum klaim work complete/fixed/passing | Jalankan verifikasi commands sebelum klaim sukses |
+| `writing-skills` | Membuat skill baru, edit skill existing, atau verifikasi skill | Panduan menulis skill Superpowers |
+
+### Aturan wajib
+- **Selalu invoke skill sebelum bertindak** — jangan rasionalisasi skip ("ini simpel", "gue udah tau caranya").
+- Skill types: **Rigid** (TDD, debugging) harus diikuti persis. **Flexible** (patterns) adaptasi ke konteks.
+- Jika skill menyediakan checklist, buat TodoWrite item per checklist.
+
 ## Specialized Sub-Agents
 
 ### PDKT-Evaluator
