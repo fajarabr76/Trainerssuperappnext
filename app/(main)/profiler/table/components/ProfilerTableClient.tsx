@@ -237,8 +237,9 @@ const EditModal: React.FC<{
   onSaved: (updated: Peserta) => void;
   onDeleted: (id: string) => void;
   onFrameUpdated: (id: string, frame: PhotoFrame) => void;
+  onPhotoUpdated: (id: string, fotoUrl: string) => void;
   isReadOnly?: boolean;
-}> = ({ peserta, timList, onClose, onSaved, onDeleted, onFrameUpdated, isReadOnly }) => {
+}> = ({ peserta, timList, onClose, onSaved, onDeleted, onFrameUpdated, onPhotoUpdated, isReadOnly }) => {
   const [form, setForm] = useState<Peserta>({ ...peserta });
   const [saving, setSaving] = useState(false);
   const [fotoPreview, setFotoPreview] = useState<string>(peserta.foto_url || '');
@@ -313,14 +314,24 @@ const EditModal: React.FC<{
   const handleFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !form.id) return;
-    setFotoPreview(URL.createObjectURL(file));
+    const previousPreview = fotoPreview;
+    const localPreview = URL.createObjectURL(file);
+    setFotoPreview(localPreview);
     setUploadingFoto(true);
     try {
       const url = await uploadFoto(file, form.id);
       await updatePeserta(form.id, { foto_url: url });
+      setFotoPreview(url);
       setForm(prev => ({ ...prev, foto_url: url }));
-    } catch (err: unknown) { alert('Gagal upload foto: ' + (err as Error).message); }
-    finally { setUploadingFoto(false); }
+      onPhotoUpdated(form.id, url);
+    } catch (err: unknown) {
+      setFotoPreview(previousPreview);
+      alert('Gagal upload foto: ' + (err as Error).message);
+    } finally {
+      URL.revokeObjectURL(localPreview);
+      e.target.value = '';
+      setUploadingFoto(false);
+    }
   };
 
   const handleSave = async () => {
@@ -643,6 +654,10 @@ export default function ProfilerTableClient({
   }, []);
 
   const handleSaved = (updated: Peserta) => setPeserta(prev => prev.map(p => p.id === updated.id ? updated : p));
+  const handlePhotoUpdated = (id: string, fotoUrl: string) => {
+    setPeserta(prev => prev.map(p => p.id === id ? { ...p, foto_url: fotoUrl } : p));
+    setSelectedPeserta(prev => (prev?.id === id ? { ...prev, foto_url: fotoUrl } : prev));
+  };
   const handleDeleted = (id: string) => setPeserta(prev => prev.filter(p => p.id !== id));
   const handleMoved = (ids: string[]) => { 
     setPeserta(prev => prev.filter(p => !ids.includes(p.id!))); 
@@ -1258,7 +1273,7 @@ export default function ProfilerTableClient({
 
       {selectedPeserta && (
         <EditModal peserta={selectedPeserta} timList={initialTimList}
-          onClose={() => setSelectedPeserta(null)} onSaved={handleSaved} onDeleted={handleDeleted} onFrameUpdated={refreshPhotoFrame} isReadOnly={isReadOnly} />
+          onClose={() => setSelectedPeserta(null)} onSaved={handleSaved} onDeleted={handleDeleted} onFrameUpdated={refreshPhotoFrame} onPhotoUpdated={handlePhotoUpdated} isReadOnly={isReadOnly} />
       )}
       {showMoveModal && (
         <MoveFolderModal 

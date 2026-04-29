@@ -89,8 +89,8 @@ Sistem menggunakan fungsi `public.get_auth_role()` untuk mengambil role user saa
 
 ## Storage
 Aplikasi menggunakan Supabase Storage bucket:
-- `profiler-foto`: Menyimpan foto aset peserta (KTP/Profiler).
+- `profiler-foto`: Menyimpan foto aset peserta (KTP/Profiler). Bucket ini public untuk read, sedangkan write dibatasi ke role `trainer`, `trainers`, dan `admin` melalui policy storage.
 - `reports`: Menyimpan dokumen laporan AI SIDAK yang di-generate.
 - `telefun-recordings`: Menyimpan rekaman Telefun jika fitur rekaman digunakan.
 
-Backup database via `pg_dump` hanya mencakup schema/data PostgreSQL dan metadata storage. File fisik di bucket Storage harus dibackup terpisah melalui `npm run backup:supabase:storage`; lihat `docs/SUPABASE_LOCAL_BACKUP.md`. Untuk Telefun, backup yang lengkap berarti row `telefun_history` berada di dump database dan object audio di bucket `telefun-recordings` ikut masuk backup Storage bila rekaman sudah diunggah ke Supabase Storage.
+Backup database via `pg_dump` hanya mencakup schema/data PostgreSQL dan metadata storage. File fisik di bucket Storage harus dibackup terpisah melalui `npm run backup:supabase:storage`; lihat `docs/SUPABASE_LOCAL_BACKUP.md`. Untuk Profiler, object foto disimpan dengan path unik per upload agar URL public berubah saat foto diganti dan browser tidak tertahan cache lama. Untuk Telefun, backup yang lengkap berarti row `telefun_history` berada di dump database dan object audio di bucket `telefun-recordings` ikut masuk backup Storage bila rekaman sudah diunggah ke Supabase Storage.

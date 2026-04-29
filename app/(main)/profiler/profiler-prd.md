@@ -84,7 +84,7 @@ Tim Trainer OJK Kontak 157 menghadapi tantangan berikut:
 | 10 | Slide View + Simpan Gambar | Tampilan kartu profil visual; simpan slide aktif sebagai PNG |
 | 11 | Download (Ekspor) | Unduh ke Excel (.xlsx), CSV, PowerPoint (.pptx), dan PDF |
 | 12 | Birthday Dashboard | Widget countdown ulang tahun 5 peserta terdekat per folder |
-| 13 | Upload Foto Profil | Foto peserta dengan kompresi otomatis ke Supabase Storage |
+| 13 | Upload Foto Profil | Foto peserta dengan kompresi otomatis ke Supabase Storage, path unik per upload, dan URL yang langsung terbarui |
 | 14 | Autentikasi Trainer | Data terikat ke akun trainer via RLS Supabase |
 | 15 | Dark Mode + ThemeToggle | Toggle gelap/terang tersedia di title bar halaman utama |
 | 16 | Tim Kustom | Trainer bisa menambah/hapus kategori tim; digunakan juga di dropdown template Excel |
@@ -428,7 +428,8 @@ Tidak ada perubahan dari v1.0. Folder picker dropdown, 4 format ekspor: Excel, C
 - Semua tabel dilindungi Row Level Security (RLS) — trainer hanya mengakses datanya sendiri.
 - `copyPesertaToFolder()` memperbarui `trainer_id` ke user aktif saat menyalin peserta.
 - Data sensitif (KTP, NPWP, rekening) tidak tampil di slide presentasi secara default.
-- Foto peserta di Supabase Storage dengan bucket `profiler-foto`, akses terbatas.
+- Foto peserta di Supabase Storage dengan bucket `profiler-foto`, public read, dan write dibatasi ke role `trainer`, `trainers`, dan `admin`.
+- Object foto disimpan dengan path unik per upload agar pergantian foto tidak tertahan cache browser atau `next/image`.
 
 ### 6.3 Usability
 
@@ -496,8 +497,8 @@ Tidak ada perubahan dari v1.0. Folder picker dropdown, 4 format ekspor: Excel, C
 ### 7.5 Flow Edit Data Peserta
 
 1. Buka TableView → klik baris peserta → `EditModal` terbuka.
-2. Ubah field, ganti foto jika perlu. Klik "Simpan Perubahan".
-3. Tabel diperbarui secara optimistic update.
+2. Ubah field, ganti foto jika perlu. Foto yang berhasil diupload langsung memperbarui preview modal dan baris tabel, tanpa menunggu tombol "Simpan Perubahan".
+3. Klik "Simpan Perubahan" hanya untuk menyimpan perubahan field lain yang belum tersimpan.
 
 ---
 

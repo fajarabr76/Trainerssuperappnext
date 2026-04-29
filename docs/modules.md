@@ -67,7 +67,7 @@ Sistem manajemen database terstruktur untuk peserta training dan agen aktif.
   - **Import/Export**: Mendukung pemrosesan data massal via Excel (ExcelJS).
   - **Profile Slides**: Representasi visual profil peserta yang bisa diekspor sebagai gambar.
   - **Team Management**: Pengaturan daftar tim yang dinamis.
-- **Catatan Teknis**: File peserta/foto memakai Supabase Storage bucket `profiler-foto`. Flow export/slide bergantung pada route protected dan beberapa halaman profiler memakai rendering dinamis agar data terbaru terbaca.
+- **Catatan Teknis**: File peserta/foto memakai Supabase Storage bucket `profiler-foto` dengan public read dan write yang dibatasi ke `trainer`/`trainers`/`admin`. Object foto disimpan dengan path unik per upload supaya perubahan foto langsung terlihat tanpa cache lama. Flow export/slide bergantung pada route protected dan beberapa halaman profiler memakai rendering dinamis agar data terbaru terbaca.
 
 ## 6. SIDAK (Sistem Informasi Data Analisis Kualitas)
 Platform analytics kualitas untuk memantau performa agent secara mendalam.

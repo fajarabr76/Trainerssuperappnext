@@ -23,12 +23,15 @@ export const uploadFoto = async (file: File, pesertaId: string): Promise<string>
     useWebWorker: true,
   });
 
-  const ext = file.name.split('.').pop();
-  const path = `${pesertaId}.${ext}`;
+  const ext = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+  const random = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2);
+  const path = `${pesertaId}/${Date.now()}-${random}.${ext}`;
 
   const { error } = await supabase.storage
     .from('profiler-foto')
-    .upload(path, compressed, { upsert: true });
+    .upload(path, compressed, { upsert: false });
 
   if (error) throw error;
 
@@ -38,5 +41,4 @@ export const uploadFoto = async (file: File, pesertaId: string): Promise<string>
 
   return data.publicUrl;
 };
-
 
