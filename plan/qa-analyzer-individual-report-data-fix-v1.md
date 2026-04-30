@@ -19,7 +19,7 @@ Include phantom sessions when searching for the last audited month so the correc
 ### 2. Update `getDataReportRows`
 Relax filters when a `pesertaId` (individual agent) is provided to show full audit records.
 - **File**: `app/(main)/qa-analyzer/services/qaService.server.ts`
-- **Logic**: 
+- **Logic**:
     - If `pesertaId` is present (Individual Mode):
         - Skip `is_phantom_padding: false` filter.
         - Skip the `.or('nilai.lt.3, ...')` findings-only filter.

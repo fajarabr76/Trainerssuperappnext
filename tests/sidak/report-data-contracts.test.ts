@@ -15,10 +15,10 @@ describe('QA Data Report Contract', () => {
 
     // Get a chunk of code after the start pattern to verify contents
     const logicBlock = serviceContent.substring(startIndex, startIndex + 500);
-    
+
     // Service Mode MUST exclude phantom rows
     expect(logicBlock).toContain("query = query.eq('is_phantom_padding', false);");
-    
+
     // Service Mode MUST be findings-only (score < 3 OR has notes)
     expect(logicBlock).toContain("query = query.or('nilai.lt.3,ketidaksesuaian.not.is.null,sebaiknya.not.is.null');");
   });
