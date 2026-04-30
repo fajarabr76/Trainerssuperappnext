@@ -18,17 +18,7 @@ import { getMyModuleUsage } from '@/app/actions/usage';
 import { type UsageSnapshot, computeUsageDelta, formatCompactIdr } from '@/app/lib/usage-snapshot';
 import { createClient } from '@/app/lib/supabase/client';
 import ModuleWorkspaceIntro from '@/app/components/ModuleWorkspaceIntro';
-
-interface CallRecord {
-  id: string;
-  date: string;
-  url: string;
-  consumerName: string;
-  scenarioTitle: string;
-  duration: number;
-  score?: number;
-  feedback?: string;
-}
+import { CallRecord } from './types';
 
 export default function TelefunClient() {
   const [view, setView] = useState<'home' | 'chat'>('home');
@@ -146,7 +136,7 @@ export default function TelefunClient() {
     setView('home');
   };
 
-  const handleEndCall = async (recordingUrl?: string, consumerName?: string) => {
+  const handleEndCall = async (recordingUrl?: string, consumerName?: string, callDurationSeconds: number = 0) => {
     const sessionConfig = activeSessionConfig;
     const isValidUrl = recordingUrl && (recordingUrl.startsWith('blob:') || recordingUrl.startsWith('http'));
     
@@ -173,7 +163,7 @@ export default function TelefunClient() {
         url: recordingUrl,
         consumerName: finalConsumerName,
         scenarioTitle: selectedScenario?.title || 'Telepon Umum',
-        duration: 0,
+        duration: callDurationSeconds,
       };
       const updatedHistory = [newRecord, ...recordings];
       setRecordings(updatedHistory);
@@ -188,7 +178,7 @@ export default function TelefunClient() {
           consumerName: finalConsumerName,
           consumerPhone: sessionConfig.identity.phone,
           consumerCity: sessionConfig.identity.city,
-          duration: 0,
+          duration: callDurationSeconds,
           recordingUrl,
           score,
           feedback,
@@ -362,7 +352,7 @@ export default function TelefunClient() {
             <PhoneInterface
               config={activeSessionConfig!}
               onEndSession={handleEndSessionOnly}
-              onRecordingReady={(url, name) => handleEndCall(url, name)}
+              onRecordingReady={(url, name, duration) => handleEndCall(url, name, duration)}
             />
           </motion.div>
         )}

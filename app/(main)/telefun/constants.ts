@@ -191,5 +191,3 @@ export function resolveFinalIdentity(identitySettings: ConsumerIdentitySettings)
     signatureName: identitySettings.signatureName,
   };
 }
-
-export { AI_MODELS } from '@/app/lib/ai-models';

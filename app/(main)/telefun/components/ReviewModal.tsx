@@ -3,17 +3,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Phone, Calendar, Clock, Star, MessageSquare, Download, FileText, User } from 'lucide-react';
-
-interface CallRecord {
-  id: string;
-  date: string;
-  url: string;
-  consumerName: string;
-  scenarioTitle: string;
-  duration: number;
-  score?: number;
-  feedback?: string;
-}
+import { CallRecord } from '../types';
 
 interface ReviewModalProps {
   isOpen: boolean;
@@ -36,7 +26,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, recor
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={(e) => { e.stopPropagation(); onClose(); }}
             className="absolute inset-0 bg-background/80 backdrop-blur-md"
           />
 
@@ -154,7 +144,10 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, recor
                     Unduh Rekaman
                   </a>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Rekaman tidak tersedia.</p>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Rekaman tidak tersedia.</p>
+                    <p className="text-xs text-muted-foreground/70">Catatan: Rekaman sesi yang belum tersimpan ke server akan hilang jika Anda merefresh halaman.</p>
+                  </div>
                 )}
               </div>
 

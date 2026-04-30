@@ -3,17 +3,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Trash2, Phone, Clock, Download, History as HistoryIcon, Eye, FileDown } from 'lucide-react';
-
-interface CallRecord {
-  id: string;
-  date: string;
-  url: string;
-  consumerName: string;
-  scenarioTitle: string;
-  duration: number;
-  score?: number;
-  feedback?: string;
-}
+import { CallRecord } from '../types';
 
 interface HistoryModalProps {
   isOpen: boolean;
@@ -79,7 +69,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={(e) => { e.stopPropagation(); onClose(); }}
             className="absolute inset-0 bg-background/80 backdrop-blur-md"
           />
           

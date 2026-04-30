@@ -90,6 +90,7 @@ export async function deleteTelefunSession(sessionId: string): Promise<{ success
       .delete()
       .eq('user_id', user.id)
       .eq('module', 'telefun')
+      .not('details->legacy_history_id', 'is', null)
       .contains('details', { legacy_history_id: sessionId }),
   ]);
 
@@ -123,7 +124,8 @@ export async function clearTelefunHistory(): Promise<{ success: boolean; error?:
       .from('results')
       .delete()
       .eq('user_id', user.id)
-      .eq('module', 'telefun'),
+      .eq('module', 'telefun')
+      .not('details->legacy_history_id', 'is', null),
   ]);
 
   if (historyResult.error) {

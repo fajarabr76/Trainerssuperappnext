@@ -8,16 +8,17 @@ import { Clock3, Mic, MicOff, Pause, PhoneOff, Play, UserRound } from 'lucide-re
 interface PhoneInterfaceProps {
   config: SessionConfig;
   onEndSession: (reason?: string) => void;
-  onRecordingReady?: (url: string, consumerName: string) => void;
+  onRecordingReady?: (url: string, consumerName: string, duration: number) => void;
 }
 
-export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({ 
+export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
   config,
   onEndSession,
   onRecordingReady
 }) => {
   const [connectionState, setConnectionState] = useState("Memanggil...");
   const [callDuration, setCallDuration] = useState(0);
+  const callDurationRef = useRef(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [isRinging, setIsRinging] = useState(true);
@@ -228,7 +229,7 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
             };
             session.onRecordingComplete = (url) => {
                 console.log("[Telefun] Recording complete, URL ready");
-                onRecordingReadyRef.current?.(url, config.identity.name);
+                onRecordingReadyRef.current?.(url, config.identity.name, callDurationRef.current);
             };
 
             console.log("[Telefun] Calling session.connect()");
@@ -260,7 +261,13 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null;
     if (!isRinging && connectionState === 'Tersambung') {
-        timer = setInterval(() => setCallDuration(prev => prev + 1), 1000);
+        timer = setInterval(() => {
+            setCallDuration(prev => {
+                const next = prev + 1;
+                callDurationRef.current = next;
+                return next;
+            });
+        }, 1000);
     }
     return () => { if (timer) clearInterval(timer); };
   }, [isRinging, connectionState]);
