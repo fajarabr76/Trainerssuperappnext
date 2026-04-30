@@ -156,6 +156,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const sessionPhaseRef = useRef<SessionPhase>(isReviewMode ? 'closed' : 'active');
   const timeoutFinalizedRef = useRef(false);
   const messagesRef = useRef<ChatMessage[]>(normalizeMessagesForDisplay(initialMessages));
+  const isMountedRef = useRef(true);
   const consumerTurnCountRef = useRef(0);
   const totalSlowCountRef = useRef(0);
   const consecutiveSlowCountRef = useRef(0);
@@ -172,7 +173,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       clearPendingTimeouts();
     };
   }, [clearPendingTimeouts]);
@@ -226,6 +229,19 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const lastAgentText = getLastAgentMessage(historySnapshot);
     const canAcknowledgeSolution = allowSolutionAcknowledgement(lastAgentText);
     const fallbackClosingText = 'Maaf, saya harus lanjut aktivitas dulu. Nanti saya hubungi lagi ya. Terima kasih.';
+    const timeoutMessageId = `timeout-${Date.now()}`;
+
+    setMessages((prev) =>
+      normalizeMessagesForDisplay([
+        ...prev,
+        {
+          id: timeoutMessageId,
+          sender: 'consumer',
+          text: fallbackClosingText,
+          timestamp: new Date(),
+        },
+      ])
+    );
 
     const timeoutPrompt = `WAKTU SIMULASI SUDAH HABIS.
 - Ini adalah BALASAN TERAKHIR sebelum konsumen berhenti membalas.
@@ -256,32 +272,25 @@ Tulis pesan penutup konsumen sekarang.`;
         { module: 'ketik', action: 'session_timeout' }
       );
 
-      const timeoutText =
-        result.success ? normalizeTimeoutClosingText(result.text) || fallbackClosingText : fallbackClosingText;
+      const timeoutText = result.success ? normalizeTimeoutClosingText(result.text) : null;
+      if (!timeoutText || !isMountedRef.current) {
+        return;
+      }
 
       setMessages((prev) =>
-        normalizeMessagesForDisplay([
-          ...prev,
-          {
-            id: `timeout-${Date.now()}`,
-            sender: 'consumer',
-            text: timeoutText,
-            timestamp: new Date(),
-          },
-        ])
+        normalizeMessagesForDisplay(
+          prev.map((message) =>
+            message.id === timeoutMessageId
+              ? {
+                  ...message,
+                  text: timeoutText,
+                }
+              : message
+          )
+        )
       );
     } catch (_error) {
-      setMessages((prev) =>
-        normalizeMessagesForDisplay([
-          ...prev,
-          {
-            id: `timeout-${Date.now()}`,
-            sender: 'consumer',
-            text: fallbackClosingText,
-            timestamp: new Date(),
-          },
-        ])
-      );
+      // Keep fallback timeout message when AI close generation fails.
     }
   }, [clearPendingTimeouts, config, scenario, elapsedSeconds]);
 

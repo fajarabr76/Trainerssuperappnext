@@ -38,7 +38,8 @@
 
 - `handleSessionTimeout()` memanggil `generateConsumerResponse()` dengan `extraPrompt` timeout khusus untuk menghasilkan alasan penutup yang natural.
 - Guard `timeoutFinalizedRef` memastikan timeout close hanya dieksekusi satu kali walau ada render/efek ulang.
-- Output timeout dinormalisasi menjadi satu segmen chat; jika AI gagal atau mengembalikan `[NO_RESPONSE]`, dipakai fallback statis singkat agar UX tetap konsisten.
+- Saat timeout terjadi, satu pesan fallback statis langsung di-append agar penutupan tidak tertunda oleh latency AI.
+- Jika AI timeout-close sukses, isi pesan fallback di-upgrade in-place ke teks AI (tetap 1 bubble yang sama). Jika AI gagal atau `[NO_RESPONSE]`, fallback dipertahankan.
 - Aksi usage timeout dicatat sebagai `module='ketik'` dan `action='session_timeout'`.
 
 ### 1b. Timeout closing dibuat branch-aware
