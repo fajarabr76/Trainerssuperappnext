@@ -80,6 +80,14 @@ Konsekuensinya:
 - clean session bisa membuat `findingsCount = 0`
 - clean session tidak boleh menambah total defect, pareto, donut, atau ranking defect
 
+## Logika Workspace Data (Data Report)
+
+Berbeda dengan dashboard yang menghitung populasi audit secara luas (termasuk clean session), Workspace Data (/qa-analyzer/reports/data) dirancang sebagai alat kerja perbaikan kualitas.
+
+- **Eksklusi Phantom**: Row `is_phantom_padding = true` tidak pernah ditampilkan di tabel maupun ekspor Excel.
+- **Findings-Only**: Hanya row yang memiliki data temuan riil (ketidaksesuaian) DAN saran perbaikan (sebaiknya) yang ditampilkan.
+- **Tujuan**: Memungkinkan trainer/leader untuk melakukan audit detail dan coaching fokus pada area yang bermasalah saja, tanpa terdistraksi oleh row administratif atau sesi yang sudah sempurna.
+
 ## Metrik Dashboard Dan Ranking
 
 | Metrik | Rumus |

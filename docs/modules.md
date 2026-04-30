@@ -78,8 +78,10 @@ Platform analytics kualitas untuk memantau performa agent secara mendalam.
   - **Pareto Chart**: Identifikasi 80% masalah dari 20% penyebab utama (root cause).
   - **Ranking & Leaderboard**: Memantau agent dengan performa terbaik dan area yang butuh perbaikan.
   - **Input Temuan**: Form input terstandarisasi untuk trainer memasukkan hasil audit, termasuk mode data keseluruhan untuk input periode lama agent historis/excluded.
+  - **Workspace Data (Laporan Data)**: Tabel audit detail dengan layout filter horizontal di atas (top bar) untuk visibilitas maksimal. Data yang ditampilkan difilter ketat untuk fokus pada temuan bermakna (harus punya isi ketidaksesuaian DAN sebaiknya), serta mengecualikan phantom padding.
   - **Periode & Parameter**: Pengaturan periode penilaian dan bobot indikator penilaian.
 - **Catatan Teknis**: Flow narasi/laporan berbasis AI memanfaatkan server action terpusat agar handling provider dan validasi output tetap konsisten. Narasi AI SIDAK untuk laporan sekarang ikut tercatat ke usage billing bulanan dengan action `report_generation`, tetapi tidak menambah quick-view usage di halaman SIDAK.
+- **Catatan Data Report**: Workspace data (/qa-analyzer/reports/data) sengaja menyembunyikan clean-session (baik real maupun phantom) untuk menjaga fokus pada perbaikan kualitas; ekspor Excel mengikuti filter tampilan ini. Filter diletakkan secara horizontal di atas tabel agar kolom temuan dan solusi memiliki ruang yang luas tanpa terpotong sidebar.
 - **Catatan Dashboard Summary**: Dashboard SIDAK memakai summary rollup durable untuk scope global tanpa folder filter, dengan fallback ke RPC lama bila summary belum lengkap atau folder filter aktif. Scope commit dan checklist testing staging ada di `docs/QA_DASHBOARD_SUMMARY_ROLLUP_STAGING.md`.
 - **Catatan Stabilitas SIDAK**: Untuk mencegah regresi skor/kepatuhan dan clean-session handling, ikuti guardrails di `docs/SIDAK_SCORING_GUARDRAILS.md` sebelum merge dan sebelum deploy.
 - **Catatan Clean Session**: Sesi tanpa temuan tetap dianggap audit valid untuk skor dan audited population, tetapi tidak boleh menambah total temuan, pareto, donut, atau defect ranking.
