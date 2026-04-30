@@ -37,7 +37,7 @@ Menyimpan hasil simulasi legacy/kompatibilitas dari modul Ketik dan Telefun, ser
 - `feedback` (Text): Saran perbaikan dari AI/System.
 - `history` (JSONB): Log interaksi selama simulasi.
 
-**Catatan Saat Ini:** KETIK memakai `ketik_history` sebagai sumber utama riwayat sesi dan menulis `results.details.legacy_history_id` untuk kompatibilitas monitoring/delete mapping. PDKT memakai `pdkt_history` sebagai sumber utama karena evaluasi berjalan async.
+**Catatan Saat Ini:** KETIK memakai `ketik_history` sebagai sumber utama riwayat sesi dan menulis `results.details.legacy_history_id` untuk kompatibilitas monitoring/delete mapping. Jika read `ketik_history` gagal di client (misalnya error transient/RLS mismatch), UI KETIK melakukan fallback read ke `results` modul `ketik` agar riwayat tetap bisa ditampilkan sambil menampilkan warning terstruktur di console. PDKT memakai `pdkt_history` sebagai sumber utama karena evaluasi berjalan async.
 
 ### 3. Modul Simulasi
 - **`ketik_history`**: Riwayat sesi KETIK per user, termasuk skenario, identitas konsumen, dan messages.

@@ -62,6 +62,13 @@
 - Banner composer `Waktu habis • Konsumen tidak akan membalas` dihapus.
 - Composer tetap ditampilkan pada fase `active` maupun `expired` agar agen masih bisa menulis pesan akhir tanpa memicu balasan konsumen.
 
+### 1e. Helper button composer dibuat session-scoped dua fase
+
+- Pada awal sesi, helper button tampil sebagai `Gunakan Template Salam`.
+- Setelah user pernah klik template salam lalu mengirim pesan agent pertama, helper button berubah ke `Gunakan Maintenance`.
+- Mode `Gunakan Maintenance` bertahan sampai sesi diakhiri (`Selesai`) dan otomatis reset saat sesi baru dimulai.
+- Tombol helper tetap terlihat pada fase `active` maupun `expired` untuk menjaga konsistensi alur akhir sesi.
+
 ### 2. Transcript multiline dipertahankan
 
 - Bubble chat KETIK memakai `whitespace-pre-wrap break-words`.
@@ -82,6 +89,12 @@
 - Setelah history utama berhasil, action melakukan `revalidatePath('/ketik')` dan `revalidatePath('/dashboard/monitoring')`.
 - `KetikClient.tsx` sekarang memanggil server action ini alih-alih melakukan insert langsung dari browser.
 
+### 4a. Read path history dibuat lebih tahan error
+
+- Read history tetap `ketik_history` sebagai jalur utama.
+- Jika query `ketik_history` gagal, client melakukan fallback ke `results` modul `ketik` (mapping dari `details`) agar riwayat tetap terbaca.
+- Error log distandarkan menjadi warning terstruktur (`message/details/hint/code`) supaya investigasi tidak berhenti di payload kosong `{}`.
+
 ### 5. Auth gate di UI diperjelas
 
 - `authReady` menahan tombol `Mulai Simulasi` sampai status autentikasi selesai dibaca.
@@ -98,9 +111,11 @@
 
 - [ ] Setelah timeout habis, konsumen hanya boleh menutup sesi sekali dan tidak boleh mengirim balasan baru dari request lama yang selesai belakangan.
 - [ ] Input chat tetap tampil saat sesi `active` dan `expired`, tetapi balasan konsumen hanya boleh terjadi saat `active`.
+- [ ] Helper button sesi harus mulai dari `Gunakan Template Salam`, lalu hanya berubah ke `Gunakan Maintenance` setelah template pernah diklik dan pesan agent pertama terkirim.
 - [ ] Bubble chat dan transcript monitoring harus mempertahankan line break multiline.
 - [ ] Konsumen tidak boleh memperkenalkan topik baru di luar inti skenario.
 - [ ] `ketik_history` tetap menjadi primary read path untuk monitoring KETIK.
+- [ ] Jika read `ketik_history` gagal, fallback read `results` modul `ketik` harus tetap menjaga sesi history bisa dibuka.
 - [ ] Linkage `results.details.legacy_history_id` tetap ada untuk sinkronisasi delete dan traceability.
 - [ ] Insert `results` yang gagal tidak boleh menggagalkan penyimpanan `ketik_history`.
 - [ ] Perubahan baru di KETIK tidak boleh menghapus `revalidatePath('/dashboard/monitoring')`.

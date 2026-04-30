@@ -26,6 +26,69 @@ function safeDate(value: unknown): Date {
   return isNaN(d.getTime()) ? new Date() : d;
 }
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function normalizeSupabaseError(error: unknown): {
+  message: string;
+  details?: string;
+  hint?: string;
+  code?: string;
+} {
+  if (typeof error === 'string') {
+    return { message: error };
+  }
+
+  const obj = asObject(error);
+  if (!obj) {
+    return { message: 'Unknown error shape from Supabase client.' };
+  }
+
+  const message =
+    typeof obj.message === 'string' && obj.message.trim().length > 0
+      ? obj.message
+      : (() => {
+          try {
+            const stringified = JSON.stringify(obj);
+            return stringified && stringified !== '{}' ? stringified : 'Unknown Supabase error object.';
+          } catch {
+            return 'Unserializable Supabase error object.';
+          }
+        })();
+
+  return {
+    message,
+    details: typeof obj.details === 'string' ? obj.details : undefined,
+    hint: typeof obj.hint === 'string' ? obj.hint : undefined,
+    code: typeof obj.code === 'string' ? obj.code : undefined,
+  };
+}
+
+function mapResultRowToKetikSession(item: Record<string, unknown>): ChatSession | null {
+  const details = asObject(item.details);
+  if (!details) return null;
+
+  const messages = details.messages;
+  if (!Array.isArray(messages)) return null;
+
+  const sessionId =
+    (typeof details.legacy_history_id === 'string' && details.legacy_history_id) ||
+    (typeof item.id === 'string' && item.id) ||
+    `fallback-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  return {
+    id: sessionId,
+    date: safeDate(item.created_at),
+    scenarioTitle: typeof details.scenario_title === 'string' ? details.scenario_title : 'Simulation Chat',
+    consumerName: typeof details.consumer_name === 'string' ? details.consumer_name : 'Consumer',
+    consumerPhone: typeof details.consumer_phone === 'string' ? details.consumer_phone : undefined,
+    consumerCity: typeof details.consumer_city === 'string' ? details.consumer_city : undefined,
+    messages: messages as ChatMessage[],
+  };
+}
+
 export default function AppKetik() {
   const theme = moduleTheme.ketik;
   const [view, setView] = useState<'home' | 'chat'>('home');
@@ -72,27 +135,53 @@ export default function AppKetik() {
 
     const fetchHistory = async () => {
       if (!user?.id) return;
-      const { data, error } = await supabase
-        .from('ketik_history')
-        .select('id, user_id, date, created_at, scenario_title, consumer_name, consumer_phone, consumer_city, messages')
-        .eq('user_id', user.id)
-        .order('date', { ascending: false })
-        .limit(50);
+      try {
+        const { data, error } = await supabase
+          .from('ketik_history')
+          .select('id, user_id, date, created_at, scenario_title, consumer_name, consumer_phone, consumer_city, messages')
+          .eq('user_id', user.id)
+          .order('date', { ascending: false })
+          .limit(50);
 
-      if (error) {
-        console.error('Error fetching ketik_history:', error);
-        return;
+        if (error) {
+          const normalized = normalizeSupabaseError(error);
+          console.warn('[Ketik] Error fetching ketik_history. Falling back to results:', normalized);
+
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from('results')
+            .select('id, created_at, details')
+            .eq('user_id', user.id)
+            .eq('module', 'ketik')
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+          if (fallbackError) {
+            console.warn('[Ketik] Error fetching fallback results:', normalizeSupabaseError(fallbackError));
+            setHistory([]);
+            return;
+          }
+
+          const mappedFallback = (fallbackData || [])
+            .map((item) => mapResultRowToKetikSession(asObject(item) || {}))
+            .filter((item): item is ChatSession => item !== null);
+
+          setHistory(mappedFallback);
+          return;
+        }
+
+        setHistory((data || []).map((item) => ({
+          id: item.id,
+          date: safeDate(item.date ?? item.created_at),
+          scenarioTitle: item.scenario_title || 'Simulation Chat',
+          consumerName: item.consumer_name || 'Consumer',
+          consumerPhone: item.consumer_phone,
+          consumerCity: item.consumer_city,
+          messages: Array.isArray(item.messages) ? item.messages : [],
+        })));
+      } catch (error) {
+        console.warn('[Ketik] Unexpected error fetching history:', normalizeSupabaseError(error));
+        setHistory([]);
       }
-
-      setHistory((data || []).map((item) => ({
-        id: item.id,
-        date: safeDate(item.date ?? item.created_at),
-        scenarioTitle: item.scenario_title || 'Simulation Chat',
-        consumerName: item.consumer_name || 'Consumer',
-        consumerPhone: item.consumer_phone,
-        consumerCity: item.consumer_city,
-        messages: Array.isArray(item.messages) ? item.messages : [],
-      })));
     };
 
     fetchHistory();

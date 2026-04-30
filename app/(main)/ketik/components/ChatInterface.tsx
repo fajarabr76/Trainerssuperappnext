@@ -36,6 +36,7 @@ const IMAGE_TAG_PATTERN = /\[SEND_IMAGE\s*:\s*\d+\]/i;
 const IMAGE_TAG_PATTERN_GLOBAL = /\[SEND_IMAGE\s*:\s*\d+\]/gi;
 const SYSTEM_TAG_PATTERN = /\[(sistem|system)\]/i;
 const SYSTEM_TAG_PATTERN_GLOBAL = /\[(sistem|system)\]/gi;
+const MAINTENANCE_TEMPLATE = 'Apakah informasi yang kami berikan sudah cukup jelas Bapak/Ibu? Ada hal lain yang dapat dibantu?.';
 
 function stripSystemTags(text: string): string {
   return text.replace(SYSTEM_TAG_PATTERN_GLOBAL, '').trim();
@@ -152,6 +153,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [hasTemplateBeenClicked, setHasTemplateBeenClicked] = useState(false);
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
   const pendingTimeoutsRef = useRef<number[]>([]);
   const sessionPhaseRef = useRef<SessionPhase>(isReviewMode ? 'closed' : 'active');
   const timeoutFinalizedRef = useRef(false);
@@ -342,6 +345,9 @@ Tulis pesan penutup konsumen sekarang.`;
     };
 
     setMessages(prev => [...prev, userMsg]);
+    if (hasTemplateBeenClicked && !isMaintenanceMode) {
+      setIsMaintenanceMode(true);
+    }
     setInputText('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
 
@@ -477,7 +483,13 @@ Tulis pesan penutup konsumen sekarang.`;
     
     const template = `Anda telah terhubung dengan Layanan Kontak OJK 157. Selamat ${greeting}. Saya ${agentName} dengan senang hati memberikan informasi yang Bapak/Ibu ${consumerName} butuhkan seputar Sektor Jasa Keuangan. Perihal apa yang dapat kami bantu?`;
     
+    setHasTemplateBeenClicked(true);
     setInputText(template);
+    textareaRef.current?.focus();
+  };
+
+  const applyMaintenance = () => {
+    setInputText(MAINTENANCE_TEMPLATE);
     textareaRef.current?.focus();
   };
 
@@ -722,17 +734,15 @@ Tulis pesan penutup konsumen sekarang.`;
         <div className="module-clean-toolbar p-6 border-t z-40 shrink-0 relative">
           <div className="absolute inset-x-0 -top-12 h-12 bg-gradient-to-t from-card to-transparent pointer-events-none" />
 
-          {sessionPhase === 'active' && (
-            <div className="flex justify-center mb-6">
-               <button
-                  onClick={applyTemplate}
-                  className="module-clean-button-secondary flex items-center gap-2.5 px-6 py-2.5 rounded-2xl shadow-sm text-[10px] font-black uppercase tracking-widest text-module-ketik transition-all group"
-               >
-                  <Sparkles className="w-3.5 h-3.5 group-hover:rotate-12 transition-transform" />
-                  <span>Gunakan Template Salam</span>
-               </button>
-            </div>
-          )}
+          <div className="flex justify-center mb-6">
+             <button
+                onClick={isMaintenanceMode ? applyMaintenance : applyTemplate}
+                className="module-clean-button-secondary flex items-center gap-2.5 px-6 py-2.5 rounded-2xl shadow-sm text-[10px] font-black uppercase tracking-widest text-module-ketik transition-all group"
+             >
+                <Sparkles className="w-3.5 h-3.5 group-hover:rotate-12 transition-transform" />
+                <span>{isMaintenanceMode ? 'Gunakan Maintenance' : 'Gunakan Template Salam'}</span>
+             </button>
+          </div>
 
           <div className="max-w-4xl mx-auto flex items-end gap-4">
               <div className="module-clean-input-shell flex-1 rounded-[2rem] border-2 flex flex-col px-6 py-2.5 focus-within:border-module-ketik transition-all shadow-inner">
