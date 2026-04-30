@@ -36,7 +36,7 @@ const IMAGE_TAG_PATTERN = /\[SEND_IMAGE\s*:\s*\d+\]/i;
 const IMAGE_TAG_PATTERN_GLOBAL = /\[SEND_IMAGE\s*:\s*\d+\]/gi;
 const SYSTEM_TAG_PATTERN = /\[(sistem|system)\]/i;
 const SYSTEM_TAG_PATTERN_GLOBAL = /\[(sistem|system)\]/gi;
-const MAINTENANCE_TEMPLATE = 'Apakah informasi yang kami berikan sudah cukup jelas Bapak/Ibu? Ada hal lain yang dapat dibantu?.';
+const MAINTENANCE_TEMPLATE = 'Apakah informasi yang kami berikan sudah cukup jelas Bapak/Ibu? Ada hal lain yang dapat dibantu?';
 
 function stripSystemTags(text: string): string {
   return text.replace(SYSTEM_TAG_PATTERN_GLOBAL, '').trim();
