@@ -3594,14 +3594,18 @@ export const qaServiceServer = {
       query = query.eq('profiler_peserta.batch_name', filter.folderId);
     }
 
-    // For group reports (no pesertaId), we only show meaningful findings and exclude phantom padding.
-    // For individual reports, we show everything to provide a complete audit history.
-    if (!filter.pesertaId) {
-      if (hasPhantomSupport) {
-        query = query.eq('is_phantom_padding', false);
-      }
-      query = query.or('nilai.lt.3,ketidaksesuaian.not.is.null,sebaiknya.not.is.null');
+    // Always exclude phantom padding for the table view as per requirements.
+    if (hasPhantomSupport) {
+      query = query.eq('is_phantom_padding', false);
     }
+
+    // Only show rows that have both findings (ketidaksesuaian) and suggestions (sebaiknya).
+    // The requirement states: "Tabel hanya menampilkan row yang punya isi ketidaksesuaian DAN sebaiknya"
+    query = query
+      .not('ketidaksesuaian', 'is', null)
+      .not('sebaiknya', 'is', null)
+      .neq('ketidaksesuaian', '')
+      .neq('sebaiknya', '');
 
     const { data, error } = await query
       .order('id', { ascending: true }) // Stable for pagination

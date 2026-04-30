@@ -40,6 +40,8 @@ Checklist ini dipakai setelah migration:
 - [ ] Pastikan `/qa-analyzer/ranking` tetap lengkap walaupun dataset `qa_temuan` untuk filter aktif besar (tidak terpotong di sekitar batas 1000 row fetch).
 - [ ] Jalankan export data agent, pastikan skor export per periode sesuai snapshot rules periode tersebut.
 - [ ] Verifikasi split `NC/CR` di export konsisten dengan kategori snapshot.
+- [ ] Buka `/qa-analyzer/reports/data`, pastikan filter tampil di bar atas, bukan sidebar kedua di kiri.
+- [ ] Di `/qa-analyzer/reports/data`, pastikan tabel/export hanya menampilkan row temuan real yang memiliki `ketidaksesuaian` dan `sebaiknya`; phantom padding tidak boleh tampil di tabel/export.
 
 ## F. Regression Ringan
 - [ ] Jalankan `npm run test:sidak` untuk lock clean-session semantics, ranking, dashboard fallback, trend fallback, dan SQL contract migration aktif.

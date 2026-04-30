@@ -254,215 +254,186 @@ export default function DataReportClient({
         )}
       </header>
 
-      <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
-        {/* Filters Sidebar */}
-        <aside className="w-full shrink-0 border-b border-border/50 bg-card/20 p-4 backdrop-blur-sm lg:w-80 lg:border-b-0 lg:border-r lg:p-6 lg:overflow-y-auto">
-          <div className="flex items-center gap-2 mb-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Horizontal Filters Bar */}
+        <div className="w-full border-b border-border/50 bg-card/20 p-4 backdrop-blur-sm lg:px-10 lg:py-6 overflow-y-auto max-h-[50vh] lg:max-h-none">
+          <div className="flex items-center gap-2 mb-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
             <Filter className="h-3 w-3" /> Konfigurasi Filter
           </div>
 
-          <div className="space-y-6">
-            <div>
-              <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                Jenis Layanan
-              </label>
-              <select
-                value={serviceType}
-                onChange={(e) => {
-                  setServiceType(e.target.value as ServiceType);
-                  setIndicatorId('ALL');
-                }}
-                className="h-11 w-full rounded-xl border border-border/50 bg-background px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-              >
-                {SERVICE_TYPES.map((s) => (
-                  <option key={s} value={s}>{SERVICE_LABELS[s]}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                Parameter QA (Opsional)
-              </label>
-              <select
-                value={indicatorId}
-                onChange={(e) => setIndicatorId(e.target.value)}
-                className="h-11 w-full rounded-xl border border-border/50 bg-background px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-              >
-                <option value="ALL">Semua Parameter</option>
-                {filteredIndicators.map((ind) => (
-                  <option key={ind.id} value={ind.id}>{ind.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                Tahun
-              </label>
-              <select
-                value={year}
-                onChange={(e) => setYear(Number(e.target.value))}
-                className="h-11 w-full rounded-xl border border-border/50 bg-background px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
-              >
-                {availableYears.map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Mode Periode — tersedia untuk kedua mode layanan & individu */}
-            <div className="pt-2">
-              <label className="mb-3 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                Mode Periode
-              </label>
-              <div className="flex gap-2 p-1 bg-foreground/5 rounded-2xl">
-                <button
-                  onClick={() => setPeriodMode('single')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                    periodMode === 'single' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
-                  }`}
-                >
-                  <Calendar className="h-3 w-3" /> 1 Bulan
-                </button>
-                <button
-                  onClick={() => setPeriodMode('range')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                    periodMode === 'range' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
-                  }`}
-                >
-                  <LayoutGrid className="h-3 w-3" /> Rentang
-                </button>
-              </div>
-            </div>
-
-            {/* Bulan Selector — tersedia untuk kedua mode */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+            {/* Layanan & Parameter */}
+            <div className="space-y-4">
               <div>
-                <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                  {periodMode === 'single' ? 'Bulan' : 'Bulan Mulai'}
+                <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  Jenis Layanan
                 </label>
                 <select
-                  value={startMonth}
-                  onChange={(e) => setStartMonth(Number(e.target.value))}
-                  className="h-11 w-full rounded-xl border border-border/50 bg-background px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                  value={serviceType}
+                  onChange={(e) => {
+                    setServiceType(e.target.value as ServiceType);
+                    setIndicatorId('ALL');
+                  }}
+                  className="h-10 w-full rounded-xl border border-border/50 bg-background px-3 text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                 >
-                  {MONTHS.map((m, i) => (
-                    <option key={i + 1} value={i + 1}>{m}</option>
+                  {SERVICE_TYPES.map((s) => (
+                    <option key={s} value={s}>{SERVICE_LABELS[s]}</option>
                   ))}
                 </select>
               </div>
-              {periodMode === 'range' && (
+
+              <div>
+                <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  Parameter QA (Opsional)
+                </label>
+                <select
+                  value={indicatorId}
+                  onChange={(e) => setIndicatorId(e.target.value)}
+                  className="h-10 w-full rounded-xl border border-border/50 bg-background px-3 text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                >
+                  <option value="ALL">Semua Parameter</option>
+                  {filteredIndicators.map((ind) => (
+                    <option key={ind.id} value={ind.id}>{ind.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Tahun & Mode Periode */}
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  Tahun
+                </label>
+                <select
+                  value={year}
+                  onChange={(e) => setYear(Number(e.target.value))}
+                  className="h-10 w-full rounded-xl border border-border/50 bg-background px-3 text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  {availableYears.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  Mode Periode
+                </label>
+                <div className="flex gap-1 p-1 bg-foreground/5 rounded-xl">
+                  <button
+                    onClick={() => setPeriodMode('single')}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                      periodMode === 'single' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
+                    }`}
+                  >
+                    <Calendar className="h-3 w-3" /> 1 Bln
+                  </button>
+                  <button
+                    onClick={() => setPeriodMode('range')}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                      periodMode === 'range' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
+                    }`}
+                  >
+                    <LayoutGrid className="h-3 w-3" /> Rentang
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Bulan Selector */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-1 lg:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                    Bulan Akhir
+                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    {periodMode === 'single' ? 'Bulan' : 'Mulai'}
                   </label>
                   <select
-                    value={endMonth}
-                    onChange={(e) => setEndMonth(Number(e.target.value))}
-                    className="h-11 w-full rounded-xl border border-border/50 bg-background px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                    value={startMonth}
+                    onChange={(e) => setStartMonth(Number(e.target.value))}
+                    className="h-10 w-full rounded-xl border border-border/50 bg-background px-3 text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20"
                   >
                     {MONTHS.map((m, i) => (
                       <option key={i + 1} value={i + 1}>{m}</option>
                     ))}
                   </select>
                 </div>
-              )}
-            </div>
+                {periodMode === 'range' ? (
+                  <div>
+                    <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                      Akhir
+                    </label>
+                    <select
+                      value={endMonth}
+                      onChange={(e) => setEndMonth(Number(e.target.value))}
+                      className="h-10 w-full rounded-xl border border-border/50 bg-background px-3 text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      {MONTHS.map((m, i) => (
+                        <option key={i + 1} value={i + 1}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="hidden lg:block" />
+                )}
+              </div>
 
-            {/* Konteks Audit Pribadi — info tambahan hanya untuk mode individu */}
-            {mode === 'individu' && (
-              <div className="pt-2">
-                <label className="mb-3 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                  Konteks Audit Pribadi
-                </label>
-                <div className="h-11 w-full rounded-xl border border-border/50 bg-foreground/5 px-3 flex items-center text-sm font-medium text-foreground/70">
+              {mode === 'individu' && (
+                <div className="h-10 w-full rounded-xl border border-border/50 bg-foreground/5 px-3 flex items-center text-[10px] font-medium text-foreground/70 leading-tight">
                   {loadingContext ? (
                     <span className="flex items-center gap-2 text-muted-foreground">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Menghitung...
+                      <Loader2 className="w-3 h-3 animate-spin" /> ...
                     </span>
                   ) : pesertaId ? (
                     endMonth > 0 ? (
-                      <span>Terakhir diaudit: Januari – {MONTHS[endMonth - 1]} {year}</span>
+                      <span>Audit: Jan – {MONTHS[endMonth - 1]}</span>
                     ) : (
-                      <span className="text-amber-600 dark:text-amber-500 italic">Tidak ada data audit</span>
+                      <span className="text-amber-600 dark:text-amber-500 italic">No Data</span>
                     )
                   ) : (
-                    <span className="text-muted-foreground italic">Pilih agen terlebih dahulu</span>
+                    <span className="text-muted-foreground italic">Pilih agen</span>
                   )}
                 </div>
-              </div>
-            )}
-
-            <div className="pt-2">
-              <label className="mb-3 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                Mode Laporan
-              </label>
-              <div className="flex gap-2 p-1 bg-foreground/5 rounded-2xl">
-                <button
-                  onClick={() => setMode('layanan')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                    mode === 'layanan' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
-                  }`}
-                >
-                  <LayoutGrid className="h-3 w-3" /> Layanan
-                </button>
-                <button
-                  onClick={() => setMode('individu')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                    mode === 'individu' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
-                  }`}
-                >
-                  <User className="h-3 w-3" /> Individu
-                </button>
-              </div>
+              )}
             </div>
 
-            {mode === 'individu' ? (
-              <div className="space-y-4">
-                <div>
-                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                    Pilih Tim
-                  </label>
-                  <select
-                    value={folderId}
-                    onChange={(e) => {
-                      setFolderId(e.target.value);
-                      setPesertaId('');
-                    }}
-                    className="h-11 w-full rounded-xl border border-border/50 bg-background px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
+            {/* Mode Laporan & Tim */}
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  Mode Laporan
+                </label>
+                <div className="flex gap-1 p-1 bg-foreground/5 rounded-xl">
+                  <button
+                    onClick={() => setMode('layanan')}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                      mode === 'layanan' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
+                    }`}
                   >
-                    <option value="ALL">Semua Tim</option>
-                    {folders.map((f) => (
-                      <option key={f.id} value={f.name}>{f.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                    Pilih Agen
-                  </label>
-                  <select
-                    value={pesertaId}
-                    onChange={(e) => setPesertaId(e.target.value)}
-                    className="h-12 w-full rounded-xl border border-border/50 bg-background px-4 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                    <LayoutGrid className="h-3 w-3" /> Layanan
+                  </button>
+                  <button
+                    onClick={() => setMode('individu')}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                      mode === 'individu' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
+                    }`}
                   >
-                    <option value="">— Pilih Agen —</option>
-                    {filteredAgents.slice(0, 500).map((a) => (
-                      <option key={a.id} value={a.id}>{a.nama}</option>
-                    ))}
-                  </select>
+                    <User className="h-3 w-3" /> Individu
+                  </button>
                 </div>
               </div>
-            ) : (
+
               <div>
-                <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                  Tim / Batch (Opsional)
+                <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  Tim / Batch
                 </label>
                 <select
                   value={folderId}
-                  onChange={(e) => setFolderId(e.target.value)}
-                  className="h-11 w-full rounded-xl border border-border/50 bg-background px-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                  onChange={(e) => {
+                    setFolderId(e.target.value);
+                    if (mode === 'individu') setPesertaId('');
+                  }}
+                  className="h-10 w-full rounded-xl border border-border/50 bg-background px-3 text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20"
                 >
                   <option value="ALL">Semua Tim</option>
                   {folders.map((f) => (
@@ -470,22 +441,45 @@ export default function DataReportClient({
                   ))}
                 </select>
               </div>
-            )}
+            </div>
 
-            <button
-              onClick={handleFetch}
-              disabled={loading || loadingContext || (mode === 'individu' && !pesertaId)}
-              className="w-full h-12 flex items-center justify-center gap-2 rounded-2xl bg-foreground text-background font-black uppercase tracking-widest text-xs transition-all hover:opacity-90 disabled:opacity-30 disabled:pointer-events-none mt-4"
-            >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-              Tampilkan Data
-            </button>
+            {/* Agen & Action Button */}
+            <div className="space-y-4 flex flex-col justify-end">
+              {mode === 'individu' ? (
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    Pilih Agen
+                  </label>
+                  <select
+                    value={pesertaId}
+                    onChange={(e) => setPesertaId(e.target.value)}
+                    className="h-10 w-full rounded-xl border border-border/50 bg-background px-3 text-xs font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                  >
+                    <option value="">— Pilih Agen —</option>
+                    {filteredAgents.slice(0, 500).map((a) => (
+                      <option key={a.id} value={a.id}>{a.nama}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="hidden lg:block h-10" />
+              )}
+
+              <button
+                onClick={handleFetch}
+                disabled={loading || loadingContext || (mode === 'individu' && !pesertaId)}
+                className="w-full h-10 flex items-center justify-center gap-2 rounded-xl bg-foreground text-background font-black uppercase tracking-widest text-[10px] transition-all hover:opacity-90 disabled:opacity-30 disabled:pointer-events-none"
+              >
+                {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+                Tampilkan Data
+              </button>
+            </div>
           </div>
-        </aside>
+        </div>
 
         {/* Results Area */}
         <section className="flex-1 overflow-hidden flex flex-col bg-background/50">
-          <div className="flex-1 overflow-auto p-4 lg:p-10">
+          <div className="flex-1 overflow-auto p-4 lg:p-10 lg:pt-6">
             {error && (
               <div className="mb-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 flex items-start gap-3">
                 <AlertCircle className="h-5 w-5 text-rose-600 shrink-0" />
@@ -500,7 +494,7 @@ export default function DataReportClient({
                 </div>
                 <h3 className="text-2xl font-black tracking-tight mb-2">Belum Ada Data</h3>
                 <p className="text-sm max-w-xs leading-relaxed">
-                  Gunakan panel filter di sebelah kiri untuk menampilkan data QA berdasarkan parameter yang Anda inginkan.
+                  Gunakan panel filter di atas untuk menampilkan data QA berdasarkan parameter yang Anda inginkan.
                 </p>
               </div>
             )}

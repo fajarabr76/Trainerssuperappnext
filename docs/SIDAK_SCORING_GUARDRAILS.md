@@ -55,6 +55,11 @@ Checklist review:
 - [ ] `totalDefects`, `findingsCount`, pareto, donut, dan ranking defect hanya memakai `findingRows`.
 - [ ] Mixed real + phantom tetap menghasilkan skor/defect yang sama dengan row real saja.
 
+Catatan khusus report data:
+- `/qa-analyzer/reports/data` adalah view tabel/export temuan real, bukan sumber scoring atau audit-presence.
+- Jalur ini boleh mengecualikan `is_phantom_padding = true` di query presentation layer, selama jalur dashboard, ranking, detail agent, dan scoring tetap memakai bucket audit-presence di atas.
+- Tabel/export report data hanya boleh menampilkan row yang memiliki isi `ketidaksesuaian` dan `sebaiknya`.
+
 ### 4) Service Inference Harus Lewat Helper Tunggal
 
 - Inferensi default service dari `tim` wajib menggunakan `resolveServiceTypeFromTeam(team?)` di `qa-types.ts`.
@@ -139,12 +144,13 @@ Checklist review:
 - `npm run test:sidak`
 - `npm run lint`
 - `npm run type-check`
-- Smoke UI: `/qa-analyzer/settings`, `/qa-analyzer/input`, `/qa-analyzer/dashboard`, `/qa-analyzer/ranking`
+- Smoke UI: `/qa-analyzer/settings`, `/qa-analyzer/input`, `/qa-analyzer/dashboard`, `/qa-analyzer/ranking`, `/qa-analyzer/reports/data`
 - Fokus smoke tambahan:
   - ranking tetap lengkap saat dataset besar
   - toggle parameter dashboard mengikuti urutan total temuan
   - toggle `Tampilkan Data Keseluruhan` di `/qa-analyzer/agents` dan `/qa-analyzer/input`
   - tombol `INPUT AUDIT` dari detail agent menuju `/qa-analyzer/input`, bukan 404
+  - report data memakai filter bar atas dan tidak menampilkan phantom padding di tabel/export
 
 Gunakan `npm run test:sidak` sebagai verifikasi wajib setiap ada perubahan clean-session semantics, ranking/top agents, fallback dashboard/trend, atau migration RPC SIDAK terkait audited population.
 
