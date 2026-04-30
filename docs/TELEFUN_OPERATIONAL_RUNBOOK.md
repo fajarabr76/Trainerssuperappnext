@@ -235,7 +235,13 @@ Karena schema `ai_pricing_settings` saat ini menyimpan satu harga input dan satu
 
 - Indikator volume di `PhoneInterface` membaca nilai dari `LiveSession.analyzeVolume()`.
 - Perhitungan menggunakan **RMS (time-domain)** dari `analyser.getByteTimeDomainData()` dengan `fftSize = 1024`, bukan frequency average. Ini lebih responsif terhadap level suara manusia.
+- Kalibrasi indikator sekarang memakai:
+  - **Noise gate** `VOLUME_NOISE_FLOOR = 0.005` untuk meredam hum/noise ringan saat user diam.
+  - **EMA smoothing** `alpha = 0.3` agar bar tidak flicker tetapi tetap responsif saat user mulai bicara.
+  - **Sensitivity scale** `VOLUME_SENSITIVITY_SCALE = 500` agar rentang bicara pelan-keras terbaca lebih jelas di UI.
+- Loop volume memakai `requestAnimationFrame` dengan throttle ringan dan disimpan ke `volumeAnimationFrameId`; saat `disconnect()` loop ini di-`cancelAnimationFrame` agar tidak ada RAF yatim setelah sesi berakhir.
 - Saat **mute aktif**, indikator tetap menunjukkan `0` dan label UI menampilkan **"Mic Mute"**.
+- Saat level benar-benar senyap (`volume <= 0`), UI bar dirender baseline kecil **2%** supaya state diam terlihat tegas.
 
 ## Dead-Air Detector
 
@@ -265,14 +271,15 @@ Checklist manual setelah deploy:
 7. Di Railway, pastikan log healthy call berurutan sampai `Gemini setupComplete received`.
 8. Uji mute dan hold, lalu resume panggilan. Pastikan **mute tidak me-restart call atau memutar ringtone ulang**.
 9. Pastikan **indikator input suara naik saat bicara** dan turun saat diam/mute.
-10. Ucapkan respons singkat seperti `iya`, `baik`, atau `kemudian`; pastikan sesi tidak berhenti mendadak dan percakapan tetap lanjut.
-11. Edit skenario yang sudah punya skrip, matikan toggle `Ikuti Skrip`, lalu langsung tekan `Simpan Perubahan`. Buka ulang settings dan pastikan skrip benar-benar nonaktif dan tidak muncul lagi sebagai `scenario.script`.
-12. Edit skenario yang sama, aktifkan lagi `Ikuti Skrip`, isi skrip format dialog atau poin alur, simpan, lalu buka ulang settings. Pastikan toggle menyala dan isi skrip ter-load kembali.
-13. Biarkan mute/diam sekitar 7 detik setelah tersambung; pastikan konsumen memanggil user secara natural tanpa memutus telepon.
-14. Aktifkan hold; pastikan dead-air prompt **tidak muncul selama hold**.
-15. Akhiri panggilan dan pastikan riwayat muncul di modal `Riwayat` dengan nama konsumen yang sama dengan UI saat panggilan.
-16. Untuk user login, cek `telefun_history` terisi dan monitoring histori menampilkan sesi Telefun.
-17. Jalankan panggilan singkat, akhiri sesi, lalu cek `ai_usage_logs` bertambah 1 row `telefun / voice_live`. Buka modal `Usage` dan cek module `telefun` bertambah.
+10. Saat user benar-benar diam, pastikan indikator tetap berada di baseline senyap (sekitar 2%), tidak berkedip acak karena noise ruangan.
+11. Ucapkan respons singkat seperti `iya`, `baik`, atau `kemudian`; pastikan sesi tidak berhenti mendadak dan percakapan tetap lanjut.
+12. Edit skenario yang sudah punya skrip, matikan toggle `Ikuti Skrip`, lalu langsung tekan `Simpan Perubahan`. Buka ulang settings dan pastikan skrip benar-benar nonaktif dan tidak muncul lagi sebagai `scenario.script`.
+13. Edit skenario yang sama, aktifkan lagi `Ikuti Skrip`, isi skrip format dialog atau poin alur, simpan, lalu buka ulang settings. Pastikan toggle menyala dan isi skrip ter-load kembali.
+14. Biarkan mute/diam sekitar 7 detik setelah tersambung; pastikan konsumen memanggil user secara natural tanpa memutus telepon.
+15. Aktifkan hold; pastikan dead-air prompt **tidak muncul selama hold**.
+16. Akhiri panggilan dan pastikan riwayat muncul di modal `Riwayat` dengan nama konsumen yang sama dengan UI saat panggilan.
+17. Untuk user login, cek `telefun_history` terisi dan monitoring histori menampilkan sesi Telefun.
+18. Jalankan panggilan singkat, akhiri sesi, lalu cek `ai_usage_logs` bertambah 1 row `telefun / voice_live`. Buka modal `Usage` dan cek module `telefun` bertambah.
 
 ## Debug Cepat
 

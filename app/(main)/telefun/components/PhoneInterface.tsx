@@ -343,7 +343,8 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
 
   // Helper to get Color and Label based on Volume
   const getVolumeStatus = (volume: number) => {
-      if (volume < 5) return { color: "bg-gray-700", label: "Senyap", width: "5%" };
+      if (volume <= 0) return { color: "bg-gray-700/50", label: "Senyap", width: "2%" };
+      if (volume < 10) return { color: "bg-gray-700", label: "Senyap", width: "5%" };
       if (volume < 35) return { color: "bg-whatsapp-teal", label: "Tenang/Netral", width: `${Math.max(10, volume)}%` };
       if (volume < 65) return { color: "bg-yellow-500", label: "Tegas/Peringatan", width: `${volume}%` };
       return { color: "bg-red-500", label: "Tinggi/Urgensi", width: `${Math.min(100, volume)}%` };

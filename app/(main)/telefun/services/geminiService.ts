@@ -42,6 +42,13 @@ export class LiveSession {
   private isAiSpeaking: boolean = false;
   private playbackRate: number = 1.0;
   private lastVolumeUpdate: number = 0;
+  private volumeAnimationFrameId: number | null = null;
+  private previousSmoothedVolume: number = 0;
+
+  // Calibration parameters for volume indicator
+  private readonly VOLUME_NOISE_FLOOR = 0.005;
+  private readonly VOLUME_SMOOTHING_ALPHA = 0.3; // Lower = smoother, higher = more responsive
+  private readonly VOLUME_SENSITIVITY_SCALE = 500;
 
   // Dead-air detector state
   private deadAirStartTime: number | null = null;
@@ -334,19 +341,27 @@ export class LiveSession {
   }
 
   private analyzeVolume() {
-    if (this.isDisconnected || !this.analyser) return;
+    if (this.isDisconnected || !this.analyser) {
+      if (this.volumeAnimationFrameId) {
+        cancelAnimationFrame(this.volumeAnimationFrameId);
+        this.volumeAnimationFrameId = null;
+      }
+      return;
+    }
 
+    // Still use a light throttle to avoid excessive UI updates (60fps -> ~20fps is enough)
     const now = Date.now();
-    if (now - this.lastVolumeUpdate < 100) {
-      requestAnimationFrame(() => this.analyzeVolume());
+    if (now - this.lastVolumeUpdate < 50) {
+      this.volumeAnimationFrameId = requestAnimationFrame(() => this.analyzeVolume());
       return;
     }
     this.lastVolumeUpdate = now;
 
     if (this.isMuted) {
+      this.previousSmoothedVolume = 0;
       this.onVolumeChange?.(0);
       this.trackDeadAir(true);
-      requestAnimationFrame(() => this.analyzeVolume());
+      this.volumeAnimationFrameId = requestAnimationFrame(() => this.analyzeVolume());
       return;
     }
 
@@ -355,6 +370,7 @@ export class LiveSession {
     try {
       this.analyser.getByteTimeDomainData(dataArray);
     } catch (_e) {
+      this.volumeAnimationFrameId = requestAnimationFrame(() => this.analyzeVolume());
       return;
     }
 
@@ -363,13 +379,24 @@ export class LiveSession {
       const x = (dataArray[i] - 128) / 128.0;
       sum += x * x;
     }
-    const rms = Math.sqrt(sum / bufferLength);
-    const normalizedVolume = Math.min(100, Math.round(rms * 300));
+    
+    // RMS Calculation
+    const rawRms = Math.sqrt(sum / bufferLength);
+    
+    // 1. Noise Gate
+    const gatedRms = rawRms < this.VOLUME_NOISE_FLOOR ? 0 : rawRms;
+    
+    // 2. EMA Smoothing (Smoothed = prev * (1-alpha) + current * alpha)
+    const smoothedRms = (this.previousSmoothedVolume * (1 - this.VOLUME_SMOOTHING_ALPHA)) + (gatedRms * this.VOLUME_SMOOTHING_ALPHA);
+    this.previousSmoothedVolume = smoothedRms;
+
+    // 3. Normalization with calibrated scale
+    const normalizedVolume = Math.min(100, Math.round(smoothedRms * this.VOLUME_SENSITIVITY_SCALE));
+    
     this.onVolumeChange?.(normalizedVolume);
+    this.trackDeadAir(rawRms < this.DEAD_AIR_RMS_THRESHOLD);
 
-    this.trackDeadAir(rms < this.DEAD_AIR_RMS_THRESHOLD);
-
-    requestAnimationFrame(() => this.analyzeVolume());
+    this.volumeAnimationFrameId = requestAnimationFrame(() => this.analyzeVolume());
   }
 
   private trackDeadAir(isSilent: boolean) {
@@ -537,6 +564,13 @@ export class LiveSession {
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       this.mediaRecorder.stop();
     }
+
+    if (this.volumeAnimationFrameId) {
+      cancelAnimationFrame(this.volumeAnimationFrameId);
+      this.volumeAnimationFrameId = null;
+    }
+    this.previousSmoothedVolume = 0;
+    this.lastVolumeUpdate = 0;
 
     this.stopAllAudio();
 
