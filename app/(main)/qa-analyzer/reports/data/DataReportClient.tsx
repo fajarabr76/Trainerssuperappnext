@@ -148,8 +148,8 @@ export default function DataReportClient({
   };
 
   const handleFetch = async () => {
-    if (mode === 'individu' && endMonth === 0) {
-      setError('Tidak ada data audit untuk agen ini di tahun terpilih.');
+    if (mode === 'individu' && !pesertaId) {
+      setError('Pilih agen terlebih dahulu.');
       return;
     }
 
@@ -241,10 +241,9 @@ export default function DataReportClient({
           </div>
           <h1 className="text-3xl font-black tracking-tighter text-foreground">Workspace Data</h1>
           <p className="mt-1 text-xs text-foreground/50">
-            Filter temuan QA dan export data ke Excel. Role: {role}
+          Filter data QA dan export data ke Excel. Role: {role}
           </p>
-        </div>
-
+          </div>
         {data.length > 0 && (
           <button
             onClick={handleExport}
@@ -475,7 +474,7 @@ export default function DataReportClient({
 
             <button
               onClick={handleFetch}
-              disabled={loading || loadingContext || (mode === 'individu' && (!pesertaId || endMonth === 0))}
+              disabled={loading || loadingContext || (mode === 'individu' && !pesertaId)}
               className="w-full h-12 flex items-center justify-center gap-2 rounded-2xl bg-foreground text-background font-black uppercase tracking-widest text-xs transition-all hover:opacity-90 disabled:opacity-30 disabled:pointer-events-none mt-4"
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
@@ -501,7 +500,7 @@ export default function DataReportClient({
                 </div>
                 <h3 className="text-2xl font-black tracking-tight mb-2">Belum Ada Data</h3>
                 <p className="text-sm max-w-xs leading-relaxed">
-                  Gunakan panel filter di sebelah kiri untuk menampilkan temuan QA berdasarkan parameter yang Anda inginkan.
+                  Gunakan panel filter di sebelah kiri untuk menampilkan data QA berdasarkan parameter yang Anda inginkan.
                 </p>
               </div>
             )}
@@ -522,7 +521,7 @@ export default function DataReportClient({
                 </div>
                 <h3 className="text-2xl font-black tracking-tight mb-2">Data Tidak Ditemukan</h3>
                 <p className="text-sm max-w-xs leading-relaxed">
-                  Tidak ada temuan yang cocok dengan filter yang Anda pilih. Coba sesuaikan rentang bulan atau parameter lainnya.
+                  Tidak ada data yang cocok dengan filter yang Anda pilih. Coba sesuaikan rentang bulan atau parameter lainnya.
                 </p>
               </div>
             )}
@@ -612,7 +611,7 @@ export default function DataReportClient({
                   </table>
                 </div>
                 <div className="border-t border-border/50 bg-foreground/[0.02] px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  Menampilkan {sortedData.length} temuan
+                  Menampilkan {sortedData.length} baris audit
                 </div>
               </div>
             )}

@@ -3593,12 +3593,15 @@ export const qaServiceServer = {
     if (filter.folderId && filter.folderId !== 'ALL') {
       query = query.eq('profiler_peserta.batch_name', filter.folderId);
     }
-    if (hasPhantomSupport) {
-      query = query.eq('is_phantom_padding', false);
-    }
 
-    // Only meaningful findings (has issues)
-    query = query.or('nilai.lt.3,ketidaksesuaian.not.is.null,sebaiknya.not.is.null');
+    // For group reports (no pesertaId), we only show meaningful findings and exclude phantom padding.
+    // For individual reports, we show everything to provide a complete audit history.
+    if (!filter.pesertaId) {
+      if (hasPhantomSupport) {
+        query = query.eq('is_phantom_padding', false);
+      }
+      query = query.or('nilai.lt.3,ketidaksesuaian.not.is.null,sebaiknya.not.is.null');
+    }
 
     const { data, error } = await query
       .order('id', { ascending: true }) // Stable for pagination

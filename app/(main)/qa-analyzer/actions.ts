@@ -213,7 +213,6 @@ export async function getLastAuditedMonthAction(agentId: string, year: number, s
   if (!periods || periods.length === 0) return null;
 
   const pIds = periods.map((period: { id: string }) => period.id);
-  const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
   
   let query = supabase
     .from('qa_temuan')
@@ -222,7 +221,6 @@ export async function getLastAuditedMonthAction(agentId: string, year: number, s
     .in('period_id', pIds);
 
   if (serviceType) query = query.eq('service_type', serviceType);
-  if (hasPhantomSupport) query = query.eq('is_phantom_padding', false);
   
   const { data: temuan } = await query;
   
