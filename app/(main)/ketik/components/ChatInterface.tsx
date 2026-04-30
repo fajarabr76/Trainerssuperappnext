@@ -8,6 +8,7 @@ import { ChatMessage, SessionConfig, Scenario, PacingMeta } from '@/app/types';
 import { generateConsumerResponse } from '../services/geminiService';
 import DiceBearAvatar from '@/app/components/DiceBearAvatar';
 import { classifyTextBand, isSlowEligible, calculatePacingDelay, calculateFollowUpDelay, isAgentGivingSolution } from '../services/responsePacing';
+import { getLastAgentMessage, getLastNonSystemSpeaker, allowSolutionAcknowledgement } from '../services/timeoutContext';
 
 interface ChatInterfaceProps {
   config: SessionConfig;
@@ -120,6 +121,17 @@ function normalizeMessagesForDisplay(messages: ChatMessage[]): ChatMessage[] {
   return normalized;
 }
 
+function normalizeTimeoutClosingText(rawText: string): string | null {
+  if (!rawText || rawText === '[NO_RESPONSE]') return null;
+
+  const firstSegment = rawText
+    .split('[BREAK]')
+    .map((part) => stripSystemTags(part).replace(IMAGE_TAG_PATTERN_GLOBAL, '').trim())
+    .find(Boolean);
+
+  return firstSegment || null;
+}
+
 type SessionPhase = 'active' | 'expired' | 'closed';
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ 
@@ -142,6 +154,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const pendingTimeoutsRef = useRef<number[]>([]);
   const sessionPhaseRef = useRef<SessionPhase>(isReviewMode ? 'closed' : 'active');
+  const timeoutFinalizedRef = useRef(false);
+  const messagesRef = useRef<ChatMessage[]>(normalizeMessagesForDisplay(initialMessages));
   const consumerTurnCountRef = useRef(0);
   const totalSlowCountRef = useRef(0);
   const consecutiveSlowCountRef = useRef(0);
@@ -168,6 +182,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [messages, isLoading]);
 
   useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
     sessionPhaseRef.current = sessionPhase;
   }, [sessionPhase]);
 
@@ -178,7 +196,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [isReviewMode, sessionPhase]);
 
   useEffect(() => {
-    if (isReviewMode || sessionPhase !== 'active') return;
+    if (isReviewMode || (sessionPhase !== 'active' && sessionPhase !== 'expired')) return;
 
     const timer = setInterval(() => {
       setElapsedSeconds((prev) => prev + 1);
@@ -194,13 +212,78 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   }, [inputText]);
 
-  const handleSessionTimeout = useCallback(() => {
-    if (sessionPhase !== 'active') return;
+  const handleSessionTimeout = useCallback(async () => {
+    if (sessionPhaseRef.current !== 'active' || timeoutFinalizedRef.current) return;
+    timeoutFinalizedRef.current = true;
 
     clearPendingTimeouts();
     setIsLoading(false);
+    sessionPhaseRef.current = 'expired';
     setSessionPhase('expired');
-  }, [sessionPhase, clearPendingTimeouts, setIsLoading]);
+
+    const historySnapshot = messagesRef.current;
+    const lastSpeaker = getLastNonSystemSpeaker(historySnapshot);
+    const lastAgentText = getLastAgentMessage(historySnapshot);
+    const canAcknowledgeSolution = allowSolutionAcknowledgement(lastAgentText);
+    const fallbackClosingText = 'Maaf, saya harus lanjut aktivitas dulu. Nanti saya hubungi lagi ya. Terima kasih.';
+
+    const timeoutPrompt = `WAKTU SIMULASI SUDAH HABIS.
+- Ini adalah BALASAN TERAKHIR sebelum konsumen berhenti membalas.
+- Tulis tepat 1 chat singkat, natural, dan sopan yang menjelaskan konsumen tidak bisa lanjut chat sekarang.
+- Jangan gunakan [BREAK], jangan gunakan [SISTEM], jangan kirim gambar, jangan menyebut timer/simulasi/sistem.
+- Setelah pesan ini, jangan ajukan pertanyaan lanjutan dan jangan minta balasan lagi.
+- Hindari frasa kaku atau seperti template CS.
+- Konteks penutup: speaker terakhir sebelum timeout adalah ${lastSpeaker ?? 'tidak diketahui'}.
+- ${
+      canAcknowledgeSolution
+        ? 'Jika relevan dengan konteks, boleh ada ucapan terima kasih singkat atas arahan agen tanpa klaim berlebihan.'
+        : 'Jangan mengonfirmasi solusi sudah selesai jika konteksnya belum jelas.'
+    }
+
+Tulis pesan penutup konsumen sekarang.`;
+
+    try {
+      const result = await generateConsumerResponse(
+        config,
+        scenario,
+        historySnapshot,
+        timeoutPrompt,
+        {
+          remainingSeconds: 0,
+          elapsedSeconds,
+          totalDurationSeconds: config.simulationDuration * 60,
+        },
+        { module: 'ketik', action: 'session_timeout' }
+      );
+
+      const timeoutText =
+        result.success ? normalizeTimeoutClosingText(result.text) || fallbackClosingText : fallbackClosingText;
+
+      setMessages((prev) =>
+        normalizeMessagesForDisplay([
+          ...prev,
+          {
+            id: `timeout-${Date.now()}`,
+            sender: 'consumer',
+            text: timeoutText,
+            timestamp: new Date(),
+          },
+        ])
+      );
+    } catch (_error) {
+      setMessages((prev) =>
+        normalizeMessagesForDisplay([
+          ...prev,
+          {
+            id: `timeout-${Date.now()}`,
+            sender: 'consumer',
+            text: fallbackClosingText,
+            timestamp: new Date(),
+          },
+        ])
+      );
+    }
+  }, [clearPendingTimeouts, config, scenario, elapsedSeconds]);
 
   // Countdown Timer Logic
   useEffect(() => {
@@ -215,7 +298,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   useEffect(() => {
     if (isReviewMode || sessionPhase !== 'active' || timeLeft > 0) return;
-    handleSessionTimeout();
+    void handleSessionTimeout();
   }, [isReviewMode, sessionPhase, timeLeft, handleSessionTimeout]);
 
   const formatTime = (seconds: number) => {
@@ -466,19 +549,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
             {!isReviewMode ? (
                 <div className="flex items-center gap-2 mt-0.5">
-                    {sessionPhase === 'expired' ? (
-                      <>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">Waktu Habis</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-module-ketik">Online</span>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground tabular-nums">
-                          {formatTime(elapsedSeconds)}
-                        </span>
-                        <span className="w-1 h-1 bg-module-ketik rounded-full animate-pulse"></span>
-                      </>
-                    )}
+                    <span className="text-[10px] font-black uppercase tracking-widest text-module-ketik">Online</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground tabular-nums">
+                      {formatTime(elapsedSeconds)}
+                    </span>
+                    <span className="w-1 h-1 bg-module-ketik rounded-full animate-pulse"></span>
                 </div>
             ) : (
                 <div className="flex items-center gap-2 mt-0.5">
@@ -637,16 +712,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       {!isReviewMode && (sessionPhase === 'active' || sessionPhase === 'expired') ? (
         <div className="module-clean-toolbar p-6 border-t z-40 shrink-0 relative">
           <div className="absolute inset-x-0 -top-12 h-12 bg-gradient-to-t from-card to-transparent pointer-events-none" />
-          
-          {sessionPhase === 'expired' && (
-            <div className="max-w-4xl mx-auto mb-4">
-              <div className="module-clean-panel rounded-2xl px-4 py-2.5 text-center">
-                <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
-                  Waktu habis &bull; Konsumen tidak akan membalas
-                </span>
-              </div>
-            </div>
-          )}
 
           {sessionPhase === 'active' && (
             <div className="flex justify-center mb-6">

@@ -2,7 +2,7 @@
 
 ## Status
 
-- Status: `resolved in worktree, pending commit`
+- Status: `resolved`
 - Prioritas: `high`
 - Dampak: sesi KETIK bisa tetap menerima balasan setelah timer habis, transcript paragraf kehilangan line break, konsumen keluar dari konteks skenario, dan history baru tidak selalu tampil konsisten di monitoring setelah reload.
 
@@ -29,10 +29,17 @@
 
 ### 1. Session lifecycle dibuat eksplisit dan terminal
 
-- `ChatInterface.tsx` memakai `SessionPhase = 'active' | 'closing_by_timeout' | 'closed'`.
+- `ChatInterface.tsx` memakai `SessionPhase = 'active' | 'expired' | 'closed'`.
 - Semua `setTimeout` balasan bertahap disimpan di `pendingTimeoutsRef` dan dibersihkan lewat `clearPendingTimeouts()` saat sesi berakhir atau komponen unmount.
-- Saat `timeLeft` mencapai `0`, konsumen masuk ke fase `closing_by_timeout`, menghasilkan satu giliran penutup, lalu pindah ke `closed`.
+- Saat `timeLeft` mencapai `0`, timeout finalization dieksekusi sekali: sesi dipindah ke `expired`, satu pesan penutup konsumen dihasilkan via prompt timeout khusus, lalu semua jalur balasan konsumen berikutnya dihentikan.
 - Ditambahkan `sessionPhaseRef` untuk membuang hasil request AI biasa yang selesai setelah sesi tidak lagi `active`, sehingga race condition pasca-timeout tidak memunculkan balasan konsumen baru.
+
+### 1a. Timeout close dinamis, satu kali, dan punya fallback
+
+- `handleSessionTimeout()` memanggil `generateConsumerResponse()` dengan `extraPrompt` timeout khusus untuk menghasilkan alasan penutup yang natural.
+- Guard `timeoutFinalizedRef` memastikan timeout close hanya dieksekusi satu kali walau ada render/efek ulang.
+- Output timeout dinormalisasi menjadi satu segmen chat; jika AI gagal atau mengembalikan `[NO_RESPONSE]`, dipakai fallback statis singkat agar UX tetap konsisten.
+- Aksi usage timeout dicatat sebagai `module='ketik'` dan `action='session_timeout'`.
 
 ### 1b. Timeout closing dibuat branch-aware
 
@@ -47,6 +54,12 @@
 - `timeoutContext.ts` memisahkan cue instruksional menjadi tier yang lebih spesifik dan memakai boundary matching untuk kata tunggal agar substring yang kebetulan mirip tidak ikut terhitung.
 - Struktur langkah diperiksa per baris dan baru dianggap cukup bila ada minimal dua langkah terformat.
 - Ambang acknowledgement solusi sekarang hanya lolos bila sinyal instruksional memang kuat, sehingga false positive dari teks agent yang sekadar menjelaskan konteks biasa lebih kecil.
+
+### 1d. UI timeout diselaraskan dengan perilaku baru
+
+- Header KETIK tidak lagi switch ke label `Waktu Habis`; status tetap `Online` dengan timer elapsed.
+- Banner composer `Waktu habis • Konsumen tidak akan membalas` dihapus.
+- Composer tetap ditampilkan pada fase `active` maupun `expired` agar agen masih bisa menulis pesan akhir tanpa memicu balasan konsumen.
 
 ### 2. Transcript multiline dipertahankan
 
@@ -78,12 +91,12 @@
 
 - `persistKetikSession(params)` mengembalikan `success`, `session`, `warning`, dan `error`.
 - `ChatInterface` menerima prop `authReady?: boolean`.
-- `ChatInterface` memakai state internal `SessionPhase` dan `sessionPhaseRef` untuk menjaga timeout dan request in-flight tetap sinkron.
+- `ChatInterface` memakai state internal `SessionPhase`, `sessionPhaseRef`, dan `timeoutFinalizedRef` untuk menjaga timeout close tetap satu kali dan sinkron terhadap request in-flight.
 
 ## Regression Guard
 
 - [ ] Setelah timeout habis, konsumen hanya boleh menutup sesi sekali dan tidak boleh mengirim balasan baru dari request lama yang selesai belakangan.
-- [ ] Input chat hanya tampil saat sesi `active`.
+- [ ] Input chat tetap tampil saat sesi `active` dan `expired`, tetapi balasan konsumen hanya boleh terjadi saat `active`.
 - [ ] Bubble chat dan transcript monitoring harus mempertahankan line break multiline.
 - [ ] Konsumen tidak boleh memperkenalkan topik baru di luar inti skenario.
 - [ ] `ketik_history` tetap menjadi primary read path untuk monitoring KETIK.
@@ -100,6 +113,7 @@
 5. Uji timeout dengan pesan terakhir dari consumer, lalu pastikan closing tidak mengonfirmasi solusi yang tidak pernah diberikan agent.
 6. Uji timeout dengan pesan terakhir dari agent yang jelas memberi arahan, lalu pastikan acknowledgement singkat masih natural sebelum penutupan.
 7. Akhiri sesi KETIK, reload `/dashboard/monitoring`, lalu pastikan history baru muncul.
+8. Saat timeout sudah terjadi, kirim 2-3 pesan agent tambahan dan pastikan tidak ada balasan konsumen baru.
 
 ## Checklist Penutupan
 
@@ -115,6 +129,7 @@
 - `app/(main)/ketik/actions.ts`
 - `app/(main)/ketik/KetikClient.tsx`
 - `app/(main)/ketik/components/ChatInterface.tsx`
+- `app/(main)/ketik/services/timeoutContext.ts`
 - `app/(main)/ketik/services/geminiService.ts`
 - `app/(main)/dashboard/monitoring/MonitoringClient.tsx`
 - `app/(main)/dashboard/monitoring/monitoringData.ts`
