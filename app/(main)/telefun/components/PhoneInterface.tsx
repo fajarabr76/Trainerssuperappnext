@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { SessionConfig } from '@/app/types';
 import { LiveSession } from '../services/geminiService';
+import { getTelefunTimeCueThreshold } from '../services/timingGuards';
 import { Clock3, Mic, MicOff, Pause, PhoneOff, Play, UserRound } from 'lucide-react';
 
 interface PhoneInterfaceProps {
@@ -30,6 +31,10 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
   const [isOnHold, setIsOnHold] = useState(false);
   const [holdCount, setHoldCount] = useState(0);
   const [holdTimer, setHoldTimer] = useState(0);
+
+  // Pre-timeout cue tracking (send only once per threshold)
+  const timeCue30Sent = useRef(false);
+  const timeCue20Sent = useRef(false);
 
   const sessionRef = useRef<LiveSession | null>(null);
   const mountedRef = useRef<boolean>(true); // Track mount status
@@ -187,6 +192,10 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
     mountedRef.current = true;
 
     const startCallSequence = async () => {
+        // Reset pre-timeout cue flags for new call
+        timeCue30Sent.current = false;
+        timeCue20Sent.current = false;
+
         // 1. Play Ringtone
         if (isActive) {
             console.log("[Telefun] Starting ringtone sequence");
@@ -340,6 +349,30 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
           handleEndCall('timeout');
       }
   }, [callDuration, config.maxCallDuration, handleEndCall]);
+
+  // Pre-timeout natural closing cues
+  useEffect(() => {
+    if (config.maxCallDuration > 0 && connectionState === 'Tersambung') {
+      const totalSeconds = config.maxCallDuration * 60;
+      const elapsed = callDuration;
+      const remaining = totalSeconds - elapsed;
+
+      const cueThreshold = getTelefunTimeCueThreshold({
+        totalSeconds,
+        elapsedSeconds: elapsed,
+        cue30Sent: timeCue30Sent.current,
+        cue20Sent: timeCue20Sent.current,
+      });
+
+      if (cueThreshold === '30s') {
+        timeCue30Sent.current = true;
+        sessionRef.current?.sendTimeCue(remaining);
+      } else if (cueThreshold === '20s') {
+        timeCue20Sent.current = true;
+        sessionRef.current?.sendTimeCue(remaining);
+      }
+    }
+  }, [callDuration, config.maxCallDuration, connectionState]);
 
   // Helper to get Color and Label based on Volume
   const getVolumeStatus = (volume: number) => {

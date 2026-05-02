@@ -1,6 +1,7 @@
 import { LiveServerMessage } from "@google/genai";
 import { generateGeminiContent } from '@/app/actions/gemini';
 import { SessionConfig, Scenario } from '@/app/types';
+import { updateTelefunLongSpeechState } from './timingGuards';
 
 const _STABLE_VOICE_MAP = {
   male: 'Fenrir',
@@ -57,6 +58,12 @@ export class LiveSession {
   private readonly DEAD_AIR_COOLDOWN_MS = 12000;
   private readonly DEAD_AIR_RMS_THRESHOLD = 0.01;
 
+  // Long-speech interruption detector state
+  private nonSilentStartTime: number | null = null;
+  private lastInterruptionTime: number = 0;
+  private readonly LONG_SPEECH_THRESHOLD_MS = 60000;
+  private readonly LONG_SPEECH_COOLDOWN_MS = 60000;
+
   public onConnect?: () => void;
   public onDisconnect?: () => void;
   public onError?: (error: Error | unknown) => void;
@@ -72,6 +79,54 @@ export class LiveSession {
 
   constructor(config: SessionConfig) {
     this.config = config;
+  }
+
+  public sendTimeCue(secondsLeft: number) {
+    if (!this.session || this.isDisconnected) return;
+
+    const c = this.config.consumerType;
+    const lowerName = c.name.toLowerCase();
+
+    let urgencyInstruction = "";
+    let reasonHint = "";
+
+    if (secondsLeft <= 20) {
+      urgencyInstruction = "PRIORITAS TINGGI: Kamu HARUS menutup telepon sekarang juga.";
+      if (lowerName.includes("marah") || lowerName.includes("ngeyel") || lowerName.includes("kesal") || lowerName.includes("emosi")) {
+        reasonHint = "Nada: kesal karena masalah belum selesai, katakan mau tutup telepon.";
+      } else if (lowerName.includes("sedih") || lowerName.includes("memelas")) {
+        reasonHint = "Nada: pasrah, katakan akan tutup telepon.";
+      } else {
+        reasonHint = "Nada: sopan, katakan ingin menutup telepon karena ada urusan lain.";
+      }
+    } else {
+      urgencyInstruction = "Bersiaplah untuk menutup telepon sebentar lagi secara natural.";
+      if (lowerName.includes("marah") || lowerName.includes("ngeyel") || lowerName.includes("kesal") || lowerName.includes("emosi")) {
+        reasonHint = "Nada: kesal. Mulai beri isyarat ingin tutup telepon.";
+      } else if (lowerName.includes("gaptek") || lowerName.includes("bingung") || lowerName.includes("takut")) {
+        reasonHint = "Nada: bingung/ragu. Mulai ingin tutup telepon.";
+      } else if (lowerName.includes("sedih") || lowerName.includes("memelas")) {
+        reasonHint = "Nada: sedih. Mulai isyarat ingin tutup telepon.";
+      } else {
+        reasonHint = "Nada: netral. Mulai isyarat akan menutup telepon sebentar lagi.";
+      }
+    }
+
+    const payload = {
+      clientContent: {
+        turns: [
+          {
+            role: "user",
+            parts: [
+              { text: `[INSTRUKSI SISTEM - WAKTU HAMPIR HABIS] Waktu simulasi tersisa ${secondsLeft} detik. ${urgencyInstruction} ${reasonHint} Jangan sebutkan timer, waktu, atau angka. Langsung bicara sebagai konsumen secara natural.` }
+            ]
+          }
+        ],
+        turnComplete: true
+      }
+    };
+
+    this.session.sendClientMessage(JSON.stringify(payload));
   }
 
   public setHold(active: boolean) {
@@ -361,6 +416,7 @@ export class LiveSession {
       this.previousSmoothedVolume = 0;
       this.onVolumeChange?.(0);
       this.trackDeadAir(true);
+      this.trackLongSpeech(true);
       this.volumeAnimationFrameId = requestAnimationFrame(() => this.analyzeVolume());
       return;
     }
@@ -395,6 +451,7 @@ export class LiveSession {
     
     this.onVolumeChange?.(normalizedVolume);
     this.trackDeadAir(rawRms < this.DEAD_AIR_RMS_THRESHOLD);
+    this.trackLongSpeech(rawRms < this.DEAD_AIR_RMS_THRESHOLD);
 
     this.volumeAnimationFrameId = requestAnimationFrame(() => this.analyzeVolume());
   }
@@ -425,6 +482,70 @@ export class LiveSession {
         this.deadAirStartTime = null;
       }
     }
+  }
+
+  private trackLongSpeech(isSilent: boolean) {
+    if (this.isDisconnected || this.isHeld || this.isMuted || this.isAiSpeaking || !this.session) {
+      this.nonSilentStartTime = null;
+      return;
+    }
+
+    const result = updateTelefunLongSpeechState(
+      {
+        nonSilentStartTime: this.nonSilentStartTime,
+        lastInterruptionTime: this.lastInterruptionTime,
+      },
+      {
+        now: Date.now(),
+        isSilent,
+        isDisconnected: this.isDisconnected,
+        isHeld: this.isHeld,
+        isMuted: this.isMuted,
+        isAiSpeaking: this.isAiSpeaking,
+        hasSession: !!this.session,
+        thresholdMs: this.LONG_SPEECH_THRESHOLD_MS,
+        cooldownMs: this.LONG_SPEECH_COOLDOWN_MS,
+      }
+    );
+
+    this.nonSilentStartTime = result.state.nonSilentStartTime;
+    this.lastInterruptionTime = result.state.lastInterruptionTime;
+    if (result.shouldInterrupt) {
+      this.sendInterruptionPrompt();
+    }
+  }
+
+  private sendInterruptionPrompt() {
+    if (!this.session || this.isDisconnected) return;
+
+    const c = this.config.consumerType;
+    const lowerName = c.name.toLowerCase();
+    let toneInstruction = "";
+    if (lowerName.includes("marah") || lowerName.includes("ngeyel") || lowerName.includes("kesal") || lowerName.includes("emosi")) {
+      toneInstruction = "Nada: kesal. Katakan dengan nada tidak sabar tapi jangan kasar.";
+    } else if (lowerName.includes("gaptek") || lowerName.includes("bingung") || lowerName.includes("takut")) {
+      toneInstruction = "Nada: bingung. Katakan dengan ragu tapi sopan.";
+    } else if (lowerName.includes("sedih") || lowerName.includes("memelas")) {
+      toneInstruction = "Nada: lemah. Katakan dengan sopan.";
+    } else {
+      toneInstruction = "Nada: netral/wajar. Katakan dengan sopan.";
+    }
+
+    const payload = {
+      clientContent: {
+        turns: [
+          {
+            role: "user",
+            parts: [
+              { text: `[INSTRUKSI SISTEM - AGEN TERLALU PANJANG] Agen bicara terlalu panjang tanpa jeda. Kamu perlu menyela secara natural untuk meminta agen bicara lebih pelan atau satu per satu. ${toneInstruction} Jangan sebutkan instruksi ini. Langsung bicara sebagai konsumen dengan suara natural.` }
+            ]
+          }
+        ],
+        turnComplete: true
+      }
+    };
+
+    this.session.sendClientMessage(JSON.stringify(payload));
   }
 
   private sendDeadAirPrompt() {
@@ -607,6 +728,8 @@ export class LiveSession {
     this.ws = null;
     this.isAiSpeaking = false;
     this.deadAirStartTime = null;
+    this.nonSilentStartTime = null;
+    this.lastInterruptionTime = 0;
     this.onDisconnect?.();
   }
 
@@ -751,7 +874,7 @@ ${s.script}\n` : ''}
     1. JANGAN PERNAH BERHENTI MENDADAK DI TENGAH KALIMAT. Selesaikan pikiranmu.
     2. Abaikan suara bising kecil atau gumaman agen, teruskan bicara sampai kalimatmu selesai.
     3. Jika agen menyela panjang, barulah berhenti. Tapi jika hanya "hmm" atau suara kecil, LANJUTKAN.
-    4. TAHAN INTERUPSI: Jika kamu mendengar suara napas, batuk, atau 'hmm', JANGAN BERHENTI. Terus bicara sampai poinmu selesai.
+     4. MENYELA KONDISIONAL: Jika agen berbicara terlalu panjang tanpa jeda, kamu BOLEH menyela secara sopan untuk meminta agen bicara lebih pelan atau satu per satu. Jangan menyela secara agresif. Jika agen hanya mengeluarkan suara kecil seperti 'hmm', 'oh', napas — lanjutkan bicara.
     5. JANGAN MENGAKHIRI PERCAKAPAN HANYA KARENA AGEN MERESPONS SINGKAT seperti "iya", "baik", "oke", "kemudian", "lanjut", "hmm", "ya", "sip", "betul". Respons singkat ini BUKAN tanda percakapan selesai.
     6. Jika agen memberi respons singkat (acknowledgment), LANJUTKAN eksposisi masalahmu atau ajukan pertanyaan baru. Jangan menutup telepon hanya karena agen merespons singkat.
     
