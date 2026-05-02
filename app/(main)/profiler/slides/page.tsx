@@ -2,7 +2,9 @@ import React from 'react';
 import { Metadata } from 'next';
 import { profilerServiceServer } from '../services/profilerService.server';
 import ProfilerSlidesClient from './components/ProfilerSlidesClient';
-import { requirePageAccess } from '@/app/lib/authz';
+import { requirePageAccess, getCurrentUserContext } from '@/app/lib/authz';
+import { getLeaderAccessStatus } from '@/app/lib/access-control/leaderAccess.server';
+import LeaderAccessStatus from '@/app/components/access/LeaderAccessStatus';
 
 export const metadata: Metadata = {
   title: 'Tampilan Slide | Trainers SuperApp',
@@ -21,16 +23,32 @@ export default async function ProfilerSlidesPage({
     allowedRoles: ['trainer', 'leader', 'admin']
   });
 
+  let scope = undefined;
+  if (role === 'leader') {
+    const { user } = await getCurrentUserContext();
+    if (user) {
+      const accessInfo = await getLeaderAccessStatus(user.id, 'ktp');
+      if (!accessInfo.hasAccess && accessInfo.status !== 'approved') {
+        return (
+          <div className="max-w-2xl mx-auto py-12 px-4">
+            <LeaderAccessStatus status={accessInfo.status} module="ktp" moduleLabel="KTP / Profiler" />
+          </div>
+        );
+      }
+      scope = accessInfo.scopeFilter;
+    }
+  }
+
   // Always fetch years and folders for transition
   const [years, folders] = await Promise.all([
     profilerServiceServer.getYears(),
-    profilerServiceServer.getFolders()
+    profilerServiceServer.getFolders(scope)
   ]);
 
   // Fetch participants if batchName is present
   let peserta = [];
   if (batchName) {
-    peserta = await profilerServiceServer.getByBatch(batchName);
+    peserta = await profilerServiceServer.getByBatch(batchName, scope);
   }
 
   return (

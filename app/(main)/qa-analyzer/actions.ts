@@ -1,7 +1,9 @@
 'use server'
 
 import { createClient } from '@/app/lib/supabase/server';
-import { getCurrentUserContext, hasRole } from '@/app/lib/authz';
+import { getCurrentUserContext, hasRole, normalizeRole } from '@/app/lib/authz';
+import { getLeaderAccessStatus } from '@/app/lib/access-control/leaderAccess.server';
+import type { LeaderScopeFilter } from '@/app/lib/access-control/leaderScope';
 import {
   ServiceType, Category, ScoringMode, ServiceWeight, DEFAULT_SERVICE_WEIGHTS,
   TopAgentData, ExportData, AgentDirectoryEntry
@@ -123,6 +125,30 @@ async function assertQaActionAccess(allowedRoles: string[]) {
   return { user, profile, role };
 }
 
+function filterAgentDirectoryByLeaderScope(
+  data: AgentDirectoryEntry[],
+  allowedScopes: LeaderScopeFilter,
+): AgentDirectoryEntry[] {
+  return data.filter((agent) => {
+    if (allowedScopes.peserta_ids?.includes(agent.id)) return true;
+    if (allowedScopes.batch_names?.includes(agent.batch_name || agent.batch || '')) return true;
+    if (allowedScopes.tims?.includes(agent.tim || '')) return true;
+    return false;
+  });
+}
+
+function filterRankingByLeaderScope(
+  data: TopAgentData[],
+  allowedScopes: LeaderScopeFilter,
+): TopAgentData[] {
+  return data.filter((agent) => {
+    if (allowedScopes.peserta_ids?.includes(agent.agentId)) return true;
+    if (allowedScopes.batch_names?.includes(agent.batch)) return true;
+    if (allowedScopes.tims?.includes(agent.tim || '')) return true;
+    return false;
+  });
+}
+
 async function assertCanAccessAgentDetail(agentId: string) {
   const { user, profile, role } = await getCurrentUserContext();
   if (!user || !profile) {
@@ -133,20 +159,47 @@ async function assertCanAccessAgentDetail(agentId: string) {
     throw new Error('Akses ditolak');
   }
 
-  if (role !== 'agent') {
+  // Agent: only own data
+  if (role === 'agent') {
+    const supabase = await createClient();
+    const { data: ownPeserta, error } = await supabase
+      .from('profiler_peserta')
+      .select('id')
+      .eq('email_ojk', user.email)
+      .single();
+    if (error || !ownPeserta || ownPeserta.id !== agentId) {
+      throw new Error('Akses ditolak');
+    }
     return;
   }
 
-  const supabase = await createClient();
-  const { data: ownPeserta, error } = await supabase
-    .from('profiler_peserta')
-    .select('id')
-    .eq('email_ojk', user.email)
-    .single();
-
-  if (error || !ownPeserta || ownPeserta.id !== agentId) {
-    throw new Error('Akses ditolak');
+  // Leader: must be within approved scope
+  if (normalizeRole(role) === 'leader') {
+    const accessInfo = await getLeaderAccessStatus(user.id, 'sidak');
+    if (!accessInfo.hasAccess) {
+      throw new Error('Akses ditolak: Anda tidak memiliki akses ke modul ini');
+    }
+    const scope = accessInfo.scopeFilter;
+    const supabase = await createClient();
+    const { data: peserta } = await supabase
+      .from('profiler_peserta')
+      .select('id, batch_name, tim')
+      .eq('id', agentId)
+      .single();
+    if (!peserta) {
+      throw new Error('Akses ditolak: peserta tidak ditemukan');
+    }
+    const inScope =
+      (scope.peserta_ids && scope.peserta_ids.includes(peserta.id)) ||
+      (scope.batch_names && scope.batch_names.includes(peserta.batch_name || '')) ||
+      (scope.tims && scope.tims.includes(peserta.tim || ''));
+    if (!inScope) {
+      throw new Error('Akses ditolak: peserta di luar scope akses Anda');
+    }
+    return;
   }
+
+  // Admin/trainer: full access
 }
 
 
@@ -646,10 +699,20 @@ export async function getAgentsByFolderAction(batch: string, includeExcluded?: b
 
 export async function getAllAgentDirectoryAction(year?: number): Promise<{ data: AgentDirectoryEntry[]; error?: string }> {
   try {
-    await assertQaActionAccess(['trainer', 'leader', 'admin']);
+    const { user, role } = await assertQaActionAccess(['trainer', 'leader', 'admin']);
     const { qaServiceServer } = await import('./services/qaService.server');
-    const data = await qaServiceServer.getAgentDirectorySummary(year, true);
-    return { data };
+    const directoryData = await qaServiceServer.getAgentDirectorySummary(year, true);
+
+    if (normalizeRole(role) === 'leader') {
+      const accessInfo = await getLeaderAccessStatus(user.id, 'sidak');
+      if (!accessInfo.hasAccess) {
+        return { data: [], error: 'Akses ditolak: approval SIDAK belum aktif.' };
+      }
+      const filteredData = filterAgentDirectoryByLeaderScope(directoryData, accessInfo.scopeFilter);
+      return { data: filteredData };
+    }
+
+    return { data: directoryData };
   } catch (err) {
     const norm = normalizeQaActionError(err, 'Gagal mengambil data directory agent.');
     return { data: [], error: norm.message };
@@ -838,17 +901,27 @@ export async function getRankingAgenAction(
   folderIds?: string[],
   year?: number
 ): Promise<{ data: TopAgentData[]; error?: string }> {
-  await assertQaActionAccess(['trainer', 'leader', 'admin']);
   try {
+    const { user, role } = await assertQaActionAccess(['trainer', 'leader', 'admin']);
     const { qaServiceServer } = await import('./services/qaService.server');
-    const data = await qaServiceServer.getAllAgentsRanking(
+    const rankingData = await qaServiceServer.getAllAgentsRanking(
       periodId,
       serviceType,
       folderIds || [],
       undefined,
       year
     );
-    return { data };
+
+    if (normalizeRole(role) === 'leader') {
+      const accessInfo = await getLeaderAccessStatus(user.id, 'sidak');
+      if (!accessInfo.hasAccess) {
+        return { data: [], error: 'Akses ditolak: approval SIDAK belum aktif.' };
+      }
+      const filteredData = filterRankingByLeaderScope(rankingData, accessInfo.scopeFilter);
+      return { data: filteredData };
+    }
+
+    return { data: rankingData };
   } catch (error) {
     console.error('getRankingAgenAction error:', error);
     return { data: [], error: 'Gagal mengambil data ranking agen.' };

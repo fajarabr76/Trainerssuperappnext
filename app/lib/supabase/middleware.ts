@@ -98,6 +98,8 @@ export async function updateSession(request: NextRequest) {
         const trainerOnlyRoutes = [
           '/dashboard/users',
           '/dashboard/activities',
+          '/dashboard/access-approval',
+          '/dashboard/access-groups',
           '/qa-analyzer/input',
           '/qa-analyzer/settings',
           '/qa-analyzer/periods',

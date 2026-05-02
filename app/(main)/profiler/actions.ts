@@ -4,6 +4,9 @@ import { createClient } from '@/app/lib/supabase/server';
 import { Peserta } from './lib/profiler-types';
 import { revalidatePath } from 'next/cache';
 import { invalidateFoldersCache, invalidateYearsCache } from '@/lib/cache/user-cache';
+import { getCurrentUserContext } from '@/app/lib/authz';
+import { getLeaderAccessStatus } from '@/app/lib/access-control/leaderAccess.server';
+import { filterPesertaRows } from './services/profilerService.server';
 
 /**
  * Helper to validate if the current user has trainer/admin permissions.
@@ -271,7 +274,7 @@ export async function copyPesertaToFolder(pesertaIds: string[], targetBatch: str
 
 export async function getOriginalPeserta(id: string) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, role } = await getCurrentUserContext();
   if (!user) throw new Error('Tidak terautentikasi');
 
   const { data, error } = await supabase
@@ -280,6 +283,20 @@ export async function getOriginalPeserta(id: string) {
     .eq('id', id)
     .single();
   if (error) throw error;
+
+  // Leader scope check
+  if (role === 'leader') {
+    const accessInfo = await getLeaderAccessStatus(user.id, 'ktp');
+    if (!accessInfo.hasAccess) {
+      throw new Error('Akses ditolak: Anda tidak memiliki akses ke data ini');
+    }
+    // Verify the peserta is in scope
+    const filtered = filterPesertaRows([data], accessInfo.scopeFilter);
+    if (filtered.length === 0) {
+      throw new Error('Peserta tidak ditemukan dalam scope akses Anda');
+    }
+  }
+
   return data;
 }
 
@@ -378,6 +395,8 @@ export async function bulkCreatePeserta(pesertaList: Peserta[], path?: string) {
 
 export async function getGlobalPesertaPool(excludeBatch: string) {
   const supabase = await createClient();
+  const { user, role } = await getCurrentUserContext();
+
   const { data, error } = await supabase
     .from('profiler_peserta')
     .select('*')
@@ -385,7 +404,17 @@ export async function getGlobalPesertaPool(excludeBatch: string) {
     .order('batch_name')
     .order('nama');
   if (error) throw error;
-  return data || [];
+
+  const rows = data || [];
+
+  // Leader scope check
+  if (role === 'leader' && user) {
+    const accessInfo = await getLeaderAccessStatus(user.id, 'ktp');
+    if (!accessInfo.hasAccess) return [];
+    return filterPesertaRows(rows, accessInfo.scopeFilter);
+  }
+
+  return rows;
 }
 
 
@@ -408,12 +437,24 @@ export async function deleteTim(nama: string) {
 
 export async function getPesertaByBatch(batchName: string) {
   const supabase = await createClient();
+  const { user, role } = await getCurrentUserContext();
+
   const { data, error } = await supabase
     .from('profiler_peserta')
     .select('*')
     .eq('batch_name', batchName);
   if (error) throw error;
-  return data || [];
+
+  const rows = data || [];
+
+  // Leader scope check
+  if (role === 'leader' && user) {
+    const accessInfo = await getLeaderAccessStatus(user.id, 'ktp');
+    if (!accessInfo.hasAccess) return [];
+    return filterPesertaRows(rows, accessInfo.scopeFilter);
+  }
+
+  return rows;
 }
 
 export async function createPeserta(data: Peserta) {

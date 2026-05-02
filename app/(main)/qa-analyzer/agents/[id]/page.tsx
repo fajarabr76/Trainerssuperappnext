@@ -4,6 +4,8 @@ import QaAgentDetailClient from './QaAgentDetailClient';
 import { qaServiceServer } from '../../services/qaService.server';
 import { resolveServiceTypeFromTeam, AgentDetailData, isServiceType, ServiceType } from '../../lib/qa-types';
 import { requirePageAccess } from '@/app/lib/authz';
+import { checkSidakLeaderAccess } from '../../lib/leaderAccessGuard';
+import LeaderAccessStatus from '@/app/components/access/LeaderAccessStatus';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +41,36 @@ export default async function QaAgentDetailPage({
     
     if (!ownPeserta || ownPeserta.id !== agentId) {
       redirect('/dashboard');
+    }
+  }
+
+  // Leader access check
+  if (role === 'leader') {
+    const leaderAccess = await checkSidakLeaderAccess();
+    if (leaderAccess.blocked) {
+      return (
+        <div className="max-w-2xl mx-auto py-12 px-4">
+          <LeaderAccessStatus status={leaderAccess.status} module="sidak" moduleLabel="SIDAK / QA Analyzer" />
+        </div>
+      );
+    }
+    // Check if this agent is in scope
+    if (leaderAccess.scope) {
+      const supabase = await createClient();
+      const { data: peserta } = await supabase
+        .from('profiler_peserta')
+        .select('id, batch_name, tim')
+        .eq('id', agentId)
+        .single();
+      if (!peserta) return notFound();
+      const scope = leaderAccess.scope;
+      const inScope =
+        (scope.peserta_ids && scope.peserta_ids.includes(peserta.id)) ||
+        (scope.batch_names && scope.batch_names.includes(peserta.batch_name || '')) ||
+        (scope.tims && scope.tims.includes(peserta.tim || ''));
+      if (!inScope) {
+        return notFound();
+      }
     }
   }
 

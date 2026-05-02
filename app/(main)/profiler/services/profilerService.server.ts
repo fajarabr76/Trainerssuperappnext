@@ -5,6 +5,7 @@ import {
   Peserta 
 } from '../lib/profiler-types';
 import { getCachedFolders, getCachedYears } from '@/lib/cache/user-cache';
+import type { LeaderScopeFilter } from '@/app/lib/access-control/leaderScope';
 
 export const profilerServiceServer = {
   
@@ -17,43 +18,50 @@ export const profilerServiceServer = {
     }
   },
 
-  getFolders: async (): Promise<ProfilerFolder[]> => {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) throw new Error('Unauthenticated');
-    
-    try {
-      return await getCachedFolders();
-    } catch (error) {
-      console.error('Error fetching cached folders:', error);
-      throw error;
-    }
-  },
-
-  getBatches: async (): Promise<string[]> => {
+  getFolders: async (scope?: LeaderScopeFilter | null): Promise<ProfilerFolder[]> => {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) throw new Error('Unauthenticated');
     
     try {
       const folders = await getCachedFolders();
-      return folders.map(d => d.name);
+      if (!scope) return folders;
+      // Scope filter: only folders that have allowed peserta
+      if (scope.batch_names && scope.batch_names.length > 0) {
+        return folders.filter((f) => scope.batch_names!.includes(f.name));
+      }
+      // Without batch_names, we need to check actual peserta data
+      const { data: pesertaRows } = await supabase
+        .from('profiler_peserta')
+        .select('batch_name');
+      const allowedBatches = new Set<string>();
+      const filteredRows = scope ? filterPesertaRows(pesertaRows || [], scope) : (pesertaRows || []);
+      filteredRows.forEach((p: { batch_name?: string }) => {
+        if (p.batch_name) allowedBatches.add(p.batch_name);
+      });
+      return folders.filter((f) => allowedBatches.has(f.name));
     } catch (error) {
-      console.error('Error fetching cached batches from folders:', error);
+      console.error('Error fetching cached folders:', error);
       throw error;
     }
   },
 
-  getFolderCounts: async (): Promise<Record<string, number>> => {
+  getBatches: async (scope?: LeaderScopeFilter | null): Promise<string[]> => {
+    const folders = await profilerServiceServer.getFolders(scope);
+    return folders.map(d => d.name);
+  },
+
+  getFolderCounts: async (scope?: LeaderScopeFilter | null): Promise<Record<string, number>> => {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('profiler_peserta')
-      .select('batch_name');
+      .select('batch_name, tim, id');
     
     if (error) throw error;
     
+    const filtered = scope ? filterPesertaRows(data || [], scope) : (data || []);
     const counts: Record<string, number> = {};
-    (data || []).forEach(p => {
+    filtered.forEach((p: { batch_name?: string }) => {
       if (p.batch_name) {
         counts[p.batch_name] = (counts[p.batch_name] || 0) + 1;
       }
@@ -61,7 +69,7 @@ export const profilerServiceServer = {
     return counts;
   },
 
-  getByBatch: async (batchName: string): Promise<Peserta[]> => {
+  getByBatch: async (batchName: string, scope?: LeaderScopeFilter | null): Promise<Peserta[]> => {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('profiler_peserta')
@@ -69,10 +77,13 @@ export const profilerServiceServer = {
       .eq('batch_name', batchName)
       .order('nomor_urut', { ascending: true });
     if (error) throw error;
-    return data || [];
+
+    const rows = data || [];
+    const filtered = scope ? filterPesertaRows(rows, scope) : rows;
+    return filtered;
   },
 
-  getGlobalPesertaPool: async (excludeBatch: string): Promise<Peserta[]> => {
+  getGlobalPesertaPool: async (excludeBatch: string, scope?: LeaderScopeFilter | null): Promise<Peserta[]> => {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('profiler_peserta')
@@ -81,7 +92,10 @@ export const profilerServiceServer = {
       .order('batch_name')
       .order('nama');
     if (error) throw error;
-    return data || [];
+
+    const rows = data || [];
+    const filtered = scope ? filterPesertaRows(rows, scope) : rows;
+    return filtered;
   },
 
   getTimList: async (): Promise<string[]> => {
@@ -94,3 +108,19 @@ export const profilerServiceServer = {
     return (data || []).map(d => d.nama);
   },
 };
+
+/**
+ * Client-side filter for peserta rows by leader scope.
+ * Used as a fail-closed post-fetch filter.
+ */
+export function filterPesertaRows(rows: Record<string, unknown>[], scope: LeaderScopeFilter): Record<string, unknown>[] {
+  if (!scope) return rows;
+  const { peserta_ids, batch_names, tims } = scope;
+
+  return rows.filter((row) => {
+    if (peserta_ids && peserta_ids.length > 0 && peserta_ids.includes(row.id as string)) return true;
+    if (batch_names && batch_names.length > 0 && batch_names.includes(row.batch_name as string)) return true;
+    if (tims && tims.length > 0 && tims.includes(row.tim as string)) return true;
+    return false;
+  });
+}

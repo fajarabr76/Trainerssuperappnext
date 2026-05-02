@@ -1,4 +1,5 @@
 import { createClient } from '@/app/lib/supabase/server';
+import type { LeaderScopeFilter } from '@/app/lib/access-control/leaderScope';
 import { unstable_cache } from 'next/cache';
 import { getCachedFolderNames, getCachedAvailableYears } from '@/lib/cache/user-cache';
 import {
@@ -61,6 +62,20 @@ const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 
 export const QA_DASHBOARD_RANGE_TAG = 'qa-dashboard-range';
 export const QA_AGENT_DIRECTORY_TAG = 'qa-agent-directory';
 export const QA_AGENT_DETAIL_TAG = 'qa-agent-detail';
+
+function filterAgentDirectoryEntriesByScope(
+  entries: AgentDirectoryEntry[],
+  scope?: LeaderScopeFilter | null,
+): AgentDirectoryEntry[] {
+  if (!scope) return entries;
+
+  return entries.filter((agent) => {
+    if (scope.peserta_ids?.includes(agent.id)) return true;
+    if (scope.batch_names?.includes(agent.batch_name || agent.batch || '')) return true;
+    if (scope.tims?.includes(agent.tim || '')) return true;
+    return false;
+  });
+}
 
 // Lazy Service Role client helper (Server-side only)
 function getServiceSupabase() {
@@ -1060,13 +1075,18 @@ export const qaServiceServer = {
     };
   },
 
-  async getAgentDirectorySummary(year: number = new Date().getFullYear(), includeExcluded?: boolean) {
+  async getAgentDirectorySummary(
+    year: number = new Date().getFullYear(),
+    includeExcluded?: boolean,
+    scope?: LeaderScopeFilter | null
+  ) {
     const startedAt = measureStart();
 
     if (includeExcluded) {
       const accurate = await this.getAgentListWithScores(year, true);
-      logServerMetric('qa.agentDirectorySummary.all-data', startedAt, { year, count: accurate.length });
-      return accurate;
+      const scopedAccurate = filterAgentDirectoryEntriesByScope(accurate, scope);
+      logServerMetric('qa.agentDirectorySummary.all-data', startedAt, { year, count: scopedAccurate.length });
+      return scopedAccurate;
     }
 
     let cachedSummary: AgentDirectoryEntry[] | null = null;
@@ -1081,8 +1101,9 @@ export const qaServiceServer = {
     }
 
     if (Array.isArray(cachedSummary) && cachedSummary.length > 0) {
-      logServerMetric('qa.agentDirectorySummary.rpc-cache-hit', startedAt, { year, count: cachedSummary.length });
-      return cachedSummary;
+      const scopedCachedSummary = filterAgentDirectoryEntriesByScope(cachedSummary, scope);
+      logServerMetric('qa.agentDirectorySummary.rpc-cache-hit', startedAt, { year, count: scopedCachedSummary.length });
+      return scopedCachedSummary;
     }
 
     try {
@@ -1090,8 +1111,9 @@ export const qaServiceServer = {
       if (!Array.isArray(accurate)) {
         throw new Error('Invalid agent directory summary payload');
       }
-      logServerMetric('qa.agentDirectorySummary.accurate-fallback', startedAt, { year, count: accurate.length });
-      return accurate;
+      const scopedAccurate = filterAgentDirectoryEntriesByScope(accurate, scope);
+      logServerMetric('qa.agentDirectorySummary.accurate-fallback', startedAt, { year, count: scopedAccurate.length });
+      return scopedAccurate;
     } catch (error) {
       console.error('[QA] qa.agentDirectorySummary.directory-failed', {
         year,
@@ -1100,7 +1122,7 @@ export const qaServiceServer = {
       });
 
       if (Array.isArray(cachedSummary)) {
-        return cachedSummary;
+        return filterAgentDirectoryEntriesByScope(cachedSummary, scope);
       }
 
       if (error instanceof Error) throw error;

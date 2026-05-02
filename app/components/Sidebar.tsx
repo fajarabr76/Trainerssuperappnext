@@ -53,6 +53,18 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
       allowed: ['trainer', 'trainers', 'admin'].includes(normalizedRole || ''),
     },
     {
+      href: '/dashboard/access-approval',
+      label: 'Access Approval',
+      icon: Shield,
+      allowed: ['trainer', 'trainers', 'admin'].includes(normalizedRole || ''),
+    },
+    {
+      href: '/dashboard/access-groups',
+      label: 'Access Groups',
+      icon: Shield,
+      allowed: ['trainer', 'trainers', 'admin'].includes(normalizedRole || ''),
+    },
+    {
       href: '/dashboard/monitoring',
       label: 'Monitoring',
       icon: Activity,
