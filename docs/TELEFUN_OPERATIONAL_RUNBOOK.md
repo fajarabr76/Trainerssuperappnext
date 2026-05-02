@@ -258,6 +258,45 @@ Karena schema `ai_pricing_settings` saat ini menyimpan satu harga input dan satu
 
 > Edge-case hold: saat `setHold(true)` dipanggil, internal state `isAiSpeaking` langsung direset ke `false` agar dead-air detector bisa aktif dengan benar setelah resume (jika memang seharusnya).
 
+## Long-Speech Interruption Detector
+
+`LiveSession` memiliki detektor bicara panjang otomatis untuk mencegah agen mendominasi percakapan tanpa jeda:
+
+- **Trigger**: konsumen (user) berbicara terus-menerus tanpa diam selama **60 detik** berturut-turut saat call sudah `Tersambung`.
+- **Cooldown**: minimal **60 detik** antar prompt interupsi agar tidak spam.
+- **Guard conditions**: tidak aktif saat:
+  - call sedang **hold** (`isHeld === true`)
+  - call sedang **mute** (`isMuted === true`)
+  - AI sedang berbicara (`isAiSpeaking === true`)
+  - call terputus atau tidak ada sesi aktif
+- **Reset**: timer bicara panjang direset saat user diam (RMS di bawah threshold dead-air) atau saat guard condition aktif.
+- **Prompt**: dikirim melalui WebSocket yang sama dengan payload `clientContent` turn teks. Konsumen menyela secara natural sesuai persona untuk meminta agen bicara lebih pelan atau satu per satu.
+- **Tone adaptif**: prompt menyela disesuaikan dengan tipe konsumen — konsumen marah/kesal akan menyela dengan nada tidak sabar, konsumen bingung/takut dengan nada ragu, konsumen sedih dengan nada lemah, dan konsumen netral dengan nada wajar.
+
+> Edge-case: `nonSilentStartTime` dan `lastInterruptionTime` di-reset saat `disconnect()` agar state tidak bocor antar sesi.
+
+### Beda dengan Dead-Air Detector
+
+| Aspek | Dead-Air Detector | Long-Speech Interruption |
+|---|---|---|
+| **Trigger** | User diam > 7 detik | User bicara > 60 detik nonstop |
+| **Cooldown** | 12 detik | 60 detik |
+| **Tujuan** | Mencegah call mandeg | Mencegah agen bicara terlalu panjang |
+| **Prompt tone** | Panggil user supaya bicara | Sela agen secara sopan |
+
+## Pre-Timeout Closing Cues
+
+Telefun mengirim isyarat penutupan natural ke AI saat call mendekati batas durasi maksimum:
+
+- **Cue 30 detik**: dikirim sekali saat sisa waktu ≤ 30 detik (`remaining > 20`). Isyarat: *"Bersiaplah untuk menutup telepon sebentar lagi secara natural."*
+- **Cue 20 detik**: dikirim sekali saat sisa waktu ≤ 20 detik (`remaining > 0`). Isyarat: *"PRIORITAS TINGGI: Kamu HARUS menutup telepon sekarang juga."*
+- **Guard conditions**:
+  - Hanya aktif saat `maxCallDuration > 0` (timer diaktifkan di settings).
+  - Hanya saat call sudah `Tersambung`.
+  - Masing-masing cue dikirim **sekali** per sesi panggilan (flag `timeCue30Sent` / `timeCue20Sent` di-reset saat panggilan baru dimulai).
+- **Prompt tone**: disesuaikan dengan tipe konsumen (marah → kesal, sedih → pasrah, netral → sopan). AI tidak menyebutkan timer, waktu, atau angka — penutupan dilakukan secara natural dalam karakter konsumen.
+- **Implementasi**: logika threshold di `timingGuards.ts` (`getTelefunTimeCueThreshold`), pengiriman cue di `PhoneInterface.tsx` via `sessionRef.current?.sendTimeCue()`, dan konstruksi prompt di `geminiService.ts` (`sendTimeCue`).
+
 ## Smoke Test
 
 Checklist manual setelah deploy:
@@ -280,6 +319,9 @@ Checklist manual setelah deploy:
 16. Akhiri panggilan dan pastikan riwayat muncul di modal `Riwayat` dengan nama konsumen yang sama dengan UI saat panggilan.
 17. Untuk user login, cek `telefun_history` terisi dan monitoring histori menampilkan sesi Telefun.
 18. Jalankan panggilan singkat, akhiri sesi, lalu cek `ai_usage_logs` bertambah 1 row `telefun / voice_live`. Buka modal `Usage` dan cek module `telefun` bertambah.
+19. **Long-speech interruption**: Bicaralah terus-menerus tanpa jeda selama ~60 detik. Pastikan konsumen menyela secara natural (misal: *"Bisa bicara lebih pelan?"*, *"Satu-satu dulu deh..."*) sesuai persona.
+20. **Pre-timeout cue**: Aktifkan durasi panggilan (misal 2 menit) di Settings → Durasi. Mulai panggilan, biarkan berjalan hingga 30 detik terakhir — pastikan konsumen mulai memberi isyarat penutupan natural tanpa menyebut timer.
+21. Di 20 detik terakhir, pastikan konsumen beralih ke nada lebih mendesak dan benar-benar menutup telepon sebelum timer habis.
 
 ## Debug Cepat
 
