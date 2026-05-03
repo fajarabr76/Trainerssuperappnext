@@ -40,4 +40,5 @@ Dokumen ini adalah peta baca untuk kondisi aplikasi Trainers SuperApp saat ini. 
 - Jalankan `npm run lint` untuk validasi lint cepat.
 - Jalankan `npm run type-check` saat perubahan menyentuh kontrak lintas modul atau build integration.
 - Jalankan `npm run test:sidak` untuk perubahan SIDAK yang menyentuh service resolution, scoring, atau regresi fixture.
+- Jalankan `npx vitest run tests/audit` untuk verifikasi keamanan dan keandalan pasca audit SIDAK/Telefun. Suite ini mengimpor langsung dari `.worktrees/` untuk validasi isolasi branch.
 - Jalankan `git diff --check` sebelum commit untuk memastikan tidak ada whitespace error.

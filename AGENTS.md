@@ -193,4 +193,5 @@ Jangan jadikan overwrite penuh sebagai default behavior. Default behavior agent 
 
 - There is no general `npm test` script in `package.json`, but focused SIDAK coverage is available via `npm run test:sidak`.
 - For focused verification, default to `npm run lint` and the smallest relevant app flow; use `npm run type-check` when you need full build-level validation.
+- **Audit suite**: `npx vitest run tests/audit` validates critical security (SIDAK auth/RBAC, leader scope) and reliability (Telefun usage flush) invariants discovered during formal audits. Suite imports from `.worktrees/` and requires worktree branches to exist.
 - Because `type-check` is a full build with linting, it is slower and can surface runtime/build integration issues beyond TypeScript.
