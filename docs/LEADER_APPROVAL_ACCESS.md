@@ -25,6 +25,24 @@ Access group items adalah **union rules** — peserta masuk scope jika memenuhi 
 - `tim`: match by team name
 - `service_type`: match by service type (HANYA untuk SIDAK; KTP mengabaikan field ini)
 
+### Access Group Builder UI
+
+Halaman `/dashboard/access-groups` memakai guided scope builder agar Admin/Trainer tidak perlu mengetik `field_name` dan `field_value` manual.
+
+Builder menyediakan 3 jalur:
+
+| Mode | UI Flow | Stored Item |
+|---|---|---|
+| By Team | Pilih team dari data `profiler_peserta.tim` yang tersedia | `field_name = tim`, `field_value = selected team` |
+| By Service | Pilih service dari daftar SIDAK valid | `field_name = service_type`, `field_value = selected service` |
+| By Name | Pilih Team dulu, lalu pilih Name/agent dari team tersebut | `field_name = peserta_id`, `field_value = selected peserta id` |
+
+Catatan:
+- Dropdown Name selalu disabled sampai Team dipilih.
+- Opsi Team dan Name diambil dari `profiler_peserta` saat halaman dibuka.
+- Opsi Service diambil dari `VALID_SERVICE_TYPES` dan `SERVICE_LABELS`.
+- Struktur database tidak berubah; builder hanya memetakan pilihan user ke `access_group_items`.
+
 ### Modules
 
 | Module ID | Label | KTP-Relevant Fields | SIDAK-Relevant Fields |
@@ -42,7 +60,7 @@ Access group items adalah **union rules** — peserta masuk scope jika memenuhi 
 | `app/actions/leader-access.ts` | Server Actions: `getPendingLeaderAccessRequests()`, `approveLeaderAccessRequest()`, etc. |
 | `app/components/access/LeaderAccessStatus.tsx` | Status UI component untuk leader (none/pending/approved/rejected/revoked) |
 | `app/(main)/dashboard/access-approval/` | Admin/Trainer approval management page |
-| `app/(main)/dashboard/access-groups/` | Admin/Trainer access group CRUD page |
+| `app/(main)/dashboard/access-groups/` | Admin/Trainer access group CRUD page dengan guided scope builder |
 | `app/(main)/profiler/services/profilerService.server.ts` | Scoped variants: `getFolderCounts(scope)`, `getByBatch(batch, scope)` |
 | `app/(main)/qa-analyzer/lib/leaderAccessGuard.ts` | Helper: `checkSidakLeaderAccess()`, `checkKtpLeaderAccess()` |
 | `supabase/migrations/20260502133224_leader_access_approval.sql` | Database migration |
@@ -72,7 +90,7 @@ Leader opens KTP/SIDAK page
 2. See pending requests tab: leader name, module, date, select access groups, approve/reject
 3. See approved tab: leader name, module, access groups, date, revoke button
 4. Approve requires selecting minimal 1 active access group
-5. Manage access groups at `/dashboard/access-groups`
+5. Manage access groups at `/dashboard/access-groups` using By Team, By Service, or By Name
 6. Server action rejects self-approval and validates that every selected group is still active before approving
 
 ### RLS Policies
@@ -104,6 +122,8 @@ Use this checklist after applying the migration and before release:
 8. Admin/trainer revokes access → Leader returns to blocked status.
 9. Admin/trainer opens KTP/SIDAK → full data remains visible.
 10. Leader approved for only one module → the other module remains blocked.
+11. Admin/trainer adds access group item By Name → Name dropdown remains locked until Team is selected.
+12. Admin/trainer adds access group item By Name → saved item uses peserta id, not display name.
 
 ### Regression Commands
 

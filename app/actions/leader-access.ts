@@ -2,6 +2,7 @@
 
 import { createClient } from '@/app/lib/supabase/server';
 import { assertPrivilegedAccess, requestLeaderModuleAccess } from '@/app/lib/access-control/leaderAccess.server';
+import { SERVICE_LABELS, VALID_SERVICE_TYPES } from '@/app/(main)/qa-analyzer/lib/qa-types';
 
 export { requestLeaderModuleAccess };
 
@@ -41,6 +42,19 @@ export interface AccessGroupItemRow {
   field_name: string;
   field_value: string;
   is_active: boolean;
+}
+
+export interface AccessScopeAgentOption {
+  id: string;
+  name: string;
+  team: string;
+  batch_name: string | null;
+}
+
+export interface AccessScopeOptions {
+  teams: string[];
+  services: { value: string; label: string }[];
+  agentsByTeam: Record<string, AccessScopeAgentOption[]>;
 }
 
 // --- Admin/Trainer: Get pending requests ---
@@ -358,6 +372,57 @@ export async function getAccessGroupItems(groupId: string): Promise<AccessGroupI
   }
 
   return (data || []) as AccessGroupItemRow[];
+}
+
+export async function getAccessScopeOptions(): Promise<AccessScopeOptions> {
+  await assertPrivilegedAccess();
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('profiler_peserta')
+    .select('id, nama, tim, batch_name')
+    .order('tim', { ascending: true })
+    .order('nama', { ascending: true });
+
+  if (error) {
+    console.error('[leader-access] Error fetching scope options:', error.message);
+    return {
+      teams: [],
+      services: VALID_SERVICE_TYPES.map((service) => ({
+        value: service,
+        label: SERVICE_LABELS[service],
+      })),
+      agentsByTeam: {},
+    };
+  }
+
+  const teamSet = new Set<string>();
+  const agentsByTeam: Record<string, AccessScopeAgentOption[]> = {};
+
+  (data || []).forEach((row: { id: string; nama: string | null; tim: string | null; batch_name: string | null }) => {
+    const team = row.tim?.trim();
+    if (!team) return;
+
+    teamSet.add(team);
+    if (!agentsByTeam[team]) {
+      agentsByTeam[team] = [];
+    }
+    agentsByTeam[team].push({
+      id: row.id,
+      name: row.nama || 'Tanpa Nama',
+      team,
+      batch_name: row.batch_name,
+    });
+  });
+
+  return {
+    teams: [...teamSet].sort((a, b) => a.localeCompare(b)),
+    services: VALID_SERVICE_TYPES.map((service) => ({
+      value: service,
+      label: SERVICE_LABELS[service],
+    })),
+    agentsByTeam,
+  };
 }
 
 export async function addAccessGroupItem(

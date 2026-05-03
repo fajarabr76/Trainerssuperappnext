@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Layers, Plus, Trash2, Edit2, Loader2, Save, X } from 'lucide-react';
 import PageHeroHeader from '@/app/components/PageHeroHeader';
-import type { AccessGroupRow, AccessGroupItemRow } from '@/app/actions/leader-access';
+import type { AccessGroupRow, AccessGroupItemRow, AccessScopeOptions } from '@/app/actions/leader-access';
 import {
   createAccessGroup,
   updateAccessGroup,
@@ -15,7 +15,10 @@ import {
 interface Props {
   role: string;
   initialGroups: AccessGroupRow[];
+  scopeOptions: AccessScopeOptions;
 }
+
+type ScopeBuilderMode = 'team' | 'service' | 'name';
 
 const FIELD_LABELS: Record<string, string> = {
   peserta_id: 'Peserta ID',
@@ -24,9 +27,7 @@ const FIELD_LABELS: Record<string, string> = {
   service_type: 'Service Type',
 };
 
-const FIELD_OPTIONS = ['peserta_id', 'batch_name', 'tim', 'service_type'];
-
-export default function AccessGroupsClient({ role: _role, initialGroups }: Props) {
+export default function AccessGroupsClient({ role: _role, initialGroups, scopeOptions }: Props) {
   const [groups, setGroups] = useState(initialGroups);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -35,9 +36,11 @@ export default function AccessGroupsClient({ role: _role, initialGroups }: Props
   const [items, setItems] = useState<AccessGroupItemRow[]>([]);
   const [loadingItems, setLoadingItems] = useState(false);
 
-  // New item form
-  const [newFieldName, setNewFieldName] = useState('batch_name');
-  const [newFieldValue, setNewFieldValue] = useState('');
+  // Guided scope builder
+  const [scopeMode, setScopeMode] = useState<ScopeBuilderMode>('team');
+  const [selectedTeam, setSelectedTeam] = useState('');
+  const [selectedService, setSelectedService] = useState('');
+  const [selectedAgentId, setSelectedAgentId] = useState('');
   const [addingItem, setAddingItem] = useState(false);
 
   // New group form
@@ -47,6 +50,13 @@ export default function AccessGroupsClient({ role: _role, initialGroups }: Props
   const [creating, setCreating] = useState(false);
 
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const availableAgentsForTeam = selectedTeam ? scopeOptions.agentsByTeam[selectedTeam] || [] : [];
+
+  const resetScopeBuilder = () => {
+    setSelectedTeam('');
+    setSelectedService('');
+    setSelectedAgentId('');
+  };
 
   const handleCreateGroup = async () => {
     if (!newName.trim()) return;
@@ -127,13 +137,26 @@ export default function AccessGroupsClient({ role: _role, initialGroups }: Props
   };
 
   const handleAddItem = async (groupId: string) => {
-    if (!newFieldValue.trim()) return;
+    let fieldName = 'tim';
+    let fieldValue = selectedTeam;
+
+    if (scopeMode === 'service') {
+      fieldName = 'service_type';
+      fieldValue = selectedService;
+    }
+
+    if (scopeMode === 'name') {
+      fieldName = 'peserta_id';
+      fieldValue = selectedAgentId;
+    }
+
+    if (!fieldValue.trim()) return;
     setAddingItem(true);
     setMessage(null);
     try {
-      const result = await addAccessGroupItem(groupId, newFieldName, newFieldValue.trim());
+      const result = await addAccessGroupItem(groupId, fieldName, fieldValue.trim());
       if (result.success) {
-        setNewFieldValue('');
+        resetScopeBuilder();
         const updated = await getAccessGroupItems(groupId);
         setItems(updated);
         setMessage({ type: 'success', text: result.message });
@@ -167,6 +190,11 @@ export default function AccessGroupsClient({ role: _role, initialGroups }: Props
     setEditName(group.name);
     setEditDesc(group.description || '');
   };
+
+  const canAddScopeItem =
+    (scopeMode === 'team' && Boolean(selectedTeam)) ||
+    (scopeMode === 'service' && Boolean(selectedService)) ||
+    (scopeMode === 'name' && Boolean(selectedTeam) && Boolean(selectedAgentId));
 
   return (
     <>
@@ -366,40 +394,109 @@ export default function AccessGroupsClient({ role: _role, initialGroups }: Props
                     )}
 
                     {/* Add item form */}
-                    <div className="flex items-end gap-3 bg-background/30 rounded-2xl p-4">
-                      <div className="flex-1 space-y-1">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                          Field
-                        </label>
-                        <select
-                          value={newFieldName}
-                          onChange={(e) => setNewFieldName(e.target.value)}
-                          className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none transition focus:border-primary"
+                    <div className="space-y-4 bg-background/30 rounded-2xl p-4">
+                      <div className="flex flex-wrap gap-2">
+                        {([
+                          ['team', 'By Team'],
+                          ['service', 'By Service'],
+                          ['name', 'By Name'],
+                        ] as const).map(([mode, label]) => (
+                          <button
+                            key={mode}
+                            type="button"
+                            onClick={() => {
+                              setScopeMode(mode);
+                              resetScopeBuilder();
+                            }}
+                            className={`rounded-xl border px-3 py-2 text-xs font-bold transition-all ${
+                              scopeMode === mode
+                                ? 'border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                                : 'border-border bg-card text-muted-foreground hover:bg-foreground/5 hover:text-foreground'
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
+                        {(scopeMode === 'team' || scopeMode === 'name') && (
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                              Team
+                            </label>
+                            <select
+                              value={selectedTeam}
+                              onChange={(e) => {
+                                setSelectedTeam(e.target.value);
+                                setSelectedAgentId('');
+                              }}
+                              className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none transition focus:border-primary"
+                            >
+                              <option value="">Pilih Team</option>
+                              {scopeOptions.teams.map((team) => (
+                                <option key={team} value={team}>{team}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {scopeMode === 'service' && (
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                              Service
+                            </label>
+                            <select
+                              value={selectedService}
+                              onChange={(e) => setSelectedService(e.target.value)}
+                              className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none transition focus:border-primary"
+                            >
+                              <option value="">Pilih Service</option>
+                              {scopeOptions.services.map((service) => (
+                                <option key={service.value} value={service.value}>{service.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {scopeMode === 'name' && (
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                              Name
+                            </label>
+                            <select
+                              value={selectedAgentId}
+                              onChange={(e) => setSelectedAgentId(e.target.value)}
+                              disabled={!selectedTeam}
+                              className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none transition focus:border-primary disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              <option value="">
+                                {selectedTeam ? 'Pilih Name' : 'Pilih Team terlebih dahulu'}
+                              </option>
+                              {availableAgentsForTeam.map((agent) => (
+                                <option key={agent.id} value={agent.id}>
+                                  {agent.name}{agent.batch_name ? ` - ${agent.batch_name}` : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        <button
+                          onClick={() => handleAddItem(group.id)}
+                          disabled={addingItem || !canAddScopeItem}
+                          className="inline-flex items-center justify-center gap-1.5 bg-primary text-primary-foreground rounded-xl px-4 py-2 text-sm font-semibold shadow-lg shadow-primary/20 hover:brightness-110 transition-all disabled:cursor-not-allowed disabled:opacity-50 shrink-0"
                         >
-                          {FIELD_OPTIONS.map((f) => (
-                            <option key={f} value={f}>{FIELD_LABELS[f]}</option>
-                          ))}
-                        </select>
+                          {addingItem ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                          Tambah
+                        </button>
                       </div>
-                      <div className="flex-[2] space-y-1">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                          Value
-                        </label>
-                        <input
-                          placeholder="Masukkan nilai..."
-                          value={newFieldValue}
-                          onChange={(e) => setNewFieldValue(e.target.value)}
-                          className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
-                        />
-                      </div>
-                      <button
-                        onClick={() => handleAddItem(group.id)}
-                        disabled={addingItem || !newFieldValue.trim()}
-                        className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground rounded-xl px-4 py-2 text-sm font-semibold shadow-lg shadow-primary/20 hover:brightness-110 transition-all disabled:cursor-not-allowed disabled:opacity-50 shrink-0"
-                      >
-                        {addingItem ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                        Tambah
-                      </button>
+
+                      <p className="text-xs text-muted-foreground">
+                        {scopeMode === 'name'
+                          ? 'Pilih Team terlebih dahulu untuk menampilkan Name yang tersedia di team tersebut.'
+                          : 'Dropdown hanya menampilkan data yang tersedia saat halaman dibuka.'}
+                      </p>
                     </div>
                   </>
                 )}
