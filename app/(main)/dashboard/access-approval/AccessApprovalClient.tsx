@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Shield, ShieldCheck, ShieldOff, Check, X, UserCheck, Clock, Loader2, ChevronDown } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import PageHeroHeader from '@/app/components/PageHeroHeader';
@@ -213,130 +214,144 @@ function PendingList({
     );
   }
 
-  return (
-    <div className="bg-card border border-border rounded-[2.5rem] overflow-hidden shadow-2xl relative">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
-
-      {openDropdown !== null && activeGroups.length > 0 && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={closeDropdown}
-        />
-      )}
-
-      <div className="overflow-x-auto relative">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-foreground/[0.02] border-b border-border">
-              <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest opacity-40">Leader</th>
-              <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest opacity-40">Modul</th>
-              <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest opacity-40">Tanggal</th>
-              <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest opacity-40">Access Groups</th>
-              <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest opacity-40 text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {requests.map((req) => {
-              const isProcessing = processing === req.id;
-              const groups = selectedGroups[req.id] || [];
-
-              return (
-                <tr key={req.id} className="hover:bg-foreground/[0.02] transition-colors group">
-                  <td className="px-6 py-4">
-                    <p className="text-sm font-semibold">{req.leader_name}</p>
-                    <p className="text-xs text-muted-foreground">{req.leader_email}</p>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] bg-amber-500/10 text-amber-600">
-                      {moduleLabels[req.module] || req.module}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground">
-                    {new Date(req.created_at).toLocaleDateString('id-ID')}
-                  </td>
-                  <td className="px-6 py-4">
-                    {activeGroups.length > 0 ? (
-                      <>
-                        <div className="relative z-50">
-                          <button
-                            onClick={(e) => handleTriggerClick(req.id, e.currentTarget)}
-                            disabled={isProcessing}
-                            aria-expanded={openDropdown === req.id}
-                            aria-haspopup="listbox"
-                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-                              groups.length > 0
-                                ? 'bg-primary/10 text-primary border-primary/30'
-                                : 'bg-foreground/5 text-muted-foreground border-border hover:border-foreground/20'
-                            } disabled:cursor-not-allowed disabled:opacity-50`}
+  // Dropdown portal rendered at document.body level to avoid overflow/z-index clipping
+  const dropdownPortal =
+    typeof document !== 'undefined' &&
+    openDropdown !== null &&
+    dropdownPosition
+      ? createPortal(
+          <>
+            {/* Backdrop to close dropdown on outside click */}
+            <div className="fixed inset-0 z-[9998]" onClick={closeDropdown} />
+            <AnimatePresence>
+              {(() => {
+                const reqId = openDropdown;
+                const groups = selectedGroups[reqId] || [];
+                return (
+                  <motion.div
+                    key={reqId}
+                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                    transition={{ duration: 0.15 }}
+                    style={{
+                      position: 'fixed',
+                      top: dropdownPosition.top,
+                      left: dropdownPosition.left,
+                      width: dropdownPosition.width,
+                    }}
+                    role="listbox"
+                    aria-label="Pilih access group"
+                    className="z-[9999] min-w-[200px] bg-card/95 backdrop-blur-xl border border-border/40 rounded-2xl shadow-2xl overflow-hidden py-1"
+                  >
+                    {activeGroups.map((group) => {
+                      const selected = groups.includes(group.id);
+                      return (
+                        <button
+                          key={group.id}
+                          role="option"
+                          aria-selected={selected}
+                          onClick={() => {
+                            setSelectedGroups((prev) => {
+                              const current = prev[reqId] || [];
+                              return {
+                                ...prev,
+                                [reqId]: selected
+                                  ? current.filter((id) => id !== group.id)
+                                  : [...current, group.id],
+                              };
+                            });
+                          }}
+                          className="flex items-center gap-3 w-full px-4 py-2.5 text-left text-xs font-medium transition-colors hover:bg-foreground/5"
+                        >
+                          <div
+                            className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${
+                              selected
+                                ? 'bg-primary border-primary text-white'
+                                : 'border-muted-foreground/30'
+                            }`}
                           >
-                            <span>
-                              {groups.length === 0
-                                ? 'Pilih group'
-                                : groups.length === 1
-                                  ? activeGroups.find((g) => g.id === groups[0])?.name
-                                  : `${groups.length} group dipilih`}
-                            </span>
-                            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${openDropdown === req.id ? 'rotate-180' : ''}`} />
-                          </button>
-                        </div>
+                            {selected && <Check className="w-3 h-3" />}
+                          </div>
+                          <span className={selected ? 'font-semibold' : ''}>{group.name}</span>
+                        </button>
+                      );
+                    })}
+                  </motion.div>
+                );
+              })()}
+            </AnimatePresence>
+          </>,
+          document.body,
+        )
+      : null;
 
-                        <AnimatePresence>
-                          {openDropdown === req.id && dropdownPosition && (
-                            <motion.div
-                              key={req.id}
-                              initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                              transition={{ duration: 0.15 }}
-                              style={{
-                                position: 'fixed',
-                                top: dropdownPosition.top,
-                                left: dropdownPosition.left,
-                                width: dropdownPosition.width,
-                              }}
-                              role="listbox"
-                              aria-label="Pilih access group"
-                              className="z-50 min-w-[200px] bg-card/95 backdrop-blur-xl border border-border/40 rounded-2xl shadow-2xl overflow-hidden py-1"
-                            >
-                              {activeGroups.map((group) => {
-                                const selected = groups.includes(group.id);
-                                return (
-                                  <button
-                                    key={group.id}
-                                    role="option"
-                                    aria-selected={selected}
-                                    onClick={() => {
-                                      setSelectedGroups((prev) => {
-                                        const current = prev[req.id] || [];
-                                        return {
-                                          ...prev,
-                                          [req.id]: selected
-                                            ? current.filter((id) => id !== group.id)
-                                            : [...current, group.id],
-                                        };
-                                      });
-                                    }}
-                                    className="flex items-center gap-3 w-full px-4 py-2.5 text-left text-xs font-medium transition-colors hover:bg-foreground/5"
-                                  >
-                                    <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${
-                                      selected
-                                        ? 'bg-primary border-primary text-white'
-                                        : 'border-muted-foreground/30'
-                                    }`}>
-                                      {selected && <Check className="w-3 h-3" />}
-                                    </div>
-                                    <span className={selected ? 'font-semibold' : ''}>{group.name}</span>
-                                  </button>
-                                );
-                              })}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">Tidak ada access group</span>
-                    )}
-                  </td>
+  return (
+    <>
+      {dropdownPortal}
+      <div className="bg-card border border-border rounded-[2.5rem] overflow-hidden shadow-2xl relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
+
+        <div className="overflow-x-auto relative">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-foreground/[0.02] border-b border-border">
+                <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest opacity-40">Leader</th>
+                <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest opacity-40">Modul</th>
+                <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest opacity-40">Tanggal</th>
+                <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest opacity-40">Access Groups</th>
+                <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest opacity-40 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {requests.map((req) => {
+                const isProcessing = processing === req.id;
+                const groups = selectedGroups[req.id] || [];
+
+                return (
+                  <tr key={req.id} className="hover:bg-foreground/[0.02] transition-colors group">
+                    <td className="px-6 py-4">
+                      <p className="text-sm font-semibold">{req.leader_name}</p>
+                      <p className="text-xs text-muted-foreground">{req.leader_email}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] bg-amber-500/10 text-amber-600">
+                        {moduleLabels[req.module] || req.module}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-muted-foreground">
+                      {new Date(req.created_at).toLocaleDateString('id-ID')}
+                    </td>
+                    <td className="px-6 py-4">
+                      {activeGroups.length > 0 ? (
+                        <button
+                          onClick={(e) => handleTriggerClick(req.id, e.currentTarget)}
+                          disabled={isProcessing}
+                          aria-expanded={openDropdown === req.id}
+                          aria-haspopup="listbox"
+                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                            groups.length > 0
+                              ? 'bg-primary/10 text-primary border-primary/30'
+                              : 'bg-foreground/5 text-muted-foreground border-border hover:border-foreground/20'
+                          } disabled:cursor-not-allowed disabled:opacity-50`}
+                        >
+                          <span>
+                            {groups.length === 0
+                              ? 'Pilih group'
+                              : groups.length === 1
+                                ? activeGroups.find((g) => g.id === groups[0])?.name
+                                : `${groups.length} group dipilih`}
+                          </span>
+                          <ChevronDown
+                            className={`w-3.5 h-3.5 transition-transform duration-300 ${
+                              openDropdown === req.id ? 'rotate-180' : ''
+                            }`}
+                          />
+                        </button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Tidak ada access group</span>
+                      )}
+                    </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-end gap-2">
                       <button
@@ -357,13 +372,14 @@ function PendingList({
                       </button>
                     </div>
                   </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

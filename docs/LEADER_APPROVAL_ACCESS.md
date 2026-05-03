@@ -143,3 +143,20 @@ npx supabase migration up
 # Rollback
 npx supabase migration down 20260502133224_leader_access_approval.sql
 ```
+
+### Changelog
+
+#### 2026-05-03 — Fix: Dropdown "Pilih Group" Overlap Antar Row
+
+**Symptom:** Dropdown multi-select "Pilih group" pada tabel Pending di halaman `/dashboard/access-approval` muncul di belakang row berikutnya atau ter-clip, karena `AnimatePresence` dirender di dalam `<td>` yang berada di dalam container `overflow-hidden`.
+
+**Root Cause:** Meskipun `motion.div` menggunakan `position: fixed`, properti CSS seperti `backdrop-filter` dan `transform` pada ancestor dapat membentuk **stacking context baru** yang menjebak dropdown (stacking context trap). Dengan demikian `z-index: 50` tidak efektif melawan konten di luar stacking context tersebut.
+
+**Fix (`AccessApprovalClient.tsx`):**
+- Dropdown dirender via `ReactDOM.createPortal` langsung ke `document.body`, sehingga benar-benar keluar dari DOM tree tabel.
+- Backdrop `z-[9998]` dan dropdown `z-[9999]` dijamin selalu berada paling atas, tidak terpengaruh ancestor apapun.
+- Wrapper `<div className="relative z-50">` di dalam `<td>` dihapus (tidak diperlukan lagi).
+- Backdrop `fixed inset-0 z-40` yang sebelumnya berada di dalam container tabel dipindahkan ke dalam portal.
+
+**Files changed:**
+- `app/(main)/dashboard/access-approval/AccessApprovalClient.tsx`
