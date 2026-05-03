@@ -34,4 +34,22 @@ describe('Access group guided scope builder contracts', () => {
     expect(clientSource).toContain("fieldName = 'peserta_id'");
     expect(clientSource).toContain('fieldValue = selectedAgentId');
   });
+
+  it('renders saved peserta_id scope items with the agent name instead of raw id', () => {
+    expect(clientSource).toContain('getScopeItemDisplayValue');
+    expect(clientSource).toContain("item.field_name === 'peserta_id'");
+    expect(clientSource).toContain('agent.name');
+    expect(clientSource).toContain('agent.batch_name');
+  });
+
+  it('keeps the add-scope form above a scrollable scope item list', () => {
+    const addFormIndex = clientSource.indexOf('renderAddScopeItemForm(group.id)');
+    const itemListIndex = clientSource.indexOf('items.map((item)');
+
+    expect(clientSource).toContain('const renderAddScopeItemForm');
+    expect(addFormIndex).toBeGreaterThan(-1);
+    expect(itemListIndex).toBeGreaterThan(-1);
+    expect(addFormIndex).toBeLessThan(itemListIndex);
+    expect(clientSource).toContain('max-h-72 overflow-y-auto');
+  });
 });
