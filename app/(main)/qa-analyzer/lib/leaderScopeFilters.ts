@@ -13,6 +13,14 @@ export function filterAgentDirectoryByLeaderScope(
   });
 }
 
+export function filterAgentDirectoryByParticipantIds(
+  data: AgentDirectoryEntry[],
+  participantIds: string[],
+): AgentDirectoryEntry[] {
+  const idSet = new Set(participantIds);
+  return data.filter((agent) => idSet.has(agent.id));
+}
+
 export function filterRankingByLeaderScope(
   data: TopAgentData[],
   allowedScopes: LeaderScopeFilter,
@@ -23,4 +31,12 @@ export function filterRankingByLeaderScope(
     if (allowedScopes.tims?.includes(agent.tim || '')) return true;
     return false;
   });
+}
+
+export function filterRankingByParticipantIds(
+  data: TopAgentData[],
+  participantIds: string[],
+): TopAgentData[] {
+  const idSet = new Set(participantIds);
+  return data.filter((agent) => idSet.has(agent.agentId));
 }

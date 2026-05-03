@@ -1,42 +1,123 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { resolveLeaderScope } from '../../app/lib/access-control/leaderScope';
+import type { AccessGroupItem } from '../../app/lib/access-control/leaderScope';
+import { readFileSync } from 'node:fs';
 
-const actionsSource = readFileSync('app/(main)/qa-analyzer/actions.ts', 'utf8');
-const dashboardSource = readFileSync('app/(main)/qa-analyzer/dashboard/page.tsx', 'utf8');
-const agentsPageSource = readFileSync('app/(main)/qa-analyzer/agents/page.tsx', 'utf8');
-const rankingPageSource = readFileSync('app/(main)/qa-analyzer/ranking/page.tsx', 'utf8');
+function makeItem(
+  overrides: Partial<AccessGroupItem> & { field_name: AccessGroupItem['field_name']; field_value: string },
+): AccessGroupItem {
+  return {
+    id: overrides.id ?? crypto.randomUUID(),
+    access_group_id: overrides.access_group_id ?? crypto.randomUUID(),
+    field_name: overrides.field_name,
+    field_value: overrides.field_value,
+    is_active: overrides.is_active ?? true,
+  };
+}
 
-describe('Leader SIDAK access enforcement contracts', () => {
-  it('filters the show-all agent directory server action for leader scope', () => {
-    const block = extractFunction(actionsSource, 'getAllAgentDirectoryAction');
-    expect(block).toContain("getLeaderAccessStatus(user.id, 'sidak')");
-    expect(block).toContain('filterAgentDirectoryByLeaderScope');
-    expect(block).not.toContain('return { data };');
+describe('getAllowedParticipantIdsForLeader contract', () => {
+  const leaderAccessSource = readFileSync('app/lib/access-control/leaderAccess.server.ts', 'utf8');
+
+  it('exports getAllowedParticipantIdsForLeader function', () => {
+    expect(leaderAccessSource).toContain('export async function getAllowedParticipantIdsForLeader');
   });
 
-  it('filters ranking server action for leader scope on every client refresh', () => {
-    const block = extractFunction(actionsSource, 'getRankingAgenAction');
-    expect(block).toContain("getLeaderAccessStatus(user.id, 'sidak')");
-    expect(block).toContain('filterRankingByLeaderScope');
-    expect(block).not.toContain('return { data };');
+  it('returns LeaderParticipantAccess type with participantIds field', () => {
+    expect(leaderAccessSource).toContain('participantIds');
+    expect(leaderAccessSource).toContain('LeaderParticipantAccess');
   });
 
-  it('keeps dashboard fail-closed for leader scopes that cannot be represented by folder filters', () => {
-    expect(dashboardSource).toContain('hasUnsupportedDashboardScope');
-    expect(dashboardSource).toContain('return emptyDashboardData');
+  it('resolves batch_name scope items to profiler_peserta IDs via database query', () => {
+    expect(leaderAccessSource).toContain("batch_name");
+    expect(leaderAccessSource).toContain('profiler_peserta');
+    expect(leaderAccessSource).toContain(".in('batch_name'");
   });
 
-  it('passes leader scope into initial directory and ranking fetches', () => {
-    expect(agentsPageSource).toContain('getAgentDirectorySummary(undefined, false, leaderAccess.scope');
-    expect(rankingPageSource).toContain('getRankingAgenAction(');
-    expect(rankingPageSource).toContain('scope.batch_names ?? []');
+  it('resolves tim scope items to profiler_peserta IDs via database query', () => {
+    expect(leaderAccessSource).toContain('tim');
+    expect(leaderAccessSource).toContain('profiler_peserta');
+    expect(leaderAccessSource).toContain(".in('tim'");
+  });
+
+  it('uses direct peserta_id from scope without additional resolution', () => {
+    expect(leaderAccessSource).toContain('scope.peserta_ids');
+    expect(leaderAccessSource).toContain('directIds');
+  });
+
+  it('returns null participantIds for privileged roles (admin/trainer)', () => {
+    expect(leaderAccessSource).toContain('isPrivilegedRole(normalizedRole)');
+    expect(leaderAccessSource).toContain('participantIds: null');
+  });
+
+  it('returns empty participantIds array for leaders without approved access', () => {
+    expect(leaderAccessSource).toContain('participantIds: []');
   });
 });
 
-function extractFunction(source: string, functionName: string) {
-  const start = source.indexOf(`export async function ${functionName}`);
-  expect(start, `missing function ${functionName}`).toBeGreaterThanOrEqual(0);
+describe('resolveLeaderScope contract', () => {
+  describe('KTP module', () => {
+    it('returns empty scope when no items provided', () => {
+      const result = resolveLeaderScope('ktp', []);
+      expect(result).toEqual({});
+    });
 
-  const nextExport = source.indexOf('\nexport async function ', start + 1);
-  return source.slice(start, nextExport === -1 ? undefined : nextExport);
-}
+    it('collects peserta_id values for KTP', () => {
+      const items = [
+        makeItem({ field_name: 'peserta_id', field_value: 'p1' }),
+        makeItem({ field_name: 'peserta_id', field_value: 'p2' }),
+      ];
+      const result = resolveLeaderScope('ktp', items);
+      expect(result.peserta_ids).toEqual(['p1', 'p2']);
+    });
+
+    it('ignores service_type for KTP', () => {
+      const items = [
+        makeItem({ field_name: 'peserta_id', field_value: 'p1' }),
+        makeItem({ field_name: 'service_type', field_value: 'call' }),
+      ];
+      const result = resolveLeaderScope('ktp', items);
+      expect(result.peserta_ids).toEqual(['p1']);
+      expect(result.service_types).toBeUndefined();
+    });
+  });
+
+  describe('SIDAK module', () => {
+    it('collects all four scope fields for SIDAK', () => {
+      const items = [
+        makeItem({ field_name: 'peserta_id', field_value: 'p1' }),
+        makeItem({ field_name: 'batch_name', field_value: 'Batch A' }),
+        makeItem({ field_name: 'tim', field_value: 'Chat' }),
+        makeItem({ field_name: 'service_type', field_value: 'call' }),
+      ];
+      const result = resolveLeaderScope('sidak', items);
+      expect(result.peserta_ids).toEqual(['p1']);
+      expect(result.batch_names).toEqual(['Batch A']);
+      expect(result.tims).toEqual(['Chat']);
+      expect(result.service_types).toEqual(['call']);
+    });
+  });
+});
+
+describe('leader-sidak-contracts: participant-ID-based filtering', () => {
+  const dashboardSource = readFileSync('app/(main)/qa-analyzer/dashboard/page.tsx', 'utf8');
+
+  it('dominant service computation is called for leaders with participants', () => {
+    expect(dashboardSource).toContain('computeDominantService');
+    expect(dashboardSource).toContain('participantIds');
+  });
+
+  it('leader scoped path uses consolidated data methods directly with participant IDs', () => {
+    expect(dashboardSource).toContain('getConsolidatedDashboardDataByRange');
+    expect(dashboardSource).toContain('getConsolidatedTrendDataByRange');
+  });
+
+  it('filters topAgents by participantIds for leaders', () => {
+    expect(dashboardSource).toContain('leaderTopAgents');
+    expect(dashboardSource).toContain('participantIds.includes(a.agentId)');
+  });
+
+  it('filters serviceData to only dominant service for leaders', () => {
+    expect(dashboardSource).toContain('leaderServiceData');
+    expect(dashboardSource).toContain('dominantService');
+  });
+});

@@ -18,34 +18,34 @@ describe('Leader KTP access enforcement contracts', () => {
       profilerExportSource,
       profilerSlidesSource,
     ]) {
-      expect(source).toContain("getLeaderAccessStatus(user.id, 'ktp')");
+      expect(source).toContain("getAllowedParticipantIdsForLeader(user.id, 'ktp'");
       expect(source).toContain('LeaderAccessStatus');
-      expect(source).toContain('accessInfo.scopeFilter');
+      expect(source).toContain('participantAccess');
     }
   });
 
-  it('passes leader scope into KTP list/count/data fetches', () => {
-    expect(profilerIndexSource).toContain('profilerServiceServer.getFolders(scope)');
-    expect(profilerIndexSource).toContain('profilerServiceServer.getFolderCounts(scope)');
-    expect(profilerTableSource).toContain('profilerServiceServer.getByBatch(batchName, scope)');
-    expect(profilerExportSource).toContain('profilerServiceServer.getByBatch(batchName, scope)');
-    expect(profilerSlidesSource).toContain('profilerServiceServer.getByBatch(batchName, scope)');
+  it('passes leader participant IDs into KTP list/count/data fetches', () => {
+    expect(profilerIndexSource).toContain('profilerServiceServer.getFolders(null, participantIds)');
+    expect(profilerIndexSource).toContain('profilerServiceServer.getFolderCounts(null, participantIds)');
+    expect(profilerTableSource).toContain('profilerServiceServer.getByBatch(batchName, undefined, participantIds)');
+    expect(profilerExportSource).toContain('profilerServiceServer.getByBatch(batchName, undefined, participantIds)');
+    expect(profilerSlidesSource).toContain('profilerServiceServer.getByBatch(batchName, undefined, participantIds)');
   });
 
-  it('filters server actions that can return KTP participant rows for leaders', () => {
+  it('filters server actions that can return KTP participant rows for leaders using participant IDs', () => {
     for (const functionName of ['getOriginalPeserta', 'getGlobalPesertaPool', 'getPesertaByBatch']) {
       const block = extractFunction(profilerActionsSource, functionName);
-      expect(block).toContain("getLeaderAccessStatus(user.id, 'ktp')");
-      expect(block).toContain('filterPesertaRows');
-      expect(block).toContain('if (!accessInfo.hasAccess)');
+      expect(block).toContain("getAllowedParticipantIdsForLeader(user.id, 'ktp'");
+      expect(block).toContain('participantAccess');
+      expect(block).toContain('participantIds');
     }
   });
 
-  it('keeps profiler service scope filtering fail-closed when a scope is supplied', () => {
+  it('keeps profiler service scope filtering fail-closed with participant IDs support', () => {
     expect(profilerServiceSource).toContain('filterPesertaRows');
-    expect(profilerServiceSource).toContain('getByBatch: async (batchName: string, scope?: LeaderScopeFilter | null)');
-    expect(profilerServiceSource).toContain('getGlobalPesertaPool: async (excludeBatch: string, scope?: LeaderScopeFilter | null)');
-    expect(profilerServiceSource).toContain('const filtered = scope ? filterPesertaRows(rows, scope) : rows;');
+    expect(profilerServiceSource).toContain('participantIds');
+    expect(profilerServiceSource).toContain('if (participantIds !== undefined && participantIds !== null)');
+    expect(profilerServiceSource).toContain(".in('id', participantIds)");
   });
 });
 

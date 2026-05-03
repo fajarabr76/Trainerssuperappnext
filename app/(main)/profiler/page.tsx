@@ -3,7 +3,7 @@ import { profilerServiceServer } from './services/profilerService.server';
 import ProfilerLandingClient from './components/ProfilerLandingClient';
 import { requirePageAccess } from '@/app/lib/authz';
 import { getCurrentUserContext } from '@/app/lib/authz';
-import { getLeaderAccessStatus } from '@/app/lib/access-control/leaderAccess.server';
+import { getAllowedParticipantIdsForLeader } from '@/app/lib/access-control/leaderAccess.server';
 import LeaderAccessStatus from '@/app/components/access/LeaderAccessStatus';
 
 export const dynamic = 'force-dynamic';
@@ -17,24 +17,32 @@ export default async function ProfilerIndex() {
   if (role === 'leader') {
     const { user } = await getCurrentUserContext();
     if (user) {
-      const accessInfo = await getLeaderAccessStatus(user.id, 'ktp');
-      if (!accessInfo.hasAccess && accessInfo.status !== 'approved') {
+      const participantAccess = await getAllowedParticipantIdsForLeader(user.id, 'ktp', role);
+      if (!participantAccess.hasAccess) {
         return (
           <div className="max-w-2xl mx-auto py-12 px-4">
             <LeaderAccessStatus
-              status={accessInfo.status}
+              status={participantAccess.status}
               module="ktp"
               moduleLabel="KTP / Profiler"
             />
           </div>
         );
       }
-      // Approved: scoped data
-      const scope = accessInfo.scopeFilter;
+      const participantIds = participantAccess.participantIds;
+      if (participantIds && participantIds.length === 0) {
+        return (
+          <div className="max-w-2xl mx-auto py-12 px-4">
+            <div className="text-center py-8">
+              <p className="text-gray-500 text-lg">Akses Anda sudah disetujui, namun belum ada peserta yang tersedia pada daftar akses Anda.</p>
+            </div>
+          </div>
+        );
+      }
       const [years, folders, countMap] = await Promise.all([
         profilerServiceServer.getYears(),
-        profilerServiceServer.getFolders(scope),
-        profilerServiceServer.getFolderCounts(scope),
+        profilerServiceServer.getFolders(null, participantIds),
+        profilerServiceServer.getFolderCounts(null, participantIds),
       ]);
       return (
         <ProfilerLandingClient

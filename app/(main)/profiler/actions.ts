@@ -5,8 +5,7 @@ import { Peserta } from './lib/profiler-types';
 import { revalidatePath } from 'next/cache';
 import { invalidateFoldersCache, invalidateYearsCache } from '@/lib/cache/user-cache';
 import { getCurrentUserContext } from '@/app/lib/authz';
-import { getLeaderAccessStatus } from '@/app/lib/access-control/leaderAccess.server';
-import { filterPesertaRows } from './services/profilerService.server';
+import { getAllowedParticipantIdsForLeader } from '@/app/lib/access-control/leaderAccess.server';
 
 /**
  * Helper to validate if the current user has trainer/admin permissions.
@@ -286,13 +285,12 @@ export async function getOriginalPeserta(id: string) {
 
   // Leader scope check
   if (role === 'leader') {
-    const accessInfo = await getLeaderAccessStatus(user.id, 'ktp');
-    if (!accessInfo.hasAccess) {
+    const participantAccess = await getAllowedParticipantIdsForLeader(user.id, 'ktp', role);
+    if (!participantAccess.hasAccess) {
       throw new Error('Akses ditolak: Anda tidak memiliki akses ke data ini');
     }
-    // Verify the peserta is in scope
-    const filtered = filterPesertaRows([data], accessInfo.scopeFilter);
-    if (filtered.length === 0) {
+    const ids = participantAccess.participantIds;
+    if (ids && ids.length > 0 && !ids.includes(id)) {
       throw new Error('Peserta tidak ditemukan dalam scope akses Anda');
     }
   }
@@ -409,9 +407,12 @@ export async function getGlobalPesertaPool(excludeBatch: string) {
 
   // Leader scope check
   if (role === 'leader' && user) {
-    const accessInfo = await getLeaderAccessStatus(user.id, 'ktp');
-    if (!accessInfo.hasAccess) return [];
-    return filterPesertaRows(rows, accessInfo.scopeFilter);
+    const participantAccess = await getAllowedParticipantIdsForLeader(user.id, 'ktp', role);
+    if (!participantAccess.hasAccess) return [];
+    const ids = participantAccess.participantIds;
+    if (!ids) return rows;
+    if (ids.length === 0) return [];
+    return rows.filter((row: Record<string, unknown>) => ids.includes(row.id as string));
   }
 
   return rows;
@@ -449,9 +450,12 @@ export async function getPesertaByBatch(batchName: string) {
 
   // Leader scope check
   if (role === 'leader' && user) {
-    const accessInfo = await getLeaderAccessStatus(user.id, 'ktp');
-    if (!accessInfo.hasAccess) return [];
-    return filterPesertaRows(rows, accessInfo.scopeFilter);
+    const participantAccess = await getAllowedParticipantIdsForLeader(user.id, 'ktp', role);
+    if (!participantAccess.hasAccess) return [];
+    const ids = participantAccess.participantIds;
+    if (!ids) return rows;
+    if (ids.length === 0) return [];
+    return rows.filter((row: Record<string, unknown>) => ids.includes(row.id as string));
   }
 
   return rows;

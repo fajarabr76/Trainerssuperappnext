@@ -56,13 +56,15 @@ Catatan:
 | File | Role |
 |---|---|
 | `app/lib/access-control/leaderScope.ts` | Pure functions: `resolveLeaderScope()`, `isPrivilegedRole()`, types |
-| `app/lib/access-control/leaderAccess.server.ts` | Server-only: `getLeaderAccessStatus()`, `requestLeaderModuleAccess()`, `assertPrivilegedAccess()` |
+| `app/lib/access-control/leaderAccess.server.ts` | Server-only: `getLeaderAccessStatus()`, `getAllowedParticipantIdsForLeader()`, `requestLeaderModuleAccess()`, `assertPrivilegedAccess()` |
 | `app/actions/leader-access.ts` | Server Actions: `getPendingLeaderAccessRequests()`, `approveLeaderAccessRequest()`, etc. |
 | `app/components/access/LeaderAccessStatus.tsx` | Status UI component untuk leader (none/pending/approved/rejected/revoked) |
 | `app/(main)/dashboard/access-approval/` | Admin/Trainer approval management page |
 | `app/(main)/dashboard/access-groups/` | Admin/Trainer access group CRUD page dengan guided scope builder |
-| `app/(main)/profiler/services/profilerService.server.ts` | Scoped variants: `getFolderCounts(scope)`, `getByBatch(batch, scope)` |
-| `app/(main)/qa-analyzer/lib/leaderAccessGuard.ts` | Helper: `checkSidakLeaderAccess()`, `checkKtpLeaderAccess()` |
+| `app/(main)/profiler/services/profilerService.server.ts` | Scoped variants: `getFolderCounts(scope)`, `getByBatch(batch, scope)` + participant-ID variants |
+| `app/(main)/qa-analyzer/lib/leaderAccessGuard.ts` | Helper: `checkSidakLeaderAccess()`, `checkKtpLeaderAccess()` — returns `participantIds` for leader |
+| `app/(main)/qa-analyzer/lib/leaderScopeFilters.ts` | Filter helpers: `filterAgentDirectoryByLeaderScope()`, `filterAgentDirectoryByParticipantIds()`, `filterRankingByParticipantIds()` |
+| `app/(main)/qa-analyzer/services/qaService.server.ts` | `computeDominantService()`, participant-ID scoped dashboard queries |
 | `supabase/migrations/20260502133224_leader_access_approval.sql` | Database migration |
 
 ### Access Status Flow
@@ -145,6 +147,52 @@ npx supabase migration down 20260502133224_leader_access_approval.sql
 ```
 
 ### Changelog
+
+#### 2026-05-03 — Fix: Leader Approved Access for Profiler and SIDAK (Participant-ID Scoped)
+
+**Symptom:**
+- Leader approved dengan scope `peserta_id` atau `tim` melihat dashboard SIDAK kosong (blank) karena `hasUnsupportedDashboardScope` memaksa data kosong untuk scope yang tidak bisa direpresentasikan sebagai folder filter.
+- Leader approved dengan scope kosong (approved tapi tanpa item) juga melihat dashboard kosong.
+- Profiler menampilkan folder/batch global yang difilter mentah, bukan folder yang benar-benar berisi peserta allowed.
+- Leader approved di SIDAK bisa mengganti service type dropdown ke service lain di luar scope-nya.
+
+**Root Cause:**
+1. Dashboard SIDAK hanya mendukung filter berbasis `batch_names` dan `service_types`. Scope `peserta_id` dan `tim` dianggap "unsupported" dan memicu fail-closed blanket.
+2. Tidak ada mekanisme `dominantService` — Leader tidak di-lock ke service type utama dari data peserta yang diizinkan.
+3. Profiler membangun folder dari data global lalu memfilter, bukan dari daftar peserta allowed langsung.
+4. Service dropdown di SIDAK tidak di-disable untuk Leader.
+
+**Fix:**
+- Ditambahkan `getAllowedParticipantIdsForLeader(userId, module, role)` di `leaderAccess.server.ts` yang resolve semua scope (`peserta_id`, `batch_name`, `tim`) menjadi konkret `profiler_peserta.id` list.
+- `LeaderAccessResult` sekarang mengembalikan `participantIds: string[] | null` — `null` untuk admin/trainer (full access), array kosong untuk approved tanpa peserta valid.
+- Dashboard SIDAK:
+  - Dihapus `hasUnsupportedDashboardScope` — semua scope Leader didukung melalui participant-ID filtering.
+  - Untuk Leader dengan `participantIds`: hitung `dominantService` dari data peserta allowed pada periode aktif, lock service dropdown, filter data dashboard oleh `peserta_id IN allowedParticipantIds` dan `service_type = dominantService`.
+  - `serviceData` hanya menampilkan dominant service untuk Leader.
+  - `topAgents` di-filter oleh `participantIds`.
+- SIDAK service dropdown di-lock (disabled) untuk Leader dengan badge "Service aktif: {label}".
+- Profiler:
+  - Folder dan counts dibangun dari peserta allowed (`participantIds`), bukan dari raw scope filter.
+  - `getByBatch`, `getGlobalPesertaPool` menerima `participantIds` langsung untuk filtering di query level.
+  - `getTimList` juga scoped ke `participantIds`.
+  - Approved Leader tanpa peserta valid melihat empty state message.
+- SIDAK actions (agent directory, ranking, agent detail) menggunakan `participantIds` alih-alih raw `scopeFilter`.
+
+**Files changed:**
+- `app/lib/access-control/leaderAccess.server.ts` — Added `getAllowedParticipantIdsForLeader()`
+- `app/(main)/qa-analyzer/lib/leaderAccessGuard.ts` — Updated `LeaderAccessResult` to include `participantIds`
+- `app/(main)/qa-analyzer/lib/leaderScopeFilters.ts` — Added `filterAgentDirectoryByParticipantIds()`, `filterRankingByParticipantIds()`
+- `app/(main)/qa-analyzer/services/qaService.server.ts` — Added `computeDominantService()`, `allowedParticipantIds` parameter to consolidated data methods
+- `app/(main)/qa-analyzer/dashboard/page.tsx` — Removed `hasUnsupportedDashboardScope`, added participant-ID-scoped dashboard path
+- `app/(main)/qa-analyzer/dashboard/QaDashboardClient.tsx` — Added `leaderLockedService` prop for locked service dropdown
+- `app/(main)/qa-analyzer/dashboard/components/DashboardFilters.tsx` — Added `leaderLockedService` prop
+- `app/(main)/qa-analyzer/actions.ts` — Updated agent directory, ranking, and agent detail to use `participantIds`
+- `app/(main)/profiler/page.tsx` — Use `getAllowedParticipantIdsForLeader()` with `participantIds`
+- `app/(main)/profiler/services/profilerService.server.ts` — Added `participantIds` parameter to service methods
+- `app/(main)/profiler/actions.ts` — Updated leader scope checks to use `participantIds`
+- `tests/access-control/leader-sidak-contracts.test.ts` — Updated contract tests for participant-ID-based filtering
+
+---
 
 #### 2026-05-03 — Fix: SIDAK Landing Navigation Exact Match
 

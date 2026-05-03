@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { profilerServiceServer } from '../services/profilerService.server';
 import ProfilerTableClient from './components/ProfilerTableClientLoader';
 import { requirePageAccess, getCurrentUserContext } from '@/app/lib/authz';
-import { getLeaderAccessStatus } from '@/app/lib/access-control/leaderAccess.server';
+import { getAllowedParticipantIdsForLeader } from '@/app/lib/access-control/leaderAccess.server';
 import LeaderAccessStatus from '@/app/components/access/LeaderAccessStatus';
 
 export const dynamic = 'force-dynamic';
@@ -30,28 +30,28 @@ export default async function ProfilerTablePage({
     allowedRoles: ['trainer', 'leader', 'admin']
   });
 
-  let scope = undefined;
+  let participantIds: string[] | null = null;
   if (role === 'leader') {
     const { user } = await getCurrentUserContext();
     if (user) {
-      const accessInfo = await getLeaderAccessStatus(user.id, 'ktp');
-      if (!accessInfo.hasAccess && accessInfo.status !== 'approved') {
+      const participantAccess = await getAllowedParticipantIdsForLeader(user.id, 'ktp', role);
+      if (!participantAccess.hasAccess) {
         return (
           <div className="max-w-2xl mx-auto py-12 px-4">
-            <LeaderAccessStatus status={accessInfo.status} module="ktp" moduleLabel="KTP / Profiler" />
+            <LeaderAccessStatus status={participantAccess.status} module="ktp" moduleLabel="KTP / Profiler" />
           </div>
         );
       }
-      scope = accessInfo.scopeFilter;
+      participantIds = participantAccess.participantIds;
     }
   }
 
   // Fetch all data in parallel
   const [peserta, folders, years, timList] = await Promise.all([
-    profilerServiceServer.getByBatch(batchName, scope),
-    profilerServiceServer.getFolders(scope),
+    profilerServiceServer.getByBatch(batchName, undefined, participantIds),
+    profilerServiceServer.getFolders(undefined, participantIds),
     profilerServiceServer.getYears(),
-    profilerServiceServer.getTimList(),
+    profilerServiceServer.getTimList(participantIds),
   ]);
 
   return (

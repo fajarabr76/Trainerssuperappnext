@@ -10,6 +10,7 @@ import type {
   LeaderAccessInfo,
   LeaderAccessStatus,
   LeaderAccessModule,
+  LeaderScopeFilter,
 } from './leaderScope';
 
 // Re-export shared types and functions for convenience
@@ -187,6 +188,99 @@ export async function requestLeaderModuleAccess(module: LeaderAccessModule): Pro
   }
 
   return { success: true, message: 'Permintaan akses berhasil diajukan' };
+}
+
+// --- Participant ID resolution ---
+
+export interface LeaderParticipantAccess {
+  hasAccess: boolean;
+  status: LeaderAccessStatus;
+  scopeFilter: LeaderScopeFilter;
+  participantIds: string[] | null;
+}
+
+/**
+ * Resolve leader scope to a concrete list of profiler_peserta IDs.
+ * - Privileged roles (admin/trainer) get null participantIds (full access, no filtering needed).
+ * - Leaders with approved access get participantIds resolved from all scope dimensions:
+ *   peserta_id → direct, batch_name → profiler_peserta batch_name query, tim → profiler_peserta tim query.
+ * - Leaders without approval or with empty scope get empty participantIds (no data).
+ */
+export async function getAllowedParticipantIdsForLeader(
+  userId: string,
+  module: LeaderAccessModule,
+  role: string,
+): Promise<LeaderParticipantAccess> {
+  const normalizedRole = normalizeRole(role);
+
+  if (isPrivilegedRole(normalizedRole)) {
+    return {
+      hasAccess: true,
+      status: 'approved',
+      scopeFilter: {},
+      participantIds: null,
+    };
+  }
+
+  if (normalizedRole !== 'leader') {
+    return {
+      hasAccess: false,
+      status: 'none',
+      scopeFilter: {},
+      participantIds: [],
+    };
+  }
+
+  const accessInfo = await getLeaderAccessStatus(userId, module);
+
+  if (!accessInfo.hasAccess) {
+    return {
+      hasAccess: false,
+      status: accessInfo.status,
+      scopeFilter: accessInfo.scopeFilter,
+      participantIds: [],
+    };
+  }
+
+  const scope = accessInfo.scopeFilter;
+  const directIds = new Set<string>();
+
+  if (scope.peserta_ids && scope.peserta_ids.length > 0) {
+    for (const id of scope.peserta_ids) {
+      directIds.add(id);
+    }
+  }
+
+  const needBatchQuery = scope.batch_names && scope.batch_names.length > 0;
+  const needTimQuery = scope.tims && scope.tims.length > 0;
+
+  if (needBatchQuery || needTimQuery) {
+    const supabase = await createClient();
+
+    const results = await Promise.all([
+      needBatchQuery
+        ? supabase.from('profiler_peserta').select('id').in('batch_name', scope.batch_names!)
+        : Promise.resolve({ data: null }),
+      needTimQuery
+        ? supabase.from('profiler_peserta').select('id').in('tim', scope.tims!)
+        : Promise.resolve({ data: null }),
+    ]);
+
+    for (const result of results) {
+      if (result.data) {
+        for (const row of result.data as Array<{ id: string }>) {
+          directIds.add(row.id);
+        }
+      }
+    }
+  }
+
+  return {
+    hasAccess: true,
+    status: 'approved',
+    scopeFilter: accessInfo.scopeFilter,
+    participantIds: Array.from(directIds),
+  };
 }
 
 // --- Admin/Trainer helper: assert privileged access ---

@@ -51,6 +51,7 @@ interface QaDashboardClientProps {
     service: string;
     year: number;
   };
+  leaderLockedService?: string | null;
 }
 
 export default function QaDashboardClient({ 
@@ -58,7 +59,8 @@ export default function QaDashboardClient({
   role: _role, 
   profile: _profile,
   initialData,
-  filters: initialFilters
+  filters: initialFilters,
+  leaderLockedService
 }: QaDashboardClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -239,16 +241,22 @@ export default function QaDashboardClient({
                 </div>
                 <select
                   value={selectedService}
+                  disabled={!!leaderLockedService}
                   onChange={(e) => { 
+                    if (leaderLockedService) return;
                     setSelectedService(e.target.value); 
                     const { s, e: end } = getEffectiveMonths();
                     updateFilters(s, end, selectedFolderId, e.target.value, selectedYear); 
                   }}
-                  className="w-full h-9 pl-9 pr-8 bg-card border border-border rounded-lg text-sm font-medium appearance-none focus:outline-none focus:ring-1 focus:ring-ring transition-all cursor-pointer"
+                  className={`w-full h-9 pl-9 pr-8 bg-card border border-border rounded-lg text-sm font-medium appearance-none focus:outline-none focus:ring-1 focus:ring-ring transition-all ${leaderLockedService ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
                 >
-                  {Object.entries(SERVICE_LABELS).map(([val, label]) => (
-                    <option key={val} value={val}>{label}</option>
-                  ))}
+                  {leaderLockedService ? (
+                    <option key={leaderLockedService} value={leaderLockedService}>Service aktif: {SERVICE_LABELS[leaderLockedService as keyof typeof SERVICE_LABELS] || leaderLockedService}</option>
+                  ) : (
+                    Object.entries(SERVICE_LABELS).map(([val, label]) => (
+                      <option key={val} value={val}>{label}</option>
+                    ))
+                  )}
                 </select>
                 <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-muted-foreground">
                   <ChevronRight className="w-3.5 h-3.5 rotate-90" />

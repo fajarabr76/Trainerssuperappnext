@@ -2,7 +2,7 @@
 
 import { createClient } from '@/app/lib/supabase/server';
 import { getCurrentUserContext, hasRole, normalizeRole } from '@/app/lib/authz';
-import { getLeaderAccessStatus } from '@/app/lib/access-control/leaderAccess.server';
+import { getAllowedParticipantIdsForLeader } from '@/app/lib/access-control/leaderAccess.server';
 import {
   ServiceType, Category, ScoringMode, ServiceWeight, DEFAULT_SERVICE_WEIGHTS,
   TopAgentData, ExportData, AgentDirectoryEntry
@@ -14,8 +14,8 @@ import {
   QA_DASHBOARD_RANGE_TAG,
 } from './services/qaService.server';
 import {
-  filterAgentDirectoryByLeaderScope,
-  filterRankingByLeaderScope,
+  filterAgentDirectoryByParticipantIds,
+  filterRankingByParticipantIds,
 } from './lib/leaderScopeFilters';
 
 function revalidateQaPerformanceCaches(agentId?: string) {
@@ -154,26 +154,16 @@ async function assertCanAccessAgentDetail(agentId: string) {
 
   // Leader: must be within approved scope
   if (normalizeRole(role) === 'leader') {
-    const accessInfo = await getLeaderAccessStatus(user.id, 'sidak');
-    if (!accessInfo.hasAccess) {
+    const participantAccess = await getAllowedParticipantIdsForLeader(user.id, 'sidak', role);
+    if (!participantAccess.hasAccess) {
       throw new Error('Akses ditolak: Anda tidak memiliki akses ke modul ini');
     }
-    const scope = accessInfo.scopeFilter;
-    const supabase = await createClient();
-    const { data: peserta } = await supabase
-      .from('profiler_peserta')
-      .select('id, batch_name, tim')
-      .eq('id', agentId)
-      .single();
-    if (!peserta) {
-      throw new Error('Akses ditolak: peserta tidak ditemukan');
-    }
-    const inScope =
-      (scope.peserta_ids && scope.peserta_ids.includes(peserta.id)) ||
-      (scope.batch_names && scope.batch_names.includes(peserta.batch_name || '')) ||
-      (scope.tims && scope.tims.includes(peserta.tim || ''));
-    if (!inScope) {
+    const ids = participantAccess.participantIds;
+    if (ids && ids.length > 0 && !ids.includes(agentId)) {
       throw new Error('Akses ditolak: peserta di luar scope akses Anda');
+    }
+    if (ids && ids.length === 0) {
+      throw new Error('Akses ditolak: tidak ada peserta dalam scope akses Anda');
     }
     return;
   }
@@ -683,11 +673,14 @@ export async function getAllAgentDirectoryAction(year?: number): Promise<{ data:
     const directoryData = await qaServiceServer.getAgentDirectorySummary(year, true);
 
     if (normalizeRole(role) === 'leader') {
-      const accessInfo = await getLeaderAccessStatus(user.id, 'sidak');
-      if (!accessInfo.hasAccess) {
+      const participantAccess = await getAllowedParticipantIdsForLeader(user.id, 'sidak', role);
+      if (!participantAccess.hasAccess) {
         return { data: [], error: 'Akses ditolak: approval SIDAK belum aktif.' };
       }
-      const filteredData = filterAgentDirectoryByLeaderScope(directoryData, accessInfo.scopeFilter);
+      const ids = participantAccess.participantIds;
+      if (!ids) return { data: directoryData };
+      if (ids.length === 0) return { data: [] };
+      const filteredData = filterAgentDirectoryByParticipantIds(directoryData, ids);
       return { data: filteredData };
     }
 
@@ -892,11 +885,14 @@ export async function getRankingAgenAction(
     );
 
     if (normalizeRole(role) === 'leader') {
-      const accessInfo = await getLeaderAccessStatus(user.id, 'sidak');
-      if (!accessInfo.hasAccess) {
+      const participantAccess = await getAllowedParticipantIdsForLeader(user.id, 'sidak', role);
+      if (!participantAccess.hasAccess) {
         return { data: [], error: 'Akses ditolak: approval SIDAK belum aktif.' };
       }
-      const filteredData = filterRankingByLeaderScope(rankingData, accessInfo.scopeFilter);
+      const ids = participantAccess.participantIds;
+      if (!ids) return { data: rankingData };
+      if (ids.length === 0) return { data: [] };
+      const filteredData = filterRankingByParticipantIds(rankingData, ids);
       return { data: filteredData };
     }
 

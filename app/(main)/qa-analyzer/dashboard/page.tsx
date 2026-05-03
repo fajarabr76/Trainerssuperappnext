@@ -2,7 +2,6 @@ import QaDashboardClient from './QaDashboardClientLoader';
 import { qaServiceServer } from '../services/qaService.server';
 import { profilerServiceServer } from '../../profiler/services/profilerService.server';
 import { DashboardData, EXCLUDED_FOLDERS } from '../lib/qa-types';
-import type { LeaderScopeFilter } from '@/app/lib/access-control/leaderScope';
 import { ProfilerFolder } from '../../profiler/lib/profiler-types';
 import { requirePageAccess } from '@/app/lib/authz';
 import { checkSidakLeaderAccess } from '../lib/leaderAccessGuard';
@@ -34,14 +33,6 @@ const emptyDashboardData = {
   },
   sparklines: {},
 };
-
-function hasUnsupportedDashboardScope(scope?: LeaderScopeFilter | null): boolean {
-  if (!scope) return false;
-  const hasBatchScope = Boolean(scope.batch_names?.length);
-  const hasServiceScope = Boolean(scope.service_types?.length);
-  const hasUnsupportedAgentScope = Boolean(scope.peserta_ids?.length || scope.tims?.length);
-  return hasUnsupportedAgentScope || (!hasBatchScope && !hasServiceScope);
-}
 
 function getEmptyDashboardData() {
   return emptyDashboardData;
@@ -83,33 +74,17 @@ export default async function QaDashboardPage({
     year: yearParam
   };
 
-  // For leader with approved scope: apply scope constraints
-  let folderIds = folder === 'ALL' ? [] : [folder];
-  if (leaderAccess.scope) {
-    if (leaderAccess.scope.batch_names && leaderAccess.scope.batch_names.length > 0) {
-      folderIds = leaderAccess.scope.batch_names;
-    }
-    // Constrain service to allowed types in scope
-    if (leaderAccess.scope.service_types && leaderAccess.scope.service_types.length > 0) {
-      if (!leaderAccess.scope.service_types.includes(service)) {
-        service = leaderAccess.scope.service_types[0];
-      }
-    }
-  }
+  const isLeader = leaderAccess.participantIds !== null;
+  const participantIds = leaderAccess.participantIds;
 
-  if (leaderAccess.scope && hasUnsupportedDashboardScope(leaderAccess.scope)) {
+  // Leader with approved access but no valid participants: show empty state
+  if (isLeader && participantIds && participantIds.length === 0) {
     try {
       const [periodsData, foldersData, availableYearsData] = await Promise.all([
         qaServiceServer.getPeriods(),
         profilerServiceServer.getFolders(),
         qaServiceServer.getAvailableYears()
       ]);
-
-      const allowedFolderNames = new Set(
-        leaderAccess.scope.batch_names?.length
-          ? leaderAccess.scope.batch_names
-          : []
-      );
 
       const scopedEmptyData: DashboardData = {
         periods: periodsData,
@@ -120,8 +95,7 @@ export default async function QaDashboardPage({
             id: f.name,
             name: f.name
           }))
-          .filter((f) => !EXCLUDED_FOLDERS.some(ef => ef.toLowerCase() === f.name.toLowerCase()))
-          .filter((f) => allowedFolderNames.size === 0 || allowedFolderNames.has(f.name)),
+          .filter((f) => !EXCLUDED_FOLDERS.some(ef => ef.toLowerCase() === f.name.toLowerCase())),
         ...getEmptyDashboardData()
       };
 
@@ -132,6 +106,7 @@ export default async function QaDashboardPage({
           profile={profile}
           initialData={scopedEmptyData}
           filters={filters}
+          leaderLockedService={null}
         />
       );
     } catch (error) {
@@ -144,6 +119,149 @@ export default async function QaDashboardPage({
     }
   }
 
+  // Leader with participants: compute dominant service and scoped dashboard
+  if (isLeader && participantIds && participantIds.length > 0) {
+    try {
+      const dominantService = await qaServiceServer.computeDominantService(
+        participantIds,
+        yearParam,
+        startMonth,
+        endMonth
+      );
+
+      // No dominant service = empty dashboard (fail-closed, no fallback)
+      if (!dominantService) {
+        const [periodsData, foldersData, availableYearsData] = await Promise.all([
+          qaServiceServer.getPeriods(),
+          profilerServiceServer.getFolders(null, participantIds),
+          qaServiceServer.getAvailableYears()
+        ]);
+
+        const scopedEmptyData: DashboardData = {
+          periods: periodsData,
+          availableYears: availableYearsData,
+          currentYear: yearParam,
+          folders: foldersData
+            .map((f: ProfilerFolder) => ({
+              id: f.name,
+              name: f.name
+            }))
+            .filter((f) => !EXCLUDED_FOLDERS.some(ef => ef.toLowerCase() === f.name.toLowerCase())),
+          ...getEmptyDashboardData()
+        };
+
+        return (
+          <QaDashboardClient
+            user={user}
+            role={role}
+            profile={profile}
+            initialData={scopedEmptyData}
+            filters={filters}
+            leaderLockedService={null}
+          />
+        );
+      }
+
+      // For leaders: folder selection limited to folders containing allowed participants
+      const foldersData = await profilerServiceServer.getFolders(null, participantIds);
+      const periodsData = await qaServiceServer.getPeriods();
+      const availableYearsData = await qaServiceServer.getAvailableYears();
+      const indicatorsResult = await qaServiceServer.getIndicators(dominantService);
+
+      const context = {
+        periods: periodsData,
+        indicators: indicatorsResult
+      };
+
+      // Force service to dominant service for leaders
+      service = dominantService;
+
+      // Leader folder IDs: respect selected folder, constrain to allowed participants
+      const allowedFolderNames = foldersData.map((f: ProfilerFolder) => f.name);
+      const leaderFolderIds = folder === 'ALL'
+        ? allowedFolderNames
+        : [folder].filter(f => allowedFolderNames.includes(f));
+
+      const [periodData, trendData] = await Promise.all([
+        qaServiceServer.getConsolidatedDashboardDataByRange(
+          dominantService,
+          leaderFolderIds,
+          context,
+          yearParam,
+          startMonth,
+          endMonth,
+          participantIds
+        ),
+        qaServiceServer.getConsolidatedTrendDataByRange(
+          dominantService,
+          leaderFolderIds,
+          context,
+          yearParam,
+          startMonth,
+          endMonth,
+          participantIds
+        )
+      ]);
+
+      if (!periodData || !trendData) {
+        return (
+          <div className="p-8 text-center text-red-500">
+            Terjadi kendala saat memproses data dashboard. Silakan coba lagi.
+          </div>
+        );
+      }
+
+      // Filter serviceData to only show the dominant service for leaders
+      const leaderServiceData = (periodData.serviceData || []).filter(
+        (s: { serviceType: string }) => s.serviceType === dominantService
+      );
+
+      const leaderTopAgents = (periodData.topAgents || []).filter(
+        (a: { agentId: string }) => participantIds.includes(a.agentId)
+      );
+
+      const initialData = {
+        periods: periodsData,
+        availableYears: availableYearsData,
+        currentYear: yearParam,
+        folders: foldersData
+          .map((f: ProfilerFolder) => ({
+            id: f.name,
+            name: f.name
+          }))
+          .filter((f) => !EXCLUDED_FOLDERS.some(ef => ef.toLowerCase() === f.name.toLowerCase())),
+        summary: periodData.summary,
+        serviceData: leaderServiceData,
+        topAgents: leaderTopAgents,
+        paretoData: periodData.paretoData,
+        donutData: periodData.donutData,
+        paramTrend: trendData.paramTrend,
+        sparklines: trendData.sparklines
+      };
+
+      return (
+        <QaDashboardClient
+          user={user}
+          role={role}
+          profile={profile}
+          initialData={initialData}
+          filters={{ ...filters, service: dominantService }}
+          leaderLockedService={dominantService}
+        />
+      );
+    } catch (error) {
+      console.error('Error loading leader scoped QA dashboard data:', error);
+      return (
+        <div className="p-8 text-center text-red-500">
+          Terjadi kendala saat memproses data dashboard. Silakan coba lagi.
+        </div>
+      );
+    }
+  }
+
+  // Admin/trainer: full access (participantIds is null)
+  const folderIds = folder === 'ALL' ? [] : [folder];
+
   let periods;
   let foldersData;
   let availableYears;
@@ -152,7 +270,6 @@ export default async function QaDashboardPage({
   try {
     const indicatorsResult = await qaServiceServer.getIndicators(service);
 
-    // 1. Fetch Shared Context Data (Pre-load common metadata)
     [periods, foldersData, availableYears] = await Promise.all([
       qaServiceServer.getPeriods(),
       profilerServiceServer.getFolders(),
@@ -164,7 +281,6 @@ export default async function QaDashboardPage({
       indicators: indicatorsResult
     };
 
-    // 2. Fetch Dashboard Aggregations using Consolidated Fetchers
     [periodData, trendData] = await Promise.all([
       qaServiceServer.getDashboardRangeData(service, folderIds, context, yearParam, startMonth, endMonth),
       qaServiceServer.getDashboardRangeTrendData(service, folderIds, context, yearParam, startMonth, endMonth)

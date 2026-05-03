@@ -2509,6 +2509,45 @@ export const qaServiceServer = {
     return result;
   },
 
+  async computeDominantService(
+    allowedParticipantIds: string[],
+    year: number,
+    startMonth: number,
+    endMonth: number
+  ): Promise<ServiceType | null> {
+    const supabase = await createClient();
+
+    const { data: periods } = await supabase
+      .from('qa_periods')
+      .select('id')
+      .eq('year', year)
+      .gte('month', startMonth)
+      .lte('month', endMonth);
+
+    if (!periods || periods.length === 0) return null;
+
+    const pIds = periods.map((p: { id: string }) => p.id);
+
+    const { data, error } = await supabase
+      .from('qa_temuan')
+      .select('service_type')
+      .in('peserta_id', allowedParticipantIds)
+      .in('period_id', pIds);
+
+    if (error || !data || data.length === 0) return null;
+
+    const counts: Record<string, number> = {};
+    for (const row of data) {
+      const st = row.service_type as string;
+      counts[st] = (counts[st] || 0) + 1;
+    }
+
+    const sorted = Object.entries(counts)
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+
+    return (sorted[0]?.[0] || null) as ServiceType | null;
+  },
+
   async getDashboardRangeData(
     serviceType: string,
     folderIds: string[] = [],
@@ -2695,7 +2734,8 @@ export const qaServiceServer = {
     context: SharedContext,
     year: number,
     startMonth: number,
-    endMonth: number
+    endMonth: number,
+    allowedParticipantIds?: string[] | null
   ) {
     const supabase = await createClient();
     const loadScoringContext = createScoringContextLoader();
@@ -2736,6 +2776,7 @@ export const qaServiceServer = {
             .range(from, from + PAGE_SIZE - 1);
 
       if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
+      if (allowedParticipantIds && allowedParticipantIds.length > 0) query = (query as any).in('peserta_id', allowedParticipantIds);
 
       const { data, error } = await (query as any);
       if (error) throw error;
@@ -2822,7 +2863,8 @@ export const qaServiceServer = {
     context: SharedContext,
     year: number,
     startMonth: number,
-    endMonth: number
+    endMonth: number,
+    allowedParticipantIds?: string[] | null
   ) {
     const supabase = await createClient();
     const loadScoringContext = createScoringContextLoader();
@@ -2851,6 +2893,7 @@ export const qaServiceServer = {
         .range(from, from + PAGE_SIZE - 1);
 
       if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
+      if (allowedParticipantIds && allowedParticipantIds.length > 0) query = query.in('peserta_id', allowedParticipantIds);
 
       const { data, error } = await query;
       if (error) throw error;

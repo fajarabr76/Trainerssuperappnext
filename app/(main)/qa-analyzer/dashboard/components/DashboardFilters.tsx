@@ -19,6 +19,7 @@ interface DashboardFiltersProps {
   selectedYear: number;
   availableYears: number[];
   onYearChange: (year: number) => void;
+  leaderLockedService?: string | null;
 }
 
 export default function DashboardFilters({
@@ -32,7 +33,8 @@ export default function DashboardFilters({
   onServiceChange,
   selectedYear,
   availableYears,
-  onYearChange
+  onYearChange,
+  leaderLockedService
 }: DashboardFiltersProps) {
 
   return (
@@ -59,12 +61,17 @@ export default function DashboardFilters({
               </div>
               <select
                 value={serviceType}
-                onChange={(e) => onServiceChange(e.target.value)}
-                className="block w-full pl-10 pr-8 py-3 text-sm bg-background/50 border-border/50 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all appearance-none border hover:border-primary/30 font-semibold text-primary"
+                disabled={!!leaderLockedService}
+                onChange={(e) => { if (!leaderLockedService) onServiceChange(e.target.value); }}
+                className={`block w-full pl-10 pr-8 py-3 text-sm bg-background/50 border-border/50 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all appearance-none border hover:border-primary/30 font-semibold ${leaderLockedService ? 'cursor-not-allowed opacity-70' : 'text-primary'}`}
               >
-                {Object.entries(SERVICE_LABELS).map(([val, label]) => (
-                  <option key={val} value={val}>{label}</option>
-                ))}
+                {leaderLockedService ? (
+                  <option value={leaderLockedService}>Service aktif: {SERVICE_LABELS[leaderLockedService as keyof typeof SERVICE_LABELS] || leaderLockedService}</option>
+                ) : (
+                  Object.entries(SERVICE_LABELS).map(([val, label]) => (
+                    <option key={val} value={val}>{label}</option>
+                  ))
+                )}
               </select>
               <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-muted-foreground">
                 <ChevronRight className="w-4 h-4 rotate-90" />
