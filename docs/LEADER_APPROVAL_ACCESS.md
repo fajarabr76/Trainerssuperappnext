@@ -146,6 +146,23 @@ npx supabase migration down 20260502133224_leader_access_approval.sql
 
 ### Changelog
 
+#### 2026-05-03 — Fix: SIDAK Landing Navigation Exact Match
+
+**Symptom:** Saat halaman `/qa-analyzer` menjadi landing hub, sidebar berisiko menandai parent/root SIDAK bersamaan dengan sub-route karena matching prefix terlalu umum.
+
+**Fix:**
+- Child navigation SIDAK sekarang mendukung flag `exactMatch` di `APP_MODULES`.
+- Item `Beranda SIDAK` memakai `exactMatch: true`, sehingga aktif hanya di `/qa-analyzer`.
+- Filter ranking berbasis leader scope dipindahkan ke helper shared agar server action, initial ranking page, dan test memakai kontrak yang sama.
+
+**Files changed:**
+- `app/lib/app-config.ts`
+- `app/components/Sidebar.tsx`
+- `app/(main)/qa-analyzer/lib/leaderScopeFilters.ts`
+- `app/(main)/qa-analyzer/actions.ts`
+- `app/(main)/qa-analyzer/ranking/page.tsx`
+- `tests/access-control/ranking-filter-logic.test.ts`
+
 #### 2026-05-03 — Fix: Dropdown "Pilih Group" Overlap Antar Row
 
 **Symptom:** Dropdown multi-select "Pilih group" pada tabel Pending di halaman `/dashboard/access-approval` muncul di belakang row berikutnya atau ter-clip, karena `AnimatePresence` dirender di dalam `<td>` yang berada di dalam container `overflow-hidden`.

@@ -3,7 +3,6 @@
 import { createClient } from '@/app/lib/supabase/server';
 import { getCurrentUserContext, hasRole, normalizeRole } from '@/app/lib/authz';
 import { getLeaderAccessStatus } from '@/app/lib/access-control/leaderAccess.server';
-import type { LeaderScopeFilter } from '@/app/lib/access-control/leaderScope';
 import {
   ServiceType, Category, ScoringMode, ServiceWeight, DEFAULT_SERVICE_WEIGHTS,
   TopAgentData, ExportData, AgentDirectoryEntry
@@ -14,6 +13,10 @@ import {
   QA_AGENT_DIRECTORY_TAG,
   QA_DASHBOARD_RANGE_TAG,
 } from './services/qaService.server';
+import {
+  filterAgentDirectoryByLeaderScope,
+  filterRankingByLeaderScope,
+} from './lib/leaderScopeFilters';
 
 function revalidateQaPerformanceCaches(agentId?: string) {
   revalidatePath('/qa-analyzer/dashboard');
@@ -123,30 +126,6 @@ async function assertQaActionAccess(allowedRoles: string[]) {
     throw new Error('Akses ditolak: Role tidak memiliki izin untuk aksi ini');
   }
   return { user, profile, role };
-}
-
-function filterAgentDirectoryByLeaderScope(
-  data: AgentDirectoryEntry[],
-  allowedScopes: LeaderScopeFilter,
-): AgentDirectoryEntry[] {
-  return data.filter((agent) => {
-    if (allowedScopes.peserta_ids?.includes(agent.id)) return true;
-    if (allowedScopes.batch_names?.includes(agent.batch_name || agent.batch || '')) return true;
-    if (allowedScopes.tims?.includes(agent.tim || '')) return true;
-    return false;
-  });
-}
-
-function filterRankingByLeaderScope(
-  data: TopAgentData[],
-  allowedScopes: LeaderScopeFilter,
-): TopAgentData[] {
-  return data.filter((agent) => {
-    if (allowedScopes.peserta_ids?.includes(agent.agentId)) return true;
-    if (allowedScopes.batch_names?.includes(agent.batch)) return true;
-    if (allowedScopes.tims?.includes(agent.tim || '')) return true;
-    return false;
-  });
 }
 
 async function assertCanAccessAgentDetail(agentId: string) {

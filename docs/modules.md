@@ -73,6 +73,7 @@ Sistem manajemen database terstruktur untuk peserta training dan agen aktif.
 Platform analytics kualitas untuk memantau performa agent secara mendalam.
 
 - **Fungsi**: Mengolah data temuan QA menjadi wawasan yang dapat ditindaklanjuti.
+- **Landing Hub (Entry Point)**: Halaman utama modul (`/qa-analyzer`) yang berfungsi sebagai pusat navigasi ke sub-modul (Dashboard, Analisis Individu, dsb) dengan proteksi *Leader Access*.
 - **Fitur Utama**:
   - **Path to Zero**: Filosofi dashboard yang mendorong penurunan angka temuan setiap periode.
   - **Pareto Chart**: Identifikasi 80% masalah dari 20% penyebab utama (root cause).

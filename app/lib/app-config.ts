@@ -20,7 +20,7 @@ export interface AppModuleConfig {
   accentClassName: string;
   accentSoftClassName: string;
   allowedRoles?: string[];
-  children?: Array<{ title: string; href: string; allowedRoles?: string[] }>;
+  children?: Array<{ title: string; href: string; allowedRoles?: string[]; exactMatch?: boolean }>;
 }
 
 export const APP_MODULES: AppModuleConfig[] = [
@@ -92,7 +92,7 @@ export const APP_MODULES: AppModuleConfig[] = [
     accentSoftClassName: 'bg-module-sidak/10',
     allowedRoles: ['trainer', 'leader', 'admin'],
     children: [
-      { title: 'Beranda SIDAK', href: '/qa-analyzer' },
+      { title: 'Beranda SIDAK', href: '/qa-analyzer', exactMatch: true },
       { title: 'Dashboard SIDAK', href: '/qa-analyzer/dashboard' },
       { title: 'Analisis Individu', href: '/qa-analyzer/agents' },
       { title: 'Ranking Agen', href: '/qa-analyzer/ranking' },

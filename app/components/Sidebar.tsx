@@ -202,19 +202,25 @@ export default function Sidebar({ user, role, isMobileMenuOpen, setIsMobileMenuO
                   className={`overflow-hidden transition-all duration-300 ${isQaExpanded && !effectiveIsCollapsed ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
                 >
                   <div className="space-y-1 px-2 pb-2 pl-11 pt-2">
-                    {qaModule.children?.filter((item) => isRoleAllowed(role, item.allowedRoles)).map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={`block rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-[0.2em] transition ${
-                          pathname === item.href || pathname?.startsWith(`${item.href}/`)
-                            ? 'bg-primary text-primary-foreground shadow-sm'
-                            : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'
-                        }`}
-                      >
-                        {item.title}
-                      </Link>
-                    ))}
+                    {qaModule.children?.filter((item) => isRoleAllowed(role, item.allowedRoles)).map((item) => {
+                      const isActive = item.exactMatch
+                        ? pathname === item.href
+                        : (pathname === item.href || pathname?.startsWith(`${item.href}/`));
+
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={`block rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-[0.2em] transition ${
+                            isActive
+                              ? 'bg-primary text-primary-foreground shadow-sm'
+                              : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground'
+                          }`}
+                        >
+                          {item.title}
+                        </Link>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

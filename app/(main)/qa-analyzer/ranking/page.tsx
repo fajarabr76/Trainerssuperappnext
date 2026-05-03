@@ -5,6 +5,7 @@ import { SERVICE_LABELS, ServiceType, EXCLUDED_FOLDERS } from '../lib/qa-types';
 import { requirePageAccess } from '@/app/lib/authz';
 import { checkSidakLeaderAccess } from '../lib/leaderAccessGuard';
 import LeaderAccessStatus from '@/app/components/access/LeaderAccessStatus';
+import { filterRankingByLeaderScope } from '../lib/leaderScopeFilters';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,12 +61,7 @@ export default async function RankingAgenPage({
 
   // Scope filtering for leader
   if (role === 'leader' && scope) {
-    rankingData = rankingData.filter((r) => {
-      if (scope.peserta_ids && scope.peserta_ids.includes(r.agentId)) return true;
-      if (scope.batch_names && scope.batch_names.includes(r.batch)) return true;
-      if (scope.tims && scope.tims.includes(r.tim || '')) return true;
-      return false;
-    });
+    rankingData = filterRankingByLeaderScope(rankingData, scope);
     if (scope.batch_names && scope.batch_names.length > 0) {
       folders = folders.filter((f: { id: string; name: string }) => scope.batch_names!.includes(f.name));
     }

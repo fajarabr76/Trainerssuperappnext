@@ -1,19 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { LeaderScopeFilter } from '../../app/lib/access-control/leaderScope';
 import type { TopAgentData } from '../../app/(main)/qa-analyzer/lib/qa-types';
-
-// The logic as implemented in app/(main)/qa-analyzer/ranking/page.tsx and actions.ts
-function filterRankingByLeaderScope(
-  data: TopAgentData[],
-  allowedScopes: LeaderScopeFilter,
-): TopAgentData[] {
-  return data.filter((agent) => {
-    if (allowedScopes.peserta_ids && allowedScopes.peserta_ids.includes(agent.agentId)) return true;
-    if (allowedScopes.batch_names && allowedScopes.batch_names.includes(agent.batch)) return true;
-    if (allowedScopes.tims && allowedScopes.tims.includes(agent.tim || '')) return true;
-    return false;
-  });
-}
+import { filterRankingByLeaderScope } from '../../app/(main)/qa-analyzer/lib/leaderScopeFilters';
 
 describe('Ranking Leader Scope Filtering (OR Logic)', () => {
   const dummyAgents: TopAgentData[] = [

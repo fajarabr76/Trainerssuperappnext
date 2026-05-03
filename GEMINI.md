@@ -86,6 +86,7 @@ Telefun live simulation runs as a standalone Node.js service (in `apps/telefun-s
 
 - Main protected app lives under `app/(main)/`; the layout calls `requirePageAccess()` before rendering.
 - Root `/` is a client-side landing page with auth modal flow, not the main app shell.
+- **SIDAK Landing Hub**: The SIDAK module (`/qa-analyzer`) uses a landing page architecture instead of a direct redirect. Navigation highlighting in the sidebar for this module uses exact matching for the root page to avoid double-active states.
 - Shared auth helpers live in `app/lib/authz.ts` and `app/lib/supabase/*`.
 - There are Server Actions in `app/actions/`, but this repo also uses Route Handlers in `app/api/**` for some server-only flows.
 - Supabase SQL changes live in `supabase/migrations/`; rollback SQL is kept separately in `supabase/rollback/`.
@@ -110,6 +111,29 @@ Telefun live simulation runs as a standalone Node.js service (in `apps/telefun-s
 - **UI/UX:** Use Tailwind CSS and existing UI components. Consult `docs/design-guidelines.md`
 - **Dependency Management:** Do not add new dependencies without explicit instruction
 - **State Management:** Be cautious with `useEffect` dependency arrays to avoid infinite loops
+
+## Golden Rule: Dokumentasi Wajib Update Sebelum Commit
+
+Setiap perubahan kode yang mengubah behavior, menambah fitur, memperbaiki bug, atau mengubah arsitektur **wajib** diiringi update dokumentasi yang relevan **sebelum** melakukan commit.
+
+### Kenapa aturan ini penting
+Kode tanpa dokumentasi yang sinkron adalah technical debt yang tersembunyi. Agent lain (dan developer manusia) akan bergantung pada docs untuk memahami intent, architecture decisions, dan cara kerja sistem. Dokumentasi yang basi lebih berbahaya daripada tidak ada dokumentasi sama sekali.
+
+### Aturan wajib
+1. Sebelum menjalankan `git commit`, pastikan semua file dokumentasi yang terdampak sudah di-update.
+2. Dokumentasi yang relevan termasuk: `docs/` files, module-specific `.md` files, inline doc comments pada fungsi publik, dan AGENTS.md/GEMINI.md jika ada konvensi baru.
+3. Changelog entry wajib ditambahkan jika ada perubahan yang berdampak pada user atau workflow.
+4. Jika tidak ada file dokumentasi yang perlu di-update, jelaskan alasannya dalam commit message.
+
+### Scope dokumentasi
+| Jenis Perubahan | Dokumentasi yang Perlu Di-update |
+|---|---|
+| Fitur baru | Module docs, API docs, changelog |
+| Bug fix | Changelog, known issues docs (jika ada) |
+| Arsitektur baru | Architecture docs, AGENTS.md (konvensi baru) |
+| DB migration | Migration docs, schema docs |
+| Env var baru | Environment docs, setup guide |
+| Konvensi baru | AGENTS.md, GEMINI.md |
 
 ## Golden Rule: File Editing Harus Pakai Unified Diff
 
