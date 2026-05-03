@@ -58,3 +58,40 @@ Aplikasi menggunakan `framer-motion` untuk meningkatkan pengalaman pengguna:
 - Gunakan komponen `motion.div` untuk elemen yang membutuhkan transisi.
 - Pastikan semua input memiliki state `focus-visible:ring-2` untuk aksesibilitas.
 - Gunakan properti `rounded-xl` hingga `rounded-3xl` untuk komponen kartu/modal agar terlihat modern.
+
+## Z-Index & Stacking Context
+
+Perilaku `z-index` di CSS bergantung pada **stacking context**. Elemen dengan `position: relative` atau `position: absolute` **hanya** menciptakan stacking context baru jika disertai nilai `z-index` (bukan `auto`).
+
+### Aturan Penting: Dropdown di Dalam Tabel
+
+Ketika menggunakan dropdown `position: fixed` di dalam tabel yang dibungkus `overflow-x-auto`, **jangan** memberikan `z-index` pada wrapper tabel:
+
+```tsx
+// ❌ SALAH — z-10 menciptakan stacking context baru
+// Dropdown fixed z-50 akan terperangkap di bawah overlay z-40 di root context
+<div className="overflow-x-auto relative z-10">
+  <table>...</table>
+</div>
+
+// ✅ BENAR — relative tanpa z-index tidak menciptakan stacking context baru
+// Dropdown fixed z-50 bisa muncul di atas overlay z-40
+<div className="overflow-x-auto relative">
+  <table>...</table>
+</div>
+```
+
+### Mengapa Ini Terjadi
+
+1. Wrapper dengan `relative z-10` membuat **stacking context baru** di level `z-10`.
+2. Dropdown `fixed z-50` yang berada di dalamnya tetap terjebak di dalam stacking context `z-10`.
+3. Overlay backdrop `fixed z-40` di root context akan **menutupi** dropdown.
+4. Hasilnya: klik ke item dropdown tidak terdeteksi (tertangkap oleh overlay), dan dropdown tampak "bentrok" dengan elemen di bawahnya.
+
+### Pattern yang Direkomendasikan
+
+Jika dropdown harus keluar dari ancestor `overflow` atau stacking context, gunakan salah satu:
+
+1. **Fixed positioning tanpa z-index pada wrapper** (untuk dropdown sederhana di dalam tabel).
+2. **React Portal** (`createPortal`) — mount dropdown ke `document.body` untuk sepenuhnya lepas dari constraint ancestor (paling robust untuk kasus kompleks).
+3. **Backdrop overlay dengan z-index lebih rendah dari dropdown**, namun keduanya harus berada di dalam stacking context yang sama (root context) agar berfungsi.

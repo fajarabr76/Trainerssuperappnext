@@ -224,7 +224,7 @@ function PendingList({
         />
       )}
 
-      <div className="overflow-x-auto relative z-10">
+      <div className="overflow-x-auto relative">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-foreground/[0.02] border-b border-border">
@@ -388,7 +388,7 @@ function ApprovedList({
   return (
     <div className="bg-card border border-border rounded-[2.5rem] overflow-hidden shadow-2xl relative">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
-      <div className="overflow-x-auto relative z-10">
+      <div className="overflow-x-auto relative">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-foreground/[0.02] border-b border-border">
