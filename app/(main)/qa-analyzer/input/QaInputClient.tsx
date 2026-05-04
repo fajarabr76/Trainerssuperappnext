@@ -38,6 +38,7 @@ import {
   getResolvedWeightsAction
 } from '../actions';
 import QaStatePanel from '../components/QaStatePanel';
+import { annotateImportRowDuplicates } from './importDuplicateRows';
 
 const supabase = createClient();
 
@@ -327,6 +328,8 @@ async function parseExcel(file: File, indicators: QAIndicator[]): Promise<Import
           } else { nilai = nilaiNum; }
           result.push({ rowNum: i + 1, no_tiket, paramName, indicator_id, nilai, ketidaksesuaian, sebaiknya, errors });
         }
+        annotateImportRowDuplicates(result);
+
         resolve(result);
       } catch (err: unknown) { reject(new Error('Gagal membaca file: ' + (err as Error).message)); }
     };
@@ -600,6 +603,23 @@ export default function QaInputClient({
     }
     setSaving(true); setErrorMsg(null);
     try {
+      // ── Check duplicate entries within manual form ───────────────────────
+      const normalizedTicket = noTiket.trim();
+      if (normalizedTicket) {
+        const seenManual = new Set<string>();
+        for (const entry of entries) {
+          if (!entry.indicator_id) continue;
+          const key = `${normalizedTicket.toLowerCase()}::${entry.indicator_id}`;
+          if (seenManual.has(key)) {
+            const indicatorName = indicators.find(i => i.id === entry.indicator_id)?.name || 'parameter tersebut';
+            setErrorMsg(`Duplicate temuan ditemukan: No. Tiket ${normalizedTicket} dengan parameter ${indicatorName} muncul lebih dari sekali.`);
+            setSaving(false);
+            return;
+          }
+          seenManual.add(key);
+        }
+      }
+
       const temuanList = entries.map(entry => ({
         indicator_id: entry.indicator_id,
         no_tiket: noTiket || undefined,
@@ -679,9 +699,16 @@ export default function QaInputClient({
 
   const validImportRows   = importRows.filter(r => r.errors.length === 0);
   const invalidImportRows = importRows.filter(r => r.errors.length > 0);
+  const hasDuplicateError = invalidImportRows.some(r =>
+    r.errors.some(e => e.toLowerCase().includes('duplicate'))
+  );
 
   const handleImportSave = async () => {
     if (!selectedAgent || !selectedPeriod || validImportRows.length === 0) return;
+    if (hasDuplicateError) {
+      setErrorMsg('Terdapat baris duplicate dalam file. Hapus baris duplicate terlebih dahulu sebelum import.');
+      return;
+    }
     setImporting(true); setErrorMsg(null);
     try {
       const temuanList = validImportRows.map(row => ({
@@ -1018,7 +1045,8 @@ export default function QaInputClient({
                                   </div>
                                 ))}
                               </div>
-                              {validImportRows.length > 0 && <button onClick={handleImportSave} disabled={importing} className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg shadow-primary/20">{importing ? <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"/> : <Check className="w-5 h-5"/>}{importing ? 'Menyimpan...' : `Import ${validImportRows.length} Temuan`}</button>}
+                              {hasDuplicateError && <div className="bg-red-500/10 rounded-xl p-3 text-center border border-red-500/20"><p className="text-xs font-bold text-red-500">Hapus baris duplicate sebelum import</p></div>}
+                              {validImportRows.length > 0 && !hasDuplicateError && <button onClick={handleImportSave} disabled={importing} className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg shadow-primary/20">{importing ? <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"/> : <Check className="w-5 h-5"/>}{importing ? 'Menyimpan...' : `Import ${validImportRows.length} Temuan`}</button>}
                             </div>
                           )}
                         </div>

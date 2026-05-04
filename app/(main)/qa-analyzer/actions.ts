@@ -527,6 +527,75 @@ export async function createTemuanBatchAction(
       };
     }));
 
+    // ── Check for duplicates within the submitted batch itself ─────────────
+    // After this app-level check, the DB unique index uq_qa_temuan_duplicate_input
+    // provides atomic enforcement for concurrent submits (23505 caught below).
+    const seenInBatch = new Set<string>();
+    for (const d of insertData) {
+      const ticket = d.no_tiket?.trim();
+      if (!ticket) continue;
+      const key = `${ticket.toLowerCase()}::${d.indicator_id}::${d.service_type}`;
+      if (seenInBatch.has(key)) {
+        return { data: [], error: `Duplicate temuan ditemukan dalam satu batch: No. Tiket ${ticket}. Hapus duplicate dan coba lagi.` };
+      }
+      seenInBatch.add(key);
+    }
+
+    // ── Check for duplicates against existing data BEFORE insert ──────────────
+    // Fetch all existing rows scoped to agent+period+service and compare with
+    // normalized keys (trim + lowercase, matching DB constraint uq_qa_temuan_duplicate_input).
+    // This catches case/whitespace variants that an exact .in('no_tiket', ...) would miss.
+    const serviceTypes = [...new Set(insertData.map(d => d.service_type))];
+
+    if (serviceTypes.length > 0) {
+      const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
+      let existingRowsQuery = supabase
+        .from('qa_temuan')
+        .select('id, no_tiket, indicator_id, service_type')
+        .eq('peserta_id', peserta_id)
+        .eq('period_id', period_id)
+        .in('service_type', serviceTypes);
+      if (hasPhantomSupport) {
+        existingRowsQuery = existingRowsQuery.eq('is_phantom_padding', false);
+      }
+
+      const { data: existingRows, error: existingError } = await existingRowsQuery;
+
+      if (existingError) {
+        const norm = normalizeQaActionError(existingError, 'Gagal memeriksa data duplicate.');
+        return { data: [], error: norm.message };
+      }
+
+      if (existingRows && existingRows.length > 0) {
+        const existingKeys = new Set(
+          existingRows
+            .filter(e => e.no_tiket?.trim())
+            .map(e => `${e.no_tiket.trim().toLowerCase()}::${e.indicator_id}::${e.service_type}`)
+        );
+
+        const duplicateTickets: string[] = [];
+        for (const d of insertData) {
+          const ticket = d.no_tiket?.trim();
+          if (!ticket) continue;
+          const key = `${ticket.toLowerCase()}::${d.indicator_id}::${d.service_type}`;
+          if (existingKeys.has(key)) {
+            duplicateTickets.push(ticket);
+          }
+        }
+
+        if (duplicateTickets.length > 0) {
+          const uniqueDups = [...new Set(duplicateTickets)];
+          if (uniqueDups.length === 1) {
+            return { data: [], error: `Duplicate temuan ditemukan: No. Tiket ${uniqueDups[0]} dengan parameter yang sama sudah pernah diinput.` };
+          } else if (uniqueDups.length <= 3) {
+            return { data: [], error: `Duplicate temuan ditemukan: ${uniqueDups.join(', ')} sudah pernah diinput.` };
+          } else {
+            return { data: [], error: `Duplicate temuan ditemukan: ${uniqueDups.slice(0, 3).join(', ')}, dan ${uniqueDups.length - 3} lainnya sudah pernah diinput.` };
+          }
+        }
+      }
+    }
+
     const { data, error } = await supabase
       .from('qa_temuan')
       .insert(insertData)
@@ -535,6 +604,9 @@ export async function createTemuanBatchAction(
     if (error) {
       if (error.code === '23505' && error.message.includes('uq_qa_temuan_single_phantom_batch_per_period')) {
         return { data: [], error: 'Sesi tanpa temuan gagal dibuat karena constraint database lama. Jalankan migration fix index terbaru terlebih dahulu.' };
+      }
+      if (error.code === '23505' && error.message.includes('uq_qa_temuan_duplicate_input')) {
+        return { data: [], error: 'Duplicate temuan terdeteksi: nomor tiket dan parameter yang sama sudah ada di database. Hapus duplicate dan coba lagi.' };
       }
       if (isMissingVersionedRuleColumnError(error)) {
         return { data: [], error: 'Skema SIDAK belum mendukung versioned QA rules. Jalankan migration database terbaru (kolom rule_version_id/rule_indicator_id) lalu coba lagi.' };

@@ -53,7 +53,7 @@ Menyimpan hasil simulasi legacy/kompatibilitas dari modul Ketik dan Telefun, ser
 
 ### 5. Modul SIDAK (QA Analyzer)
 - **`qa_periods`**: Definisi periode audit kualitas.
-- **`qa_temuan`**: Data utama audit (Agent, Tim, Temuan, Status).
+- **`qa_temuan`**: Data utama audit (Agent, Tim, Temuan, Status). Non-phantom rows reject duplicate `(peserta_id, period_id, service_type, normalized no_tiket, indicator_id)` via `uq_qa_temuan_duplicate_input`; run `supabase/maintenance/qa_temuan_duplicate_input_cleanup.sql` to review historical duplicates before applying the index migration.
 - **`qa_indicators`**: Daftar parameter penilaian audit.
 - **`qa_categories`**: Pengelompokan indikator temuan (Pareto mapping).
 

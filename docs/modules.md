@@ -78,7 +78,7 @@ Platform analytics kualitas untuk memantau performa agent secara mendalam.
   - **Path to Zero**: Filosofi dashboard yang mendorong penurunan angka temuan setiap periode.
   - **Pareto Chart**: Identifikasi 80% masalah dari 20% penyebab utama (root cause).
   - **Ranking & Leaderboard**: Memantau agent dengan performa terbaik dan area yang butuh perbaikan.
-  - **Input Temuan**: Form input terstandarisasi untuk trainer memasukkan hasil audit, termasuk mode data keseluruhan untuk input periode lama agent historis/excluded.
+  - **Input Temuan**: Form input terstandarisasi untuk trainer memasukkan hasil audit, termasuk mode data keseluruhan untuk input periode lama agent historis/excluded. Duplicate combination `nomor tiket + parameter (indicator)` dalam scope agent, period, dan service yang sama **ditolak** (batch gagal total dengan pesan error spesifik), berlaku untuk input manual dan upload Excel. Duplicate dicek terhadap data existing di database dan antar-row dalam satu batch input. `nomor tiket` kosong tidak dianggap duplicate.
   - **Workspace Data (Laporan Data)**: Tabel audit detail dengan layout filter horizontal di atas (top bar) untuk visibilitas maksimal. Data yang ditampilkan difilter ketat untuk fokus pada temuan bermakna (harus punya isi ketidaksesuaian DAN sebaiknya), serta mengecualikan phantom padding.
   - **Periode & Parameter**: Pengaturan periode penilaian dan bobot indikator penilaian.
 - **Catatan Teknis**: Flow narasi/laporan berbasis AI memanfaatkan server action terpusat agar handling provider dan validasi output tetap konsisten. Narasi AI SIDAK untuk laporan sekarang ikut tercatat ke usage billing bulanan dengan action `report_generation`, tetapi tidak menambah quick-view usage di halaman SIDAK.
