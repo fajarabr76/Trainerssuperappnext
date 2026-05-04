@@ -78,7 +78,7 @@ Leader opens KTP/SIDAK page
   |
   +-- Request rejected --> status: "rejected" --> show LeaderAccessStatus "Ditolak"
   |
-  +-- Request revoked --> status: "revoked" --> show LeaderAccessStatus "Dicabut"
+  +-- Request revoked --> status: "revoked" --> show LeaderAccessStatus "Dicabut" with "Ajukan Akses Lagi" button
   |
   +-- Request approved --> resolve scope filter --> query data with scope
        |
@@ -90,10 +90,11 @@ Leader opens KTP/SIDAK page
 
 1. Admin/trainer navigates to `/dashboard/access-approval`
 2. See pending requests tab: leader name, module, date, select access groups, approve/reject
-3. See approved tab: leader name, module, access groups, date, revoke button
+3. See approved tab: leader name, module, access groups, date, reassign access groups, revoke button
 4. Approve requires selecting minimal 1 active access group
-5. Manage access groups at `/dashboard/access-groups` using By Team, By Service, or By Name
-6. Server action rejects self-approval and validates that every selected group is still active before approving
+5. Reassign allows changing access groups for already-approved requests without revoking
+6. Manage access groups at `/dashboard/access-groups` using By Team, By Service, or By Name
+7. Server action rejects self-approval and validates that every selected group is still active before approving
 
 ### RLS Policies
 
@@ -121,11 +122,13 @@ Use this checklist after applying the migration and before release:
 5. Admin/trainer attempts to approve with inactive/invalid group → request is rejected by server action.
 6. Admin/trainer attempts to approve own request → request is rejected by server action.
 7. Leader opens out-of-scope KTP/SIDAK detail → data is not returned.
-8. Admin/trainer revokes access → Leader returns to blocked status.
+8. Admin/trainer revokes access → Leader returns to blocked status and can submit a new request ("Ajukan Akses Lagi").
 9. Admin/trainer opens KTP/SIDAK → full data remains visible.
 10. Leader approved for only one module → the other module remains blocked.
 11. Admin/trainer adds access group item By Name → Name dropdown remains locked until Team is selected.
 12. Admin/trainer adds access group item By Name → saved item uses peserta id, not display name.
+13. Admin/trainer reassigns access groups on approved request → Leader scope updates immediately without needing to re-request.
+14. Admin/trainer attempts to reassign with inactive/invalid group → reassign is rejected by server action.
 
 ### Regression Commands
 
@@ -147,6 +150,27 @@ npx supabase migration down 20260502133224_leader_access_approval.sql
 ```
 
 ### Changelog
+
+#### 2026-05-04 — Feature: Reassign Access Groups & Revoked Reapply
+
+**Symptom:**
+- Admin/trainer hanya bisa mencabut akses pada tab Disetujui, tidak bisa mengubah access group tanpa mencabut dan menunggu leader mengajukan ulang.
+- Leader dengan status `revoked` tidak bisa mengajukan ulang akses karena tombol `Ajukan Akses` hanya muncul untuk status `none`.
+
+**Fix:**
+- Ditambahkan server action `reassignLeaderAccessGroups()` untuk mengubah access group pada request yang sudah disetujui tanpa perlu revoke.
+- Tab Disetujui sekarang menampilkan dropdown multi-select access group (prefilled dari group yang aktif) dan tombol `Simpan Group`.
+- Leader dengan status `revoked` sekarang melihat tombol `Ajukan Akses Lagi` di `LeaderAccessStatus`.
+- `ApprovedLeaderAccess` interface diperluas dengan `access_group_ids: string[]` untuk mendukung reassign UI.
+
+**Files changed:**
+- `app/actions/leader-access.ts` — Added `reassignLeaderAccessGroups()`, extended `ApprovedLeaderAccess` with `access_group_ids`
+- `app/(main)/dashboard/access-approval/AccessApprovalClient.tsx` — Added reassign UI with dropdown and `Simpan Group` button in Approved tab
+- `app/components/access/LeaderAccessStatus.tsx` — Show request button for `revoked` status with label `Ajukan Akses Lagi`
+- `tests/access-control/leader-approval-hardening-contracts.test.ts` — Added contract tests for reassign and revoked reapply
+- `docs/LEADER_APPROVAL_ACCESS.md` — Updated flow docs, QA checklist, and changelog
+
+---
 
 #### 2026-05-03 — Fix: Leader Approved Access for Profiler and SIDAK (Participant-ID Scoped)
 

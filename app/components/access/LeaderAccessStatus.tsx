@@ -32,6 +32,9 @@ export default function LeaderAccessStatus({
     try {
       const result = await requestLeaderModuleAccess(module);
       setRequestResult(result);
+      if (result.success) {
+        window.location.reload();
+      }
     } catch {
       setRequestResult({ success: false, message: 'Terjadi kesalahan. Silakan coba lagi.' });
     } finally {
@@ -85,8 +88,8 @@ export default function LeaderAccessStatus({
           </div>
         )}
 
-        {/* Action button for 'none' status */}
-        {status === 'none' && (
+        {/* Action button for 'none' and 'revoked' status */}
+        {(status === 'none' || status === 'revoked') && (
           <>
             <button
               onClick={handleRequest}
@@ -98,7 +101,11 @@ export default function LeaderAccessStatus({
               ) : (
                 <Shield className="w-4 h-4" />
               )}
-              {requesting ? 'Mengajukan...' : 'Ajukan Akses'}
+              {requesting
+                ? 'Mengajukan...'
+                : status === 'revoked'
+                  ? 'Ajukan Akses Lagi'
+                  : 'Ajukan Akses'}
             </button>
 
             {requestResult && (

@@ -22,6 +22,7 @@ export interface ApprovedLeaderAccess {
   leader_name: string;
   leader_email: string;
   module: string;
+  access_group_ids: string[];
   access_group_names: string[];
   approved_at: string;
 }
@@ -115,7 +116,7 @@ export async function getApprovedLeaderAccessList(): Promise<ApprovedLeaderAcces
 
   if (!requests) return [];
 
-  // Fetch group names per request
+  // Fetch group names and ids per request
   const requestIds = (requests as Array<{ id: string }>).map((r) => r.id);
   const { data: joinRows } = await supabase
     .from('leader_access_request_groups')
@@ -131,12 +132,16 @@ export async function getApprovedLeaderAccessList(): Promise<ApprovedLeaderAcces
   (allGroups || []).forEach((g: { id: string; name: string }) => groupNameMap.set(g.id, g.name));
 
   const requestGroupMap = new Map<string, string[]>();
+  const requestGroupIdMap = new Map<string, string[]>();
   (joinRows || []).forEach((j: { request_id: string; access_group_id: string }) => {
     const name = groupNameMap.get(j.access_group_id);
     if (name) {
       const existing = requestGroupMap.get(j.request_id) || [];
       existing.push(name);
       requestGroupMap.set(j.request_id, existing);
+      const existingIds = requestGroupIdMap.get(j.request_id) || [];
+      existingIds.push(j.access_group_id);
+      requestGroupIdMap.set(j.request_id, existingIds);
     }
   });
 
@@ -145,6 +150,7 @@ export async function getApprovedLeaderAccessList(): Promise<ApprovedLeaderAcces
     leader_name: (row.profiles as Record<string, string> | null)?.full_name ?? 'Unknown',
     leader_email: (row.profiles as Record<string, string> | null)?.email ?? '',
     module: row.module as string,
+    access_group_ids: requestGroupIdMap.get(row.id as string) || [],
     access_group_names: requestGroupMap.get(row.id as string) || [],
     approved_at: row.updated_at as string,
   }));
@@ -274,6 +280,123 @@ export async function revokeLeaderAccessRequest(
   }
 
   return { success: true, message: 'Akses dicabut' };
+}
+
+// --- Admin/Trainer: Reassign access groups ---
+
+export async function reassignLeaderAccessGroups(
+  requestId: string,
+  accessGroupIds: string[],
+): Promise<{ success: boolean; message: string }> {
+  const { userId } = await assertPrivilegedAccess();
+  const supabase = await createClient();
+  const uniqueAccessGroupIds = [...new Set((accessGroupIds || []).filter(Boolean))];
+
+  if (uniqueAccessGroupIds.length === 0) {
+    return { success: false, message: 'Pilih minimal satu access group' };
+  }
+
+  const { data: request, error: reqError } = await supabase
+    .from('leader_access_requests')
+    .select('id, status, leader_user_id')
+    .eq('id', requestId)
+    .eq('status', 'approved')
+    .single();
+
+  if (reqError || !request) {
+    return { success: false, message: 'Akses tidak ditemukan atau tidak aktif' };
+  }
+
+  if (request.leader_user_id === userId) {
+    return { success: false, message: 'Anda tidak dapat mengubah akses milik sendiri' };
+  }
+
+  const { data: activeGroups, error: groupError } = await supabase
+    .from('access_groups')
+    .select('id')
+    .in('id', uniqueAccessGroupIds)
+    .eq('is_active', true);
+
+  if (groupError) {
+    console.error('[leader-access] Error validating active groups:', groupError.message);
+    return { success: false, message: 'Gagal memvalidasi access group' };
+  }
+
+  if ((activeGroups || []).length !== uniqueAccessGroupIds.length) {
+    return { success: false, message: 'Access group tidak valid atau sudah nonaktif' };
+  }
+
+  // Capture existing groups for rollback if insert fails
+  const { data: existingGroups, error: fetchExistingError } = await supabase
+    .from('leader_access_request_groups')
+    .select('access_group_id')
+    .eq('request_id', requestId);
+
+  if (fetchExistingError) {
+    console.error('[leader-access] Error fetching existing groups:', fetchExistingError.message);
+    return { success: false, message: 'Gagal membaca access group saat ini' };
+  }
+
+  // Re-verify request is still approved before mutating groups
+  const { data: recheckReq, error: recheckError } = await supabase
+    .from('leader_access_requests')
+    .select('id, status')
+    .eq('id', requestId)
+    .eq('status', 'approved')
+    .single();
+
+  if (recheckError || !recheckReq) {
+    return { success: false, message: 'Akses sudah tidak aktif. Permintaan mungkin sudah dicabut.' };
+  }
+
+  const { error: deleteError } = await supabase
+    .from('leader_access_request_groups')
+    .delete()
+    .eq('request_id', requestId);
+
+  if (deleteError) {
+    console.error('[leader-access] Error clearing access groups:', deleteError.message);
+    return { success: false, message: 'Gagal menghapus access group lama' };
+  }
+
+  const groupRows = uniqueAccessGroupIds.map((groupId) => ({
+    request_id: requestId,
+    access_group_id: groupId,
+  }));
+
+  const { error: insertError } = await supabase
+    .from('leader_access_request_groups')
+    .insert(groupRows);
+
+  if (insertError) {
+    console.error('[leader-access] Error assigning access groups:', insertError.message);
+    // Rollback: restore previous groups
+    if (existingGroups && existingGroups.length > 0) {
+      const rollbackRows = existingGroups.map((g: { access_group_id: string }) => ({
+        request_id: requestId,
+        access_group_id: g.access_group_id,
+      }));
+      const { error: rollbackError } = await supabase
+        .from('leader_access_request_groups')
+        .insert(rollbackRows);
+      if (rollbackError) {
+        console.error('[leader-access] CRITICAL: Rollback failed after insert error:', rollbackError.message);
+      }
+    }
+    return { success: false, message: 'Gagal menyimpan access group baru. Perubahan dibatalkan.' };
+  }
+
+  const { error: auditError } = await supabase
+    .from('leader_access_requests')
+    .update({ reviewed_by: userId })
+    .eq('id', requestId)
+    .eq('status', 'approved');
+
+  if (auditError) {
+    console.error('[leader-access] Warning: Failed to update reviewed_by audit field:', auditError.message);
+  }
+
+  return { success: true, message: 'Access group berhasil diperbarui' };
 }
 
 // --- Admin/Trainer: Access Group CRUD ---
