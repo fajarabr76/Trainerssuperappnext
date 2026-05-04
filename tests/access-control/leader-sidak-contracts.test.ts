@@ -100,10 +100,18 @@ describe('resolveLeaderScope contract', () => {
 
 describe('leader-sidak-contracts: participant-ID-based filtering', () => {
   const dashboardSource = readFileSync('app/(main)/qa-analyzer/dashboard/page.tsx', 'utf8');
+  const qaServiceSource = readFileSync('app/(main)/qa-analyzer/services/qaService.server.ts', 'utf8');
 
   it('dominant service computation is called for leaders with participants', () => {
     expect(dashboardSource).toContain('computeDominantService');
     expect(dashboardSource).toContain('participantIds');
+  });
+
+  it('computeDominantService filters phantom padding rows', () => {
+    expect(qaServiceSource).toContain('computeDominantService');
+    const fnBody = qaServiceSource.match(/async computeDominantService\([\s\S]*?return \(sorted\[0\]\?\.\[0\] \|\| null\)/);
+    expect(fnBody?.[0] ?? '').toContain('hasPhantomPaddingSupport');
+    expect(fnBody?.[0] ?? '').toContain('is_phantom_padding');
   });
 
   it('leader scoped path uses consolidated data methods directly with participant IDs', () => {

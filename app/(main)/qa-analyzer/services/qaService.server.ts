@@ -2516,6 +2516,7 @@ export const qaServiceServer = {
     endMonth: number
   ): Promise<ServiceType | null> {
     const supabase = await createClient();
+    const hasPhantomSupport = await hasPhantomPaddingSupport(supabase);
 
     const { data: periods } = await supabase
       .from('qa_periods')
@@ -2528,11 +2529,17 @@ export const qaServiceServer = {
 
     const pIds = periods.map((p: { id: string }) => p.id);
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('qa_temuan')
       .select('service_type')
       .in('peserta_id', allowedParticipantIds)
       .in('period_id', pIds);
+
+    if (hasPhantomSupport) {
+      query = query.eq('is_phantom_padding', false);
+    }
+
+    const { data, error } = await query;
 
     if (error || !data || data.length === 0) return null;
 
