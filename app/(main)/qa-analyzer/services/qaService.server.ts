@@ -2934,6 +2934,10 @@ export const qaServiceServer = {
         .order('id', { ascending: true })
         .range(from, from + PAGE_SIZE - 1);
 
+      // DB-level service filter prevents over-fetching.
+      // When serviceType !== 'all', serviceData in the result will only contain
+      // the selected service (intentional: avoids fetching unrelated records).
+      if (serviceType !== 'all') query = query.eq('service_type', serviceType);
       if (folderIds.length > 0) query = query.in('profiler_peserta.batch_name', folderIds);
       if (allowedParticipantIds && allowedParticipantIds.length > 0) query = query.in('peserta_id', allowedParticipantIds);
 

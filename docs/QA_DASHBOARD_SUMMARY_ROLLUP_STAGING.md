@@ -47,7 +47,7 @@ Lakukan testing di `/qa-analyzer/dashboard`:
 - Mutasi input: buat, update, dan delete temuan di `/qa-analyzer/input`, lalu cek dashboard berubah setelah cache invalidation.
 - Delete terakhir: hapus temuan terakhir untuk satu service/periode, lalu pastikan dashboard tidak menampilkan angka stale.
 - Clean session: pastikan sesi tanpa temuan tetap dihitung sebagai audit valid, tetapi tidak menambah total temuan, Pareto, donut, atau defect ranking.
-- Service comparison: pastikan data perbandingan service tidak partial; bila summary belum lengkap, dashboard harus fallback ke RPC lama.
+- Service comparison: saat satu layanan dipilih, chart perbandingan hanya menampilkan layanan tersebut (DB-level filter mencegah over-fetching). Mode multi-layanan hanya tersedia bila `serviceType === 'all'`. Bila summary belum lengkap, dashboard harus fallback ke RPC lama.
 
 ## Verifikasi Lokal Minimum
 

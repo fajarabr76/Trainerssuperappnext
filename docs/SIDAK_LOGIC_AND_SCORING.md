@@ -143,6 +143,16 @@ Kalau satu periode hanya berisi phantom padding:
 
 Hasilnya tetap masuk audited population, tetap tampil di ranking, tetapi tidak menambah defect.
 
+## Dashboard Query dan Service Filtering
+
+`getConsolidatedDashboardDataByRange` dan `getConsolidatedTrendDataByRange` di `qaService.server.ts` mengambil data `qa_temuan` dengan pagination (1000 row per halaman) dan ordering stabil (`order('id')`).
+
+- **Filter service_type diterapkan di level database**, bukan in-memory, untuk mencegah over-fetching.
+- Jika `serviceType !== 'all'`, query memakai `.eq('service_type', serviceType)` sebelum `.range()`.
+- Jika `serviceType === 'all'`, filter service_type tidak ditambahkan.
+- **Dampak perilaku**: saat user memilih satu layanan tertentu, `serviceData` (chart perbandingan layanan) hanya berisi layanan tersebut. Ini disengaja untuk menghindari mengambil data layanan lain yang tidak relevan.
+- Filter lain tetap dipertahankan: rentang periode (`pIds`), folder/batch (`folderIds`), leader scope (`allowedParticipantIds`), dan phantom padding.
+
 ## Catatan Praktis
 
 - `weighted`, `flat`, dan `no_category` punya rumus dasar yang berbeda pada level sesi.
