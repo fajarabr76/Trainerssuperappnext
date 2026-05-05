@@ -1,17 +1,25 @@
 import { createClient } from '@/app/lib/supabase/client';
 import { AppSettings } from '../types';
 import { DEFAULT_SCENARIOS, DEFAULT_CONSUMER_TYPES } from '../constants';
-import { normalizeModelId } from '@/app/lib/ai-models';
+import { normalizeModelId, TEXT_OPENROUTER_MODELS } from '@/app/lib/ai-models';
 
 const supabase = createClient();
 const LOCAL_STORAGE_KEY = 'pdkt_settings_v2';
+const DEFAULT_PDKT_MODEL_ID = TEXT_OPENROUTER_MODELS[0]?.id || 'openai/gpt-oss-120b:free';
+
+function coercePdktModelId(modelId?: string | null): string {
+  const normalizedModelId = normalizeModelId(modelId);
+  return TEXT_OPENROUTER_MODELS.some((model) => model.id === normalizedModelId)
+    ? normalizedModelId
+    : DEFAULT_PDKT_MODEL_ID;
+}
 
 export const defaultPdktSettings: AppSettings = {
   scenarios: DEFAULT_SCENARIOS,
   consumerTypes: DEFAULT_CONSUMER_TYPES,
   enableImageGeneration: true,
   globalConsumerTypeId: 'random',
-  selectedModel: normalizeModelId('gemini-3.1-flash-lite-preview'),
+  selectedModel: DEFAULT_PDKT_MODEL_ID,
 };
 
 export async function loadPdktSettings(): Promise<AppSettings> {
@@ -49,12 +57,14 @@ export async function loadPdktSettings(): Promise<AppSettings> {
   // Ensure scenarios and consumerTypes are present
   if (!settings.scenarios || settings.scenarios.length === 0) settings.scenarios = DEFAULT_SCENARIOS;
   if (!settings.consumerTypes || settings.consumerTypes.length === 0) settings.consumerTypes = DEFAULT_CONSUMER_TYPES;
-  settings.selectedModel = normalizeModelId(settings.selectedModel);
+  settings.selectedModel = coercePdktModelId(settings.selectedModel);
 
   return settings;
 }
 
 export async function savePdktSettings(settings: AppSettings): Promise<void> {
+  settings.selectedModel = coercePdktModelId(settings.selectedModel);
+
   // 1. Simpan ke localStorage
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(settings));
 

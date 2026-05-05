@@ -2,6 +2,7 @@
 
 import { createClient } from "@/app/lib/supabase/server";
 import { logAiUsage, type UsageContext } from "@/app/lib/ai-usage";
+import { consumeRateLimit } from "@/app/lib/rate-limit";
 import { randomUUID } from "crypto";
 
 export interface OpenRouterResponse {
@@ -23,14 +24,45 @@ export async function generateOpenRouterContent(options: {
   usageContext?: UsageContext;
   userId?: string;
 }): Promise<OpenRouterResponse> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  const modelId = options.model || 'openai/gpt-oss-120b:free';
-
-  if (!apiKey) {
-    return { success: false, error: "OPENROUTER_API_KEY is not set in environment variables." };
-  }
-
   try {
+    const supabase = await createClient();
+    const [{ data: { user } }, { data: { session } }] = await Promise.all([
+      supabase.auth.getUser(),
+      supabase.auth.getSession(),
+    ]);
+
+    const authenticatedUserId = user?.id || session?.user?.id || null;
+
+    if (options.userId && authenticatedUserId && options.userId !== authenticatedUserId) {
+      console.warn(
+        `[OpenRouter Action] options.userId "${options.userId}" mismatched with auth user "${authenticatedUserId}".`
+      );
+    }
+
+    // Rate limit: 30 requests per minute per user.
+    // CRITICAL SECURITY: The rate limit key MUST only use server-verified identity.
+    const rateLimitKey = authenticatedUserId ? `openrouter:${authenticatedUserId}` : `openrouter:anon`;
+    const rateLimit = await consumeRateLimit({
+      key: rateLimitKey,
+      limit: authenticatedUserId ? 30 : 5, // Stricter limit for unauthenticated/anon requests
+      windowMs: 60 * 1000,
+    });
+
+
+    if (!rateLimit.allowed) {
+      return {
+        success: false,
+        error: `Rate limit exceeded. Please try again in ${rateLimit.retryAfterSeconds} seconds.`,
+      };
+    }
+
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    const modelId = options.model || 'openai/gpt-oss-120b:free';
+
+    if (!apiKey) {
+      return { success: false, error: "OPENROUTER_API_KEY is not set in environment variables." };
+    }
+
     // Map Gemini-style contents to OpenAI-style messages
     const messages: { role: string; content: string }[] = [];
 
@@ -122,46 +154,30 @@ export async function generateOpenRouterContent(options: {
 
     const text = data.choices?.[0]?.message?.content || "";
 
-    if (options.usageContext) {
-      const supabase = await createClient();
-      const [{ data: { user } }, { data: { session } }] = await Promise.all([
-        supabase.auth.getUser(),
-        supabase.auth.getSession(),
-      ]);
+    if (options.usageContext && authenticatedUserId) {
+      const usage = data.usage;
+      if (usage && typeof usage === 'object') {
+        const inputTokens = typeof usage.prompt_tokens === 'number' ? usage.prompt_tokens : 0;
+        const outputTokens = typeof usage.completion_tokens === 'number' ? usage.completion_tokens : 0;
+        const totalTokens = typeof usage.total_tokens === 'number' ? usage.total_tokens : inputTokens + outputTokens;
 
-      const resolvedUserId = user?.id || session?.user?.id || options.userId;
+        if (inputTokens > 0 || outputTokens > 0) {
+          const modelId = options.model || 'openai/gpt-oss-120b:free';
+          const requestId = `openrouter-${randomUUID()}`;
 
-      if (options.userId && user?.id && options.userId !== user.id) {
-        console.warn(
-          `[OpenRouter Action] options.userId "${options.userId}" mismatched with auth user "${user.id}". Using auth user.`
-        );
-      }
-
-      if (resolvedUserId) {
-        const usage = data.usage;
-        if (usage && typeof usage === 'object') {
-          const inputTokens = typeof usage.prompt_tokens === 'number' ? usage.prompt_tokens : 0;
-          const outputTokens = typeof usage.completion_tokens === 'number' ? usage.completion_tokens : 0;
-          const totalTokens = typeof usage.total_tokens === 'number' ? usage.total_tokens : inputTokens + outputTokens;
-
-          if (inputTokens > 0 || outputTokens > 0) {
-            const modelId = options.model || 'openai/gpt-oss-120b:free';
-            const requestId = `openrouter-${randomUUID()}`;
-
-            await logAiUsage({
-              requestId,
-              userId: resolvedUserId,
-              provider: 'openrouter',
-              modelId,
-              usageContext: options.usageContext,
-              tokens: { inputTokens, outputTokens, totalTokens },
-            });
-          } else {
-            console.warn('[OpenRouter Action] Token metadata missing from response. Usage not logged.');
-          }
+          await logAiUsage({
+            requestId,
+            userId: authenticatedUserId,
+            provider: 'openrouter',
+            modelId,
+            usageContext: options.usageContext,
+            tokens: { inputTokens, outputTokens, totalTokens },
+          });
         } else {
           console.warn('[OpenRouter Action] Token metadata missing from response. Usage not logged.');
         }
+      } else {
+        console.warn('[OpenRouter Action] Token metadata missing from response. Usage not logged.');
       }
     }
 

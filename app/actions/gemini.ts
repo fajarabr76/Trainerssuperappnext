@@ -57,21 +57,25 @@ export async function generateGeminiContent(options: {
       supabase.auth.getSession(),
     ]);
 
-    const resolvedUserId = user?.id || session?.user?.id || options.userId;
+    const authenticatedUserId = user?.id || session?.user?.id || null;
 
-    if (options.userId && user?.id && options.userId !== user.id) {
+    if (options.userId && authenticatedUserId && options.userId !== authenticatedUserId) {
       console.warn(
-        `[Gemini Action] options.userId "${options.userId}" mismatched with auth user "${user.id}". Using auth user.`
+        `[Gemini Action] options.userId "${options.userId}" mismatched with auth user "${authenticatedUserId}".`
       );
     }
 
-    // Rate limit: 30 requests per minute per user
-    const rateLimitKey = `gemini:${resolvedUserId || 'anon'}`;
+    // Rate limit: 30 requests per minute per user.
+    // CRITICAL SECURITY: The rate limit key MUST only use server-verified identity.
+    // If we use options.userId here, an unauthenticated attacker can bypass limits by rotating IDs.
+    const rateLimitKey = authenticatedUserId ? `gemini:${authenticatedUserId}` : `gemini:anon`;
     const rateLimit = await consumeRateLimit({
       key: rateLimitKey,
-      limit: 30,
+      limit: authenticatedUserId ? 30 : 5, // Stricter limit for unauthenticated/anon requests
       windowMs: 60 * 1000,
     });
+
+
 
     if (!rateLimit.allowed) {
       return {
@@ -131,7 +135,7 @@ export async function generateGeminiContent(options: {
       }
     }
 
-    if (options.usageContext && resolvedUserId) {
+    if (options.usageContext && authenticatedUserId) {
       const usage = (response as { usageMetadata?: unknown })?.usageMetadata;
       if (usage && typeof usage === 'object') {
         const u = usage as Record<string, unknown>;
@@ -146,7 +150,7 @@ export async function generateGeminiContent(options: {
 
           await logAiUsage({
             requestId,
-            userId: resolvedUserId,
+            userId: authenticatedUserId,
             provider: provider as 'gemini' | 'openrouter',
             modelId: modelName,
             usageContext: options.usageContext,

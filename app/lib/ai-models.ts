@@ -1,8 +1,30 @@
+const DEFAULT_MODEL_ID = 'gemini-3.1-flash-lite-preview';
+
 /**
- * OpenRouter models available for KETIK and PDKT text simulations.
- * These are text-based models accessed via OpenRouter's unified API.
+ * Complete AI Models list.
+ * For new code, prefer using getModelsForModule() or specific model arrays.
  */
-export const TEXT_OPENROUTER_MODELS = [
+export const AI_MODELS = [
+  // Direct Gemini
+  {
+    id: 'gemini-3.1-flash-lite-preview',
+    name: 'Gemini 3.1 Flash Lite',
+    description: 'Cepat dan efisien untuk percakapan natural.',
+    provider: 'gemini' as const,
+  },
+  {
+    id: 'gemini-2.5-flash-lite',
+    name: 'Gemini 2.5 Flash Lite',
+    description: 'Model ringan Gemini 2.5 untuk respons cepat dan hemat biaya.',
+    provider: 'gemini' as const,
+  },
+  {
+    id: 'gemini-2.5-flash-preview-tts',
+    name: 'Gemini 2.5 Flash TTS',
+    description: 'Model Gemini untuk text-to-speech di Telefun.',
+    provider: 'gemini' as const,
+  },
+  // OpenRouter
   {
     id: 'openai/gpt-oss-120b:free',
     name: 'GPT-OSS 120B',
@@ -36,35 +58,17 @@ export const TEXT_OPENROUTER_MODELS = [
 ];
 
 /**
- * Direct Gemini models (not via OpenRouter).
- * These are used for various modules that call Gemini API directly.
+ * OpenRouter models available for KETIK and PDKT text simulations.
  */
-export const DIRECT_GEMINI_MODELS = [
-  {
-    id: 'gemini-3.1-flash-lite-preview',
-    name: 'Gemini 3.1 Flash Lite',
-    description: 'Cepat dan efisien untuk percakapan natural.',
-    provider: 'gemini' as const,
-  },
-  {
-    id: 'gemini-2.5-flash-lite',
-    name: 'Gemini 2.5 Flash Lite',
-    description: 'Model ringan Gemini 2.5 untuk respons cepat dan hemat biaya.',
-    provider: 'gemini' as const,
-  },
-  {
-    id: 'gemini-2.5-flash-preview-tts',
-    name: 'Gemini 2.5 Flash TTS',
-    description: 'Model Gemini untuk text-to-speech di Telefun.',
-    provider: 'gemini' as const,
-  },
-];
+export const TEXT_OPENROUTER_MODELS = AI_MODELS.filter(m => m.provider === 'openrouter');
+
+/**
+ * Direct Gemini models (not via OpenRouter).
+ */
+export const DIRECT_GEMINI_MODELS = AI_MODELS.filter(m => m.provider === 'gemini' && !m.id.includes('live'));
 
 /**
  * Telefun audio models with their transport protocols.
- * Telefun supports two transport modes:
- * - 'gemini-live': Gemini Live API via WebSocket (gemini-3.1-flash-live-preview)
- * - 'openai-audio': OpenAI Realtime API (openai/gpt-audio-mini) - not yet implemented
  */
 export const TELEFUN_AUDIO_MODELS = [
   {
@@ -95,13 +99,13 @@ const LEGACY_MODEL_ALIASES: Record<string, string> = {
  * Normalizes a model ID, handling legacy aliases.
  */
 export function normalizeModelId(modelId?: string | null): string {
-  if (!modelId) return AI_MODELS[0]?.id || 'gemini-3.1-flash-lite-preview';
+  if (!modelId) return DEFAULT_MODEL_ID;
   return LEGACY_MODEL_ALIASES[modelId] || modelId;
 }
 
+
 /**
  * Detects the AI provider based on the model ID.
- * OpenRouter models contain a forward slash (/) in their ID.
  */
 export function getProviderFromModelId(modelId: string): AIProvider {
   const normalized = normalizeModelId(modelId);
@@ -110,9 +114,6 @@ export function getProviderFromModelId(modelId: string): AIProvider {
 
 /**
  * Returns models filtered by module use case.
- * - 'ketik' | 'pdkt': Returns OpenRouter text models only
- * - 'telefun': Returns Telefun audio models
- * - 'default': Returns all AI_MODELS (for backwards compatibility)
  */
 export function getModelsForModule(module: 'ketik' | 'pdkt' | 'telefun' | 'default' = 'default') {
   switch (module) {
@@ -128,11 +129,3 @@ export function getModelsForModule(module: 'ketik' | 'pdkt' | 'telefun' | 'defau
 
 export type AIProvider = 'gemini' | 'openrouter';
 
-/**
- * Complete AI Models list - maintained for backwards compatibility.
- * For new code, prefer using getModelsForModule() or specific model arrays.
- */
-export const AI_MODELS = [
-  ...DIRECT_GEMINI_MODELS,
-  ...TEXT_OPENROUTER_MODELS,
-];
