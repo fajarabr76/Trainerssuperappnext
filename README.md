@@ -18,7 +18,7 @@ Nama modul yang dipakai di repo ini adalah:
 
 - **Unified Dashboard**: Pusat kendali protected app dengan shortcut modul, aktivitas, monitoring lintas akun, dan manajemen user.
 - **KETIK**: Simulasi chat layanan berbasis AI, history tersimpan di Supabase, settings local-first plus sync akun, serta quick-view `Usage Bulan Ini`.
-- **PDKT**: Simulasi email dengan composer-style reply, evaluasi async, history Supabase, quick-view usage, dan status evaluasi `processing/completed/failed`.
+- **PDKT**: Simulasi email dengan composer-style reply, evaluasi async, history Supabase, quick-view usage, status evaluasi `processing/completed/failed`, dan pengaturan pola penyebutan nama konsumen untuk email awal.
 - **TELEFUN**: Simulasi percakapan telepon berbasis Gemini Live melalui WebSocket proxy, history `telefun_history`, quick-view `Usage`, monitoring pusat, dan tuning deteksi bicara agar respons singkat tidak memutus sesi terlalu cepat.
 - **Profiler / KTP**: Database peserta dan agen dengan folder bertingkat, import/export, slides, tim, foto, dan workflow export.
 - **SIDAK / QA Analyzer**: Dashboard kualitas, input temuan, ranking, laporan data/AI, aturan clean-session, dan guardrail scoring versioned rules.
