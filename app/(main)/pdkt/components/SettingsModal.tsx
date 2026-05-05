@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { AppSettings, Scenario, ConsumerType, ConsumerDifficulty } from '../types';
 import { DEFAULT_SCENARIOS, DEFAULT_CONSUMER_TYPES } from '../constants';
-import { normalizeModelId, TEXT_OPENROUTER_MODELS } from '@/app/lib/ai-models';
+import { normalizeModelId, getModelsForModule } from '@/app/lib/ai-models';
 import { X, Plus, Check, Edit2, Trash2, Image as ImageIcon, User, Settings, FileText, Users, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -19,6 +19,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   const [activeTab, setActiveTab] = useState<'scenarios' | 'consumers' | 'identity' | 'system'>('scenarios');
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
   
+  const TEXT_MODELS = getModelsForModule('pdkt');
+
   // Scenario Form State
   const [editingScenarioId, setEditingScenarioId] = useState<string | null>(null);
   const [isAddingScenario, setIsAddingScenario] = useState(false);
@@ -50,7 +52,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   const [enableImageGeneration, setEnableImageGeneration] = useState(localSettings.enableImageGeneration ?? true);
   const [globalConsumerTypeId, setGlobalConsumerTypeId] = useState(localSettings.globalConsumerTypeId || 'random');
   const [selectedModel, setSelectedModel] = useState(normalizeModelId(localSettings.selectedModel));
-  const defaultModelId = TEXT_OPENROUTER_MODELS[0]?.id || 'openai/gpt-oss-120b:free';
+  const defaultModelId = 'gemini-3.1-flash-lite-preview';
 
   const [consumerNameMentionPattern, setConsumerNameMentionPattern] = useState(
     localSettings.consumerNameMentionPattern || 'random'
@@ -60,7 +62,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   useEffect(() => {
     if (isOpen) {
         const normalizedModel = normalizeModelId(settings.selectedModel);
-        const nextSelectedModel = TEXT_OPENROUTER_MODELS.some(model => model.id === normalizedModel)
+        const nextSelectedModel = TEXT_MODELS.some(model => model.id === normalizedModel)
           ? normalizedModel
           : defaultModelId;
         setLocalSettings({ ...settings, selectedModel: nextSelectedModel });
@@ -80,7 +82,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
         setEditingConsumerId(null);
         setIsAddingConsumer(false);
     }
-  }, [isOpen, settings, defaultModelId]);
+  }, [isOpen, settings, defaultModelId, TEXT_MODELS]);
 
   if (!isOpen) return null;
 
@@ -1222,7 +1224,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                   </div>
 
                   <div className="grid grid-cols-1 gap-4">
-                    {TEXT_OPENROUTER_MODELS.map(model => {
+                    {TEXT_MODELS.map(model => {
                       const isSelected = selectedModel === model.id;
                       return (
                         <div 
@@ -1242,7 +1244,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                               <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${
                                 model.provider === 'openrouter' 
                                 ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' 
-                                : 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                                : model.provider === 'gemini'
+                                ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                                : 'bg-green-500/10 text-green-500 border-green-500/20'
                               }`}>
                                 {model.provider}
                               </span>
