@@ -8,7 +8,7 @@ import { UsageModal } from './components/UsageModal';
 import { AppSettings, SessionConfig, Identity, ConsumerType, EmailMessage, EvaluationResult, SessionHistory, EvaluationStatus } from './types';
 import { DUMMY_CITIES, DUMMY_PROFILES } from './constants';
 import { initializeEmailSession } from './services/geminiService';
-import { loadPdktSettings, savePdktSettings, defaultPdktSettings } from './services/settingService';
+import { loadPdktSettings, savePdktSettings, defaultPdktSettings, resolveConsumerNameMentionPattern } from './services/settingService';
 
 import { History, Settings, Play, Mail, BarChart3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -250,12 +250,16 @@ const PdktPage: React.FC = () => {
       bodyName: customIdentity?.bodyName || (customIdentity?.senderName || randomProfile.name),
     };
 
+    const resolvedConsumerNameMentionPattern =
+      resolveConsumerNameMentionPattern(settings.consumerNameMentionPattern);
+
     const config: SessionConfig = {
       scenarios: activeScenarios,
       consumerType: selectedConsumerType,
       identity,
       enableImageGeneration: settings.enableImageGeneration ?? true,
       model: normalizeModelId(settings.selectedModel),
+      resolvedConsumerNameMentionPattern,
     };
 
     setCurrentConfig(config);

@@ -25,4 +25,24 @@ describe('PDKT consumer name mention pattern', () => {
     expect(resolveConsumerNameMentionPattern('late')).toBe('late');
     expect(resolveConsumerNameMentionPattern('none')).toBe('none');
   });
+
+  it('resolves random mode into one supported session mode', () => {
+    const originalRandom = Math.random;
+
+    try {
+      Math.random = () => 0;
+      expect(resolveConsumerNameMentionPattern('random')).toBe('upfront');
+
+      Math.random = () => 0.3;
+      expect(resolveConsumerNameMentionPattern('random')).toBe('middle');
+
+      Math.random = () => 0.6;
+      expect(resolveConsumerNameMentionPattern('random')).toBe('late');
+
+      Math.random = () => 0.9;
+      expect(resolveConsumerNameMentionPattern('random')).toBe('none');
+    } finally {
+      Math.random = originalRandom;
+    }
+  });
 });
