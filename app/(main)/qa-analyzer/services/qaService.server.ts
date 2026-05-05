@@ -1666,9 +1666,16 @@ export const qaServiceServer = {
       .from('qa_service_rule_versions').select('status').eq('id', versionId).single();
     if (current?.status === 'published') throw new Error('Cannot update a published rule version');
 
+    const { data: { user } } = await supabase.auth.getUser();
+    const enrichedPatch = {
+      ...patch,
+      updated_by: user?.id ?? patch.updated_by,
+      updated_at: new Date().toISOString(),
+    };
+
     const { data, error } = await supabase
       .from('qa_service_rule_versions')
-      .update(patch)
+      .update(enrichedPatch)
       .eq('id', versionId)
       .eq('status', 'draft')
       .select().single();
@@ -1719,12 +1726,15 @@ export const qaServiceServer = {
       .from('qa_service_rule_versions').select('status, service_type').eq('id', versionId).single();
     if (current?.status === 'published') throw new Error('Cannot add indicators to a published rule version');
 
+    const { data: { user } } = await supabase.auth.getUser();
+
     const { data, error } = await supabase
       .from('qa_service_rule_indicators')
       .insert({
         ...indicator,
         rule_version_id: versionId,
-        service_type: current?.service_type
+        service_type: current?.service_type,
+        updated_by: user?.id,
       })
       .select().single();
     if (error) throw error;
@@ -1743,9 +1753,16 @@ export const qaServiceServer = {
     const status = (version?.qa_service_rule_versions as any)?.status;
     if (status === 'published') throw new Error('Cannot update indicator of a published rule version');
 
+    const { data: { user } } = await supabase.auth.getUser();
+    const enrichedPatch = {
+      ...patch,
+      updated_by: user?.id ?? patch.updated_by,
+      updated_at: new Date().toISOString(),
+    };
+
     const { data, error } = await supabase
       .from('qa_service_rule_indicators')
-      .update(patch)
+      .update(enrichedPatch)
       .eq('id', id)
       .select().single();
     if (error) throw error;

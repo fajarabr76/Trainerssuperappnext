@@ -84,6 +84,7 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
   const [isPublishing, setIsPublishing] = useState(false);
   const [changeReason, setChangeReason] = useState('');
   const [previewVersion, setPreviewVersion] = useState<QARuleVersion | null>(null);
+  const [publishConfirmed, setPublishConfirmed] = useState(false);
 
   const fetchVersions = useCallback(async (team: ServiceType) => {
     setLoading(true);
@@ -258,7 +259,7 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
           {selectedVersion?.status === 'draft' && (
             <>
               <button
-                onClick={() => setPreviewVersion(selectedVersion)}
+                onClick={() => { setPreviewVersion(selectedVersion); setPublishConfirmed(false); }}
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-green-500/20"
               >
                 <Rocket className="w-3.5 h-3.5"/>
@@ -654,23 +655,36 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
                    </div>
                  )}
 
-                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-start gap-3">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5"/>
-                    <p className="text-[10px] font-bold text-amber-700 leading-relaxed uppercase tracking-wider">
-                       Setelah dipublish, rule ini tidak dapat diubah lagi (Immutable). Versi published sebelumnya akan menjadi superseded.
-                    </p>
-                 </div>
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-start gap-3">
+                     <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5"/>
+                     <p className="text-[10px] font-bold text-amber-700 leading-relaxed uppercase tracking-wider">
+                        Setelah dipublish, rule ini tidak dapat diubah lagi (Immutable). Versi published sebelumnya akan menjadi superseded.
+                     </p>
+                  </div>
 
-                 <div className="flex flex-col gap-2">
-                    <button 
-                      onClick={handlePublish}
-                      disabled={isPublishing || (previewVersion.version_number > 1 && !changeReason.trim())}
-                      className="w-full py-4 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-green-500/20 transition-all"
-                    >
-                       {isPublishing ? 'Mempublish...' : 'Ya, Publish Sekarang'}
-                    </button>
-                    <button onClick={() => { setPreviewVersion(null); setChangeReason(''); }} className="w-full py-4 bg-foreground/5 text-muted-foreground rounded-2xl text-xs font-black uppercase tracking-widest">Batal</button>
-                 </div>
+                  {/* Confirmation checkbox */}
+                  <label className="flex items-center gap-3 p-4 rounded-2xl border border-border bg-foreground/5 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={publishConfirmed}
+                      onChange={e => setPublishConfirmed(e.target.checked)}
+                      className="w-5 h-5 accent-primary rounded"
+                    />
+                    <span className="text-xs font-bold text-foreground">
+                      Saya telah meninjau parameter dan bobot di atas
+                    </span>
+                  </label>
+
+                  <div className="flex flex-col gap-2">
+                     <button 
+                       onClick={handlePublish}
+                       disabled={isPublishing || !publishConfirmed || (previewVersion.version_number > 1 && !changeReason.trim())}
+                       className="w-full py-4 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-green-500/20 transition-all"
+                     >
+                        {isPublishing ? 'Mempublish...' : 'Ya, Publish Sekarang'}
+                     </button>
+                     <button onClick={() => { setPreviewVersion(null); setChangeReason(''); setPublishConfirmed(false); }} className="w-full py-4 bg-foreground/5 text-muted-foreground rounded-2xl text-xs font-black uppercase tracking-widest">Batal</button>
+                  </div>
               </motion.div>
           </div>
         )}
