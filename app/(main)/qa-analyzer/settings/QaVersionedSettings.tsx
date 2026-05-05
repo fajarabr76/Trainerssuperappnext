@@ -6,7 +6,7 @@ import {
   Settings, Plus, Trash2, Info,
   Pencil, Check, History,
   Clock, Rocket, AlertTriangle,
-  Eye, GitBranch
+  GitBranch
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -82,7 +82,6 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const [isPublishing, setIsPublishing] = useState(false);
-  const [publishPeriodId, setPublishPeriodId] = useState<string>('');
   const [changeReason, setChangeReason] = useState('');
   const [previewVersion, setPreviewVersion] = useState<QARuleVersion | null>(null);
 

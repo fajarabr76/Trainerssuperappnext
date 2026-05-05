@@ -1114,7 +1114,7 @@ export async function deleteRuleDraftAction(versionId: string) {
 }
 
 export async function publishRuleVersionAction(versionId: string, changeReason?: string) {
-  const { user } = await assertQaActionAccess(['trainer', 'admin']);
+  await assertQaActionAccess(['trainer', 'admin']);
 
   const { qaServiceServer } = await import('./services/qaService.server');
   const published = await qaServiceServer.publishRuleVersion(versionId, changeReason);
