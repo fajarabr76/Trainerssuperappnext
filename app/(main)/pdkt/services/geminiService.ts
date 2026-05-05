@@ -1,8 +1,9 @@
-import { SessionConfig, EmailMessage, EvaluationResult } from "../types";
+import { SessionConfig, EmailMessage, EvaluationResult, ResolvedConsumerNameMentionPattern } from "../types";
 import { generateGeminiContent } from '@/app/actions/gemini';
 import { generateOpenRouterContent } from '@/app/actions/openrouter';
 import { getProviderFromModelId, normalizeModelId } from '@/app/lib/ai-models';
 import type { UsageContext } from '@/app/lib/ai-usage';
+import { getConsumerNameMentionInstruction } from './promptHelpers';
 
 /**
  * Helper to call the appropriate AI provider based on model ID.
@@ -132,6 +133,8 @@ const getSystemInstruction = (config: SessionConfig, hasCustomImages: boolean) =
     ${nameNote}
 
     PENTING: Gunakan data profil di atas secara KONSISTEN. Jangan mengarang nama/kota/email lain yang berbeda dari profil ini.
+    ${getConsumerNameMentionInstruction(config.resolvedConsumerNameMentionPattern)}
+    ${config.resolvedConsumerNameMentionPattern === 'none' ? 'Walaupun profil Anda diketahui sistem, dalam email ini Anda tidak boleh menyebut nama diri Anda sama sekali.' : ''}
     
     KARAKTER:
     Tipe: ${config.consumerType.name}

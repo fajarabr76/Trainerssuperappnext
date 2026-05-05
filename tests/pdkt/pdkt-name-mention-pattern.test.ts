@@ -3,6 +3,7 @@ import {
   coerceConsumerNameMentionPattern,
   resolveConsumerNameMentionPattern,
 } from '@/app/(main)/pdkt/services/settingService';
+import { getConsumerNameMentionInstruction } from '@/app/(main)/pdkt/services/promptHelpers';
 
 describe('PDKT consumer name mention pattern', () => {
   it('coerces unsupported values to random', () => {
@@ -44,5 +45,26 @@ describe('PDKT consumer name mention pattern', () => {
     } finally {
       Math.random = originalRandom;
     }
+  });
+});
+
+describe('getConsumerNameMentionInstruction', () => {
+  it('returns none rule that forbids any name mention', () => {
+    expect(getConsumerNameMentionInstruction('none')).toContain('Jangan sebut nama Anda sama sekali');
+    expect(getConsumerNameMentionInstruction('none')).toContain('Jangan mengarang nama');
+  });
+
+  it('returns middle rule that forbids opening mention', () => {
+    expect(getConsumerNameMentionInstruction('middle')).toContain('Jangan sebut nama di awal email');
+    expect(getConsumerNameMentionInstruction('middle')).toContain('bagian tengah');
+  });
+
+  it('returns late rule that delays mention until closing', () => {
+    expect(getConsumerNameMentionInstruction('late')).toContain('Jangan sebut nama di awal email');
+    expect(getConsumerNameMentionInstruction('late')).toContain('menjelang akhir');
+  });
+
+  it('returns upfront rule that allows early mention', () => {
+    expect(getConsumerNameMentionInstruction('upfront')).toContain('boleh menyebut nama di awal');
   });
 });
