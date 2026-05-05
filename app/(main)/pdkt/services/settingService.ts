@@ -1,11 +1,26 @@
 import { createClient } from '@/app/lib/supabase/client';
-import { AppSettings } from '../types';
+import { AppSettings, ConsumerNameMentionPattern, ResolvedConsumerNameMentionPattern } from '../types';
 import { DEFAULT_SCENARIOS, DEFAULT_CONSUMER_TYPES } from '../constants';
 import { normalizeModelId, TEXT_OPENROUTER_MODELS } from '@/app/lib/ai-models';
 
 const supabase = createClient();
 const LOCAL_STORAGE_KEY = 'pdkt_settings_v2';
 const DEFAULT_PDKT_MODEL_ID = TEXT_OPENROUTER_MODELS[0]?.id || 'openai/gpt-oss-120b:free';
+
+const CONSUMER_NAME_MENTION_PATTERNS = [
+  'random',
+  'upfront',
+  'middle',
+  'late',
+  'none',
+] as const;
+
+const RESOLVED_CONSUMER_NAME_MENTION_PATTERNS = [
+  'upfront',
+  'middle',
+  'late',
+  'none',
+] as const;
 
 function coercePdktModelId(modelId?: string | null): string {
   const normalizedModelId = normalizeModelId(modelId);
@@ -14,12 +29,39 @@ function coercePdktModelId(modelId?: string | null): string {
     : DEFAULT_PDKT_MODEL_ID;
 }
 
+export function coerceConsumerNameMentionPattern(
+  value?: string | null
+): ConsumerNameMentionPattern {
+  return CONSUMER_NAME_MENTION_PATTERNS.includes(
+    value as ConsumerNameMentionPattern
+  )
+    ? (value as ConsumerNameMentionPattern)
+    : 'random';
+}
+
+export function resolveConsumerNameMentionPattern(
+  value?: string | null
+): ResolvedConsumerNameMentionPattern {
+  const coerced = coerceConsumerNameMentionPattern(value);
+
+  if (coerced !== 'random') {
+    return coerced;
+  }
+
+  const randomIndex = Math.floor(
+    Math.random() * RESOLVED_CONSUMER_NAME_MENTION_PATTERNS.length
+  );
+
+  return RESOLVED_CONSUMER_NAME_MENTION_PATTERNS[randomIndex];
+}
+
 export const defaultPdktSettings: AppSettings = {
   scenarios: DEFAULT_SCENARIOS,
   consumerTypes: DEFAULT_CONSUMER_TYPES,
   enableImageGeneration: true,
   globalConsumerTypeId: 'random',
   selectedModel: DEFAULT_PDKT_MODEL_ID,
+  consumerNameMentionPattern: 'random',
 };
 
 export async function loadPdktSettings(): Promise<AppSettings> {
@@ -58,12 +100,18 @@ export async function loadPdktSettings(): Promise<AppSettings> {
   if (!settings.scenarios || settings.scenarios.length === 0) settings.scenarios = DEFAULT_SCENARIOS;
   if (!settings.consumerTypes || settings.consumerTypes.length === 0) settings.consumerTypes = DEFAULT_CONSUMER_TYPES;
   settings.selectedModel = coercePdktModelId(settings.selectedModel);
+  settings.consumerNameMentionPattern = coerceConsumerNameMentionPattern(
+    settings.consumerNameMentionPattern
+  );
 
   return settings;
 }
 
 export async function savePdktSettings(settings: AppSettings): Promise<void> {
   settings.selectedModel = coercePdktModelId(settings.selectedModel);
+  settings.consumerNameMentionPattern = coerceConsumerNameMentionPattern(
+    settings.consumerNameMentionPattern
+  );
 
   // 1. Simpan ke localStorage
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(settings));

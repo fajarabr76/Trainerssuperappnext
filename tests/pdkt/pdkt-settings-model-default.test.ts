@@ -55,6 +55,7 @@ describe('PDKT settings model defaults', () => {
     const settings = await loadPdktSettings();
 
     expect(settings.selectedModel).toBe('openai/gpt-oss-120b:free');
+    expect(settings.consumerNameMentionPattern).toBe('random');
   });
 
   it('migrates legacy direct Gemini model selections to the OpenRouter default', async () => {
@@ -72,5 +73,22 @@ describe('PDKT settings model defaults', () => {
     const settings = await loadPdktSettings();
 
     expect(settings.selectedModel).toBe('openai/gpt-oss-120b:free');
+  });
+
+  it('coerces missing consumerNameMentionPattern to random for legacy settings', async () => {
+    localStorage.setItem(
+      'pdkt_settings_v2',
+      JSON.stringify({
+        selectedModel: 'openai/gpt-oss-120b:free',
+        scenarios: [],
+        consumerTypes: [],
+      })
+    );
+
+    const { loadPdktSettings } = await import('@/app/(main)/pdkt/services/settingService');
+
+    const settings = await loadPdktSettings();
+
+    expect(settings.consumerNameMentionPattern).toBe('random');
   });
 });
