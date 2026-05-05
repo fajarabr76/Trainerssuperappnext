@@ -1,9 +1,23 @@
+export type ConsumerNameMentionPattern =
+  | 'random'
+  | 'upfront'
+  | 'middle'
+  | 'late'
+  | 'none';
+
+export type ResolvedConsumerNameMentionPattern =
+  | 'upfront'
+  | 'middle'
+  | 'late'
+  | 'none';
+
 export interface AppSettings {
   scenarios: Scenario[];
   consumerTypes: ConsumerType[];
   enableImageGeneration: boolean;
   globalConsumerTypeId: string;
   selectedModel?: string;
+  consumerNameMentionPattern?: ConsumerNameMentionPattern;
   customIdentity?: {
     senderName?: string;
     bodyName?: string;
@@ -44,6 +58,7 @@ export interface SessionConfig {
   identity: Identity;
   enableImageGeneration: boolean;
   model: string;
+  resolvedConsumerNameMentionPattern: ResolvedConsumerNameMentionPattern;
 }
 
 export interface Identity {
