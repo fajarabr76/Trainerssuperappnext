@@ -22,6 +22,9 @@ Dokumen ini adalah peta baca untuk kondisi aplikasi Trainers SuperApp saat ini. 
 - `docs/QA_SMOKE_TEST_VERSIONED_RULES.md`: Checklist smoke test SIDAK untuk scoring, ranking, dan clean-session.
 - `docs/SIDAK_SCORING_GUARDRAILS.md`: Guardrail wajib sebelum mengubah scoring atau agregasi SIDAK.
 - `docs/SIDAK_KNOWN_ISSUE_HISTORICAL_AGENT_INPUT.md`: Toggle data keseluruhan untuk input agent historis/excluded, normalisasi `Tim BKO`, dan link `INPUT AUDIT`.
+- `docs/PDKT_CONSUMER_NAME_MENTION_PATTERN_CHANGELOG_2026-05-05.md`: Ringkasan perubahan user-facing untuk setting pola penyebutan nama konsumen di PDKT.
+- `docs/superpowers/specs/2026-05-05-pdkt-consumer-name-mention-pattern-design.md`: Spec desain setting PDKT untuk pola penyebutan nama konsumen.
+- `docs/superpowers/plans/2026-05-05-pdkt-consumer-name-mention-pattern.md`: Rencana implementasi task-by-task untuk setting pola penyebutan nama konsumen di PDKT.
 
 ## Catatan Regresi Penting
 
