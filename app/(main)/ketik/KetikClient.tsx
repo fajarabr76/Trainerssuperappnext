@@ -268,7 +268,7 @@ export default function AppKetik() {
       scenarios: activeScenarios,
       consumerType,
       identity,
-      model: settings.selectedModel,
+      selectedModel: settings.selectedModel,
       simulationDuration: settings.simulationDuration || 5,
       responsePacingMode: settings.responsePacingMode || 'realistic',
     };
@@ -373,7 +373,7 @@ export default function AppKetik() {
       scenarios: settings.scenarios,
       consumerType: settings.consumerTypes[0],
       identity: { name: session.consumerName, city: session.consumerCity || '', phone: session.consumerPhone || '0812...' },
-      model: settings.selectedModel,
+      selectedModel: settings.selectedModel,
       simulationDuration: 5,
       responsePacingMode: settings.responsePacingMode || 'realistic',
     });

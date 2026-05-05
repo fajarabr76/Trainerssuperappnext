@@ -218,7 +218,7 @@ export const initializeEmailSession = async (
     .filter((img): img is string => !!img);
 
   const hasCustomImages = customAttachments.length > 0;
-  const model = normalizeModelId(config.model || "gemini-3.1-flash-lite-preview");
+  const model = normalizeModelId(config.selectedModel || "gemini-3.1-flash-lite-preview");
 
   // Existing logic for prompt remains the same...
   const prompt = `

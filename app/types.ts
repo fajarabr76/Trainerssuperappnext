@@ -58,7 +58,7 @@ export interface SessionConfig {
   scenarios: Scenario[];
   consumerType: ConsumerType;
   identity: Identity;
-  model: string;
+  selectedModel: string;
   simulationDuration: number;
   responsePacingMode: 'realistic' | 'training_fast';
   maxCallDuration?: number;

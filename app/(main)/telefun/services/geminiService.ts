@@ -992,7 +992,7 @@ ${scenario.script}`
 
   try {
     const response = await generateGeminiContent({
-      model: config.model || "gemini-3.1-flash-lite-preview",
+      model: config.selectedModel || "gemini-3.1-flash-lite-preview",
       contents: contents,
       systemInstruction,
       temperature: 0.7,
@@ -1044,7 +1044,7 @@ ${scenario.script}`
 
   try {
     const response = await generateGeminiContent({
-      model: config.model || "gemini-3.1-flash-lite-preview",
+      model: config.selectedModel || "gemini-3.1-flash-lite-preview",
       contents: [{ role: 'user', parts: [{ text: "Berikan pesan pembuka telepon." }] }],
       systemInstruction,
       temperature: 0.7,

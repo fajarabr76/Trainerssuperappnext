@@ -107,7 +107,7 @@ export default function TelefunClient() {
       scenarios: [finalScenario],
       consumerType,
       identity: resolvedIdentity,
-      model: settings.selectedModel,
+      selectedModel: settings.selectedModel,
       simulationDuration: settings.maxCallDuration || 5,
       responsePacingMode: settings.responsePacingMode || 'realistic',
       maxCallDuration: settings.maxCallDuration,

@@ -258,7 +258,7 @@ const PdktPage: React.FC = () => {
       consumerType: selectedConsumerType,
       identity,
       enableImageGeneration: settings.enableImageGeneration ?? true,
-      model: normalizeModelId(settings.selectedModel),
+      selectedModel: normalizeModelId(settings.selectedModel),
       resolvedConsumerNameMentionPattern,
     };
 

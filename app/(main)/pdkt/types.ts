@@ -57,7 +57,7 @@ export interface SessionConfig {
   consumerType: ConsumerType;
   identity: Identity;
   enableImageGeneration: boolean;
-  model: string;
+  selectedModel: string;
   resolvedConsumerNameMentionPattern: ResolvedConsumerNameMentionPattern;
 }
 
