@@ -1557,22 +1557,42 @@ export const qaServiceServer = {
     // 1. Get base data from source or current weights
     let baseWeights: { critical_weight: number, non_critical_weight: number, scoring_mode: ScoringMode };
     let baseIndicators: any[];
+    let effectivePeriodId: string;
 
     if (sourceVersionId) {
       const { data: sourceVer, error: verErr } = await supabase
         .from('qa_service_rule_versions').select('*').eq('id', sourceVersionId).single();
       if (verErr) throw verErr;
+      if (sourceVer.status !== 'published') throw new Error('Can only create revision from a published version');
+
       baseWeights = { 
         critical_weight: Number(sourceVer.critical_weight), 
         non_critical_weight: Number(sourceVer.non_critical_weight), 
         scoring_mode: sourceVer.scoring_mode as ScoringMode 
       };
+      effectivePeriodId = sourceVer.effective_period_id;
       
       const { data: sourceInds, error: indsErr } = await supabase
         .from('qa_service_rule_indicators').select('*').eq('rule_version_id', sourceVersionId);
       if (indsErr) throw indsErr;
       baseIndicators = sourceInds;
     } else {
+      const periods = await this.getPeriods();
+      effectivePeriodId = periods[0]?.id;
+
+      // Prevent creating a first draft if a published version already exists
+      const { data: existingPublished } = await supabase
+        .from('qa_service_rule_versions')
+        .select('id')
+        .eq('service_type', serviceType)
+        .eq('effective_period_id', effectivePeriodId)
+        .eq('status', 'published')
+        .maybeSingle();
+
+      if (existingPublished) {
+        throw new Error('Published version already exists for this service and period. Use Create Revision instead.');
+      }
+
       const weightsMap = await this.getServiceWeights(serviceType);
       const activeWeight = weightsMap[serviceType] || DEFAULT_SERVICE_WEIGHTS[serviceType];
       baseWeights = { 
@@ -1585,9 +1605,17 @@ export const qaServiceServer = {
       baseIndicators = inds;
     }
 
-    // 2. Find a default effective period (latest period)
-    const periods = await this.getPeriods();
-    const effectivePeriodId = periods[0]?.id;
+    // 2. Compute version_number (MAX + 1 for this service + period)
+    const { data: maxVerRow } = await supabase
+      .from('qa_service_rule_versions')
+      .select('version_number')
+      .eq('service_type', serviceType)
+      .eq('effective_period_id', effectivePeriodId)
+      .order('version_number', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const nextVersionNumber = (maxVerRow?.version_number ?? 0) + 1;
 
     // 3. Create Draft Version
     const { data: newVer, error: createErr } = await supabase
@@ -1600,6 +1628,8 @@ export const qaServiceServer = {
         non_critical_weight: baseWeights.non_critical_weight,
         scoring_mode: baseWeights.scoring_mode,
         created_by: createdBy,
+        version_number: nextVersionNumber,
+        created_from_version_id: sourceVersionId || null,
       })
       .select().single();
     
@@ -1615,13 +1645,13 @@ export const qaServiceServer = {
       has_na: ind.has_na || false,
       threshold: ind.threshold || null,
       sort_order: ind.sort_order || 0,
-      legacy_indicator_id: ind.id,
+      legacy_indicator_id: ind.id || ind.legacy_indicator_id || null,
     }));
 
     const { error: copyErr } = await supabase.from('qa_service_rule_indicators').insert(newInds);
     if (copyErr) throw copyErr;
 
-    return newVer;
+    return newVer as QARuleVersion;
   },
 
   async updateRuleDraft(versionId: string, patch: Partial<QARuleVersion>): Promise<QARuleVersion> {
