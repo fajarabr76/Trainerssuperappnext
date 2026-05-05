@@ -901,6 +901,11 @@ export const qaServiceServer = {
       const monthB = Number(periodB?.month ?? 0);
       if (monthA !== monthB) return monthB - monthA;
 
+      // Prefer highest version_number, then latest publish date
+      const verA = Number((a as QARuleVersion).version_number ?? 0);
+      const verB = Number((b as QARuleVersion).version_number ?? 0);
+      if (verA !== verB) return verB - verA;
+
       return new Date(b.published_at ?? b.created_at).getTime() - new Date(a.published_at ?? a.created_at).getTime();
     })[0];
 
