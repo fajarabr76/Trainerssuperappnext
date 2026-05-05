@@ -80,20 +80,22 @@ export async function flushLiveUsage(
         .single(),
     ]);
 
+    let inputPricePerMillion = 0;
+    let outputPricePerMillion = 0;
+    const usdToIdrRate = billing?.usd_to_idr_rate ?? 15000;
+
     if (!pricing) {
       console.warn(
-        `[Telefun Usage] No pricing found for model "${MODEL_ID}". Usage not logged.`,
+        `[Telefun Usage] No pricing found for model "${MODEL_ID}". Token count logged but billing will be 0 IDR until admin configures pricing in the editor.`,
       );
-      return;
+    } else {
+      inputPricePerMillion = pricing.input_price_usd_per_million ?? 0;
+      outputPricePerMillion = pricing.output_price_usd_per_million ?? 0;
     }
-
-    const usdToIdrRate = billing?.usd_to_idr_rate ?? 15000;
-    const inputPricePerMillion = pricing.input_price_usd_per_million ?? 0;
-    const outputPricePerMillion = pricing.output_price_usd_per_million ?? 0;
 
     if (inputPricePerMillion === 0 && outputPricePerMillion === 0) {
       console.warn(
-        `[Telefun Usage] ⚠️ Pricing for "${MODEL_ID}" is 0/0 USD. Tokens are logged but billing will be 0 IDR until admin updates pricing in the editor.`,
+        `[Telefun Usage] Pricing for "${MODEL_ID}" is 0/0 USD. Tokens logged but billing will be 0 IDR until admin updates pricing.`,
       );
     }
 

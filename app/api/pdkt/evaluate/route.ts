@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     }
 
     const modelId = claimedRow.config?.model;
-    const evaluation = await evaluateAgentResponse(lastAgentEmail.body, lastConsumerEmail.body, modelId);
+    const evaluation = await evaluateAgentResponse(lastAgentEmail.body, lastConsumerEmail.body, modelId, user.id);
     const completedAt = new Date().toISOString();
 
     const { error: updateError } = await admin

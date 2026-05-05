@@ -44,6 +44,7 @@ async function callAI(options: {
   responseMimeType?: string;
   strictScriptMode?: boolean;
   usageContext?: UsageContext;
+  userId?: string;
 }) {
   const provider = getProviderFromModelId(options.model);
   const isOpenRouter = provider === 'openrouter';
@@ -61,6 +62,7 @@ async function callAI(options: {
       : options.temperature,
     responseMimeType: options.responseMimeType,
     usageContext: options.usageContext,
+    userId: options.userId,
   };
 
   try {
@@ -162,7 +164,8 @@ export async function generateConsumerResponse(
   chatHistory: ChatMessage[],
   extraPrompt?: string,
   timing?: SessionTimingContext,
-  usageContext?: UsageContext
+  usageContext?: UsageContext,
+  userId?: string
 ): Promise<GenerateConsumerResponseResult> {
   const imagesCount = scenario.images?.length || 0;
   const imageInstruction = imagesCount > 0
@@ -262,6 +265,7 @@ ${extraPrompt || 'Balas sebagai konsumen:'}`;
       temperature: 0.82,
       strictScriptMode: Boolean(scenario.script),
       usageContext,
+      userId,
     });
 
     if (!response.success) {

@@ -48,13 +48,25 @@ export async function generateGeminiContent(options: {
   responseModalities?: string[];
   speechConfig?: SpeechConfig;
   usageContext?: UsageContext;
+  userId?: string;
 }): Promise<GeminiResponse> {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    const [{ data: { user } }, { data: { session } }] = await Promise.all([
+      supabase.auth.getUser(),
+      supabase.auth.getSession(),
+    ]);
+
+    const resolvedUserId = user?.id || session?.user?.id || options.userId;
+
+    if (options.userId && user?.id && options.userId !== user.id) {
+      console.warn(
+        `[Gemini Action] options.userId "${options.userId}" mismatched with auth user "${user.id}". Using auth user.`
+      );
+    }
+
     // Rate limit: 30 requests per minute per user
-    const rateLimitKey = `gemini:${user?.id || 'anon'}`;
+    const rateLimitKey = `gemini:${resolvedUserId || 'anon'}`;
     const rateLimit = await consumeRateLimit({
       key: rateLimitKey,
       limit: 30,
@@ -119,7 +131,7 @@ export async function generateGeminiContent(options: {
       }
     }
 
-    if (options.usageContext && user) {
+    if (options.usageContext && resolvedUserId) {
       const usage = (response as { usageMetadata?: unknown })?.usageMetadata;
       if (usage && typeof usage === 'object') {
         const u = usage as Record<string, unknown>;
@@ -134,7 +146,7 @@ export async function generateGeminiContent(options: {
 
           await logAiUsage({
             requestId,
-            userId: user.id,
+            userId: resolvedUserId,
             provider: provider as 'gemini' | 'openrouter',
             modelId: modelName,
             usageContext: options.usageContext,

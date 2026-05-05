@@ -286,7 +286,7 @@ const PdktPage: React.FC = () => {
 
     try {
       console.log('[PDKT] Starting session with config:', config);
-      const initResult = await initializeEmailSession(config);
+      const initResult = await initializeEmailSession(config, user?.id);
       if (!initResult.success) {
         const err = 'error' in initResult ? initResult.error : 'Gagal memulai sesi.';
         console.warn('[PDKT] Failed to start session:', err);

@@ -40,16 +40,18 @@ export async function logAiUsage(options: {
         .single(),
     ]);
 
+    let inputPricePerMillion = 0;
+    let outputPricePerMillion = 0;
+    const usdToIdrRate = billing?.usd_to_idr_rate ?? 15000;
+
     if (!pricing) {
       console.warn(
-        `[AI Usage] No pricing found for model "${normalizedModelId}". Usage not logged.`
+        `[AI Usage] No pricing found for model "${normalizedModelId}". Token count logged but billing will be 0 IDR until admin configures pricing in the editor.`
       );
-      return;
+    } else {
+      inputPricePerMillion = pricing.input_price_usd_per_million ?? 0;
+      outputPricePerMillion = pricing.output_price_usd_per_million ?? 0;
     }
-
-    const usdToIdrRate = billing?.usd_to_idr_rate ?? 15000;
-    const inputPricePerMillion = pricing.input_price_usd_per_million ?? 0;
-    const outputPricePerMillion = pricing.output_price_usd_per_million ?? 0;
 
     const estimatedCostUsd =
       (options.tokens.inputTokens / 1_000_000) * inputPricePerMillion +

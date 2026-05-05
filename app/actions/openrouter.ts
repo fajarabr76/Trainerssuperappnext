@@ -21,6 +21,7 @@ export async function generateOpenRouterContent(options: {
   temperature?: number;
   responseMimeType?: string;
   usageContext?: UsageContext;
+  userId?: string;
 }): Promise<OpenRouterResponse> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   const modelId = options.model || 'z-ai/glm-4.5-air:free';
@@ -123,9 +124,20 @@ export async function generateOpenRouterContent(options: {
 
     if (options.usageContext) {
       const supabase = await createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const [{ data: { user } }, { data: { session } }] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.auth.getSession(),
+      ]);
 
-      if (user) {
+      const resolvedUserId = user?.id || session?.user?.id || options.userId;
+
+      if (options.userId && user?.id && options.userId !== user.id) {
+        console.warn(
+          `[OpenRouter Action] options.userId "${options.userId}" mismatched with auth user "${user.id}". Using auth user.`
+        );
+      }
+
+      if (resolvedUserId) {
         const usage = data.usage;
         if (usage && typeof usage === 'object') {
           const inputTokens = typeof usage.prompt_tokens === 'number' ? usage.prompt_tokens : 0;
@@ -138,7 +150,7 @@ export async function generateOpenRouterContent(options: {
 
             await logAiUsage({
               requestId,
-              userId: user.id,
+              userId: resolvedUserId,
               provider: 'openrouter',
               modelId,
               usageContext: options.usageContext,

@@ -107,3 +107,10 @@ Periode bulanan selalu memakai WIB / `Asia/Jakarta`:
 - Instrumentasi usage ditambahkan untuk Telefun (`voice_tts`, `chat_response`, `first_message`, `score_generation`) dan QA Analyzer (`report_generation`)
 - Logging diubah dari `void` ke `await` agar durability terjamin
 - Default filter bulan/tahun di MonitoringClient berasal dari WIB server, bukan timezone browser
+- `logAiUsage()` dan `flushLiveUsage()` tidak lagi skip recording saat pricing model belum dikonfigurasi. Token tetap tercatat dengan biaya 0 IDR + warning, sehingga admin bisa lihat usage lalu mengisi pricing. Sebelumnya, seluruh row usage hilang jika pricing tidak ada.
+- `getUsageAggregationInternal()` sekarang menangkap error query `profiles` dan melanjutkan agregasi tanpa gagal diam-diam.
+- Instrumentasi usage untuk agent sebelumnya gagal karena `supabase.auth.getUser()` return `null` di server action context untuk role agent, menyebabkan `logAiUsage()` tidak pernah dipanggil meskipun AI call sukses. Perbaikan:
+  - `generateGeminiContent()` dan `generateOpenRouterContent()` menerima `userId` opsional dari client (KetikClient → ChatInterface → geminiService → server action).
+  - Server action resolve identity dengan `resolvedUserId = getUser() || getSession() || options.userId` — server-verified diutamakan, client-passed sebagai fallback terakhir.
+  - Cross-check: jika `options.userId` tidak cocok dengan `getUser()`, log warning dan tetap pakai identity server.
+  - Ketik, PDKT (termasuk `api/pdkt/evaluate`), dan Telefun HTTP sudah di-thread userId dari client ke server action.

@@ -14,6 +14,7 @@ async function callAI(options: {
   temperature?: number;
   responseMimeType?: string;
   usageContext?: UsageContext;
+  userId?: string;
 }) {
   const normalizedModel = normalizeModelId(options.model);
   const provider = getProviderFromModelId(normalizedModel);
@@ -25,6 +26,7 @@ async function callAI(options: {
     temperature: options.temperature,
     responseMimeType: options.responseMimeType,
     usageContext: options.usageContext,
+    userId: options.userId,
   };
 
   if (provider === 'openrouter') {
@@ -190,7 +192,8 @@ type InitializeEmailSessionResult =
 
 // ── Init Email Session ───────────────────────────────────────
 export const initializeEmailSession = async (
-  config: SessionConfig
+  config: SessionConfig,
+  userId?: string
 ): Promise<InitializeEmailSessionResult> => {
   chatHistory = [];
 
@@ -236,6 +239,7 @@ export const initializeEmailSession = async (
       systemInstruction: getSystemInstruction(config, hasCustomImages),
       responseMimeType: "application/json",
       usageContext: { module: 'pdkt', action: 'init_email' },
+      userId,
     });
 
     if (!response.success) {
@@ -294,7 +298,8 @@ export const initializeEmailSession = async (
 export const evaluateAgentResponse = async (
   agentReplyBody: string, 
   consumerContext: string,
-  modelId?: string
+  modelId?: string,
+  userId?: string
 ): Promise<EvaluationResult> => {
   const normalizedModel = normalizeModelId(modelId || "gemini-3.1-flash-lite-preview");
   
@@ -346,6 +351,7 @@ export const evaluateAgentResponse = async (
         responseMimeType: "application/json",
         temperature: 0.2,
         usageContext: { module: 'pdkt', action: 'evaluate_response' },
+        userId,
       });
 
       if (!response.success) {

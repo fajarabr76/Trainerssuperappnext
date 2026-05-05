@@ -902,7 +902,8 @@ ${s.script}\n` : ''}
 export const generateConsumerVoice = async (
   config: SessionConfig,
   scenario: Scenario,
-  prompt: string
+  prompt: string,
+  userId?: string
 ): Promise<string | undefined> => {
   try {
     const voiceName = config.identity.gender === 'male' ? 'Fenrir' : 'Kore';
@@ -917,6 +918,7 @@ export const generateConsumerVoice = async (
         },
       } as unknown as Record<string, unknown>,
       usageContext: { module: 'telefun', action: 'voice_tts' },
+      userId,
     });
 
     return (response as { audioData?: string }).audioData; // Need to update Server Action to return audio data
@@ -932,7 +934,8 @@ export const generateConsumerVoice = async (
 export const generateConsumerResponse = async (
   config: SessionConfig,
   scenario: Scenario,
-  history: { role: 'agent' | 'consumer'; text: string }[]
+  history: { role: 'agent' | 'consumer'; text: string }[],
+  userId?: string
 ): Promise<string> => {
   const scriptInstruction = scenario.script
     ? `SKRIP PERCAKAPAN (PANDUAN ALUR):
@@ -987,6 +990,7 @@ ${scenario.script}`
       systemInstruction,
       temperature: 0.7,
       usageContext: { module: 'telefun', action: 'chat_response' },
+      userId,
     });
 
     return typeof response.text === 'string' ? response.text : "Halo?";
@@ -1001,7 +1005,8 @@ ${scenario.script}`
  */
 export const generateFirstCallMessage = async (
   config: SessionConfig,
-  scenario: Scenario
+  scenario: Scenario,
+  userId?: string
 ): Promise<string> => {
   const scriptInstruction = scenario.script
     ? `SKRIP PERCAKAPAN (PANDUAN ALUR):
@@ -1037,6 +1042,7 @@ ${scenario.script}`
       systemInstruction,
       temperature: 0.7,
       usageContext: { module: 'telefun', action: 'first_message' },
+      userId,
     });
 
     return typeof response.text === 'string' ? response.text : "Halo?";
@@ -1052,7 +1058,8 @@ ${scenario.script}`
 export const generateScore = async (
   config: SessionConfig,
   scenario: Scenario,
-  duration: number
+  duration: number,
+  userId?: string
 ): Promise<{ score: number; feedback: string }> => {
   const systemInstruction = `
     Anda adalah seorang Asisten Penilai (Assessor) OJK yang bertugas mengevaluasi kinerja agen contact center dalam menangani keluhan konsumen melalui TELEPON.
@@ -1077,6 +1084,7 @@ export const generateScore = async (
       systemInstruction,
       responseMimeType: "application/json",
       usageContext: { module: 'telefun', action: 'score_generation' },
+      userId,
     });
 
     const responseText = typeof response.text === 'string' ? response.text : "{}";

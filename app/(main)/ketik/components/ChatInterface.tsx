@@ -18,6 +18,7 @@ interface ChatInterfaceProps {
   initialMessages?: ChatMessage[];
   isEnding?: boolean;
   authReady?: boolean;
+  currentUserId?: string;
 }
 
 const TickIcon: React.FC<{ status?: string }> = ({ status }) => {
@@ -172,6 +173,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   initialMessages = [],
   isEnding = false,
   authReady = true,
+  currentUserId,
 }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>(() => normalizeMessagesForDisplay(initialMessages));
   const [inputText, setInputText] = useState('');
@@ -302,7 +304,8 @@ Tulis pesan penutup konsumen sekarang.`;
           elapsedSeconds,
           totalDurationSeconds: config.simulationDuration * 60,
         },
-        { module: 'ketik', action: 'session_timeout' }
+        { module: 'ketik', action: 'session_timeout' },
+        currentUserId
       );
 
       const timeoutText = result.success ? normalizeTimeoutClosingText(result.text) : null;
@@ -325,7 +328,7 @@ Tulis pesan penutup konsumen sekarang.`;
     } catch (_error) {
       // Keep fallback timeout message when AI close generation fails.
     }
-  }, [clearPendingTimeouts, config, scenario, elapsedSeconds]);
+  }, [clearPendingTimeouts, config, scenario, elapsedSeconds, currentUserId]);
 
   // Countdown Timer Logic
   useEffect(() => {
@@ -404,7 +407,8 @@ Tulis pesan penutup konsumen sekarang.`;
           elapsedSeconds,
           totalDurationSeconds: config.simulationDuration * 60,
         },
-        { module: 'ketik', action: 'chat_response' }
+        { module: 'ketik', action: 'chat_response' },
+        currentUserId
       );
 
       if (sessionPhaseRef.current !== 'active') {

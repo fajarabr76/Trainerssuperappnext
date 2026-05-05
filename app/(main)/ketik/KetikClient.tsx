@@ -471,6 +471,7 @@ export default function AppKetik() {
                   initialMessages={reviewMessages} 
                   isEnding={isLoading}
                   authReady={authReady}
+                  currentUserId={user?.id}
                 />
               )}
             </div>

@@ -83,10 +83,14 @@ async function getUsageAggregationInternal(filters: UsageFilters): Promise<Usage
     }
 
     const userIds = [...new Set(logs.map((log) => log.user_id))];
-    const { data: profiles } = await admin
+    const { data: profiles, error: profilesError } = await admin
       .from('profiles')
       .select('id, email, role, full_name')
       .in('id', userIds);
+
+    if (profilesError) {
+      console.error('[Usage] Failed to fetch profiles for usage aggregation:', profilesError);
+    }
 
     const profileMap: Record<string, { email: string | null; role: string | null; full_name: string | null }> = {};
     (profiles || []).forEach((p) => {
