@@ -1113,11 +1113,11 @@ export async function deleteRuleDraftAction(versionId: string) {
   revalidatePath('/qa-analyzer/settings');
 }
 
-export async function publishRuleVersionAction(versionId: string, effectivePeriodId: string) {
+export async function publishRuleVersionAction(versionId: string, changeReason?: string) {
   const { user } = await assertQaActionAccess(['trainer', 'admin']);
 
   const { qaServiceServer } = await import('./services/qaService.server');
-  const published = await qaServiceServer.publishRuleVersion(versionId, user.id, effectivePeriodId);
+  const published = await qaServiceServer.publishRuleVersion(versionId, changeReason);
   
   revalidatePath('/qa-analyzer/settings');
   revalidatePath('/qa-analyzer/input');
@@ -1126,7 +1126,7 @@ export async function publishRuleVersionAction(versionId: string, effectivePerio
 
   const { createClient } = await import('@/app/lib/supabase/server');
   const supabase = await createClient();
-  await refreshQaDashboardSummary(supabase, effectivePeriodId);
+  await refreshQaDashboardSummary(supabase, published.effective_period_id);
   
   return published;
 }
