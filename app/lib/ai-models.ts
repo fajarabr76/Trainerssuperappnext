@@ -68,6 +68,11 @@ export const TEXT_OPENROUTER_MODELS = AI_MODELS.filter(m => m.provider === 'open
 export const DIRECT_GEMINI_MODELS = AI_MODELS.filter(m => m.provider === 'gemini' && !m.id.includes('live'));
 
 /**
+ * Models for KETIK and PDKT text simulations.
+ */
+export const TEXT_SIMULATION_MODELS = [...DIRECT_GEMINI_MODELS, ...TEXT_OPENROUTER_MODELS];
+
+/**
  * Telefun audio models with their transport protocols.
  */
 export const TELEFUN_AUDIO_MODELS = [
@@ -119,7 +124,7 @@ export function getModelsForModule(module: 'ketik' | 'pdkt' | 'telefun' | 'defau
   switch (module) {
     case 'ketik':
     case 'pdkt':
-      return TEXT_OPENROUTER_MODELS;
+      return TEXT_SIMULATION_MODELS;
     case 'telefun':
       return TELEFUN_AUDIO_MODELS;
     default:
