@@ -52,6 +52,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   const [selectedModel, setSelectedModel] = useState(normalizeModelId(localSettings.selectedModel));
   const defaultModelId = TEXT_OPENROUTER_MODELS[0]?.id || 'openai/gpt-oss-120b:free';
 
+  const [consumerNameMentionPattern, setConsumerNameMentionPattern] = useState(
+    localSettings.consumerNameMentionPattern || 'random'
+  );
+
   // Sync state when modal opens to ensure fresh data
   useEffect(() => {
     if (isOpen) {
@@ -67,7 +71,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
         setEnableImageGeneration(settings.enableImageGeneration ?? true);
         setGlobalConsumerTypeId(settings.globalConsumerTypeId || 'random');
         setSelectedModel(nextSelectedModel);
-        
+        setConsumerNameMentionPattern(settings.consumerNameMentionPattern || 'random');
+
         // Reset forms
         setEditingScenarioId(null);
         setIsAddingScenario(false);
@@ -419,6 +424,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
         enableImageGeneration,
         globalConsumerTypeId,
         selectedModel,
+        consumerNameMentionPattern,
         customIdentity: {
           senderName: customSenderName,
           bodyName: customBodyName,
@@ -447,6 +453,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
               consumerTypes: DEFAULT_CONSUMER_TYPES,
               enableImageGeneration: true,
               globalConsumerTypeId: 'random',
+              selectedModel: defaultModelId,
+              consumerNameMentionPattern: 'random',
               customIdentity: {
                 senderName: '',
                 email: '',
@@ -459,6 +467,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
           setLocalSettings(defaultSettings);
           setEnableImageGeneration(true);
           setGlobalConsumerTypeId('random');
+          setSelectedModel(defaultModelId);
+          setConsumerNameMentionPattern('random');
           setCustomSenderName('');
           setCustomBodyName('');
           setCustomEmail('');
@@ -1151,6 +1161,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                             value={customCity}
                             onChange={(e) => setCustomCity(e.target.value)}
                           />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2.5 ml-2">Pola Penyebutan Nama Konsumen</label>
+                          <select
+                            className="w-full rounded-2xl border-white/5 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none font-medium transition-all focus:bg-foreground/10"
+                            value={consumerNameMentionPattern}
+                            onChange={(e) => setConsumerNameMentionPattern(e.target.value as any)}
+                          >
+                            <option value="random">Acak</option>
+                            <option value="upfront">Nama disebut di awal</option>
+                            <option value="middle">Nama disebut di tengah</option>
+                            <option value="late">Nama disebut di akhir</option>
+                            <option value="none">Tidak menyebut nama</option>
+                          </select>
+                          <p className="mt-2 ml-2 text-xs text-muted-foreground font-medium leading-relaxed">
+                            Mengatur kapan nama konsumen boleh muncul di email awal simulasi.
+                          </p>
                         </div>
                       </div>
                     </div>
