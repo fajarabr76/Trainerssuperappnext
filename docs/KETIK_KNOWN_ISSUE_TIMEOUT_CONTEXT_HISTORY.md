@@ -38,13 +38,13 @@
 - Saat `timeLeft` mencapai `0`, timeout finalization dieksekusi sekali: sesi dipindah ke `expired`, satu pesan penutup konsumen dihasilkan via prompt timeout khusus, lalu semua jalur balasan konsumen berikutnya dihentikan.
 - Ditambahkan `sessionPhaseRef` untuk membuang hasil request AI biasa yang selesai setelah sesi tidak lagi `active`, sehingga race condition pasca-timeout tidak memunculkan balasan konsumen baru.
 
-### 1a. Timeout close dinamis, satu kali, dan punya fallback
+### 1a. Timeout close final dan immutable
 
-- `handleSessionTimeout()` memanggil `generateConsumerResponse()` dengan `extraPrompt` timeout khusus untuk menghasilkan alasan penutup yang natural.
-- Guard `timeoutFinalizedRef` memastikan timeout close hanya dieksekusi satu kali walau ada render/efek ulang.
-- Saat timeout terjadi, satu pesan fallback statis langsung di-append agar penutupan tidak tertunda oleh latency AI.
-- Jika AI timeout-close sukses, isi pesan fallback di-upgrade in-place ke teks AI (tetap 1 bubble yang sama). Jika AI gagal atau `[NO_RESPONSE]`, fallback dipertahankan.
-- Aksi usage timeout dicatat sebagai `module='ketik'` dan `action='session_timeout'`.
+- `handleSessionTimeout()` SEKARANG SYNCHRONOUS — tidak lagi memanggil `generateConsumerResponse()` async untuk timeout.
+- Guard tripel memastikan timeout close hanya dieksekusi satu kali: `sessionPhaseRef !== 'active'`, `timeoutFinalizedRef`, dan `closingMessageSentRef`.
+- Saat timeout terjadi, satu pesan fallback statis langsung di-append dan bersifat **final**: `"Maaf, saya harus lanjut aktivitas dulu. Nanti saya hubungi lagi ya. Terima kasih."`
+- Teks fallback TIDAK PERNAH di-overwrite, di-upgrade in-place, atau di-generate ulang — immutable setelah tampil.
+- Tidak ada lagi async AI generation untuk timeout — menghilangkan race condition dan pesan berubah sendiri setelah tampil.
 
 ### 1b. Timeout closing dibuat branch-aware
 
@@ -138,14 +138,15 @@
 
 - `persistKetikSession(params)` mengembalikan `success`, `session`, `warning`, dan `error`.
 - `ChatInterface` menerima prop `authReady?: boolean`.
-- `ChatInterface` memakai state internal `SessionPhase`, `sessionPhaseRef`, dan `timeoutFinalizedRef` untuk menjaga timeout close tetap satu kali dan sinkron terhadap request in-flight.
+- `ChatInterface` memakai state internal `SessionPhase`, `sessionPhaseRef`, `timeoutFinalizedRef`, dan `closingMessageSentRef` untuk menjaga timeout close tetap satu kali, idempotent, dan immutable.
 - `PacingBand` type (di `responsePacing.ts` dan `types.ts`) diperluas dengan union `'greeting_reply'`.
 - `SlowEligibilityParams` menerima `elapsedSeconds?: number` dan `totalDurationSeconds?: number` (opsional).
-- `sendGenerationRef` di `ChatInterface` sebagai guard terhadap respons AI kadaluarsa.
+- `timeoutFinalizedRef`, `closingMessageSentRef`, dan `sendGenerationRef` di `ChatInterface` sebagai guard terhadap respons AI kadaluarsa dan overwrite pesan timeout.
 
 ## Regression Guard
 
 - [ ] Setelah timeout habis, konsumen hanya boleh menutup sesi sekali dan tidak boleh mengirim balasan baru dari request lama yang selesai belakangan.
+- [ ] Teks pesan penutup timeout bersifat immutable — tidak boleh berubah, di-overwrite, atau di-generate ulang setelah tampil di bubble konsumen.
 - [ ] Input chat tetap tampil saat sesi `active` dan `expired`, tetapi balasan konsumen hanya boleh terjadi saat `active`.
 - [ ] Helper button sesi harus mulai dari `Gunakan Template Salam`, lalu hanya berubah ke `Gunakan Maintenance` setelah template pernah diklik dan pesan agent pertama terkirim.
 - [ ] Bubble chat dan transcript monitoring harus mempertahankan line break multiline.

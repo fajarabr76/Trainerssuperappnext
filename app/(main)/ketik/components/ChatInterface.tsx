@@ -8,7 +8,7 @@ import { ChatMessage, SessionConfig, Scenario, PacingMeta } from '@/app/types';
 import { generateConsumerResponse } from '../services/geminiService';
 import DiceBearAvatar from '@/app/components/DiceBearAvatar';
 import { classifyTextBand, isSlowEligible, calculatePacingDelay, calculateFollowUpDelay, isAgentGivingSolution } from '../services/responsePacing';
-import { getLastAgentMessage, getLastNonSystemSpeaker, allowSolutionAcknowledgement } from '../services/timeoutContext';
+
 
 interface ChatInterfaceProps {
   config: SessionConfig;
@@ -152,17 +152,6 @@ function normalizeMessagesForDisplay(messages: ChatMessage[]): ChatMessage[] {
   return normalized;
 }
 
-function normalizeTimeoutClosingText(rawText: string): string | null {
-  if (!rawText || rawText === '[NO_RESPONSE]') return null;
-
-  const firstSegment = rawText
-    .split('[BREAK]')
-    .map((part) => stripSystemTags(part).replace(IMAGE_TAG_PATTERN_GLOBAL, '').trim())
-    .find(Boolean);
-
-  return firstSegment || null;
-}
-
 type SessionPhase = 'active' | 'expired' | 'closed';
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ 
@@ -189,6 +178,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const pendingTimeoutsRef = useRef<number[]>([]);
   const sessionPhaseRef = useRef<SessionPhase>(isReviewMode ? 'closed' : 'active');
   const timeoutFinalizedRef = useRef(false);
+  const closingMessageSentRef = useRef(false);
   const messagesRef = useRef<ChatMessage[]>(normalizeMessagesForDisplay(initialMessages));
   const isMountedRef = useRef(true);
   const consumerTurnCountRef = useRef(0);
@@ -250,85 +240,44 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   }, [inputText]);
 
-  const handleSessionTimeout = useCallback(async () => {
-    if (sessionPhaseRef.current !== 'active' || timeoutFinalizedRef.current) return;
+  // IMPORTANT: Timeout closing message must be appended once and never replaced.
+  // Do NOT regenerate/overwrite this message with async AI output —
+  // the user already sees the first closing bubble and mutation breaks UX.
+  const handleSessionTimeout = useCallback(() => {
+    if (sessionPhaseRef.current !== 'active' || timeoutFinalizedRef.current || closingMessageSentRef.current) return;
     timeoutFinalizedRef.current = true;
+    closingMessageSentRef.current = true;
 
     clearPendingTimeouts();
     setIsLoading(false);
     sessionPhaseRef.current = 'expired';
     setSessionPhase('expired');
 
-    const historySnapshot = messagesRef.current;
-    const lastSpeaker = getLastNonSystemSpeaker(historySnapshot);
-    const lastAgentText = getLastAgentMessage(historySnapshot);
-    const canAcknowledgeSolution = allowSolutionAcknowledgement(lastAgentText);
     const fallbackClosingText = 'Maaf, saya harus lanjut aktivitas dulu. Nanti saya hubungi lagi ya. Terima kasih.';
     const timeoutMessageId = `timeout-${Date.now()}`;
 
-    setMessages((prev) =>
-      normalizeMessagesForDisplay([
-        ...prev,
-        {
-          id: timeoutMessageId,
-          sender: 'consumer',
-          text: fallbackClosingText,
-          timestamp: new Date(),
-        },
-      ])
-    );
+    setMessages((prev) => {
+      const closingMessage: ChatMessage = {
+        id: timeoutMessageId,
+        sender: 'consumer',
+        text: fallbackClosingText,
+        timestamp: new Date(),
+      };
+      const nextMessages = normalizeMessagesForDisplay([...prev, closingMessage]);
 
-    const timeoutPrompt = `WAKTU SIMULASI SUDAH HABIS.
-- Ini adalah BALASAN TERAKHIR sebelum konsumen berhenti membalas.
-- Tulis tepat 1 chat singkat, natural, dan sopan yang menjelaskan konsumen tidak bisa lanjut chat sekarang.
-- Jangan gunakan [BREAK], jangan gunakan [SISTEM], jangan kirim gambar, jangan menyebut timer/simulasi/sistem.
-- Setelah pesan ini, jangan ajukan pertanyaan lanjutan dan jangan minta balasan lagi.
-- Hindari frasa kaku atau seperti template CS.
-- Konteks penutup: speaker terakhir sebelum timeout adalah ${lastSpeaker ?? 'tidak diketahui'}.
-- ${
-      canAcknowledgeSolution
-        ? 'Jika relevan dengan konteks, boleh ada ucapan terima kasih singkat atas arahan agen tanpa klaim berlebihan.'
-        : 'Jangan mengonfirmasi solusi sudah selesai jika konteksnya belum jelas.'
-    }
+      console.log('[ketik][timeout] Closing message appended:', {
+        operation: 'insert',
+        messageId: timeoutMessageId,
+        sessionId: 'in-memory',
+        source: 'timer_expiry',
+        text: fallbackClosingText,
+        status: 'final',
+        totalMessages: nextMessages.length,
+      });
 
-Tulis pesan penutup konsumen sekarang.`;
-
-    try {
-      const result = await generateConsumerResponse(
-        config,
-        scenario,
-        historySnapshot,
-        timeoutPrompt,
-        {
-          remainingSeconds: 0,
-          elapsedSeconds,
-          totalDurationSeconds: config.simulationDuration * 60,
-        },
-        { module: 'ketik', action: 'session_timeout' },
-        currentUserId
-      );
-
-      const timeoutText = result.success ? normalizeTimeoutClosingText(result.text) : null;
-      if (!timeoutText || !isMountedRef.current) {
-        return;
-      }
-
-      setMessages((prev) =>
-        normalizeMessagesForDisplay(
-          prev.map((message) =>
-            message.id === timeoutMessageId
-              ? {
-                  ...message,
-                  text: timeoutText,
-                }
-              : message
-          )
-        )
-      );
-    } catch (_error) {
-      // Keep fallback timeout message when AI close generation fails.
-    }
-  }, [clearPendingTimeouts, config, scenario, elapsedSeconds, currentUserId]);
+      return nextMessages;
+    });
+  }, [clearPendingTimeouts]);
 
   // Countdown Timer Logic
   useEffect(() => {
