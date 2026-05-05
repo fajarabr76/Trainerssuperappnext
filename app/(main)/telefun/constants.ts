@@ -40,6 +40,7 @@ export const parseTelefunSettings = (parsed: Record<string, unknown>): AppSettin
     signatureName: (parsed.identitySettings as Record<string, unknown>)?.signatureName as string || '',
   },
   selectedModel: (parsed.selectedModel as string) || 'gemini-3.1-flash-lite-preview',
+  telefunModelId: (parsed.telefunModelId as string) || 'gemini-3.1-flash-live-preview',
   maxCallDuration: (parsed.maxCallDuration as number) || 5,
   responsePacingMode:
     (parsed.responsePacingMode === 'realistic' || parsed.responsePacingMode === 'training_fast')
