@@ -34,6 +34,20 @@ Commit repo lain yang tidak relevan (monitoring, ketik, auth) tidak dimasukkan.
 | Smoke manual `/qa-analyzer/agents/[id]` canonical redirect | Pending |
 | Smoke manual agent Telepon kontrol | Pending |
 
+## Build Fix — 2026-05-05
+
+| Aspek | Detail |
+|-------|--------|
+| Commit | `fix(sidak): correct undefined variable in QaVersionedSettings publish toast` |
+| File | `app/(main)/qa-analyzer/settings/QaVersionedSettings.tsx` |
+| Masalah | Variabel `publishPeriodId` tidak didefinisikan; hasil perubahan lokal sebelumnya salah memakai `published.period_id` padahal properti yang benar adalah `published.effective_period_id`. |
+| Dampak | Build TypeScript gagal di Vercel (`TS2304: Cannot find name 'publishPeriodId'`). |
+| Fix | Ganti `published.period_id` → `published.effective_period_id` agar sesuai dengan tipe `QARuleVersion`. |
+
+### Verifikasi
+- `npm run lint`: Pass
+- `npm run type-check`: Pass (setelah fix)
+
 ## Referensi Silang
 
 - Guardrails: `docs/SIDAK_SCORING_GUARDRAILS.md` (bagian 4)

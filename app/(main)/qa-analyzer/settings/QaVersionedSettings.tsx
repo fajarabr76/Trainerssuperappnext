@@ -175,7 +175,7 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
       setPreviewVersion(null);
       setChangeReason('');
       setIsPublishing(false);
-      flash(`Rule berhasil dipublish untuk periode ${periods.find(p => p.id === publishPeriodId)?.label || ''}!`);
+      flash(`Rule berhasil dipublish untuk periode ${periods.find(p => p.id === published.effective_period_id)?.label || ''}!`);
     } catch (err: any) {
       setErrorMsg(err.message || 'Gagal mempublish rules.');
       setIsPublishing(false);
