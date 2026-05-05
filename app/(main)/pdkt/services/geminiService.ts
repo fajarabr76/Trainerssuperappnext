@@ -1,4 +1,4 @@
-import { SessionConfig, EmailMessage, EvaluationResult, ResolvedConsumerNameMentionPattern } from "../types";
+import { SessionConfig, EmailMessage, EvaluationResult } from "../types";
 import { generateGeminiContent } from '@/app/actions/gemini';
 import { generateOpenRouterContent } from '@/app/actions/openrouter';
 import { getProviderFromModelId, normalizeModelId } from '@/app/lib/ai-models';
