@@ -1686,42 +1686,25 @@ export const qaServiceServer = {
     if (error) throw error;
   },
 
-  async publishRuleVersion(versionId: string, publishedBy: string, effectivePeriodId: string): Promise<QARuleVersion> {
+  async publishRuleVersion(versionId: string, changeReason?: string): Promise<QARuleVersion> {
     const supabase = await createClient();
-    
-    // Check if another version is already published for same period/service
-    const { data: currentVer } = await supabase
+
+    const { data, error } = await supabase.rpc('publish_rule_version', {
+      p_version_id: versionId,
+      p_change_reason: changeReason || null,
+    });
+
+    if (error) throw error;
+    if (!data?.success) throw new Error(data?.error || 'Publish failed');
+
+    const { data: version, error: fetchErr } = await supabase
       .from('qa_service_rule_versions')
-      .select('service_type')
+      .select('*')
       .eq('id', versionId)
       .single();
-    
-    if (!currentVer) throw new Error('Versi tidak ditemukan');
 
-    const { data: existing } = await supabase
-      .from('qa_service_rule_versions')
-      .select('id')
-      .eq('service_type', currentVer.service_type)
-      .eq('effective_period_id', effectivePeriodId)
-      .eq('status', 'published')
-      .maybeSingle();
-    
-    if (existing) throw new Error('Sudah ada versi published untuk periode ini. Batalkan atau ubah periode target.');
-
-    const { data, error } = await supabase
-      .from('qa_service_rule_versions')
-      .update({
-        status: 'published',
-        published_by: publishedBy,
-        published_at: new Date().toISOString(),
-        effective_period_id: effectivePeriodId,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', versionId)
-      .select().single();
-    
-    if (error) throw error;
-    return data;
+    if (fetchErr) throw fetchErr;
+    return version as QARuleVersion;
   },
 
   async addDraftIndicator(versionId: string, indicator: Partial<QARuleIndicatorSnapshot>): Promise<QARuleIndicatorSnapshot> {
