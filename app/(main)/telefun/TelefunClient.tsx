@@ -111,6 +111,8 @@ export default function TelefunClient() {
       simulationDuration: settings.maxCallDuration || 5,
       responsePacingMode: settings.responsePacingMode || 'realistic',
       maxCallDuration: settings.maxCallDuration,
+      telefunTransport: settings.telefunTransport,
+      telefunModelId: settings.telefunModelId,
     };
     setActiveSessionConfig(sessionConfig);
 

@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { AppSettings, Scenario, ConsumerType, ConsumerDifficulty } from '../types';
 import { DEFAULT_SCENARIOS, DEFAULT_CONSUMER_TYPES } from '../constants';
-import { AI_MODELS, normalizeModelId } from '@/app/lib/ai-models';
+import { normalizeModelId, TEXT_OPENROUTER_MODELS } from '@/app/lib/ai-models';
 import { X, Plus, Check, Edit2, Trash2, Image as ImageIcon, User, Settings, FileText, Users, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -50,13 +50,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   const [enableImageGeneration, setEnableImageGeneration] = useState(localSettings.enableImageGeneration ?? true);
   const [globalConsumerTypeId, setGlobalConsumerTypeId] = useState(localSettings.globalConsumerTypeId || 'random');
   const [selectedModel, setSelectedModel] = useState(normalizeModelId(localSettings.selectedModel));
-  const defaultModelId = AI_MODELS[0]?.id || 'gemini-3.1-flash-lite-preview';
+  const defaultModelId = TEXT_OPENROUTER_MODELS[0]?.id || 'openai/gpt-oss-120b:free';
 
   // Sync state when modal opens to ensure fresh data
   useEffect(() => {
     if (isOpen) {
         const normalizedModel = normalizeModelId(settings.selectedModel);
-        const nextSelectedModel = AI_MODELS.some(model => model.id === normalizedModel)
+        const nextSelectedModel = TEXT_OPENROUTER_MODELS.some(model => model.id === normalizedModel)
           ? normalizedModel
           : defaultModelId;
         setLocalSettings({ ...settings, selectedModel: nextSelectedModel });
@@ -1195,7 +1195,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                   </div>
 
                   <div className="grid grid-cols-1 gap-4">
-                    {AI_MODELS.map(model => {
+                    {TEXT_OPENROUTER_MODELS.map(model => {
                       const isSelected = selectedModel === model.id;
                       return (
                         <div 

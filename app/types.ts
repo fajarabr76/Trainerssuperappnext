@@ -62,6 +62,8 @@ export interface SessionConfig {
   simulationDuration: number;
   responsePacingMode: 'realistic' | 'training_fast';
   maxCallDuration?: number;
+  telefunTransport?: 'gemini-live' | 'openai-audio';
+  telefunModelId?: string;
 }
 
 export interface AppSettings {
@@ -74,6 +76,8 @@ export interface AppSettings {
   simulationDuration?: number;
   maxCallDuration?: number;
   responsePacingMode?: 'realistic' | 'training_fast';
+  telefunTransport?: 'gemini-live' | 'openai-audio';
+  telefunModelId?: string;
 }
 
 export interface ChatSession {

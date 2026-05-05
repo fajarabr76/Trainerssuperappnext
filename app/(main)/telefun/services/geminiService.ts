@@ -285,16 +285,23 @@ export class LiveSession {
 
       ws.onopen = () => {
         console.log("[Telefun] WebSocket Proxy connected");
-        
+
         // Send Setup
         const voiceName = this.config.identity.gender === 'male' ? 'Fenrir' : 'Kore';
-        
-        // Force the official Gemini Live model for the transport session
-        const TELEFUN_LIVE_MODEL = "gemini-3.1-flash-live-preview";
+
+        const telefunTransport = this.config.telefunTransport || 'gemini-live';
+        const telefunModelId = this.config.telefunModelId || 'gemini-3.1-flash-live-preview';
+
+        // Guard: OpenAI audio transport not yet implemented
+        if (telefunTransport === 'openai-audio') {
+          ws.close();
+          this.onError?.(new Error("OpenAI Audio transport belum diimplementasi. Gunakan Gemini Live."));
+          return;
+        }
 
         const setupMessage = {
           setup: {
-            model: `models/${TELEFUN_LIVE_MODEL}`,
+            model: `models/${telefunModelId}`,
             generationConfig: {
               responseModalities: ["AUDIO"],
               speechConfig: {

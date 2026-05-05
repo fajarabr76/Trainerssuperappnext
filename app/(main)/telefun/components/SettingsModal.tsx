@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { AppSettings, ConsumerIdentitySettings, Scenario, ConsumerType, ConsumerDifficulty } from '@/app/types';
-import { Clock, Trash2, X, Plus, Check, Edit2, User, Settings, FileText, Users, Save, Zap } from 'lucide-react';
+import { TELEFUN_AUDIO_MODELS } from '@/app/lib/ai-models';
+import { Clock, Trash2, X, Plus, Check, Edit2, User, Settings, FileText, Users, Save, Zap, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface SettingsModalProps {
@@ -36,6 +37,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   const [newConsumerDesc, setNewConsumerDesc] = useState('');
   const [newConsumerDifficulty, setNewConsumerDifficulty] = useState<ConsumerDifficulty>(ConsumerDifficulty.Medium);
 
+  // Telefun Model Selection State
+  const [selectedTelefunModel, setSelectedTelefunModel] = useState<string>(
+    settings.telefunModelId || TELEFUN_AUDIO_MODELS[0]?.id || 'gemini-3.1-flash-live-preview'
+  );
+  const selectedTelefunTransport = TELEFUN_AUDIO_MODELS.find(m => m.id === selectedTelefunModel)?.telefunTransport || 'gemini-live';
+
   // Identity Form State
   const handleIdentityChange = (field: keyof ConsumerIdentitySettings, value: string) => {
     setLocalSettings(prev => ({
@@ -55,6 +62,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
       setIsConsumerFormOpen(false);
       setEditingScenarioId(null);
       setEditingConsumerId(null);
+      setSelectedTelefunModel(settings.telefunModelId || TELEFUN_AUDIO_MODELS[0]?.id || 'gemini-3.1-flash-live-preview');
     }
   }, [isOpen, settings]);
 
@@ -402,7 +410,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
       return;
     }
 
-    let finalSettings = localSettings;
+    let finalSettings: AppSettings = {
+      ...localSettings,
+      telefunTransport: selectedTelefunTransport,
+      telefunModelId: selectedTelefunModel,
+    };
     if (scenarioDirty) {
       const applied = applyScenarioDraft(finalSettings);
       if (applied) finalSettings = applied;
@@ -927,8 +939,68 @@ Akhir:
           {/* TAB 4: SYSTEM */}
           {activeTab === 'system' && (
               <div className="space-y-8">
-                 {/* AI Model Selection - Hidden for Telefun as it uses hardcoded Live Model */}
-                 
+                 {/* AI Model Selection for Telefun */}
+                 <section className="space-y-4">
+                    <div className="bg-white dark:bg-[#1C1C1E] p-6 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center shrink-0">
+                          <Zap className="w-6 h-6 text-purple-500" />
+                        </div>
+                        <div>
+                           <h3 className="font-bold text-gray-900 dark:text-white text-lg">Model AI untuk Telefun</h3>
+                           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                               Pilih model AI yang akan digunakan untuk simulasi voice call.
+                           </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4">
+                        {TELEFUN_AUDIO_MODELS.map(model => {
+                            const isSelected = selectedTelefunModel === model.id;
+                            const isDisabled = model.disabled;
+                            return (
+                                <div
+                                    key={model.id}
+                                    onClick={() => !isDisabled && setSelectedTelefunModel(model.id)}
+                                    className={`cursor-pointer p-6 rounded-2xl border-2 transition-all flex items-center justify-between gap-6 group relative ${
+                                        isSelected
+                                        ? 'border-purple-500 bg-purple-50 dark:bg-purple-500/10'
+                                        : isDisabled
+                                        ? 'border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-[#1C1C1E]/50 opacity-50 cursor-not-allowed'
+                                        : 'border-transparent bg-white dark:bg-[#1C1C1E] hover:bg-gray-50 dark:hover:bg-[#2C2C2E]'
+                                    }`}
+                                >
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2">
+                                          <h4 className="font-bold text-gray-900 dark:text-white text-lg">{model.name}</h4>
+                                          <span className={`px-2 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-widest border ${
+                                            model.provider === 'openrouter'
+                                            ? 'bg-orange-500/10 text-orange-500 border-orange-500/20'
+                                            : 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                                          }`}>
+                                            {model.telefunTransport}
+                                          </span>
+                                        </div>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">{model.description}</p>
+                                        {isDisabled && (
+                                          <div className="flex items-center gap-1 mt-2 text-amber-600 dark:text-amber-400 text-xs font-medium">
+                                            <AlertCircle className="w-3 h-3" />
+                                            <span>Belum tersedia</span>
+                                          </div>
+                                        )}
+                                    </div>
+                                    {isSelected && !isDisabled && (
+                                      <div className="w-8 h-8 bg-purple-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20 shrink-0">
+                                        <Check className="w-4 h-4 text-white" />
+                                      </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                 </section>
+
                  {/* Simulation Duration Selection */}
                  <section className="space-y-4">
                     <div className="bg-white dark:bg-[#1C1C1E] p-6 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm">

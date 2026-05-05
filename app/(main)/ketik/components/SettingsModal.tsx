@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { AppSettings, Scenario, ConsumerType, ConsumerDifficulty } from '@/app/types';
 import { AI_MODELS } from '../constants';
+import { TEXT_OPENROUTER_MODELS } from '@/app/lib/ai-models';
 import { defaultSettings } from '../data';
 import { Clock, Trash2, X, Plus, Check, Edit2, RotateCcw, Save, Image as ImageIcon, User, Settings, FileText, Users, Fingerprint, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -16,7 +17,7 @@ interface SettingsModalProps {
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave }) => {
   const [activeTab, setActiveTab] = useState<'scenarios' | 'consumers' | 'identity' | 'system'>('scenarios');
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
-  const defaultModelId = AI_MODELS[0]?.id || 'gemini-3.1-flash-lite-preview';
+  const defaultModelId = TEXT_OPENROUTER_MODELS[0]?.id || 'openai/gpt-oss-120b:free';
 
   // UI States for Forms
   const [isScenarioFormOpen, setIsScenarioFormOpen] = useState(false);
@@ -971,7 +972,7 @@ Akhir:
                     </div>
 
                     <div className="grid gap-4">
-                        {AI_MODELS.map(model => {
+                        {TEXT_OPENROUTER_MODELS.map(model => {
                             const isSelected = localSettings.selectedModel === model.id;
                             return (
                                 <div

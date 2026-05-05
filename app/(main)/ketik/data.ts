@@ -11,7 +11,7 @@ export const defaultSettings: AppSettings = {
     phoneNumber: '',
     city: ''
   },
-  selectedModel: 'minimax/minimax-m2.5:free',
+  selectedModel: 'openai/gpt-oss-120b:free',
   simulationDuration: 5,
   responsePacingMode: 'realistic'
 };

@@ -24,7 +24,7 @@ export async function generateOpenRouterContent(options: {
   userId?: string;
 }): Promise<OpenRouterResponse> {
   const apiKey = process.env.OPENROUTER_API_KEY;
-  const modelId = options.model || 'z-ai/glm-4.5-air:free';
+  const modelId = options.model || 'openai/gpt-oss-120b:free';
 
   if (!apiKey) {
     return { success: false, error: "OPENROUTER_API_KEY is not set in environment variables." };
@@ -145,7 +145,7 @@ export async function generateOpenRouterContent(options: {
           const totalTokens = typeof usage.total_tokens === 'number' ? usage.total_tokens : inputTokens + outputTokens;
 
           if (inputTokens > 0 || outputTokens > 0) {
-            const modelId = options.model || 'z-ai/glm-4.5-air:free';
+            const modelId = options.model || 'openai/gpt-oss-120b:free';
             const requestId = `openrouter-${randomUUID()}`;
 
             await logAiUsage({
