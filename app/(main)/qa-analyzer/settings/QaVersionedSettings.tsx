@@ -5,7 +5,8 @@ import { User } from '@supabase/supabase-js';
 import {
   Settings, Plus, Trash2, Info,
   Pencil, Check, History,
-  Clock, Rocket, AlertTriangle
+  Clock, Rocket, AlertTriangle,
+  Eye, GitBranch
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -82,6 +83,8 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
 
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishPeriodId, setPublishPeriodId] = useState<string>('');
+  const [changeReason, setChangeReason] = useState('');
+  const [previewVersion, setPreviewVersion] = useState<QARuleVersion | null>(null);
 
   const fetchVersions = useCallback(async (team: ServiceType) => {
     setLoading(true);
@@ -93,10 +96,11 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
       }
       setVersions(data as QARuleVersion[]);
       if (data.length > 0) {
-        // Select the latest published version by default if no draft exists
+        // Select draft first, then published, then latest version
         const draft = data.find(v => v.status === 'draft');
         const published = data.find(v => v.status === 'published');
-        setSelectedVersion(draft || published || data[0]);
+        const latest = data.sort((a, b) => b.version_number - a.version_number)[0];
+        setSelectedVersion(draft || published || latest || data[0]);
       } else {
         setSelectedVersion(null);
       }
@@ -161,15 +165,17 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
   };
 
   const handlePublish = async () => {
-    if (!selectedVersion || !publishPeriodId) return;
+    if (!previewVersion) return;
     setIsPublishing(true);
     setErrorMsg(null);
     try {
-      const published = await publishRuleVersionAction(selectedVersion.id, publishPeriodId);
+      const published = await publishRuleVersionAction(previewVersion.id, changeReason);
       setVersions(prev => prev.map(v => v.id === published.id ? published : v));
       setSelectedVersion(published);
+      setPreviewVersion(null);
+      setChangeReason('');
       setIsPublishing(false);
-      flash(`Rule berhasil dipublish untuk periode ${periods.find(p => p.id === publishPeriodId)?.label}!`);
+      flash(`Rule berhasil dipublish untuk periode ${periods.find(p => p.id === publishPeriodId)?.label || ''}!`);
     } catch (err: any) {
       setErrorMsg(err.message || 'Gagal mempublish rules.');
       setIsPublishing(false);
@@ -250,18 +256,36 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
         </div>
         
         <div className="flex gap-2">
-          {isDraft && (
+          {selectedVersion?.status === 'draft' && (
+            <>
+              <button
+                onClick={() => setPreviewVersion(selectedVersion)}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-green-500/20"
+              >
+                <Rocket className="w-3.5 h-3.5"/>
+                Publish
+              </button>
+              <button
+                onClick={() => handleDeleteDraft(selectedVersion.id)}
+                className="flex items-center gap-2 px-4 py-2 bg-destructive hover:bg-destructive/90 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-destructive/20"
+              >
+                <Trash2 className="w-3.5 h-3.5"/>
+                Hapus Draft
+              </button>
+            </>
+          )}
+          {selectedVersion?.status === 'published' && (
             <button
-              onClick={() => setIsPublishing(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-green-500/20"
+              onClick={() => handleCreateDraft(selectedVersion.id)}
+              className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-primary/20"
             >
-              <Rocket className="w-3.5 h-3.5"/>
-              Publish Ke Periode
+              <GitBranch className="w-3.5 h-3.5"/>
+              Create Revision
             </button>
           )}
-          {!versions.some(v => v.status === 'draft') && (
+          {!selectedVersion && !versions.some(v => v.status === 'draft') && (
             <button
-              onClick={() => handleCreateDraft(selectedVersion?.id)}
+              onClick={() => handleCreateDraft()}
               className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-primary/20"
             >
               <Plus className="w-3.5 h-3.5"/>
@@ -312,7 +336,9 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
                       >
                         <div className="flex justify-between items-start mb-1">
                           <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter ${
-                            v.status === 'draft' ? 'bg-amber-500/20 text-amber-600' : 'bg-green-500/20 text-green-600'
+                            v.status === 'draft' ? 'bg-amber-500/20 text-amber-600' :
+                            v.status === 'superseded' ? 'bg-gray-500/20 text-gray-600' :
+                            'bg-green-500/20 text-green-600'
                           }`}>
                             {v.status}
                           </span>
@@ -322,8 +348,8 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
                         </div>
                         <p className="text-xs font-black text-foreground">
                           {v.status === 'published' && (v as any).qa_periods
-                            ? `Effective: ${formatPeriodLabel((v as any).qa_periods.month, (v as any).qa_periods.year)}`
-                            : 'Rule Draft Version'}
+                            ? `v${v.version_number} — Effective: ${formatPeriodLabel((v as any).qa_periods.month, (v as any).qa_periods.year)}`
+                            : `v${v.version_number} — Rule Draft Version`}
                         </p>
                         <div className="flex items-center gap-2 mt-2 opacity-60 group-hover:opacity-100">
                           <Clock className="w-3 h-3"/>
@@ -365,9 +391,21 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
                       <Check className="w-6 h-6 text-green-600"/>
                     </div>
                     <div>
-                      <h2 className="text-lg font-black text-green-700 dark:text-green-400">Versi Aktif (Published)</h2>
+                      <h2 className="text-lg font-black text-green-700 dark:text-green-400">Versi Aktif (Published) v{selectedVersion.version_number}</h2>
                       <p className="text-sm text-green-600/80 font-medium leading-relaxed">
                         Versi ini bersifat <strong>immutable</strong> dan digunakan untuk kalkulasi periode {formatPeriodLabel((selectedVersion as any).qa_periods?.month, (selectedVersion as any).qa_periods?.year)} dan seterusnya hingga ada versi baru.
+                      </p>
+                    </div>
+                  </div>
+                ) : selectedVersion.status === 'superseded' ? (
+                  <div className="bg-gray-500/10 border border-gray-500/20 rounded-3xl p-6 flex items-start gap-4">
+                    <div className="w-12 h-12 bg-gray-500/20 rounded-2xl flex items-center justify-center flex-shrink-0">
+                      <History className="w-6 h-6 text-gray-600"/>
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-black text-gray-700 dark:text-gray-400">Versi Lama (Superseded) v{selectedVersion.version_number}</h2>
+                      <p className="text-sm text-gray-600/80 font-medium leading-relaxed">
+                        Versi ini telah digantikan oleh versi yang lebih baru. Data historis yang menggunakan versi ini tetap dipertahankan.
                       </p>
                     </div>
                   </div>
@@ -377,7 +415,7 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
                       <Pencil className="w-6 h-6 text-amber-600"/>
                     </div>
                     <div className="flex-1">
-                      <h2 className="text-lg font-black text-amber-700 dark:text-amber-400">Draft Rules</h2>
+                      <h2 className="text-lg font-black text-amber-700 dark:text-amber-400">Draft Rules v{selectedVersion.version_number}</h2>
                       <p className="text-sm text-amber-600/80 font-medium leading-relaxed">
                         Anda dapat mengubah parameter dan bobot pada draft ini. Publish draft ini untuk menjadikannya rule efektif mulai bulan tertentu.
                       </p>
@@ -553,47 +591,86 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
            </div>
         )}
 
-        {isPublishing && (
+        {previewVersion && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-background/80 backdrop-blur-md">
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-card w-full max-w-md rounded-[2.5rem] p-8 border border-border shadow-2xl space-y-6">
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-card w-full max-w-lg rounded-[2.5rem] p-8 border border-border shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
                  <div className="w-20 h-20 bg-green-500/10 rounded-3xl flex items-center justify-center mx-auto mb-6">
                     <Rocket className="w-10 h-10 text-green-600 animate-bounce"/>
                  </div>
-                 <h2 className="text-xl font-black text-foreground text-center uppercase tracking-widest">Publish Rules</h2>
-                 <p className="text-sm text-center text-muted-foreground font-medium px-4">
-                    Pilih periode dimana rule ini mulai berlaku. Rule ini akan menggantikan rule aktif sebelumnya untuk periode yang dipilih dan seterusnya.
-                 </p>
+                 <h2 className="text-xl font-black text-foreground text-center uppercase tracking-widest">Preview & Publish</h2>
                  
-                 <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground px-1 text-center block">Target Periode Efektif</label>
-                    <select 
-                      value={publishPeriodId} 
-                      onChange={e => setPublishPeriodId(e.target.value)}
-                      className="w-full px-4 py-4 rounded-2xl border border-border bg-foreground/5 text-sm font-black text-center outline-none cursor-pointer"
-                    >
-                       <option value="">Pilih Periode...</option>
-                       {periods.map(p => (
-                         <option key={p.id} value={p.id}>{p.label}</option>
-                       ))}
-                    </select>
+                 {/* Preview Info */}
+                 <div className="space-y-3 bg-foreground/5 rounded-2xl p-4">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground font-medium">Service:</span>
+                      <span className="font-black">{SERVICE_LABELS[previewVersion.service_type]}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground font-medium">Version:</span>
+                      <span className="font-black">v{previewVersion.version_number}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground font-medium">Scoring Mode:</span>
+                      <span className="font-black uppercase">{previewVersion.scoring_mode}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground font-medium">Total Parameter:</span>
+                      <span className="font-black">{draftIndicators.length}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground font-medium">Critical Weight:</span>
+                      <span className="font-black">{Math.round(previewVersion.critical_weight * 100)}%</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground font-medium">Non-Critical Weight:</span>
+                      <span className="font-black">{Math.round(previewVersion.non_critical_weight * 100)}%</span>
+                    </div>
                  </div>
+
+                 {/* Indicator List */}
+                 <div className="space-y-2">
+                    <p className="text-[10px] font-black uppercase text-muted-foreground">Parameter</p>
+                    <div className="max-h-40 overflow-y-auto space-y-1">
+                      {draftIndicators.map(ind => (
+                        <div key={ind.id} className="flex justify-between text-xs py-1 border-b border-border last:border-0">
+                          <span className="font-medium">{ind.name}</span>
+                          <span className="font-black">{Math.round(ind.bobot * 100)}% ({ind.category})</span>
+                        </div>
+                      ))}
+                    </div>
+                 </div>
+
+                 {/* Change Reason (required for revisions) */}
+                 {previewVersion.version_number > 1 && (
+                   <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase text-muted-foreground px-1 block">
+                        Alasan Revisi <span className="text-red-500">*</span>
+                      </label>
+                      <textarea 
+                        value={changeReason}
+                        onChange={e => setChangeReason(e.target.value)}
+                        placeholder="Jelaskan mengapa parameter ini direvisi..."
+                        className="w-full px-4 py-3 rounded-2xl border border-border bg-foreground/5 text-sm font-bold outline-none resize-none h-20"
+                      />
+                   </div>
+                 )}
 
                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-start gap-3">
                     <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5"/>
                     <p className="text-[10px] font-bold text-amber-700 leading-relaxed uppercase tracking-wider">
-                       Setelah dipublish, rule ini tidak dapat diubah lagi (Immutable).
+                       Setelah dipublish, rule ini tidak dapat diubah lagi (Immutable). Versi published sebelumnya akan menjadi superseded.
                     </p>
                  </div>
 
                  <div className="flex flex-col gap-2">
                     <button 
                       onClick={handlePublish}
-                      disabled={!publishPeriodId || isPublishing}
-                      className="w-full py-4.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-green-500/20 transition-all"
+                      disabled={isPublishing || (previewVersion.version_number > 1 && !changeReason.trim())}
+                      className="w-full py-4 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-green-500/20 transition-all"
                     >
                        {isPublishing ? 'Mempublish...' : 'Ya, Publish Sekarang'}
                     </button>
-                    <button onClick={() => setIsPublishing(false)} className="w-full py-4.5 bg-foreground/5 text-muted-foreground rounded-2xl text-xs font-black uppercase tracking-widest">Batal</button>
+                    <button onClick={() => { setPreviewVersion(null); setChangeReason(''); }} className="w-full py-4 bg-foreground/5 text-muted-foreground rounded-2xl text-xs font-black uppercase tracking-widest">Batal</button>
                  </div>
               </motion.div>
           </div>
