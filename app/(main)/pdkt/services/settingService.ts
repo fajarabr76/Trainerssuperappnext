@@ -1,11 +1,11 @@
 import { createClient } from '@/app/lib/supabase/client';
 import { AppSettings, ConsumerNameMentionPattern, ResolvedConsumerNameMentionPattern } from '../types';
 import { DEFAULT_SCENARIOS, DEFAULT_CONSUMER_TYPES } from '../constants';
-import { normalizeModelId, TEXT_OPENROUTER_MODELS } from '@/app/lib/ai-models';
+import { normalizeModelId, TEXT_SIMULATION_MODELS } from '@/app/lib/ai-models';
 
 const supabase = createClient();
 const LOCAL_STORAGE_KEY = 'pdkt_settings_v2';
-const DEFAULT_PDKT_MODEL_ID = TEXT_OPENROUTER_MODELS[0]?.id || 'openai/gpt-oss-120b:free';
+const DEFAULT_PDKT_MODEL_ID = 'gemini-3.1-flash-lite-preview';
 
 const CONSUMER_NAME_MENTION_PATTERNS = [
   'random',
@@ -24,7 +24,7 @@ const RESOLVED_CONSUMER_NAME_MENTION_PATTERNS = [
 
 function coercePdktModelId(modelId?: string | null): string {
   const normalizedModelId = normalizeModelId(modelId);
-  return TEXT_OPENROUTER_MODELS.some((model) => model.id === normalizedModelId)
+  return TEXT_SIMULATION_MODELS.some((model) => model.id === normalizedModelId)
     ? normalizedModelId
     : DEFAULT_PDKT_MODEL_ID;
 }
