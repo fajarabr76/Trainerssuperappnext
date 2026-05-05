@@ -11,7 +11,7 @@ export const defaultSettings: AppSettings = {
     phoneNumber: '',
     city: ''
   },
-  selectedModel: 'openai/gpt-oss-120b:free',
+  selectedModel: 'gemini-3.1-flash-lite-preview',
   simulationDuration: 5,
   responsePacingMode: 'realistic'
 };

@@ -1,4 +1,5 @@
 import { Scenario, ConsumerType, ConsumerDifficulty } from '@/app/types';
+import { TEXT_SIMULATION_MODELS, normalizeModelId } from '@/app/lib/ai-models';
 
 const mergeWithDefaults = <T extends { id: string; isCustom?: boolean; description?: string }>(
   stored: T[],
@@ -28,6 +29,16 @@ const mergeWithDefaults = <T extends { id: string; isCustom?: boolean; descripti
   return merged;
 };
 
+/**
+ * Validates and normalizes model ID for KETIK.
+ * Defaults to Gemini 3.1 Flash Lite if invalid.
+ */
+export function coerceKetikModelId(modelId?: string | null): string {
+  const normalized = normalizeModelId(modelId);
+  const exists = TEXT_SIMULATION_MODELS.some(m => m.id === normalized);
+  return exists ? normalized : 'gemini-3.1-flash-lite-preview';
+}
+
 export const parseSettings = (parsed: any): any => ({
   ...parsed,
   scenarios: mergeWithDefaults(parsed.scenarios, DEFAULT_SCENARIOS),
@@ -39,7 +50,7 @@ export const parseSettings = (parsed: any): any => ({
     phoneNumber: parsed.identitySettings?.phoneNumber || '',
     city: parsed.identitySettings?.city || '',
   },
-  selectedModel: parsed.selectedModel || 'gemini-3.1-flash-lite-preview',
+  selectedModel: coerceKetikModelId(parsed.selectedModel),
   simulationDuration: parsed.simulationDuration || 5,
 });
 
