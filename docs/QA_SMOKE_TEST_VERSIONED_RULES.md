@@ -7,12 +7,17 @@ Checklist ini dipakai setelah migration:
 - `20260421103000_fix_qa_score_agent_uuid_session_grouping.sql`
 - `20260421105000_fix_qa_dashboard_range_category_alias.sql`
 - `20260422103000_fix_sidak_clean_session_audit_presence.sql`
+- `20260505000000_enhance_qa_versioning.sql`
 
 ## A. Pre-check Database
 - [ ] Pastikan tabel baru ada: `qa_service_rule_versions`, `qa_service_rule_indicators`.
+- [ ] Pastikan kolom baru ada di `qa_service_rule_versions`: `version_number`, `change_reason`, `updated_by`, `superseded_at`, `superseded_by`, `superseded_by_version_id`, `created_from_version_id`.
+- [ ] Pastikan kolom baru ada di `qa_service_rule_indicators`: `updated_by`.
 - [ ] Pastikan kolom baru ada di `qa_temuan`: `rule_version_id`, `rule_indicator_id`.
 - [ ] Pastikan `qa_service_rule_indicators.service_type` sudah terisi (tidak null).
 - [ ] Pastikan data temuan lama sudah ter-backfill ke `rule_version_id` dan `rule_indicator_id`.
+- [ ] Pastikan index unique `uq_qa_rule_version_number`, `uq_qa_rule_one_published_per_service_period`, `uq_qa_rule_one_draft_per_service_period` sudah ada.
+- [ ] Pastikan RPC `publish_rule_version` ada dan berfungsi.
 
 ## B. Smoke Test Settings (Draft/Publish)
 - [ ] Buka halaman `/qa-analyzer/settings`.
@@ -21,6 +26,33 @@ Checklist ini dipakai setelah migration:
 - [ ] Publish draft ke periode target (contoh: Mei 2026).
 - [ ] Verifikasi tidak bisa update/hapus indicator dari version yang status `published`.
 - [ ] Verifikasi tidak bisa publish 2 version `published` untuk service+periode yang sama.
+
+## B1. Smoke Test Revision Flow (Create Revision)
+- [ ] Di halaman `/qa-analyzer/settings`, pilih service dengan versi `published`.
+- [ ] Klik tombol "Create Revision" — verifikasi draft baru muncul dengan `version_number` bertambah dari versi published-nya.
+- [ ] Verifikasi status draft baru adalah `draft`.
+- [ ] Ubah minimal 1 parameter di draft revisi, lalu klik "Publish".
+- [ ] Di preview modal, isi `Alasan Revisi` (wajib untuk v2+).
+- [ ] Publish. Pastikan:
+  - [ ] Versi baru menjadi `published`.
+  - [ ] Versi sebelumnya menjadi `superseded`.
+  - [ ] `superseded_by_version_id` di versi lama mengarah ke versi baru.
+  - [ ] `change_reason` tersimpan di versi baru.
+- [ ] Buka kembali settings; verifikasi versi superseded terlihat dengan badge abu-abu dan tidak bisa dipilih untuk publikasi.
+
+## B2. Smoke Test Preview Modal
+- [ ] Pilih draft version, klik "Publish".
+- [ ] Verifikasi preview modal muncul menampilkan: nama service, version number, scoring mode, total parameter, bobot critical/non-critical, dan daftar parameter.
+- [ ] Untuk draft yang merupakan revisi (version_number > 1), pastikan textarea "Alasan Revisi" muncul dan wajib diisi.
+- [ ] Klik "Batal" — verifikasi kembali ke halaman settings tanpa perubahan.
+- [ ] Klik "Ya, Publish Sekarang" — verifikasi sukses toast muncul.
+
+## B3. Smoke Test Historical Indicator Fallback
+- [ ] Buka detail agent yang memiliki temuan dari periode lama (sebelum versioned rules).
+- [ ] Di tab Temuan, cari temuan yang `qa_indicators`-nya null atau tidak lengkap.
+- [ ] Verifikasi fallback ke data dari `qa_service_rule_indicators` (via `indicatorLookup`) bekerja — nama indikator tetap muncul.
+- [ ] Buka modal "Edit Temuan" untuk temuan tanpa `qa_indicators` name; verifikasi fallback menampilkan `Parameter ID: {indicator_id}`.
+- [ ] Pastikan tidak ada TypeError/blank di UI untuk kasus historical data ini.
 
 ## C. Smoke Test Input Periode
 - [ ] Pilih agent + periode lama (contoh: April 2026), cek indikator yang muncul sesuai version lama.

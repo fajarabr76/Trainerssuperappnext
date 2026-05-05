@@ -13,6 +13,9 @@ erDiagram
     PROFILER_FOLDERS ||--o{ PROFILER_PESERTA : "contains"
     QA_PERIODS ||--o{ QA_TEMUAN : "timeframe"
     QA_TEMUAN ||--o{ QA_INDICATORS : "details"
+    QA_PERIODS ||--o{ QA_SERVICE_RULE_VERSIONS : "defines"
+    QA_SERVICE_RULE_VERSIONS ||--o{ QA_SERVICE_RULE_INDICATORS : "contains"
+    QA_SERVICE_RULE_VERSIONS ||--o{ QA_SERVICE_RULE_VERSIONS : "supersedes"
 ```
 
 ## Tabel Utama
@@ -54,8 +57,10 @@ Menyimpan hasil simulasi legacy/kompatibilitas dari modul Ketik dan Telefun, ser
 ### 5. Modul SIDAK (QA Analyzer)
 - **`qa_periods`**: Definisi periode audit kualitas.
 - **`qa_temuan`**: Data utama audit (Agent, Tim, Temuan, Status). Non-phantom rows reject duplicate `(peserta_id, period_id, service_type, normalized no_tiket, indicator_id)` via `uq_qa_temuan_duplicate_input`; run `supabase/maintenance/qa_temuan_duplicate_input_cleanup.sql` to review historical duplicates before applying the index migration.
-- **`qa_indicators`**: Daftar parameter penilaian audit.
+- **`qa_indicators`**: Daftar parameter penilaian audit (legacy, tetap digunakan untuk kompatibilitas).
 - **`qa_categories`**: Pengelompokan indikator temuan (Pareto mapping).
+- **`qa_service_rule_versions`**: Versi rule per service+periode dengan status `draft`, `published`, atau `superseded`. Dilengkapi kolom `version_number` (auto-increment per service+periode), `change_reason`, `created_from_version_id` untuk revision flow, serta `superseded_at`/`superseded_by`/`superseded_by_version_id` untuk audit trail saat versi digantikan. Unique constraint `uq_qa_rule_one_published_per_service_period` memastikan maksimal 1 published version aktif per service+periode.
+- **`qa_service_rule_indicators`**: Snapshot indikator per rule version. Berisi `bobot`, `category`, `threshold`, `name`, dan `legacy_indicator_id` untuk backward compatibility. Kolom `updated_by` mencatat user terakhir yang memodifikasi.
 
 ### 6. Monitoring AI Usage & Billing
 - **`ai_usage_logs`**: Log 1 baris per AI call sukses final. Menyimpan `request_id` unik, `user_id`, `provider`, `model_id`, `module`, `action`, token input/output/total, snapshot harga input/output per 1 juta token, snapshot kurs USD/IDR, serta estimasi biaya USD dan IDR.
@@ -86,6 +91,8 @@ RLS diaktifkan di seluruh tabel untuk memastikan isolasi data antar user.
 
 ### Fungsi Pembantu (Security Definer)
 Sistem menggunakan fungsi `public.get_auth_role()` untuk mengambil role user saat ini secara efisien tanpa menyebabkan rekursi pada kebijakan RLS.
+
+**`public.publish_rule_version(p_version_id, p_change_reason)`** — Atomic publish RPC untuk QA rule version. Menangani publish draft sekaligus supersede versi aktif sebelumnya dalam satu transaksi. Validasi wajib: tidak boleh ada indikator duplikat, bobot per kategori harus 100% (weighted mode), dan `change_reason` wajib diisi jika menggantikan versi published yang sudah ada. Hanya bisa dijalankan oleh role `admin`/`trainer`.
 
 ## Storage
 Aplikasi menggunakan Supabase Storage bucket:
