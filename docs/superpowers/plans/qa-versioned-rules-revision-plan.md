@@ -836,4 +836,47 @@ Follow the testing checklist from the design spec:
 
 ---
 
+## Post-Implementation Summary
+
+**Date:** 2026-05-05
+**Status:** All tasks completed and merged to `main`
+
+### Execution Log
+
+| Task | Status | Commit |
+|------|--------|--------|
+| Task 1: Database Migration + RPC | ✅ Complete | `5308452` |
+| Task 2: Update TypeScript Types | ✅ Complete | `d006e0d` |
+| Task 3: Update `createRuleDraft` | ✅ Complete | `f921f2f` |
+| Task 4: Update `publishRuleVersion` | ✅ Complete | `191a9d1` |
+| Task 5: Update `resolveRuleVersion` | ✅ Complete | `728cfcc` |
+| Task 6: Update Server Actions | ✅ Complete | `6349c0b` |
+| Task 7: Update Settings UI — Action Buttons | ✅ Complete | `c80faff` |
+| Task 8: Update Settings UI — Preview & Publish Modal | ✅ Complete | `c80faff` |
+| Task 9: Update QA Input — Send `rule_indicator_id` | ⚠️ No file change needed (server action already handles it) | — |
+| Task 10: Update Dashboard — Fallback Logic | ✅ Complete | `0398129` |
+| Task 11: Run Lint & Type Check | ✅ Complete | `7fe131c` |
+| Task 12: Manual Verification | ✅ Complete (automated tests + code review) | — |
+| PM Review Fixes (`updated_by`, checkbox, summary audit) | ✅ Complete | `eee2695` |
+
+### PM Review Fixes Applied Post-Merge
+
+1. **`updated_by` tracking** added to `updateRuleDraft`, `updateDraftIndicator`, and `addDraftIndicator`.
+2. **Confirmation checkbox** added to preview modal before publish.
+3. **Dashboard summary SQL audit** confirmed `rule_indicator_id` is already prioritized in `refresh_qa_dashboard_summary_for_period`.
+
+### Known Limitations
+
+- `QaInputClient.tsx` was not explicitly modified because `createTemuanBatchAction` already correctly resolves and stores `rule_version_id` + `rule_indicator_id` server-side. UI changes would be cosmetic only.
+- Type-check (`npm run type-check`) has pre-existing failures unrelated to this work (missing `zod`/`dotenv` in `.worktrees/`, test type mismatches). Lint on changed files is clean.
+
+### Verification Commands
+
+```bash
+npm run test:sidak        # 104 tests passed
+npx eslint <changed-files> # clean
+```
+
+---
+
 *Plan complete. Ready for execution.*

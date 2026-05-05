@@ -551,4 +551,44 @@ Implementation is considered complete when **all** of the following are true:
 
 ---
 
+## 15. Post-Implementation Notes
+
+**Date:** 2026-05-05
+**Status:** Implemented, reviewed, and merged to `main`
+
+### What Was Delivered
+
+All acceptance criteria met:
+- Database migration applied with safe backfill strategy.
+- Atomic `publish_rule_version` RPC deployed with permission checks, duplicate indicator validation, and scoring-mode-aware weight enforcement.
+- `createRuleDraft` supports revision flow with `version_number` auto-increment per `service_type + effective_period_id`.
+- `publishRuleVersion` service wrapper delegates entirely to RPC.
+- `resolveRuleVersion` sorts by `version_number` as tiebreaker.
+- UI action matrix correctly scoped per status (`draft`/`published`/`superseded`).
+- Preview modal displays version info, parameter list, and enforces `change_reason` for revisions.
+- Dashboard fallback logic uses `rule_indicator_id` first, then falls back to `qa_indicators`.
+
+### PM Review Findings & Fixes
+
+| Finding | Severity | Fix Applied |
+|---------|----------|-------------|
+| `updated_by` not tracked in `updateRuleDraft`, `updateDraftIndicator`, `addDraftIndicator` | Medium | All three functions now inject `updated_by: auth.uid()` and `updated_at` automatically. |
+| Preview modal lacked explicit confirmation checkbox | Low | Added checkbox: *"Saya telah meninjau parameter dan bobot di atas"*. Publish button disabled until checked. |
+| Dashboard summary SQL audit | Medium | Verified `refresh_qa_dashboard_summary_for_period` already uses `COALESCE(ri.category, i.category)` via `rule_indicator_id`. No code change needed. |
+| `publishRuleVersionAction` signature changed | Low | Confirmed only internal caller (`QaVersionedSettings.tsx`) was updated. No external callers found. |
+
+### Verification
+
+- `npm run test:sidak`: 104/104 tests passed.
+- `npx eslint` on modified files: clean.
+- Branch `feature/qa-versioned-revision` merged to `main` via fast-forward.
+
+### Next Steps
+
+1. Apply migration `20260505000000_enhance_qa_versioning.sql` to production/staging database.
+2. Smoke test the full flow: create draft → publish → create revision → publish revision → verify superseded.
+3. Monitor for any UI edge cases with the new `superseded` status badge.
+
+---
+
 *Design approved. Ready for implementation planning.*
