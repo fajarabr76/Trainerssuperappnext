@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { 
   BarChart2, ShieldCheck, Edit2, Trash2, Loader2, 
   AlertCircle, ChevronDown, ChevronUp, Ticket
 } from 'lucide-react';
-import type { QATemuan } from '../../../lib/qa-types';
+import type { QATemuan, QAIndicator } from '../../../lib/qa-types';
 import { unwrapIndicator } from '../../../lib/qa-types';
 
 interface MonthlyGroup {
@@ -17,6 +17,7 @@ interface MonthlyGroup {
 
 interface AgentTemuanTabProps {
   groupedFindingsByMonth: MonthlyGroup[];
+  indicators: QAIndicator[];
   role: string;
   loadingTemuan: boolean;
   deletingId: string | null;
@@ -46,6 +47,7 @@ function NilaiBadge({ nilai }: { nilai: number }) {
 
 export default function AgentTemuanTab({
   groupedFindingsByMonth,
+  indicators,
   role,
   loadingTemuan,
   deletingId,
@@ -53,6 +55,11 @@ export default function AgentTemuanTab({
   onDelete,
   contextKey
 }: AgentTemuanTabProps) {
+  const indicatorLookup = useMemo(() => {
+    const map = new Map<string, QAIndicator>();
+    indicators.forEach((ind) => map.set(ind.id, ind));
+    return map;
+  }, [indicators]);
   const [openMonths, setOpenMonths] = useState<Set<number>>(new Set());
 
   useEffect(() => {
@@ -139,7 +146,9 @@ export default function AgentTemuanTab({
 
                     <div className="space-y-8 pl-2">
                       {ticket.items.map((t) => {
-                        const indicator = unwrapIndicator(t.qa_indicators);
+                        const versionedIndicator = unwrapIndicator(t.qa_indicators);
+                        const fallbackIndicator = indicatorLookup.get(t.indicator_id);
+                        const indicator = versionedIndicator || fallbackIndicator;
                         const isCritical = indicator?.category === 'critical';
                         
                         return (

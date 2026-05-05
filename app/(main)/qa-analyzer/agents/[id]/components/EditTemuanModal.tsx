@@ -46,7 +46,9 @@ export default function EditTemuanModal({
             <div className="px-8 py-6 border-b border-border/50 flex items-center justify-between bg-foreground/[0.02]">
               <div>
                 <h3 className="text-xl font-black tracking-tight">Edit Temuan</h3>
-                <p className="text-xs text-foreground/50 mt-1 font-medium">{unwrapIndicator(editingTemuan.qa_indicators)?.name}</p>
+                <p className="text-xs text-foreground/50 mt-1 font-medium">
+                {unwrapIndicator(editingTemuan.qa_indicators)?.name || `Parameter ID: ${editingTemuan.indicator_id}`}
+              </p>
               </div>
               <button 
                 onClick={() => !isSubmitting && onClose()} 

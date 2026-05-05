@@ -107,6 +107,7 @@ export default function QaAgentDetailClient({
     monthlySummaries,
     topTickets,
     groupedFindingsByMonth,
+    indicators,
     availableServiceTypes,
     automatedCoaching,
     contextKey,
@@ -638,6 +639,7 @@ export default function QaAgentDetailClient({
                 {temuanMounted ? (
                   <AgentTemuanTab 
                     groupedFindingsByMonth={groupedFindingsByMonth}
+                    indicators={indicators}
                     role={role}
                     loadingTemuan={loadingTemuan}
                     deletingId={deletingId}
