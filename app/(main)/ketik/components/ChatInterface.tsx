@@ -51,6 +51,18 @@ function isImageOnlyText(text: string): boolean {
   return cleaned.length > 0 && hasImageTag(cleaned) && cleaned.replace(IMAGE_TAG_PATTERN_GLOBAL, '').trim() === '';
 }
 
+function stripNarrationFromImagePart(text: string): string {
+  const match = text.match(IMAGE_TAG_PATTERN);
+  if (match) {
+    const stripped = text.replace(IMAGE_TAG_PATTERN_GLOBAL, '').trim();
+    if (stripped) {
+      console.warn('[ketik][stripNarration] Stripped narration from image part:', { stripped, kept: match[0] });
+    }
+    return match[0];
+  }
+  return text;
+}
+
 function normalizeGeneratedParts(parts: string[]): Array<Pick<ChatMessage, 'sender' | 'text'>> {
   const normalized: Array<Pick<ChatMessage, 'sender' | 'text'>> = [];
 
@@ -60,6 +72,14 @@ function normalizeGeneratedParts(parts: string[]): Array<Pick<ChatMessage, 'send
     const nextRaw = parts[index + 1];
 
     if (!currentText) {
+      continue;
+    }
+
+    if (SYSTEM_TAG_PATTERN.test(currentRaw) && hasImageTag(currentRaw)) {
+      normalized.push({
+        sender: 'consumer',
+        text: stripNarrationFromImagePart(currentRaw),
+      });
       continue;
     }
 
@@ -89,6 +109,15 @@ function normalizeMessagesForDisplay(messages: ChatMessage[]): ChatMessage[] {
     const currentText = typeof current.text === 'string' ? current.text : '';
     const cleanedText = stripSystemTags(currentText);
     const next = messages[index + 1];
+
+    if (current.sender === 'system' && hasImageTag(currentText)) {
+      normalized.push({
+        ...current,
+        sender: 'consumer',
+        text: stripNarrationFromImagePart(currentText),
+      });
+      continue;
+    }
 
     if (current.sender === 'system' && next && isImageOnlyText(next.text)) {
       normalized.push({
@@ -163,6 +192,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const consumerTurnCountRef = useRef(0);
   const totalSlowCountRef = useRef(0);
   const consecutiveSlowCountRef = useRef(0);
+  const sendGenerationRef = useRef(0);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -334,6 +364,10 @@ Tulis pesan penutup konsumen sekarang.`;
   }, [isReviewMode, messages.length, config.identity.name]);
 
   const handleSend = async () => {
+    clearPendingTimeouts();
+    sendGenerationRef.current += 1;
+    const currentGeneration = sendGenerationRef.current;
+
     if (!inputText.trim() || (sessionPhase !== 'active' && sessionPhase !== 'expired')) return;
 
     const userMsg: ChatMessage = {
@@ -378,6 +412,10 @@ Tulis pesan penutup konsumen sekarang.`;
         return;
       }
 
+      if (sendGenerationRef.current !== currentGeneration) {
+        return;
+      }
+
       if (!result.success) {
         setIsLoading(false);
         setMessages((prev) => [
@@ -402,10 +440,13 @@ Tulis pesan penutup konsumen sekarang.`;
         const lastAgentMsg = [...currentHistory].reverse().find(m => m.sender === 'agent');
         const agentGivingSolution = isAgentGivingSolution(lastAgentMsg?.text);
 
+        const isFirstConsumerTurn = consumerTurnCountRef.current === 0;
         consumerTurnCountRef.current += 1;
         const currentConsumerTurn = consumerTurnCountRef.current;
 
-        let firstBand: 'short' | 'normal' | 'long' | 'slow' = classifyTextBand(parts[0]?.text.length || 0);
+        let firstBand: 'short' | 'normal' | 'long' | 'slow' | 'greeting_reply' = isFirstConsumerTurn
+          ? 'greeting_reply'
+          : classifyTextBand(parts[0]?.text.length || 0);
         const shouldUseSlow =
           pacingMode === 'realistic' &&
           parts.length > 0 &&
@@ -416,6 +457,8 @@ Tulis pesan penutup konsumen sekarang.`;
             totalSlowCount: totalSlowCountRef.current,
             sessionDurationMinutes: config.simulationDuration,
             remainingSeconds: remaining,
+            elapsedSeconds,
+            totalDurationSeconds: config.simulationDuration * 60,
           });
 
         if (shouldUseSlow) {
@@ -649,10 +692,12 @@ Tulis pesan penutup konsumen sekarang.`;
         <AnimatePresence initial={false}>
             {messages.map((msg, _index) => {
                if (msg.sender === 'system') {
-                  const hasImageTag = /\[SEND_IMAGE\s*:\s*\d+\]/i.test(msg.text);
-                  const systemTextWithoutTag = msg.text
-                    .replace(/\[SEND_IMAGE\s*:\s*\d+\]/gi, '')
-                    .trim();
+                   const msgHasImageTag = /\[SEND_IMAGE\s*:\s*\d+\]/i.test(msg.text);
+                   const systemTextWithoutTag = msgHasImageTag
+                     ? ''
+                     : msg.text
+                         .replace(/\[SEND_IMAGE\s*:\s*\d+\]/gi, '')
+                         .trim();
 
                    return (
                        <motion.div 
@@ -667,11 +712,11 @@ Tulis pesan penutup konsumen sekarang.`;
                                  {systemTextWithoutTag}
                                </p>
                              ) : null}
-                             {hasImageTag ? (
-                               <div className="w-full max-w-sm">
-                                 {renderMessageContent(msg.text)}
-                               </div>
-                             ) : null}
+                              {msgHasImageTag ? (
+                                <div className="w-full max-w-sm">
+                                  {renderMessageContent(msg.text)}
+                                </div>
+                              ) : null}
                            </div>
                        </motion.div>
                    );

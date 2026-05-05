@@ -40,7 +40,7 @@ export interface Scenario {
 
 export interface PacingMeta {
   mode: 'realistic' | 'training_fast';
-  band: 'short' | 'normal' | 'long' | 'slow' | 'follow_up';
+  band: 'short' | 'normal' | 'long' | 'slow' | 'follow_up' | 'greeting_reply';
   plannedDelayMs: number;
   timerClamped: boolean;
 }

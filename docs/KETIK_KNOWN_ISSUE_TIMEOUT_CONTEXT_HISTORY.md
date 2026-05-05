@@ -4,7 +4,7 @@
 
 - Status: `resolved`
 - Prioritas: `high`
-- Dampak: sesi KETIK bisa tetap menerima balasan setelah timer habis, transcript paragraf kehilangan line break, konsumen keluar dari konteks skenario, dan history baru tidak selalu tampil konsisten di monitoring setelah reload.
+- Dampak: sesi KETIK bisa tetap menerima balasan setelah timer habis, transcript paragraf kehilangan line break, konsumen keluar dari konteks skenario, history baru tidak selalu tampil konsisten di monitoring setelah reload, **narasi gambar `[SISTEM]` + `[SEND_IMAGE]` bocor ke bubble konsumen, konsumen tidak merespons greeting pertama lalu langsung menutup sesi**.
 
 ## Route Terdampak
 
@@ -17,6 +17,8 @@
 2. Pesan agent atau konsumen yang berisi beberapa paragraf tampil sebagai satu blok panjang di simulasi chat dan transcript monitoring.
 3. Konsumen kadang membahas topik baru yang tidak ada di skenario, misalnya menambah isu cetak SLIK ketika kasus awal hanya tentang penipuan.
 4. Beberapa sesi KETIK selesai tersimpan di flow pengguna, tetapi tidak langsung terbaca konsisten di monitoring setelah halaman dimuat ulang.
+5. Saat konsumen AI mengirim gambar, teks narasi internal seperti `[SISTEM] Konsumen mengirim tangkapan layar pesan penipuan yang diterima [SEND_IMAGE: 0]` tampil sebagai bubble teks yang terlihat oleh pengguna agen.
+6. Konsumen AI tidak merespons greeting pertama agen, lalu muncul setelah >3 menit dan langsung menutup sesi tanpa pernah menyampaikan masalah inti.
 
 ## Akar Masalah Final
 
@@ -24,6 +26,8 @@
 2. **Rendering transcript belum mempertahankan newline** — bubble chat dan modal transcript memakai render teks biasa sehingga `\n` diratakan menjadi satu paragraf.
 3. **Guardrail skenario kurang tegas** — prompt konsumen belum cukup eksplisit membatasi fakta/topik hanya pada inti skenario dan pertanyaan agent yang relevan.
 4. **Save path sesi terlalu bergantung pada client flow** — penyimpanan sesi dilakukan dari client-side insert, sehingga alur persistence, warning handling, dan cache refresh monitoring tidak terkonsolidasi.
+5. **Prompt AI menginstruksikan narasi `[SISTEM]` + `[SEND_IMAGE]` dalam satu part** — aturan #4 lama mengarahkan AI untuk menulis `[SISTEM] Mengirim bukti transfer [SEND_IMAGE: 0]`, dan normalizer tidak menangani kasus di mana kedua tag berada di part yang sama sehingga teks narasi ikut masuk ke bubble konsumen.
+6. **Pending timeout tidak dibatalkan saat send baru** — saat agen mengirim greeting kedua sementara respons konsumen dari greeting pertama masih dalam delay pacing, `clearPendingTimeouts()` tidak dipanggil sehingga respons lama tetap muncul dan bisa bertabrakan dengan respons baru. Ditambah konsumen AI tidak diwajibkan merespons dengan penjelasan masalah di pesan-pesan awal.
 
 ## Fix Yang Diterapkan
 
@@ -101,11 +105,43 @@
 - Tombol `Selesai` di chat juga nonaktif bila auth belum siap.
 - Jika sesi tidak bisa disimpan karena auth belum siap atau persistence gagal, pengguna mendapat pesan error yang jelas.
 
+### 6. Perbaikan rendering gambar — narasi `[SISTEM]` + `[SEND_IMAGE]` di-strip
+
+- **Helper baru `stripNarrationFromImagePart()`** di `ChatInterface.tsx` — mengekstrak hanya tag `[SEND_IMAGE: N]` dari teks yang mengandung narasi deskriptif. Jika ada teks narasi di sekitar tag gambar, narasi tersebut dibuang dan hanya tag gambar yang disimpan. Saat narasi di-strip, `console.warn` terstruktur dicatat untuk pemantauan.
+- **`normalizeGeneratedParts()`** — menambah intercept di awal loop: jika sebuah part mengandung `[SISTEM]` DAN `[SEND_IMAGE]` dalam satu string, strip narasi dan hanya simpan `[SEND_IMAGE: N]` sebagai `sender: 'consumer'`.
+- **`normalizeMessagesForDisplay()`** — menambah intercept serupa: jika `sender='system'` dan teks mengandung `[SEND_IMAGE]`, strip narasi dan konversi ke `sender: 'consumer'`.
+- **Renderer system message defensif** — jika bubble system mengandung tag gambar, `systemTextWithoutTag` di-set ke string kosong agar narasi tidak dirender, hanya gambar yang tampil.
+
+### 7. Perbaikan AI prompt — gambar tanpa narasi
+
+- **Aturan #4 di `geminiService.ts`** diubah — AI diinstruksikan untuk menulis HANYA `[SEND_IMAGE: indeks]` tanpa narasi deskriptif. Jika ingin memberi keterangan tentang gambar, tulis sebagai chat konsumen biasa di part terpisah setelah `[BREAK]`.
+- **Aturan #3** diklarifikasi — tag `[SISTEM]` sekarang hanya untuk aksi fisik internal (misal: "Konsumen pergi mengambil dokumen") dan tidak boleh muncul bersama `[SEND_IMAGE]` dalam satu part.
+
+### 8. Perbaikan pacing awal sesi
+
+- **Band `greeting_reply` baru** di `responsePacing.ts` — respons pertama konsumen setelah greeting dipacing 2–6 detik (realistic) / 0.5–1.5 detik (training), menggantikan klasifikasi berbasis panjang teks yang bisa menghasilkan delay 10–20 detik.
+- **Slow guard diperketat** — threshold `consumerTurnIndex` dinaikkan dari `< 3` ke `< 4`; ditambah time-based guard: slow tidak diizinkan jika `elapsedSeconds < 25% totalDurationSeconds`.
+- **`SlowEligibilityParams`** diperluas dengan `elapsedSeconds?` dan `totalDurationSeconds?` (opsional, backward-compatible).
+- **Deteksi greeting reply** di `handleSend()` — jika `consumerTurnCountRef.current === 0` (belum ada turn konsumen sebelumnya), `firstBand` di-override ke `'greeting_reply'` alih-alih hasil `classifyTextBand()`.
+
+### 9. Perbaikan anti-penutupan dini
+
+- **Aturan #13 di `geminiService.ts`** diperkuat — dalam 3–4 pesan pertama, konsumen WAJIB fokus menjelaskan masalah dan TIDAK BOLEH menutup percakapan. Greeting pertama HARUS dijawab dengan penjelasan masalah atau sapaan balik yang menyampaikan inti keluhan.
+- **`buildTimeLimitInstruction()`** sesi masih panjang — ditambah instruksi "WAJIB menjelaskan masalah di 2–3 pesan pertama dan TIDAK BOLEH menutup percakapan sebelum inti masalah tersampaikan."
+
+### 10. Proteksi terhadap double-send race condition
+
+- **`clearPendingTimeouts()` di awal `handleSend()`** — setiap kali agen mengirim pesan baru, semua timeout respons konsumen yang masih pending di-cancel. Ini mencegah respons dari greeting pertama muncul setelah greeting kedua dikirim.
+- **`sendGenerationRef` counter** — setiap panggilan `handleSend()` mendapat nomor generasi. Setelah AI response kembali, jika nomor generasi sudah berubah (ada send yang lebih baru), respons di-discard diam-diam. Ini mencegah respons AI kadaluarsa muncul saat agen mengirim pesan ganda dengan cepat.
+
 ## Interface yang Berubah
 
 - `persistKetikSession(params)` mengembalikan `success`, `session`, `warning`, dan `error`.
 - `ChatInterface` menerima prop `authReady?: boolean`.
 - `ChatInterface` memakai state internal `SessionPhase`, `sessionPhaseRef`, dan `timeoutFinalizedRef` untuk menjaga timeout close tetap satu kali dan sinkron terhadap request in-flight.
+- `PacingBand` type (di `responsePacing.ts` dan `types.ts`) diperluas dengan union `'greeting_reply'`.
+- `SlowEligibilityParams` menerima `elapsedSeconds?: number` dan `totalDurationSeconds?: number` (opsional).
+- `sendGenerationRef` di `ChatInterface` sebagai guard terhadap respons AI kadaluarsa.
 
 ## Regression Guard
 
@@ -119,6 +155,12 @@
 - [ ] Linkage `results.details.legacy_history_id` tetap ada untuk sinkronisasi delete dan traceability.
 - [ ] Insert `results` yang gagal tidak boleh menggagalkan penyimpanan `ketik_history`.
 - [ ] Perubahan baru di KETIK tidak boleh menghapus `revalidatePath('/dashboard/monitoring')`.
+- [ ] Gambar yang dikirim konsumen TIDAK boleh menampilkan teks narasi seperti "Konsumen mengirim tangkapan layar" di bubble konsumen — hanya gambar dan/atau chat biasa yang boleh tampil.
+- [ ] Respons pertama konsumen setelah greeting harus dipacing di band `greeting_reply` (2–6 detik realistic), bukan band `long` (10–20 detik).
+- [ ] Slow pacing TIDAK boleh muncul pada 3 turn pertama konsumen dan TIDAK boleh muncul di 25% awal durasi sesi.
+- [ ] Konsumen TIDAK boleh menutup percakapan di 3–4 pesan pertama atau merespons greeting pertama dengan pamit.
+- [ ] Saat agen mengirim pesan baru, semua timeout respons konsumen yang masih pending harus di-cancel.
+- [ ] Saat agen mengirim pesan ganda cepat, respons AI dari send lama tidak boleh muncul; hanya respons dari send terbaru yang diproses.
 
 ## Smoke Steps Singkat
 
@@ -130,6 +172,11 @@
 6. Uji timeout dengan pesan terakhir dari agent yang jelas memberi arahan, lalu pastikan acknowledgement singkat masih natural sebelum penutupan.
 7. Akhiri sesi KETIK, reload `/dashboard/monitoring`, lalu pastikan history baru muncul.
 8. Saat timeout sudah terjadi, kirim 2-3 pesan agent tambahan dan pastikan tidak ada balasan konsumen baru.
+9. Mulai sesi dengan skenario yang memiliki gambar, verifikasi bahwa saat konsumen mengirim gambar, hanya gambar yang muncul tanpa teks narasi "Konsumen mengirim tangkapan layar" atau sejenisnya.
+10. Mulai sesi 5 menit, kirim greeting template, ukur delay sebelum balasan pertama konsumen — harus 2–6 detik di mode realistic (bukan 10–20 detik).
+11. Mulai sesi dan kirim 1–2 pesan; konsumen TIDAK boleh langsung menutup percakapan atau memberi alasan harus pergi.
+12. Mulai sesi 5 menit, kirim 3 pesan berturut-turut, pastikan slow pacing tidak muncul di ketiga pesan tersebut.
+13. Kirim 2 pesan agent dengan cepat (double-send), pastikan hanya respons dari send terbaru yang muncul, tidak ada duplikasi atau overlap respons dari send pertama.
 
 ## Checklist Penutupan
 
@@ -142,10 +189,12 @@
 
 ## Referensi Silang
 
+- `app/types.ts` — `PacingMeta` band union (termasuk `greeting_reply`)
 - `app/(main)/ketik/actions.ts`
 - `app/(main)/ketik/KetikClient.tsx`
-- `app/(main)/ketik/components/ChatInterface.tsx`
+- `app/(main)/ketik/components/ChatInterface.tsx` — normalizer gambar, send generation counter, greeting reply detection, clearPendingTimeouts di handleSend
+- `app/(main)/ketik/services/responsePacing.ts` — band greeting_reply, slow guard diperketat, SlowEligibilityParams diperluas
+- `app/(main)/ketik/services/geminiService.ts` — aturan #3/#4/#13 diperbarui, buildTimeLimitInstruction diperkuat
 - `app/(main)/ketik/services/timeoutContext.ts`
-- `app/(main)/ketik/services/geminiService.ts`
 - `app/(main)/dashboard/monitoring/MonitoringClient.tsx`
 - `app/(main)/dashboard/monitoring/monitoringData.ts`

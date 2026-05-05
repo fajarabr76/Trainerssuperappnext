@@ -1,7 +1,7 @@
 import { PacingMeta } from '@/app/types';
 
 export type PacingMode = 'realistic' | 'training_fast';
-export type PacingBand = 'short' | 'normal' | 'long' | 'slow' | 'follow_up';
+export type PacingBand = 'short' | 'normal' | 'long' | 'slow' | 'follow_up' | 'greeting_reply';
 
 interface PacingBandRange {
   minMs: number;
@@ -14,6 +14,7 @@ const REALISTIC_RANGES: Record<PacingBand, PacingBandRange> = {
   long: { minMs: 10000, maxMs: 20000 },
   slow: { minMs: 20000, maxMs: 30000 },
   follow_up: { minMs: 1200, maxMs: 2500 },
+  greeting_reply: { minMs: 2000, maxMs: 6000 },
 };
 
 const TRAINING_FAST_RANGES: Record<PacingBand, PacingBandRange> = {
@@ -22,6 +23,7 @@ const TRAINING_FAST_RANGES: Record<PacingBand, PacingBandRange> = {
   long: { minMs: 4000, maxMs: 7000 },
   slow: { minMs: 800, maxMs: 1500 },
   follow_up: { minMs: 800, maxMs: 1500 },
+  greeting_reply: { minMs: 500, maxMs: 1500 },
 };
 
 function boundedRandom(min: number, max: number): number {
@@ -45,14 +47,21 @@ interface SlowEligibilityParams {
   totalSlowCount: number;
   sessionDurationMinutes: number;
   remainingSeconds: number;
+  elapsedSeconds?: number;
+  totalDurationSeconds?: number;
 }
 
 export function isSlowEligible(params: SlowEligibilityParams): boolean {
-  const { consumerTurnIndex, consecutiveSlowCount, totalSlowCount, sessionDurationMinutes, remainingSeconds } = params;
+  const { consumerTurnIndex, consecutiveSlowCount, totalSlowCount, sessionDurationMinutes, remainingSeconds, elapsedSeconds, totalDurationSeconds } = params;
 
-  if (consumerTurnIndex < 3) return false;
+  if (consumerTurnIndex < 4) return false;
   if (consecutiveSlowCount >= 1) return false;
   if (remainingSeconds < 45) return false;
+
+  if (elapsedSeconds !== undefined && totalDurationSeconds !== undefined && totalDurationSeconds > 0) {
+    const elapsedRatio = elapsedSeconds / totalDurationSeconds;
+    if (elapsedRatio < 0.25) return false;
+  }
 
   const maxSlow = sessionDurationMinutes <= 5 ? 1 : sessionDurationMinutes <= 15 ? 2 : 2;
   if (totalSlowCount >= maxSlow) return false;
