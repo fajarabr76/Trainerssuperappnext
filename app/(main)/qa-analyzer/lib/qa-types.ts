@@ -143,7 +143,7 @@ export interface QARuleVersion {
   id: string;
   service_type: ServiceType;
   effective_period_id: string;
-  status: 'draft' | 'published';
+  status: 'draft' | 'published' | 'superseded';
   critical_weight: number;
   non_critical_weight: number;
   scoring_mode: ScoringMode;
@@ -152,6 +152,14 @@ export interface QARuleVersion {
   created_at: string;
   updated_at: string;
   published_at?: string | null;
+  // NEW versioning fields
+  version_number: number;
+  change_reason?: string | null;
+  updated_by?: string | null;
+  superseded_at?: string | null;
+  superseded_by?: string | null;
+  superseded_by_version_id?: string | null;
+  created_from_version_id?: string | null;
 }
 
 export interface QARuleIndicatorSnapshot {
@@ -167,6 +175,7 @@ export interface QARuleIndicatorSnapshot {
   sort_order: number;
   created_at: string;
   updated_at: string;
+  updated_by?: string | null;
 }
 
 export interface ResolvedQARule {
