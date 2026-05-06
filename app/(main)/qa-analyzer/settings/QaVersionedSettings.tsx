@@ -354,11 +354,14 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
                             {new Date(v.created_at).toLocaleDateString()}
                           </span>
                         </div>
-                        <p className="text-xs font-black text-foreground">
-                          {v.status === 'published' && (v as any).qa_periods
-                            ? `v${v.version_number} — Effective: ${formatPeriodLabel((v as any).qa_periods.month, (v as any).qa_periods.year)}`
-                            : `v${v.version_number} — Rule Draft Version`}
-                        </p>
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black text-foreground">v{v.version_number}</span>
+                          </div>
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">
+                            Efektif: {periods.find(p => p.id === v.effective_period_id)?.label || '-'}
+                          </span>
+                        </div>
                         <div className="flex items-center gap-2 mt-2 opacity-60 group-hover:opacity-100">
                           <Clock className="w-3 h-3"/>
                           <span className="text-[9px] font-bold uppercase">{v.scoring_mode} Mode</span>
@@ -427,6 +430,12 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
                       <p className="text-sm text-amber-600/80 font-medium leading-relaxed">
                         Anda dapat mengubah parameter dan bobot pada draft ini. Publish draft ini untuk menjadikannya rule efektif mulai bulan tertentu.
                       </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Clock className="w-3 h-3 text-amber-600" />
+                        <span className="text-[10px] font-black uppercase text-amber-700">
+                          Target: {periods.find(p => p.id === selectedVersion.effective_period_id)?.label}
+                        </span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                        <button onClick={() => setShowForm(true)} className="px-4 py-2 bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase">Tambah Parameter</button>
