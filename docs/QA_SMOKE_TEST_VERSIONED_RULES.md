@@ -23,16 +23,18 @@ Checklist ini dipakai setelah migration:
 - [ ] Buka halaman `/qa-analyzer/settings`.
 - [ ] Buat draft baru untuk 1 service (contoh: `call`).
 - [ ] Ubah minimal 1 parameter (nama/bobot/kategori).
-- [ ] Publish draft ke periode target (contoh: Mei 2026).
+- [ ] Klik "Publish" dan pilih periode target di modal (contoh: Mei 2026).
 - [ ] Verifikasi tidak bisa update/hapus indicator dari version yang status `published`.
 - [ ] Verifikasi tidak bisa publish 2 version `published` untuk service+periode yang sama.
 
 ## B1. Smoke Test Revision Flow (Create Revision)
 - [ ] Di halaman `/qa-analyzer/settings`, pilih service dengan versi `published`.
-- [ ] Klik tombol "Create Revision" — verifikasi draft baru muncul dengan `version_number` bertambah dari versi published-nya.
+- [ ] Klik tombol "Create Revision" — verifikasi draft baru muncul.
 - [ ] Verifikasi status draft baru adalah `draft`.
 - [ ] Ubah minimal 1 parameter di draft revisi, lalu klik "Publish".
-- [ ] Di preview modal, isi `Alasan Revisi` (wajib untuk v2+).
+- [ ] Di preview modal, pilih periode yang sama dengan versi sebelumnya.
+- [ ] Verifikasi `version_number` dikalkulasi ulang (bertambah dari versi published terakhir di periode tersebut).
+- [ ] Isi `Alasan Revisi` (Wajib karena draft memiliki `created_from_version_id`).
 - [ ] Publish. Pastikan:
   - [ ] Versi baru menjadi `published`.
   - [ ] Versi sebelumnya menjadi `superseded`.
@@ -42,8 +44,10 @@ Checklist ini dipakai setelah migration:
 
 ## B2. Smoke Test Preview Modal
 - [ ] Pilih draft version, klik "Publish".
-- [ ] Verifikasi preview modal muncul menampilkan: nama service, version number, scoring mode, total parameter, bobot critical/non-critical, dan daftar parameter.
-- [ ] Untuk draft yang merupakan revisi (version_number > 1), pastikan textarea "Alasan Revisi" muncul dan wajib diisi.
+- [ ] Verifikasi preview modal muncul menampilkan: nama service, scoring mode, total parameter, bobot critical/non-critical, dan daftar parameter.
+- [ ] Pilih **Target Periode** di dropdown yang tersedia.
+- [ ] Verifikasi **Version Number** muncul/terupdate setelah periode dipilih (dikalkulasi berdasarkan history periode tsb).
+- [ ] Pastikan textarea **Alasan Revisi** muncul dan wajib diisi jika draft memiliki `created_from_version_id` (hasil "Create Revision").
 - [ ] Klik "Batal" — verifikasi kembali ke halaman settings tanpa perubahan.
 - [ ] Klik "Ya, Publish Sekarang" — verifikasi sukses toast muncul.
 
