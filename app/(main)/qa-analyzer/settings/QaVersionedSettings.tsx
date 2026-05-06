@@ -173,17 +173,39 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
       const published = await publishRuleVersionAction(previewVersion.id, publishPeriodId, changeReason);
       
       // CRITICAL: Refetch all versions to sync superseded statuses in sidebar
-      await fetchVersions(activeTeam); 
+      const { data: updatedVersions, error: fetchErr } = await getRuleVersionsAction(activeTeam);
+      if (fetchErr) throw new Error(fetchErr);
+
+      const refreshedVersions = updatedVersions as QARuleVersion[];
+      setVersions(refreshedVersions);
       
-      setSelectedVersion(published);
+      // Find the enriched version from the list to avoid stale/missing related data (qa_periods)
+      const enrichedVersion = refreshedVersions.find(v => v.id === published.id);
+      setSelectedVersion(enrichedVersion || published);
+
       setPreviewVersion(null);
       setChangeReason('');
       setIsPublishing(false);
-      flash(`Rule berhasil dipublish untuk periode ${periods.find(p => p.id === published.effective_period_id)?.label || ''}!`);
+      flash(`Rule berhasil dipublish untuk periode ${periods.find(p => p.id === publishPeriodId)?.label || ''}!`);
     } catch (err: any) {
       setErrorMsg(err.message || 'Gagal mempublish rules.');
       setIsPublishing(false);
     }
+  };
+
+  const getPreviewVersionNumber = () => {
+    if (!previewVersion || !publishPeriodId) return 0;
+    
+    // If target period is same as current draft period, use current version number
+    if (previewVersion.effective_period_id === publishPeriodId) {
+      return previewVersion.version_number;
+    }
+
+    // Otherwise, calculate based on existing versions in target period
+    const versionsInTarget = versions.filter(v => v.effective_period_id === publishPeriodId);
+    if (versionsInTarget.length === 0) return 1;
+    
+    return Math.max(...versionsInTarget.map(v => v.version_number)) + 1;
   };
 
   // Draft Editing Logic (similar to QaSettingsClient but targeting snaphost indicators)
@@ -639,7 +661,7 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground font-medium">Version:</span>
-                      <span className="font-black">v{previewVersion.version_number}</span>
+                      <span className="font-black">v{getPreviewVersionNumber()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground font-medium">Scoring Mode:</span>

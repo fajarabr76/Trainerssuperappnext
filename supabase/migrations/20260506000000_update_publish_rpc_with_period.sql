@@ -111,10 +111,16 @@ BEGIN
   END IF;
 
   -- 8. Calculate next version_number for target period
-  SELECT COALESCE(MAX(version_number), 0) + 1 INTO v_next_version
-  FROM qa_service_rule_versions
-  WHERE service_type = v_service_type
-    AND effective_period_id = v_target_period_id;
+  IF v_record.effective_period_id = v_target_period_id THEN
+    -- If publishing to the same period, keep the draft's version number
+    v_next_version := v_record.version_number;
+  ELSE
+    -- If moving to a new period, get the next number for that period
+    SELECT COALESCE(MAX(version_number), 0) + 1 INTO v_next_version
+    FROM qa_service_rule_versions
+    WHERE service_type = v_service_type
+      AND effective_period_id = v_target_period_id;
+  END IF;
 
   -- 9. Supersede old published version if exists
   IF v_old_published.id IS NOT NULL THEN
