@@ -8,6 +8,7 @@ Checklist ini dipakai setelah migration:
 - `20260421105000_fix_qa_dashboard_range_category_alias.sql`
 - `20260422103000_fix_sidak_clean_session_audit_presence.sql`
 - `20260505000000_enhance_qa_versioning.sql`
+- `20260506000000_update_publish_rpc_with_period.sql`
 
 ## A. Pre-check Database
 - [ ] Pastikan tabel baru ada: `qa_service_rule_versions`, `qa_service_rule_indicators`.
