@@ -1698,12 +1698,13 @@ export const qaServiceServer = {
     if (error) throw error;
   },
 
-  async publishRuleVersion(versionId: string, changeReason?: string): Promise<QARuleVersion> {
+  async publishRuleVersion(versionId: string, changeReason?: string, effectivePeriodId?: string): Promise<QARuleVersion> {
     const supabase = await createClient();
 
     const { data, error } = await supabase.rpc('publish_rule_version', {
       p_version_id: versionId,
       p_change_reason: changeReason || null,
+      p_effective_period_id: effectivePeriodId || null,
     });
 
     if (error) throw error;

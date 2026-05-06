@@ -169,7 +169,7 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
     setIsPublishing(true);
     setErrorMsg(null);
     try {
-      const published = await publishRuleVersionAction(previewVersion.id, changeReason);
+      const published = await publishRuleVersionAction(previewVersion.id, previewVersion.effective_period_id, changeReason);
       setVersions(prev => prev.map(v => v.id === published.id ? published : v));
       setSelectedVersion(published);
       setPreviewVersion(null);

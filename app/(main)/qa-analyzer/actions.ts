@@ -1113,11 +1113,11 @@ export async function deleteRuleDraftAction(versionId: string) {
   revalidatePath('/qa-analyzer/settings');
 }
 
-export async function publishRuleVersionAction(versionId: string, changeReason?: string) {
+export async function publishRuleVersionAction(versionId: string, effectivePeriodId: string, changeReason?: string) {
   await assertQaActionAccess(['trainer', 'admin']);
 
   const { qaServiceServer } = await import('./services/qaService.server');
-  const published = await qaServiceServer.publishRuleVersion(versionId, changeReason);
+  const published = await qaServiceServer.publishRuleVersion(versionId, changeReason, effectivePeriodId);
   
   revalidatePath('/qa-analyzer/settings');
   revalidatePath('/qa-analyzer/input');
