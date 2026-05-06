@@ -83,6 +83,7 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
 
   const [isPublishing, setIsPublishing] = useState(false);
   const [changeReason, setChangeReason] = useState('');
+  const [publishPeriodId, setPublishPeriodId] = useState<string>('');
   const [previewVersion, setPreviewVersion] = useState<QARuleVersion | null>(null);
   const [publishConfirmed, setPublishConfirmed] = useState(false);
 
@@ -169,8 +170,11 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
     setIsPublishing(true);
     setErrorMsg(null);
     try {
-      const published = await publishRuleVersionAction(previewVersion.id, previewVersion.effective_period_id, changeReason);
-      setVersions(prev => prev.map(v => v.id === published.id ? published : v));
+      const published = await publishRuleVersionAction(previewVersion.id, publishPeriodId, changeReason);
+      
+      // CRITICAL: Refetch all versions to sync superseded statuses in sidebar
+      await fetchVersions(activeTeam); 
+      
       setSelectedVersion(published);
       setPreviewVersion(null);
       setChangeReason('');
@@ -259,7 +263,11 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
           {selectedVersion?.status === 'draft' && (
             <>
               <button
-                onClick={() => { setPreviewVersion(selectedVersion); setPublishConfirmed(false); }}
+                onClick={() => { 
+                  setPreviewVersion(selectedVersion); 
+                  setPublishConfirmed(false); 
+                  setPublishPeriodId(selectedVersion?.effective_period_id || '');
+                }}
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-green-500/20"
               >
                 <Rocket className="w-3.5 h-3.5"/>
@@ -599,6 +607,21 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
                  </div>
                  <h2 className="text-xl font-black text-foreground text-center uppercase tracking-widest">Preview & Publish</h2>
                  
+                 <div className="space-y-1.5 mb-6">
+                    <label className="text-[10px] font-black uppercase text-muted-foreground px-1 block">
+                      Target Periode Efektif <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={publishPeriodId}
+                      onChange={e => setPublishPeriodId(e.target.value)}
+                      className="w-full px-4 py-4 rounded-2xl border border-border bg-foreground/5 text-sm font-bold outline-none cursor-pointer hover:border-primary transition-all"
+                    >
+                      {periods.map(p => (
+                        <option key={p.id} value={p.id}>{p.label}</option>
+                      ))}
+                    </select>
+                 </div>
+
                  {/* Preview Info */}
                  <div className="space-y-3 bg-foreground/5 rounded-2xl p-4">
                     <div className="flex justify-between text-sm">
@@ -641,7 +664,7 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
                  </div>
 
                  {/* Change Reason (required for revisions) */}
-                 {previewVersion.version_number > 1 && (
+                 {previewVersion.created_from_version_id !== null && (
                    <div className="space-y-1.5">
                       <label className="text-[10px] font-black uppercase text-muted-foreground px-1 block">
                         Alasan Revisi <span className="text-red-500">*</span>
@@ -678,7 +701,7 @@ export default function QaVersionedSettings({ periods }: QaVersionedSettingsProp
                   <div className="flex flex-col gap-2">
                      <button 
                        onClick={handlePublish}
-                       disabled={isPublishing || !publishConfirmed || (previewVersion.version_number > 1 && !changeReason.trim())}
+                       disabled={isPublishing || !publishConfirmed || (previewVersion.created_from_version_id !== null && !changeReason.trim())}
                        className="w-full py-4 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-green-500/20 transition-all"
                      >
                         {isPublishing ? 'Mempublish...' : 'Ya, Publish Sekarang'}
