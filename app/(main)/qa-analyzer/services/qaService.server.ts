@@ -429,7 +429,7 @@ async function resolveFindingIndicatorMeta(
   serviceTypeOverride?: string
 ): Promise<ResolvedFindingMeta | null> {
   const joinedMeta = getJoinedFindingMeta(item);
-  if (joinedMeta?.name !== 'Unknown' && joinedMeta.category) {
+  if (joinedMeta?.name !== 'Unknown' && joinedMeta?.category) {
     return joinedMeta;
   }
 
