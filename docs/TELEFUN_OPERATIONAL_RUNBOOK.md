@@ -1,6 +1,6 @@
 # Telefun Operational Runbook
 
-Dokumen ini adalah sumber operasional untuk Telefun pada snapshot sekarang. Gunakan bersama `docs/modules.md` untuk gambaran fitur dan `docs/TELEFUN_KNOWN_ISSUE_RAILWAY_STALE_DIST.md` untuk regresi Railway stale build.
+Dokumen ini adalah sumber operasional untuk Telefun pada snapshot sekarang. Gunakan bersama `docs/modules.md` untuk gambaran fitur, `docs/TELEFUN_KNOWN_ISSUE_RAILWAY_STALE_DIST.md` untuk regresi Railway stale build, dan `docs/TELEFUN_SMOKE_TEST_CHECKLIST.md` untuk uji manual pasca-perubahan runtime.
 
 ## Ringkasan Runtime
 
@@ -189,6 +189,45 @@ Urutan log healthy call:
 ```
 
 Jika dua log pertama muncul tetapi `Client setup message received` tidak muncul, cek `docs/TELEFUN_KNOWN_ISSUE_RAILWAY_STALE_DIST.md`.
+
+## Timeline Observability (Client + Proxy)
+
+Runtime Telefun sekarang menambahkan timeline event terstruktur untuk investigasi jalur live voice.
+
+### Correlation ID
+
+- Client membuat `sessionId` per call.
+- `sessionId` dikirim ke proxy sebagai query param `cid` pada WebSocket URL.
+- Proxy memakai `cid` sebagai `correlationId` agar log browser dan server bisa dipasangkan untuk sesi yang sama.
+
+### Prefix Log
+
+- Client runtime: `[Telefun][Timeline]`
+- Proxy server: `[Telefun][ProxyTimeline]`
+
+### Event Kunci
+
+Client timeline:
+- `connect_start`, `mic_ready`, `ws_open`, `setup_sent`, `setup_complete_received`
+- `audio_chunk_send` (cadence ringkas)
+- `first_model_audio_chunk`, `turn_complete_received`, `interrupted_received`
+- `playback_start`, `playback_end`
+- `dead_air_prompt_sent`, `interruption_prompt_sent`
+- `stalled_response_detected`, `recovering`, `disconnect`
+
+Proxy timeline:
+- `client_connected`, `auth_passed`, `gemini_ws_open`
+- `client_setup_forwarded`, `pending_message_flushed`, `usage_metadata_seen`
+- `first_model_turn`, `turn_complete`, `interrupted`, `gemini_error`, `close_path`
+
+### Cara Baca Gejala
+
+- **Connect/setup timeout**: sesi berhenti dengan reason `connect_setup_timeout` sebelum `setup_complete_received`.
+- **Setup sukses tapi model diam**: ada `setup_complete_received` namun tidak ada `first_model_audio_chunk`/`first_model_turn`, lalu muncul `stalled_response_detected`.
+- **Model respons ada tapi playback gagal**: ada `first_model_turn`/`first_model_audio_chunk` tapi tidak ada `playback_start`.
+- **AI berhenti karena interupsi**: ada `interrupted_received` pada client atau `interrupted` pada proxy.
+- **Diam karena dead-air path**: ada `dead_air_prompt_sent` tanpa error transport.
+- **Transport failure**: reason `websocket_transport_failure` atau `ws_close_*` pada client, lalu korelasikan dengan `close_path` (client/gemini/server) di proxy.
 
 ## Data Persistence
 

@@ -2,6 +2,15 @@ import { LiveServerMessage } from "@google/genai";
 import { generateGeminiContent } from '@/app/actions/gemini';
 import { SessionConfig, Scenario } from '@/app/types';
 import { updateTelefunLongSpeechState } from './timingGuards';
+import type { TelefunSessionState, TelefunTimelineEvent, TelefunTimelineEventName } from '../types';
+import { reduceSessionState } from './sessionStateMachine';
+import { updateInterruptionGuard, type InterruptionGuardState } from './interruptionGuards';
+import {
+  evaluateStalledResponse,
+  markModelActivity,
+  markWaitingForModel,
+  type StalledResponseState,
+} from './stalledResponseGuards';
 
 const _STABLE_VOICE_MAP = {
   male: 'Fenrir',
@@ -45,6 +54,24 @@ export class LiveSession {
   private lastVolumeUpdate: number = 0;
   private volumeAnimationFrameId: number | null = null;
   private previousSmoothedVolume: number = 0;
+  private sessionId: string = globalThis.crypto?.randomUUID?.() ?? `telefun-${Date.now()}`;
+  private currentState: TelefunSessionState = 'idle';
+  private lastAudioChunkTimelineAt: number = 0;
+  private hasSeenFirstModelAudio: boolean = false;
+  private hasPlaybackStartedThisTurn: boolean = false;
+  private interruptionGuardState: InterruptionGuardState = {
+    aiSpeakingStartedAt: null,
+    nonSilentStartedAt: null,
+    cooldownUntil: 0,
+  };
+  private stalledResponseState: StalledResponseState = {
+    waitingForModelSince: null,
+    lastModelEventAt: null,
+    recoveryLevel: 0,
+  };
+  private stalledWatchdogTimer: ReturnType<typeof setInterval> | null = null;
+  private setupTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly CONNECT_SETUP_TIMEOUT_MS = 15000;
 
   // Calibration parameters for volume indicator
   private readonly VOLUME_NOISE_FLOOR = 0.005;
@@ -79,6 +106,79 @@ export class LiveSession {
 
   constructor(config: SessionConfig) {
     this.config = config;
+  }
+
+  private emitTimeline(event: TelefunTimelineEventName, meta?: Record<string, unknown>) {
+    const payload: TelefunTimelineEvent = {
+      event,
+      ts: Date.now(),
+      sessionId: this.sessionId,
+      state: this.currentState,
+      meta,
+    };
+    console.log('[Telefun][Timeline]', payload);
+  }
+
+  private transition(event: Parameters<typeof reduceSessionState>[1]) {
+    const nextState = reduceSessionState(this.currentState, event);
+    if (nextState !== this.currentState) {
+      this.currentState = nextState;
+    }
+  }
+
+  private startStalledWatchdog() {
+    if (this.stalledWatchdogTimer) return;
+    this.stalledWatchdogTimer = setInterval(() => {
+      if (this.isDisconnected || !this.session) return;
+      const result = evaluateStalledResponse(this.stalledResponseState, {
+        now: Date.now(),
+        sessionState: this.currentState,
+      });
+      this.stalledResponseState = result.state;
+      if (!result.isStalled) return;
+
+      this.emitTimeline('stalled_response_detected', { action: result.action, timeoutType: result.timeoutType });
+      if (result.action === 'mark_recovering') {
+        this.transition('stalled');
+        this.emitTimeline('recovering', { level: 1, timeoutType: result.timeoutType });
+        return;
+      }
+      if (result.action === 'soft_nudge') {
+        this.transition('stalled');
+        this.emitTimeline('recovering', { level: 2, timeoutType: result.timeoutType });
+        this.sendSoftNudge();
+        return;
+      }
+      if (result.action === 'terminate') {
+        this.emitTimeline('disconnect', { reason: 'stalled_response_terminate', timeoutType: result.timeoutType });
+        this.disconnect('stalled_response_terminate');
+      }
+    }, 1000);
+  }
+
+  private stopStalledWatchdog() {
+    if (this.stalledWatchdogTimer) {
+      clearInterval(this.stalledWatchdogTimer);
+      this.stalledWatchdogTimer = null;
+    }
+  }
+
+  private clearSetupTimeout() {
+    if (this.setupTimeoutTimer) {
+      clearTimeout(this.setupTimeoutTimer);
+      this.setupTimeoutTimer = null;
+    }
+  }
+
+  private sendSoftNudge() {
+    if (!this.session || this.isDisconnected) return;
+    const payload = {
+      clientContent: {
+        turns: [{ role: 'user', parts: [{ text: '[INSTRUKSI SISTEM] Lanjutkan respons dengan natural sesuai konteks terakhir.' }] }],
+        turnComplete: true,
+      },
+    };
+    this.session.sendClientMessage(JSON.stringify(payload));
   }
 
   public sendTimeCue(secondsLeft: number) {
@@ -151,6 +251,9 @@ export class LiveSession {
 
   async connect() {
     this.isDisconnected = false;
+    this.transition('connect_start');
+    this.emitTimeline('connect_start');
+    this.startStalledWatchdog();
     let currentStep = "Memulai koneksi...";
 
     try {
@@ -186,6 +289,7 @@ export class LiveSession {
         this.stream.getTracks().forEach(t => t.stop());
         return;
       }
+      this.emitTimeline('mic_ready');
 
       currentStep = "Menyiapkan Audio Context...";
       this.onStatusChange?.(currentStep);
@@ -257,11 +361,21 @@ export class LiveSession {
       const wsUrlBase = normalizeTelefunWebSocketUrl(configuredWsUrl);
       const wsUrlWithToken = new URL(wsUrlBase);
       wsUrlWithToken.searchParams.set('token', sbSession.access_token);
+      wsUrlWithToken.searchParams.set('cid', this.sessionId);
       const wsUrl = wsUrlWithToken.toString();
 
       // Connect to Railway WebSocket Proxy (No subprotocol to avoid handshake 1006)
       const ws = new WebSocket(wsUrl);
       this.ws = ws;
+      this.setupTimeoutTimer = setTimeout(() => {
+        if (this.isDisconnected || this.currentState !== 'connecting') return;
+        this.emitTimeline('disconnect', {
+          reason: 'connect_setup_timeout',
+          timeoutType: 'connect_setup',
+          thresholdMs: this.CONNECT_SETUP_TIMEOUT_MS,
+        });
+        this.disconnect('connect_setup_timeout');
+      }, this.CONNECT_SETUP_TIMEOUT_MS);
 
       this.session = {
         sendRealtimeInput: (params: { media: { mimeType: string, data: string } }) => {
@@ -285,6 +399,7 @@ export class LiveSession {
 
       ws.onopen = () => {
         console.log("[Telefun] WebSocket Proxy connected");
+        this.emitTimeline('ws_open');
 
         // Send Setup
         const voiceName = this.config.identity.gender === 'male' ? 'Fenrir' : 'Kore';
@@ -325,6 +440,7 @@ export class LiveSession {
           }
         };
         ws.send(JSON.stringify(setupMessage));
+        this.emitTimeline('setup_sent', { model: telefunModelId, transport: telefunTransport });
       };
 
       ws.onmessage = (event) => {
@@ -333,6 +449,9 @@ export class LiveSession {
           
           if (message.setupComplete) {
             console.log("[Telefun] Gemini Setup Complete");
+            this.emitTimeline('setup_complete_received');
+            this.transition('setup_complete');
+            this.clearSetupTimeout();
             this.onConnect?.();
             this.onStatusChange?.("Tersambung");
             this.startAudioInput();
@@ -346,11 +465,16 @@ export class LiveSession {
 
       ws.onerror = (e) => {
         console.error("[Telefun] WebSocket Error:", e);
+        this.emitTimeline('disconnect', {
+          reason: 'websocket_transport_failure',
+          timeoutType: 'transport',
+        });
         this.onError?.(new Error("Koneksi WebSocket Gagal"));
       };
 
       ws.onclose = (e) => {
         console.log("[Telefun] WebSocket Closed:", e.code, e.reason);
+        this.emitTimeline('ws_close', { code: e.code, reason: e.reason });
         if (!this.isDisconnected) {
           if (e.code === 4001) {
             this.onError?.(new Error("Koneksi WebSocket ditolak: sesi login tidak valid. Silakan login ulang."));
@@ -363,7 +487,7 @@ export class LiveSession {
           } else if (e.reason) {
             this.onError?.(new Error(`Koneksi WebSocket ditutup: ${e.reason}`));
           }
-          this.disconnect();
+          this.disconnect(`ws_close_${e.code}`);
         }
       };
 
@@ -371,7 +495,8 @@ export class LiveSession {
       console.error("[Telefun] Connection setup failed:", err);
       this.onStatusChange?.(`Gagal: ${(err as Error).message || "Koneksi Terputus"}`);
       this.onError?.(err);
-      this.disconnect();
+      this.emitTimeline('disconnect', { reason: (err as Error).message || 'connection_setup_failed' });
+      this.disconnect('connection_setup_failed');
     }
   }
 
@@ -396,6 +521,11 @@ export class LiveSession {
       this.session.sendRealtimeInput({
         media: pcmBlob
       });
+      const now = Date.now();
+      if (now - this.lastAudioChunkTimelineAt >= 1000) {
+        this.lastAudioChunkTimelineAt = now;
+        this.emitTimeline('audio_chunk_send');
+      }
     };
 
     this.inputSource.connect(this.processor);
@@ -455,6 +585,23 @@ export class LiveSession {
 
     // 3. Normalization with calibrated scale
     const normalizedVolume = Math.min(100, Math.round(smoothedRms * this.VOLUME_SENSITIVITY_SCALE));
+
+    if (!this.isAiSpeaking && rawRms >= this.DEAD_AIR_RMS_THRESHOLD && this.currentState === 'ready') {
+      this.transition('user_audio_valid');
+    }
+
+    const interruption = updateInterruptionGuard(this.interruptionGuardState, {
+      now,
+      isAiSpeaking: this.isAiSpeaking,
+      isSilent: rawRms < this.DEAD_AIR_RMS_THRESHOLD,
+      rms: rawRms,
+      noiseFloor: this.DEAD_AIR_RMS_THRESHOLD,
+    });
+    this.interruptionGuardState = interruption.state;
+    if (interruption.shouldInterrupt && this.currentState === 'ai_speaking') {
+      this.transition('interruption_candidate_valid');
+      this.transition('user_audio_valid');
+    }
     
     this.onVolumeChange?.(normalizedVolume);
     this.trackDeadAir(rawRms < this.DEAD_AIR_RMS_THRESHOLD);
@@ -524,6 +671,7 @@ export class LiveSession {
 
   private sendInterruptionPrompt() {
     if (!this.session || this.isDisconnected) return;
+    this.emitTimeline('interruption_prompt_sent');
 
     const c = this.config.consumerType;
     const lowerName = c.name.toLowerCase();
@@ -557,6 +705,7 @@ export class LiveSession {
 
   private sendDeadAirPrompt() {
     if (!this.session || this.isDisconnected) return;
+    this.emitTimeline('dead_air_prompt_sent');
 
     const c = this.config.consumerType;
     const lowerName = c.name.toLowerCase();
@@ -614,6 +763,12 @@ export class LiveSession {
   private async handleMessage(message: LiveServerMessage) {
     const modelTurn = message.serverContent?.modelTurn;
     if (modelTurn?.parts) {
+      if (!this.hasSeenFirstModelAudio) {
+        this.hasSeenFirstModelAudio = true;
+        this.emitTimeline('first_model_audio_chunk');
+      }
+      this.stalledResponseState = markModelActivity(this.stalledResponseState, Date.now());
+      this.transition('model_first_audio');
       // Process all parts as Gemini 3.1 Flash Live can return multiple parts in one event
       for (const part of modelTurn.parts) {
         if (part.inlineData?.data) {
@@ -623,6 +778,7 @@ export class LiveSession {
     }
 
     if (message.serverContent?.interrupted) {
+      this.emitTimeline('interrupted_received');
       this.stopAllAudio();
       this.isAiSpeaking = false;
       this.onAiSpeaking?.(false);
@@ -632,6 +788,13 @@ export class LiveSession {
       this.isAiSpeaking = true;
       this.onAiSpeaking?.(true);
     } else if (message.serverContent?.turnComplete) {
+      this.emitTimeline('turn_complete_received');
+      if (this.currentState === 'user_speaking') {
+        this.transition('user_turn_end');
+        this.stalledResponseState = markWaitingForModel(this.stalledResponseState, Date.now());
+      } else if (this.currentState === 'ai_speaking') {
+        this.transition('model_turn_complete');
+      }
       this.isAiSpeaking = false;
       this.onAiSpeaking?.(false);
     }
@@ -658,6 +821,10 @@ export class LiveSession {
       }
 
       source.start(this.nextStartTime);
+      if (!this.hasPlaybackStartedThisTurn) {
+        this.hasPlaybackStartedThisTurn = true;
+        this.emitTimeline('playback_start');
+      }
       const effectiveDuration = audioBuffer.duration / this.playbackRate;
       this.nextStartTime += effectiveDuration;
 
@@ -665,10 +832,18 @@ export class LiveSession {
 
       source.onended = () => {
         this.activeSources.delete(source);
+        if (this.activeSources.size === 0 && this.hasPlaybackStartedThisTurn) {
+          this.hasPlaybackStartedThisTurn = false;
+          this.emitTimeline('playback_end');
+        }
       };
 
     } catch (e) {
       console.error("Error playing audio chunk:", e);
+      this.emitTimeline('disconnect', {
+        reason: 'playback_layer_failure',
+        issue: 'model_audio_received_but_playback_failed',
+      });
     }
   }
 
@@ -685,9 +860,13 @@ export class LiveSession {
     }
   }
 
-  async disconnect() {
+  async disconnect(reason: string = 'manual_disconnect') {
     if (this.isDisconnected) return;
     this.isDisconnected = true;
+    this.transition('close');
+    this.emitTimeline('disconnect', { reason });
+    this.stopStalledWatchdog();
+    this.clearSetupTimeout();
 
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       this.mediaRecorder.stop();

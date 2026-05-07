@@ -69,8 +69,23 @@ wss.on('connection', async (ws, req) => {
     let authed = false;
     let userId = '';
     const requestId = `telefun-live-${randomUUID()}`;
+    const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+    const correlationId = url.searchParams.get('cid') || requestId;
+    let sawFirstModelTurn = false;
+    let sawSetupForward = false;
+    let closePath: 'client' | 'gemini' | 'server' | 'unknown' = 'unknown';
     let usageSnapshot: LiveUsageSnapshot | null = null;
     let usageFlushed = false;
+
+    function logTimeline(event: string, meta?: Record<string, unknown>) {
+      console.log('[Telefun][ProxyTimeline]', {
+        event,
+        ts: Date.now(),
+        correlationId,
+        requestId,
+        ...meta,
+      });
+    }
 
     async function flushUsage() {
       if (usageFlushed || !authed || !usageSnapshot) return;
@@ -90,6 +105,8 @@ wss.on('connection', async (ws, req) => {
       try {
         const parsed = JSON.parse(raw);
         if (parsed.setup) {
+          sawSetupForward = true;
+          logTimeline('client_setup_forwarded', { model: parsed.setup.model });
           console.log('[Telefun] Client setup message received, model:', parsed.setup.model);
         } else {
           console.log(`[Telefun] Client message: ${Object.keys(parsed).join(',')}`);
@@ -107,6 +124,8 @@ wss.on('connection', async (ws, req) => {
     });
 
     ws.on('close', () => {
+      closePath = 'client';
+      logTimeline('close_path', { path: closePath });
       console.log('[Telefun] Client connection closed');
       if (geminiWs && (geminiWs.readyState === WebSocket.OPEN || geminiWs.readyState === WebSocket.CONNECTING)) {
         geminiWs.close();
@@ -114,6 +133,8 @@ wss.on('connection', async (ws, req) => {
     });
 
     ws.on('error', (err) => {
+      closePath = 'server';
+      logTimeline('close_path', { path: closePath, error: err.message });
       console.error('[Telefun] Client WS Error:', err);
       if (geminiWs && (geminiWs.readyState === WebSocket.OPEN || geminiWs.readyState === WebSocket.CONNECTING)) {
         geminiWs.close();
@@ -128,7 +149,6 @@ wss.on('connection', async (ws, req) => {
       return;
     }
 
-    const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
     if (url.pathname !== '/' && url.pathname !== '/ws') {
       ws.close(4000, 'Invalid Path');
       return;
@@ -157,6 +177,8 @@ wss.on('connection', async (ws, req) => {
     }
 
     console.log(`[Telefun] User connected: ${authResult.user?.email}`);
+    logTimeline('client_connected', { email: authResult.user?.email ?? null });
+    logTimeline('auth_passed');
 
     // --- Mark as authenticated (enables usage flush) ---
     userId = authResult.user!.id;
@@ -169,12 +191,18 @@ wss.on('connection', async (ws, req) => {
     geminiWs.on('open', () => {
       console.log('[Telefun] Connected to Gemini Live API');
       isGeminiOpen = true;
+      logTimeline('gemini_ws_open');
       // Flush all pending messages (including setup message from client)
+      let flushed = 0;
       while (pendingMessages.length > 0) {
         const msg = pendingMessages.shift();
         if (msg) {
           geminiWs!.send(msg);
+          flushed += 1;
         }
+      }
+      if (flushed > 0) {
+        logTimeline('pending_message_flushed', { count: flushed, sawSetupForward });
       }
     });
 
@@ -186,9 +214,14 @@ wss.on('connection', async (ws, req) => {
           const parsed = JSON.parse(raw);
           const meta = parseUsageMetadata(parsed.usageMetadata);
           if (meta) usageSnapshot = mergeSnapshot(usageSnapshot, meta);
+          if (meta) logTimeline('usage_metadata_seen');
         } catch { /* non-JSON or malformed, skip */ }
       }
       if (raw.startsWith('{"serverContent":{"modelTurn"')) {
+        if (!sawFirstModelTurn) {
+          sawFirstModelTurn = true;
+          logTimeline('first_model_turn');
+        }
         if (ws.readyState === WebSocket.OPEN) ws.send(raw);
         return;
       }
@@ -196,6 +229,7 @@ wss.on('connection', async (ws, req) => {
         const parsed = JSON.parse(raw);
 
         if (parsed.error) {
+          logTimeline('gemini_error', { message: (parsed.error as { message?: string }).message ?? 'unknown' });
           console.error('[Telefun] Gemini error payload:', JSON.stringify(parsed.error));
           // Forward error to client and terminate — client is waiting for setupComplete that will never come
           if (ws.readyState === WebSocket.OPEN) {
@@ -204,10 +238,13 @@ wss.on('connection', async (ws, req) => {
           }
           return;
         } else if (parsed.setupComplete) {
+          logTimeline('setup_complete_received');
           console.log('[Telefun] Gemini setupComplete received');
         } else if (parsed.serverContent?.interrupted) {
+          logTimeline('interrupted');
           console.log('[Telefun] Gemini interrupted');
         } else if (parsed.serverContent?.turnComplete) {
+          logTimeline('turn_complete');
           console.log('[Telefun] Gemini turnComplete');
         } else if (parsed.serverContent?.modelTurn) {
           // audio chunk - skip logging to avoid spam
@@ -223,6 +260,8 @@ wss.on('connection', async (ws, req) => {
     });
 
     geminiWs.on('error', (err) => {
+      closePath = 'gemini';
+      logTimeline('gemini_error', { message: err.message || 'unknown' });
       console.error('[Telefun] Gemini WS Error:', err.message || err);
       if (ws.readyState === WebSocket.OPEN) {
         ws.close(1011, 'Gemini API Error');
@@ -230,6 +269,8 @@ wss.on('connection', async (ws, req) => {
     });
 
     geminiWs.on('close', (code, reason) => {
+      closePath = 'gemini';
+      logTimeline('close_path', { path: closePath, code, reason: reason.toString() });
       console.log(`[Telefun] Gemini WS Closed: ${code} ${reason}`);
       flushUsage();
       // Sanitize: WebSocket spec only allows 1000, 1001, 1003-1013, and 3000-4999 from app code.
