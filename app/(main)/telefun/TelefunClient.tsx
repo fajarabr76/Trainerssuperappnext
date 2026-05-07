@@ -39,6 +39,16 @@ export default function TelefunClient() {
   const sessionRunIdRef = useRef(0);
   const optimisticRecordIdRef = useRef<string | null>(null);
 
+  // Auto-sync the reviewRecord if it gets updated (e.g., after upload finishes)
+  useEffect(() => {
+    if (reviewRecord) {
+      const updated = recordings.find(r => r.id === reviewRecord.id);
+      if (updated && updated !== reviewRecord) {
+        setReviewRecord(updated);
+      }
+    }
+  }, [recordings, reviewRecord]);
+
   useEffect(() => {
     const init = async () => {
       const saved = await loadTelefunSettings();
@@ -299,6 +309,20 @@ export default function TelefunClient() {
 
     sessionBaselineRef.current = null;
     setView('home');
+    
+    // Auto-open review modal with the optimistic record
+    if (optimisticRecordIdRef.current) {
+      const recordToReview = {
+        id: optimisticRecordIdRef.current,
+        date: new Date().toISOString(),
+        url: recordingUrl || '',
+        consumerName: finalConsumerName,
+        scenarioTitle: selectedScenario?.title || 'Telepon Umum',
+        duration: callDurationSeconds,
+      };
+      setReviewRecord(recordToReview);
+      setIsReviewOpen(true);
+    }
   };
 
   const handleDeleteSession = async (id: string) => {
