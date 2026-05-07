@@ -253,6 +253,13 @@ Saat sesi selesai, `persistTelefunSession()` menyimpan row `telefun_history`, la
 
 Rekaman browser saat ini dibuat sebagai blob URL oleh `MediaRecorder`. Bucket Supabase `telefun-recordings` harus tetap ikut backup Storage karena fitur rekaman/upload Telefun memakai bucket tersebut saat object audio sudah dipersist ke Storage.
 
+### Voice Assessment Cache Contract
+
+- Voice assessment dibaca dari kolom `telefun_history.voice_assessment`.
+- Cache hanya dianggap valid bila lolos validator server-side (`validateAssessment`) dengan struktur aspek wajib lengkap.
+- Payload cache yang korup tidak dikembalikan ke UI; action akan lanjut re-analyze dari `agent_only.webm`.
+- Semua skor quality (`overallScore` dan skor per-aspek) dikontrakkan pada rentang `0-10`.
+
 ## Usage Billing
 
 Telefun memiliki quick-view `Usage` di halaman utama dan tercatat di `/dashboard/monitoring` untuk module `telefun`.

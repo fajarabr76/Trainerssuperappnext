@@ -82,3 +82,15 @@ Checklist ini dipakai setelah perubahan runtime live voice Telefun (timeline obs
    - transport/socket failure
    - playback-layer issue
    - turn-taking/interruption issue
+
+## Skenario 6: Voice Assessment Integrity
+
+1. Selesaikan satu call sampai sesi tersimpan di histori.
+2. Buka `Review Modal` -> tab `Kualitas Suara AI` -> klik `Mulai Analisis`.
+3. Verifikasi:
+   - hasil analisis tampil dan skor menggunakan format `/10`.
+   - chart radar muncul normal (lazy loaded) tanpa memblokir render modal.
+4. Uji sesi yang tidak memiliki `agent_only` recording path.
+5. Verifikasi:
+   - tombol analisis disabled.
+   - UI menampilkan pesan bahwa rekaman suara agen belum tersedia.

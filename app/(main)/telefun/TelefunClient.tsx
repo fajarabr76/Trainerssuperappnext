@@ -13,7 +13,8 @@ import { loadTelefunSettings, saveTelefunSettings } from './services/settingServ
 import { defaultTelefunSettings } from './data';
 import { resolveFinalIdentity } from './constants';
 import { generateScore } from './services/geminiService';
-import { persistTelefunSession, loadTelefunHistory, deleteTelefunSession, clearTelefunHistory } from './actions';
+import { persistTelefunSession, loadTelefunHistory, deleteTelefunSession, clearTelefunHistory, finalizeTelefunRecording } from './actions';
+import { SessionMetrics, VoiceQualityAssessment } from '@/app/types/voiceAssessment';
 import { getMyModuleUsage } from '@/app/actions/usage';
 import { type UsageSnapshot, computeUsageDelta, formatCompactIdr } from '@/app/lib/usage-snapshot';
 import { createClient } from '@/app/lib/supabase/client';
@@ -52,8 +53,12 @@ export default function TelefunClient() {
           consumerName: r.consumer_name,
           scenarioTitle: r.scenario_title,
           duration: r.duration,
+          recordingPath: r.recording_path,
+          agentRecordingPath: r.agent_recording_path,
           score: r.score,
           feedback: r.feedback ?? undefined,
+          voiceAssessment: r.voice_assessment,
+          sessionMetrics: r.session_metrics,
         }));
         setRecordings(mapped);
       } else {
@@ -138,11 +143,17 @@ export default function TelefunClient() {
     setView('home');
   };
 
-  const handleEndCall = async (recordingUrl?: string, consumerName?: string, callDurationSeconds: number = 0) => {
+  const handleEndCall = async (
+    recordingUrl?: string | null,
+    consumerName?: string,
+    callDurationSeconds: number = 0,
+    fullCallBlob?: Blob | null,
+    agentBlob?: Blob | null,
+    metrics?: SessionMetrics
+  ) => {
     const sessionConfig = activeSessionConfig;
-    const isValidUrl = recordingUrl && (recordingUrl.startsWith('blob:') || recordingUrl.startsWith('http'));
     
-    if (isValidUrl && selectedScenario && sessionConfig) {
+    if (selectedScenario && sessionConfig) {
       let score = 0;
       let feedback = '';
 
@@ -162,7 +173,7 @@ export default function TelefunClient() {
       const newRecord: CallRecord = {
         id: optimisticId,
         date: new Date().toISOString(),
-        url: recordingUrl,
+        url: recordingUrl || '',
         consumerName: finalConsumerName,
         scenarioTitle: selectedScenario?.title || 'Telepon Umum',
         duration: callDurationSeconds,
@@ -181,12 +192,67 @@ export default function TelefunClient() {
           consumerPhone: sessionConfig.identity.phone,
           consumerCity: sessionConfig.identity.city,
           duration: callDurationSeconds,
-          recordingUrl,
+          recordingUrl: recordingUrl || '',
           score,
           feedback,
+          sessionMetrics: metrics,
         });
 
         if (result.success && result.session) {
+          // Upload blobs to secure storage
+          const serverSessionId = result.session.id;
+          let recordingPath = result.session.recording_path ?? undefined;
+          let agentRecordingPath = result.session.agent_recording_path ?? undefined;
+
+          if (fullCallBlob || agentBlob) {
+            try {
+              const uploads: Promise<{ type: 'full' | 'agent', path: string }>[] = [];
+
+              if (fullCallBlob) {
+                const path = `${user.id}/${serverSessionId}/full_call.webm`;
+                uploads.push(
+                  supabase.storage.from('telefun-recordings')
+                    .upload(path, fullCallBlob, { upsert: true, contentType: 'audio/webm' })
+                    .then(res => {
+                      if (res.error) throw res.error;
+                      return { type: 'full' as const, path };
+                    })
+                );
+              }
+              if (agentBlob) {
+                const path = `${user.id}/${serverSessionId}/agent_only.webm`;
+                uploads.push(
+                  supabase.storage.from('telefun-recordings')
+                    .upload(path, agentBlob, { upsert: true, contentType: 'audio/webm' })
+                    .then(res => {
+                      if (res.error) throw res.error;
+                      return { type: 'agent' as const, path };
+                    })
+                );
+              }
+
+              const results = await Promise.allSettled(uploads);
+              results.forEach(res => {
+                if (res.status === 'fulfilled') {
+                  if (res.value.type === 'full') recordingPath = res.value.path;
+                  if (res.value.type === 'agent') agentRecordingPath = res.value.path;
+                } else {
+                  console.warn('[Telefun] Recording upload failed:', res.reason);
+                }
+              });
+
+              if (recordingPath || agentRecordingPath) {
+                await finalizeTelefunRecording({
+                  sessionId: serverSessionId,
+                  recordingPath,
+                  agentRecordingPath,
+                });
+              }
+            } catch (err) {
+              console.error('[Telefun] Critical upload error:', err);
+            }
+          }
+
           setRecordings(prev => {
             const withoutOptimistic = prev.filter(r => r.id !== optimisticId);
             const alreadyHasServerRecord = withoutOptimistic.some(r => r.id === result.session!.id);
@@ -199,8 +265,12 @@ export default function TelefunClient() {
               consumerName: result.session!.consumer_name,
               scenarioTitle: result.session!.scenario_title,
               duration: result.session!.duration,
+              recordingPath,
+              agentRecordingPath,
               score: result.session!.score,
               feedback: result.session!.feedback || undefined,
+              voiceAssessment: result.session!.voice_assessment,
+              sessionMetrics: result.session!.session_metrics,
             };
             const merged = [serverRecord, ...withoutOptimistic];
             localStorage.setItem('telefun_history', JSON.stringify(merged));
@@ -267,6 +337,25 @@ export default function TelefunClient() {
   const handleReviewSession = (record: CallRecord) => {
     setReviewRecord(record);
     setIsReviewOpen(true);
+  };
+
+  const handleAssessmentComplete = (sessionId: string, assessment: VoiceQualityAssessment) => {
+    setRecordings(prev => prev.map(r => r.id === sessionId ? { ...r, voiceAssessment: assessment } : r));
+    // Also update reviewRecord if it's the one being reviewed
+    if (reviewRecord?.id === sessionId) {
+      setReviewRecord(prev => prev ? { ...prev, voiceAssessment: assessment } : null);
+    }
+    // Update local storage
+    const savedHistory = localStorage.getItem('telefun_history');
+    if (savedHistory) {
+      try {
+        const local: CallRecord[] = JSON.parse(savedHistory);
+        const updated = local.map(r => r.id === sessionId ? { ...r, voiceAssessment: assessment } : r);
+        localStorage.setItem('telefun_history', JSON.stringify(updated));
+      } catch (e) {
+        console.error('Failed to update local storage history', e);
+      }
+    }
   };
 
   if (isLoading) {
@@ -354,7 +443,8 @@ export default function TelefunClient() {
             <PhoneInterface
               config={activeSessionConfig!}
               onEndSession={handleEndSessionOnly}
-              onRecordingReady={(url, name, duration) => handleEndCall(url, name, duration)}
+              onRecordingReady={(url, name, dur, full, agent, metrics) =>
+                handleEndCall(url, name, dur, full, agent, metrics)}
             />
           </motion.div>
         )}
@@ -384,6 +474,7 @@ export default function TelefunClient() {
         isOpen={isReviewOpen}
         onClose={() => setIsReviewOpen(false)}
         record={reviewRecord}
+        onAssessmentComplete={handleAssessmentComplete}
       />
     </div>
   );

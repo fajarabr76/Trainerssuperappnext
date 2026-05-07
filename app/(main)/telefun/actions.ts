@@ -1,7 +1,10 @@
 'use server';
 
 import { createClient } from '@/app/lib/supabase/server';
+import { createAdminClient } from '@/app/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
+import { SessionMetrics, VoiceQualityAssessment } from '@/app/types/voiceAssessment';
+import { getOwnedRecordingPathOrNull, isValidRecordingPath } from './recordingPath';
 
 export interface TelefunHistoryRecord {
   id: string;
@@ -12,8 +15,12 @@ export interface TelefunHistoryRecord {
   consumer_city: string | null;
   duration: number;
   recording_url: string;
+  recording_path?: string;
+  agent_recording_path?: string;
   score: number;
   feedback: string | null;
+  voice_assessment?: VoiceQualityAssessment | null;
+  session_metrics?: SessionMetrics | null;
   created_at: string;
 }
 
@@ -28,8 +35,12 @@ export interface PersistTelefunSessionResult {
     consumer_city: string;
     duration: number;
     recording_url: string;
+    recording_path?: string | null;
+    agent_recording_path?: string | null;
     score: number;
     feedback: string;
+    voice_assessment?: VoiceQualityAssessment | null;
+    session_metrics?: SessionMetrics | null;
   };
   warning?: string;
   error?: string;
@@ -45,7 +56,7 @@ export async function loadTelefunHistory(): Promise<{ success: boolean; records?
 
   const { data, error } = await supabase
     .from('telefun_history')
-    .select('id, date, scenario_title, consumer_name, consumer_phone, consumer_city, duration, recording_url, score, feedback, created_at')
+    .select('id, date, scenario_title, consumer_name, consumer_phone, consumer_city, duration, recording_url, recording_path, agent_recording_path, score, feedback, voice_assessment, session_metrics, created_at')
     .eq('user_id', user.id)
     .order('date', { ascending: false });
 
@@ -64,8 +75,12 @@ export async function loadTelefunHistory(): Promise<{ success: boolean; records?
       consumer_city: row.consumer_city,
       duration: row.duration,
       recording_url: row.recording_url,
+      recording_path: row.recording_path,
+      agent_recording_path: row.agent_recording_path,
       score: row.score,
       feedback: row.feedback,
+      voice_assessment: row.voice_assessment,
+      session_metrics: row.session_metrics,
       created_at: row.created_at,
     })),
   };
@@ -77,6 +92,19 @@ export async function deleteTelefunSession(sessionId: string): Promise<{ success
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return { success: false, error: 'Tidak dapat memverifikasi pengguna.' };
+  }
+
+  // Storage cleanup (PII-compliant)
+  const admin = createAdminClient();
+  const { data: row } = await admin.from('telefun_history')
+    .select('recording_path, agent_recording_path')
+    .eq('id', sessionId)
+    .eq('user_id', user.id)
+    .single();
+
+  const pathsToDelete = [row?.recording_path, row?.agent_recording_path].filter(Boolean) as string[];
+  if (pathsToDelete.length > 0) {
+    await admin.storage.from('telefun-recordings').remove(pathsToDelete);
   }
 
   const [historyResult, resultsResult] = await Promise.all([
@@ -115,6 +143,17 @@ export async function clearTelefunHistory(): Promise<{ success: boolean; error?:
     return { success: false, error: 'Tidak dapat memverifikasi pengguna.' };
   }
 
+  // Batch storage cleanup
+  const admin = createAdminClient();
+  const { data: records } = await admin.from('telefun_history')
+    .select('recording_path, agent_recording_path')
+    .eq('user_id', user.id);
+
+  const allPaths = (records || []).flatMap(r => [r.recording_path, r.agent_recording_path]).filter(Boolean) as string[];
+  if (allPaths.length > 0) {
+    await admin.storage.from('telefun-recordings').remove(allPaths);
+  }
+
   const [historyResult, resultsResult] = await Promise.all([
     supabase
       .from('telefun_history')
@@ -151,6 +190,7 @@ export async function persistTelefunSession(params: {
   recordingUrl: string;
   score: number;
   feedback: string;
+  sessionMetrics?: SessionMetrics;
 }): Promise<PersistTelefunSessionResult> {
   const supabase = await createClient();
 
@@ -165,6 +205,7 @@ export async function persistTelefunSession(params: {
     recording_url: params.recordingUrl,
     score: params.score,
     feedback: params.feedback,
+    session_metrics: params.sessionMetrics || null,
   };
 
   const { data: historyData, error: historyError } = await supabase
@@ -217,9 +258,87 @@ export async function persistTelefunSession(params: {
       consumer_city: historyData.consumer_city,
       duration: historyData.duration,
       recording_url: historyData.recording_url,
+      recording_path: historyData.recording_path,
+      agent_recording_path: historyData.agent_recording_path,
       score: historyData.score,
       feedback: historyData.feedback,
+      voice_assessment: historyData.voice_assessment,
+      session_metrics: historyData.session_metrics,
     },
     warning: resultsWarning,
   };
+}
+
+export async function finalizeTelefunRecording(params: {
+  sessionId: string;
+  recordingPath?: string;
+  agentRecordingPath?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: 'Auth required' };
+
+  if (!params.recordingPath && !params.agentRecordingPath) {
+    return { success: false, error: 'At least one path required' };
+  }
+
+  // Validate each provided path
+  if (params.recordingPath &&
+      !isValidRecordingPath(params.recordingPath, user.id, params.sessionId, 'full_call')) {
+    return { success: false, error: 'Invalid recording path' };
+  }
+  if (params.agentRecordingPath &&
+      !isValidRecordingPath(params.agentRecordingPath, user.id, params.sessionId, 'agent_only')) {
+    return { success: false, error: 'Invalid agent recording path' };
+  }
+
+  const updateFields: Record<string, string> = {};
+  if (params.recordingPath) updateFields.recording_path = params.recordingPath;
+  if (params.agentRecordingPath) updateFields.agent_recording_path = params.agentRecordingPath;
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.from('telefun_history')
+    .update(updateFields)
+    .eq('id', params.sessionId)
+    .eq('user_id', user.id)
+    .select('id')
+    .single();
+
+  if (error) return { success: false, error: error.message };
+  if (!data) return { success: false, error: 'Session not found or not owned by user' };
+
+  return { success: true };
+}
+
+export async function getTelefunSignedUrl(params: {
+  sessionId: string;
+  type: 'full_call' | 'agent_only';
+}): Promise<{ success: boolean; signedUrl?: string; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: 'Auth required' };
+
+  const admin = createAdminClient();
+  const column = params.type === 'full_call' ? 'recording_path' : 'agent_recording_path';
+
+  const { data: row } = await admin.from('telefun_history')
+    .select(column)
+    .eq('id', params.sessionId)
+    .eq('user_id', user.id)
+    .single();
+
+  const path = getOwnedRecordingPathOrNull(row?.[column], user.id, params.sessionId, params.type);
+  if (!path) {
+    return { success: false, error: 'Recording path not found for this session' };
+  }
+
+  const { data, error } = await admin.storage
+    .from('telefun-recordings')
+    .createSignedUrl(path, 3600); // 1 hour
+
+  if (error || !data?.signedUrl) {
+    return { success: false, error: error?.message || 'Failed to generate signed URL' };
+  }
+
+  return { success: true, signedUrl: data.signedUrl };
 }

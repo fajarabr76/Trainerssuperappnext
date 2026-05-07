@@ -6,10 +6,19 @@ import { LiveSession } from '../services/geminiService';
 import { getTelefunTimeCueThreshold } from '../services/timingGuards';
 import { Clock3, Mic, MicOff, Pause, PhoneOff, Play, UserRound } from 'lucide-react';
 
+import { SessionMetrics } from '@/app/types/voiceAssessment';
+
 interface PhoneInterfaceProps {
   config: SessionConfig;
   onEndSession: (reason?: string) => void;
-  onRecordingReady?: (url: string, consumerName: string, duration: number) => void;
+  onRecordingReady?: (
+    url: string | null,
+    consumerName: string,
+    duration: number,
+    fullCallBlob: Blob | null,
+    agentBlob: Blob | null,
+    metrics: SessionMetrics
+  ) => void;
 }
 
 export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
@@ -236,9 +245,9 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
             session.onVolumeChange = (vol) => {
                 if (isActive) setAgentVolume(vol);
             };
-            session.onRecordingComplete = (url) => {
-                console.log("[Telefun] Recording complete, URL ready");
-                onRecordingReadyRef.current?.(url, config.identity.name, callDurationRef.current);
+            session.onRecordingComplete = (url, fullBlob, agentBlob, metrics) => {
+                console.log("[Telefun] Recording complete with metrics");
+                onRecordingReadyRef.current?.(url, config.identity.name, callDurationRef.current, fullBlob, agentBlob, metrics);
             };
 
             console.log("[Telefun] Calling session.connect()");

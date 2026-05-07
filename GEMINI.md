@@ -64,6 +64,13 @@ Superpowers skills menentukan **process dan workflow** yang wajib diikuti sebelu
 - Gunakan `PROFILE_FIELDS` dari `app/lib/authz.ts` untuk canonical auth profile read
 - Kegagalan pembacaan profil yang bersifat transient (network error, row belum tersedia) tidak lagi memicu `signOut()`. Hanya state terminal (`is_deleted`, `rejected`) dan guest tanpa sesi yang di-redirect keras. Missing profile ditoleransi di middleware dan AuthModal agar sesi aktif tidak hancur.
 
+### Voice-Assessment-Vocalist
+**Trigger:** Modifikasi pada module Telefun voice assessment (`app/actions/voiceAssessment.ts`, `docs/TELEFUN_VOICE_ASSESSMENT.md`).
+- Gunakan `gemini-3.1-flash-lite-preview` untuk analisis audio-to-JSON.
+- Pastikan rekaman yang digunakan adalah `agent_only.webm` (bukan mixed) untuk akurasi penilaian.
+- Mutasi pada `voice_assessment` atau `session_metrics` wajib dilakukan via server actions menggunakan `createAdminClient()` setelah validasi ownership.
+- Jangan menambahkan `UPDATE` RLS policy pada `telefun_history` untuk kolom assessment.
+
 ## Commands
 
 - Use `npm`, not `pnpm`: the repo has `package-lock.json` and no workspace config.

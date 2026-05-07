@@ -4,6 +4,7 @@ import { SessionConfig, Scenario } from '@/app/types';
 import { updateTelefunLongSpeechState } from './timingGuards';
 import type { TelefunSessionState, TelefunTimelineEvent, TelefunTimelineEventName } from '../types';
 import { reduceSessionState } from './sessionStateMachine';
+import { SessionMetrics, SpeechSegment } from '@/app/types/voiceAssessment';
 import { updateInterruptionGuard, type InterruptionGuardState } from './interruptionGuards';
 import {
   evaluateStalledResponse,
@@ -176,12 +177,40 @@ export class LiveSession {
   public onStatusChange?: (status: string) => void;
   public onAiSpeaking?: (isSpeaking: boolean) => void;
   public onVolumeChange?: (level: number) => void;
-  public onRecordingComplete?: (url: string) => void;
+  public onRecordingComplete?: (
+    fullCallUrl: string | null,
+    fullCallBlob: Blob | null,
+    agentOnlyBlob: Blob | null,
+    metrics: SessionMetrics
+  ) => void;
 
   private mediaRecorder: MediaRecorder | null = null;
   private recordedChunks: Blob[] = [];
   private recordingDestination: MediaStreamAudioDestinationNode | null = null;
   private micSourceForRecording: MediaStreamAudioSourceNode | null = null;
+
+  // Agent-only recorder properties
+  private agentOnlyDestination: MediaStreamAudioDestinationNode | null = null;
+  private agentOnlyMicSource: MediaStreamAudioSourceNode | null = null;
+  private agentMediaRecorder: MediaRecorder | null = null;
+  private agentRecordedChunks: Blob[] = [];
+  private expectedRecorderStops = 0;
+  private recorderStopCount = 0;
+  private recordingCompleteEmitted = false;
+  private pendingFullCallBlob: Blob | null = null;
+  private pendingAgentBlob: Blob | null = null;
+  private recordingFallbackTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // Session Metrics (Phase 2B)
+  private speechSegments: SpeechSegment[] = [];
+  private currentSpeechSegment: SpeechSegment | null = null;
+  private totalSpeakingMs = 0;
+  private totalSilenceMs = 0;
+  private deadAirCount = 0;
+  private interruptionCount = 0;
+  private volumeSamples: number[] = [];
+  private inputTranscriptionChunks: string[] = [];
+  private sessionStartTime: number = 0;
 
   constructor(config: SessionConfig) {
     this.config = config;
@@ -431,31 +460,7 @@ export class LiveSession {
       this.micSourceForRecording = this.outputAudioContext.createMediaStreamSource(this.stream);
       this.micSourceForRecording.connect(this.recordingDestination);
 
-      try {
-        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
-          ? 'audio/webm;codecs=opus' 
-          : 'audio/webm';
-          
-        this.mediaRecorder = new MediaRecorder(this.recordingDestination.stream, { mimeType });
-        this.recordedChunks = [];
-        
-        this.mediaRecorder.ondataavailable = (e) => {
-          if (e.data.size > 0) this.recordedChunks.push(e.data);
-        };
-        
-        this.mediaRecorder.onstop = () => {
-          if (this.recordedChunks.length > 0) {
-            const blob = new Blob(this.recordedChunks, { type: this.mediaRecorder?.mimeType || 'audio/webm' });
-            const url = URL.createObjectURL(blob);
-            this.onRecordingComplete?.(url);
-            this.recordedChunks = [];
-          }
-        };
-        
-        this.mediaRecorder.start(1000);
-      } catch (e) {
-        console.warn("[Telefun] MediaRecorder initialization failed:", e);
-      }
+      this.setupAudioRecorders();
 
       const resumeContexts = async () => {
         if (this.inputAudioContext?.state === 'suspended') await this.inputAudioContext.resume();
@@ -1025,8 +1030,19 @@ export class LiveSession {
     this.stopStalledWatchdog();
     this.clearSetupTimeout();
 
-    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
-      this.mediaRecorder.stop();
+    // === INSERT: Stop recorders FIRST (before any node/context teardown) ===
+    try { if (this.mediaRecorder?.state === 'recording') this.mediaRecorder.stop(); } catch(_) {}
+    try { if (this.agentMediaRecorder?.state === 'recording') this.agentMediaRecorder.stop(); } catch(_) {}
+
+    // Fallback: rescue chunks if onstop delayed, then emit
+    this.recordingFallbackTimer = setTimeout(() => {
+      this.synthesizePendingRecordingBlobs();
+      this.emitRecordingCompleteOnce();
+    }, 1000);
+
+    // 0-recorder edge case: emit immediately (idempotent)
+    if (this.expectedRecorderStops === 0) {
+      this.emitRecordingCompleteOnce();
     }
 
     if (this.volumeAnimationFrameId) {
@@ -1055,6 +1071,12 @@ export class LiveSession {
     if (this.micSourceForRecording) { try { this.micSourceForRecording.disconnect(); } catch (_e) {} }
     if (this.recordingDestination) { try { this.recordingDestination.disconnect(); } catch (_e) {} }
 
+    // === INSERT: Agent-only node cleanup (after existing node disconnects) ===
+    try { this.agentOnlyMicSource?.disconnect(); } catch (_) {}
+    try { this.agentOnlyDestination?.disconnect(); } catch (_) {}
+    this.agentOnlyMicSource = null;
+    this.agentOnlyDestination = null;
+
     const closeContext = async (ctx: AudioContext | null) => {
       if (ctx && ctx.state !== 'closed') {
         try { await ctx.close(); } catch (e) { console.warn("Error closing AudioContext:", e); }
@@ -1078,6 +1100,148 @@ export class LiveSession {
     this.userSpeechStartedAt = null;
     this.waitingForModelArmed = false;
     this.onDisconnect?.();
+  }
+
+  private setupAudioRecorders() {
+    if (!this.outputAudioContext || !this.inputAudioContext || !this.stream) return;
+
+    // Full reset
+    if (this.recordingFallbackTimer) clearTimeout(this.recordingFallbackTimer);
+    this.recordingFallbackTimer = null;
+    this.expectedRecorderStops = 0;
+    this.recorderStopCount = 0;
+    this.recordingCompleteEmitted = false;
+    this.pendingFullCallBlob = null;
+    this.pendingAgentBlob = null;
+    this.recordedChunks = [];
+    this.agentRecordedChunks = [];
+
+    // Reset Metrics
+    this.speechSegments = [];
+    this.currentSpeechSegment = null;
+    this.totalSpeakingMs = 0;
+    this.totalSilenceMs = 0;
+    this.deadAirCount = 0;
+    this.interruptionCount = 0;
+    this.volumeSamples = [];
+    this.inputTranscriptionChunks = [];
+    this.sessionStartTime = Date.now();
+
+    // Hoist MIME type before both try blocks
+    const recorderMimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus' : 'audio/webm';
+
+    // Full-call recorder
+    try {
+      this.mediaRecorder = new MediaRecorder(this.recordingDestination!.stream, { mimeType: recorderMimeType });
+      this.mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) this.recordedChunks.push(e.data); };
+      this.mediaRecorder.onstop = () => {
+        this.pendingFullCallBlob = this.recordedChunks.length > 0
+          ? new Blob(this.recordedChunks, { type: recorderMimeType }) : null;
+        this.recordedChunks = [];
+        this.recorderStopCount++;
+        this.maybeEmitRecording();
+      };
+      this.mediaRecorder.start(1000);
+      this.expectedRecorderStops++;
+    } catch (e) { console.warn("[Telefun] Full-call recorder failed:", e); }
+
+    // Agent-only recorder
+    try {
+      this.agentOnlyDestination = this.inputAudioContext.createMediaStreamDestination();
+      this.agentOnlyMicSource = this.inputAudioContext.createMediaStreamSource(this.stream);
+      this.agentOnlyMicSource.connect(this.agentOnlyDestination);
+      this.agentMediaRecorder = new MediaRecorder(this.agentOnlyDestination.stream, { mimeType: recorderMimeType });
+      this.agentMediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) this.agentRecordedChunks.push(e.data); };
+      this.agentMediaRecorder.onstop = () => {
+        this.pendingAgentBlob = this.agentRecordedChunks.length > 0
+          ? new Blob(this.agentRecordedChunks, { type: recorderMimeType }) : null;
+        this.agentRecordedChunks = [];
+        this.recorderStopCount++;
+        this.maybeEmitRecording();
+      };
+      this.agentMediaRecorder.start(1000);
+      this.expectedRecorderStops++;
+    } catch (e) { console.warn("[Telefun] Agent recorder failed:", e); }
+  }
+
+  private maybeEmitRecording() {
+    if (this.recorderStopCount >= this.expectedRecorderStops) {
+      this.emitRecordingCompleteOnce();
+    }
+  }
+
+  private synthesizePendingRecordingBlobs() {
+    if (!this.pendingFullCallBlob && this.recordedChunks.length > 0) {
+      this.pendingFullCallBlob = new Blob(this.recordedChunks, { type: 'audio/webm' });
+      this.recordedChunks = [];
+    }
+    if (!this.pendingAgentBlob && this.agentRecordedChunks.length > 0) {
+      this.pendingAgentBlob = new Blob(this.agentRecordedChunks, { type: 'audio/webm' });
+      this.agentRecordedChunks = [];
+    }
+  }
+
+  private emitRecordingCompleteOnce() {
+    if (this.recordingCompleteEmitted) return;
+    this.recordingCompleteEmitted = true;
+
+    if (this.recordingFallbackTimer) {
+      clearTimeout(this.recordingFallbackTimer);
+      this.recordingFallbackTimer = null;
+    }
+
+    // Final safety net: rescue any un-synthesized chunks
+    this.synthesizePendingRecordingBlobs();
+
+    const fullUrl = this.pendingFullCallBlob ? URL.createObjectURL(this.pendingFullCallBlob) : null;
+
+    this.onRecordingComplete?.(
+      fullUrl,
+      this.pendingFullCallBlob,
+      this.pendingAgentBlob,
+      this.getSessionMetrics()
+    );
+
+    this.pendingFullCallBlob = null;
+    this.pendingAgentBlob = null;
+  }
+
+  public getSessionMetrics(): SessionMetrics {
+    const now = Date.now();
+    // Finalize current segment if any
+    if (this.currentSpeechSegment) {
+      const segment = { ...this.currentSpeechSegment, endMs: now, durationMs: now - this.currentSpeechSegment.startMs };
+      this.speechSegments.push(segment);
+      this.totalSpeakingMs += segment.durationMs;
+      this.currentSpeechSegment = null;
+    }
+
+    const duration = now - this.sessionStartTime;
+    this.totalSilenceMs = Math.max(0, duration - this.totalSpeakingMs);
+
+    return {
+      speechSegments: this.speechSegments,
+      totalSpeakingMs: this.totalSpeakingMs,
+      totalSilenceMs: this.totalSilenceMs,
+      deadAirCount: this.deadAirCount,
+      interruptionCount: this.interruptionCount,
+      volumeSamples: this.volumeSamples,
+      volumeConsistency: this.calculateVolumeConsistency(),
+      inputTranscriptionChunks: this.inputTranscriptionChunks,
+      sessionDurationMs: duration,
+    };
+  }
+
+  private calculateVolumeConsistency(): number {
+    if (this.volumeSamples.length === 0) return 0;
+    const mean = this.volumeSamples.reduce((a, b) => a + b, 0) / this.volumeSamples.length;
+    const variance = this.volumeSamples.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / this.volumeSamples.length;
+    const stdDev = Math.sqrt(variance);
+    // Return 0-100 score: 100 means low stdDev relative to mean
+    if (mean === 0) return 0;
+    const cv = stdDev / mean;
+    return Math.max(0, Math.min(100, 100 * (1 - cv)));
   }
 
   private createPcmBlob(data: Float32Array): { mimeType: string, data: string } {

@@ -1,3 +1,5 @@
+import { SessionMetrics, VoiceQualityAssessment } from '@/app/types/voiceAssessment';
+
 export interface CallRecord {
   id: string;
   date: string;
@@ -5,8 +7,12 @@ export interface CallRecord {
   consumerName: string;
   scenarioTitle: string;
   duration: number;
+  recordingPath?: string;
+  agentRecordingPath?: string;
   score?: number;
   feedback?: string;
+  voiceAssessment?: VoiceQualityAssessment | null;
+  sessionMetrics?: SessionMetrics | null;
 }
 
 export type TelefunSessionState =

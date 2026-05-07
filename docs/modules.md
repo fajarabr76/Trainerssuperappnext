@@ -55,7 +55,7 @@ Modul simulasi komunikasi suara untuk melatih intonasi dan kecepatan respon tele
   - **Hold & Mute**: User bisa mute mikrofon dan menahan panggilan.
   - **Recording & History**: Rekaman browser disimpan ke local history dan `telefun_history`.
 - **Catatan Teknis**: Sesi live default memakai model transport `gemini-3.1-flash-live-preview`. Pembuka/respons fallback/scoring non-live tetap lewat wrapper server-side `generateGeminiContent()` dengan model `gemini-3.1-flash-lite-preview`. Telefun mendukung dua transport: `gemini-live` (default) dan `openai-audio` (belum diimplementasi).
-- **Dokumen Terkait**: `docs/TELEFUN_OPERATIONAL_RUNBOOK.md`, `docs/TELEFUN_MUTE_VAD_RESPONSE_HANDOFF_CHANGELOG_2026-05-07.md`, `docs/TELEFUN_KNOWN_ISSUE_RAILWAY_STALE_DIST.md`, `docs/MONITORING_TOKEN_USAGE_BILLING.md`.
+- **Dokumen Terkait**: `docs/TELEFUN_OPERATIONAL_RUNBOOK.md`, `docs/TELEFUN_VOICE_ASSESSMENT.md`, `docs/TELEFUN_MUTE_VAD_RESPONSE_HANDOFF_CHANGELOG_2026-05-07.md`, `docs/TELEFUN_VOICE_ASSESSMENT_CHANGELOG_2026-05-07.md`, `docs/TELEFUN_KNOWN_ISSUE_RAILWAY_STALE_DIST.md`, `docs/MONITORING_TOKEN_USAGE_BILLING.md`.
 
 ## 5. KTP / Profiler (Kotak Tool Profil)
 Sistem manajemen database terstruktur untuk peserta training dan agen aktif.
