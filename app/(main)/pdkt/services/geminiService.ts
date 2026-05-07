@@ -218,7 +218,7 @@ export const initializeEmailSession = async (
     .filter((img): img is string => !!img);
 
   const hasCustomImages = customAttachments.length > 0;
-  const model = normalizeModelId(config.selectedModel || "gemini-3.1-flash-lite-preview");
+  const model = normalizeModelId(config.selectedModel || "gemini-3.1-flash-lite");
 
   // Existing logic for prompt remains the same...
   const prompt = `
@@ -304,7 +304,7 @@ export const evaluateAgentResponse = async (
   modelId?: string,
   userId?: string
 ): Promise<EvaluationResult> => {
-  const normalizedModel = normalizeModelId(modelId || "gemini-3.1-flash-lite-preview");
+  const normalizedModel = normalizeModelId(modelId || "gemini-3.1-flash-lite");
   
   const evaluationPrompt = `
     Anda sekarang bertindak sebagai EDITOR BAHASA & SUPERVISOR CONTACT CENTER OJK.

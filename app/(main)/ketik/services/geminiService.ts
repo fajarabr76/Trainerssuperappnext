@@ -259,7 +259,7 @@ ${extraPrompt || 'Balas sebagai konsumen:'}`;
 
   try {
     const response = await callAI({
-      model: config.selectedModel || 'gemini-3.1-flash-lite-preview',
+      model: config.selectedModel || 'gemini-3.1-flash-lite',
       prompt,
       systemInstruction,
       temperature: 0.82,

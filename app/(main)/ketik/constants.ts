@@ -36,7 +36,7 @@ const mergeWithDefaults = <T extends { id: string; isCustom?: boolean; descripti
 export function coerceKetikModelId(modelId?: string | null): string {
   const normalized = normalizeModelId(modelId);
   const exists = TEXT_SIMULATION_MODELS.some(m => m.id === normalized);
-  return exists ? normalized : 'gemini-3.1-flash-lite-preview';
+  return exists ? normalized : 'gemini-3.1-flash-lite';
 }
 
 export const parseSettings = (parsed: any): any => ({

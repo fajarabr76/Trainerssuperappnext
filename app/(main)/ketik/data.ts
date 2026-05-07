@@ -11,7 +11,7 @@ export const defaultSettings: AppSettings = {
     phoneNumber: '',
     city: ''
   },
-  selectedModel: 'gemini-3.1-flash-lite-preview',
+  selectedModel: 'gemini-3.1-flash-lite',
   simulationDuration: 5,
   responsePacingMode: 'realistic'
 };

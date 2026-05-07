@@ -5,7 +5,7 @@ import { normalizeModelId, TEXT_SIMULATION_MODELS } from '@/app/lib/ai-models';
 
 const supabase = createClient();
 const LOCAL_STORAGE_KEY = 'pdkt_settings_v2';
-const DEFAULT_PDKT_MODEL_ID = 'gemini-3.1-flash-lite-preview';
+const DEFAULT_PDKT_MODEL_ID = 'gemini-3.1-flash-lite';
 
 const CONSUMER_NAME_MENTION_PATTERNS = [
   'random',

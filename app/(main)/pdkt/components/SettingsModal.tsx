@@ -52,7 +52,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   const [enableImageGeneration, setEnableImageGeneration] = useState(localSettings.enableImageGeneration ?? true);
   const [globalConsumerTypeId, setGlobalConsumerTypeId] = useState(localSettings.globalConsumerTypeId || 'random');
   const [selectedModel, setSelectedModel] = useState(normalizeModelId(localSettings.selectedModel));
-  const defaultModelId = 'gemini-3.1-flash-lite-preview';
+  const defaultModelId = 'gemini-3.1-flash-lite';
 
   const [consumerNameMentionPattern, setConsumerNameMentionPattern] = useState(
     localSettings.consumerNameMentionPattern || 'random'
