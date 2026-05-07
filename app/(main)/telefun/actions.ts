@@ -54,6 +54,7 @@ export async function loadTelefunHistory(): Promise<{ success: boolean; records?
     return { success: false, error: 'Tidak dapat memverifikasi pengguna.' };
   }
 
+  // Try selecting all columns first
   const { data, error } = await supabase
     .from('telefun_history')
     .select('id, date, scenario_title, consumer_name, consumer_phone, consumer_city, duration, recording_url, recording_path, agent_recording_path, score, feedback, voice_assessment, session_metrics, created_at')
@@ -61,7 +62,35 @@ export async function loadTelefunHistory(): Promise<{ success: boolean; records?
     .order('date', { ascending: false });
 
   if (error) {
-    return { success: false, error: error.message };
+    console.warn('[Telefun] Failed to load full history, retrying with basic columns:', error.message);
+    
+    // Fallback: Select only guaranteed columns
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from('telefun_history')
+      .select('id, date, scenario_title, consumer_name, consumer_phone, consumer_city, duration, recording_url, score, feedback, created_at')
+      .eq('user_id', user.id)
+      .order('date', { ascending: false });
+
+    if (fallbackError) {
+      return { success: false, error: fallbackError.message };
+    }
+
+    return {
+      success: true,
+      records: (fallbackData || []).map(row => ({
+        id: row.id,
+        date: row.date ?? row.created_at,
+        scenario_title: row.scenario_title,
+        consumer_name: row.consumer_name,
+        consumer_phone: row.consumer_phone,
+        consumer_city: row.consumer_city,
+        duration: row.duration,
+        recording_url: row.recording_url,
+        score: row.score,
+        feedback: row.feedback,
+        created_at: row.created_at,
+      })),
+    };
   }
 
   return {
@@ -194,7 +223,7 @@ export async function persistTelefunSession(params: {
 }): Promise<PersistTelefunSessionResult> {
   const supabase = await createClient();
 
-  const sessionData = {
+  const sessionData: any = {
     user_id: params.userId,
     date: new Date().toISOString(),
     scenario_title: params.scenarioTitle,
@@ -208,11 +237,23 @@ export async function persistTelefunSession(params: {
     session_metrics: params.sessionMetrics || null,
   };
 
-  const { data: historyData, error: historyError } = await supabase
+  let { data: historyData, error: historyError } = await supabase
     .from('telefun_history')
     .insert([sessionData])
     .select()
     .single();
+
+  if (historyError && historyError.message.includes('session_metrics')) {
+    console.warn('[Telefun] Failed to persist with session_metrics, retrying without it...');
+    delete sessionData.session_metrics;
+    const retry = await supabase
+      .from('telefun_history')
+      .insert([sessionData])
+      .select()
+      .single();
+    historyData = retry.data;
+    historyError = retry.error;
+  }
 
   if (historyError || !historyData) {
     return {

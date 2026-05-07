@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Trash2, Phone, Clock, Download, History as HistoryIcon, Eye, FileDown } from 'lucide-react';
 import { CallRecord } from '../types';
+import { getTelefunSignedUrl } from '../actions';
 
 interface HistoryModalProps {
   isOpen: boolean;
@@ -48,6 +49,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
 }) => {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [isClearing, setIsClearing] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const handleDelete = async (id: string) => {
     setProcessingId(id);
@@ -60,6 +62,39 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
     setIsClearing(true);
     await onClearHistory();
     setIsClearing(false);
+  };
+
+  const handleDownload = async (rec: CallRecord) => {
+    if (rec.url && rec.url.startsWith('blob:')) {
+      const a = document.createElement('a');
+      a.href = rec.url;
+      a.download = `Telefun_${rec.consumerName}_${rec.id}.webm`;
+      a.click();
+      return;
+    }
+
+    if (!rec.recordingPath) {
+      alert('Rekaman tidak tersedia untuk diunduh (URL kedaluwarsa).');
+      return;
+    }
+
+    setDownloadingId(rec.id);
+    try {
+      const result = await getTelefunSignedUrl({ sessionId: rec.id, type: 'full_call' });
+      if (result.success && result.signedUrl) {
+        const a = document.createElement('a');
+        a.href = result.signedUrl;
+        a.download = `Telefun_${rec.consumerName}_${rec.id}.webm`;
+        a.click();
+      } else {
+        alert('Gagal mengambil tautan rekaman: ' + (result.error || 'Unknown error'));
+      }
+    } catch (e) {
+      console.error('Download error:', e);
+      alert('Terjadi kesalahan saat mengunduh.');
+    } finally {
+      setDownloadingId(null);
+    }
   };
   return (
     <AnimatePresence>
@@ -163,14 +198,18 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                               <Eye className="w-4 h-4" />
                             </button>
                           )}
-                          <a 
-                            href={rec.url} 
-                            download={`Telefun_${rec.consumerName}_${rec.id}.webm`}
-                            className="p-3 bg-foreground/5 hover:bg-foreground/10 text-emerald-600 dark:text-emerald-400 rounded-xl border border-border transition-all"
+                          <button 
+                            onClick={() => handleDownload(rec)}
+                            disabled={downloadingId === rec.id}
+                            className="p-3 bg-foreground/5 hover:bg-foreground/10 text-emerald-600 dark:text-emerald-400 rounded-xl border border-border transition-all disabled:opacity-50"
                             title="Unduh Rekaman"
                           >
-                            <Download className="w-4 h-4" />
-                          </a>
+                            {downloadingId === rec.id ? (
+                              <div className="w-4 h-4 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+                            ) : (
+                              <Download className="w-4 h-4" />
+                            )}
+                          </button>
                           <button 
                             onClick={() => handleDelete(rec.id)}
                             disabled={processingId === rec.id}

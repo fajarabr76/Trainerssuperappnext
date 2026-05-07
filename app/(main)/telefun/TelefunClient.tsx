@@ -84,13 +84,16 @@ export default function TelefunClient() {
         }
       }
 
-      if (dbRecords.length > 0) {
-        const dbIds = new Set(dbRecords.map(r => r.id));
-        const localOnly = localRecords.filter(r => !dbIds.has(r.id));
-        const merged = [...dbRecords, ...localOnly];
+      const merged = (dbRecords.length > 0 || localRecords.length > 0)
+        ? [
+            ...dbRecords,
+            ...localRecords.filter(lr => !new Set(dbRecords.map(r => r.id)).has(lr.id))
+          ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        : [];
+
+      if (merged.length > 0) {
         setRecordings(merged);
-      } else if (localRecords.length > 0) {
-        setRecordings(localRecords);
+        localStorage.setItem('telefun_history', JSON.stringify(merged));
       }
 
       const supabase = createClient();
