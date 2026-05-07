@@ -22,8 +22,8 @@ export interface StalledResponseResult {
   timeoutType: 'none' | 'response_start' | 'mid_response';
 }
 
-const DEFAULT_RESPONSE_START_TIMEOUT_MS = 5000;
-const DEFAULT_MID_RESPONSE_TIMEOUT_MS = 7000;
+const DEFAULT_RESPONSE_START_TIMEOUT_MS = 12000;
+const DEFAULT_MID_RESPONSE_TIMEOUT_MS = 15000;
 
 export function markWaitingForModel(state: StalledResponseState, now: number): StalledResponseState {
   return {

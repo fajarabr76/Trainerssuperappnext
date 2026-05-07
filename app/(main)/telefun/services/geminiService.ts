@@ -72,6 +72,10 @@ export class LiveSession {
   private stalledWatchdogTimer: ReturnType<typeof setInterval> | null = null;
   private setupTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly CONNECT_SETUP_TIMEOUT_MS = 15000;
+  private userSpeechActive: boolean = false;
+  private lastUserNonSilentAt: number | null = null;
+  private waitingForModelArmed: boolean = false;
+  private readonly LOCAL_USER_TURN_END_SILENCE_MS = 1000;
 
   // Calibration parameters for volume indicator
   private readonly VOLUME_NOISE_FLOOR = 0.005;
@@ -551,6 +555,8 @@ export class LiveSession {
 
     if (this.isMuted) {
       this.previousSmoothedVolume = 0;
+      this.userSpeechActive = false;
+      this.lastUserNonSilentAt = null;
       this.onVolumeChange?.(0);
       this.trackDeadAir(true);
       this.trackLongSpeech(true);
@@ -586,8 +592,31 @@ export class LiveSession {
     // 3. Normalization with calibrated scale
     const normalizedVolume = Math.min(100, Math.round(smoothedRms * this.VOLUME_SENSITIVITY_SCALE));
 
-    if (!this.isAiSpeaking && rawRms >= this.DEAD_AIR_RMS_THRESHOLD && this.currentState === 'ready') {
-      this.transition('user_audio_valid');
+    if (!this.isAiSpeaking && rawRms >= this.DEAD_AIR_RMS_THRESHOLD) {
+      this.userSpeechActive = true;
+      this.lastUserNonSilentAt = now;
+      if (this.currentState === 'ready') {
+        this.transition('user_audio_valid');
+      }
+      if (this.currentState === 'recovering') {
+        this.transition('user_audio_valid');
+      }
+      this.waitingForModelArmed = false;
+    }
+
+    if (
+      !this.isAiSpeaking &&
+      this.userSpeechActive &&
+      this.lastUserNonSilentAt !== null &&
+      rawRms < this.DEAD_AIR_RMS_THRESHOLD &&
+      now - this.lastUserNonSilentAt >= this.LOCAL_USER_TURN_END_SILENCE_MS &&
+      this.currentState === 'user_speaking' &&
+      !this.waitingForModelArmed
+    ) {
+      this.transition('user_turn_end');
+      this.stalledResponseState = markWaitingForModel(this.stalledResponseState, now);
+      this.waitingForModelArmed = true;
+      this.userSpeechActive = false;
     }
 
     const interruption = updateInterruptionGuard(this.interruptionGuardState, {
@@ -768,6 +797,10 @@ export class LiveSession {
         this.emitTimeline('first_model_audio_chunk');
       }
       this.stalledResponseState = markModelActivity(this.stalledResponseState, Date.now());
+      this.waitingForModelArmed = false;
+      if (this.currentState === 'recovering') {
+        this.transition('recover');
+      }
       this.transition('model_first_audio');
       // Process all parts as Gemini 3.1 Flash Live can return multiple parts in one event
       for (const part of modelTurn.parts) {
@@ -792,8 +825,12 @@ export class LiveSession {
       if (this.currentState === 'user_speaking') {
         this.transition('user_turn_end');
         this.stalledResponseState = markWaitingForModel(this.stalledResponseState, Date.now());
+        this.waitingForModelArmed = true;
       } else if (this.currentState === 'ai_speaking') {
         this.transition('model_turn_complete');
+        this.waitingForModelArmed = false;
+      } else if (this.currentState === 'recovering') {
+        this.transition('recover');
       }
       this.isAiSpeaking = false;
       this.onAiSpeaking?.(false);
@@ -916,6 +953,9 @@ export class LiveSession {
     this.deadAirStartTime = null;
     this.nonSilentStartTime = null;
     this.lastInterruptionTime = 0;
+    this.userSpeechActive = false;
+    this.lastUserNonSilentAt = null;
+    this.waitingForModelArmed = false;
     this.onDisconnect?.();
   }
 

@@ -26,4 +26,9 @@ describe('Telefun session state machine', () => {
     state = reduceSessionState(state, 'close');
     expect(state).toBe('ended');
   });
+
+  it('allows recovering state to continue when model audio arrives', () => {
+    const state = reduceSessionState('recovering', 'model_first_audio');
+    expect(state).toBe('ai_speaking');
+  });
 });

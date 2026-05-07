@@ -48,6 +48,8 @@ const TRANSITIONS: Record<TelefunSessionState, Partial<Record<TelefunSessionEven
   },
   recovering: {
     recover: 'ready',
+    model_first_audio: 'ai_speaking',
+    user_audio_valid: 'user_speaking',
     close: 'ended',
   },
   ended: {},

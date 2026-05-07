@@ -229,6 +229,14 @@ Proxy timeline:
 - **Diam karena dead-air path**: ada `dead_air_prompt_sent` tanpa error transport.
 - **Transport failure**: reason `websocket_transport_failure` atau `ws_close_*` pada client, lalu korelasikan dengan `close_path` (client/gemini/server) di proxy.
 
+### Fallback End-Of-Turn Lokal
+
+Untuk kasus `turnComplete` dari server terlambat/tidak muncul, client sekarang punya fallback akhir giliran lokal:
+- saat user selesai bicara dan hening sekitar 1 detik, state dipindah ke `ai_thinking`
+- watchdog response-start mulai dihitung dari titik ini
+
+Tujuan fallback ini adalah mencegah kondisi “user sudah tanya tapi konsumen tidak merespon” hanya karena sinyal turn boundary dari server tidak stabil.
+
 ## Data Persistence
 
 Telefun memakai tiga lapisan data:
