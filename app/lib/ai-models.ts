@@ -1,6 +1,6 @@
-const DEFAULT_MODEL_ID = 'gemini-3.1-flash-lite-preview';
+const DEFAULT_MODEL_ID = 'gemini-3.1-flash-lite';
 
-export const VOICE_ASSESSMENT_MODEL = 'gemini-3.1-flash-lite-preview';
+export const VOICE_ASSESSMENT_MODEL = 'gemini-3.1-flash-lite';
 
 /**
  * Complete AI Models list.
@@ -9,7 +9,7 @@ export const VOICE_ASSESSMENT_MODEL = 'gemini-3.1-flash-lite-preview';
 export const AI_MODELS = [
   // Direct Gemini
   {
-    id: 'gemini-3.1-flash-lite-preview',
+    id: 'gemini-3.1-flash-lite',
     name: 'Gemini 3.1 Flash Lite',
     description: 'Cepat dan efisien untuk percakapan natural.',
     provider: 'gemini' as const,
@@ -34,7 +34,7 @@ export const AI_MODELS = [
     provider: 'openrouter' as const,
   },
   {
-    id: 'google/gemini-3.1-flash-lite-preview',
+    id: 'google/gemini-3.1-flash-lite',
     name: 'Gemini 3.1 Flash Lite',
     description: 'Model ringan Google untuk respons cepat dan hemat biaya via OpenRouter.',
     provider: 'openrouter' as const,
@@ -103,7 +103,7 @@ export const TELEFUN_AUDIO_MODELS = [
  * Legacy model aliases for backwards compatibility.
  */
 const LEGACY_MODEL_ALIASES: Record<string, string> = {
-  'gemini-3.1-flash-lite': 'gemini-3.1-flash-lite-preview',
+  'gemini-3.1-flash-lite-preview': 'gemini-3.1-flash-lite',
 };
 
 /**
