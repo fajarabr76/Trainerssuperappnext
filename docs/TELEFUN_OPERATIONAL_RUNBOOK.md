@@ -1,6 +1,6 @@
 # Telefun Operational Runbook
 
-Dokumen ini adalah sumber operasional untuk Telefun pada snapshot sekarang. Gunakan bersama `docs/modules.md` untuk gambaran fitur, `docs/TELEFUN_KNOWN_ISSUE_RAILWAY_STALE_DIST.md` untuk regresi Railway stale build, dan `docs/TELEFUN_SMOKE_TEST_CHECKLIST.md` untuk uji manual pasca-perubahan runtime.
+Dokumen ini adalah sumber operasional untuk Telefun pada snapshot sekarang. Gunakan bersama `docs/modules.md` untuk gambaran fitur, `docs/TELEFUN_MUTE_VAD_RESPONSE_HANDOFF_CHANGELOG_2026-05-07.md` untuk ringkasan perubahan user-facing terbaru, `docs/TELEFUN_KNOWN_ISSUE_RAILWAY_STALE_DIST.md` untuk regresi Railway stale build, dan `docs/TELEFUN_SMOKE_TEST_CHECKLIST.md` untuk uji manual pasca-perubahan runtime.
 
 ## Ringkasan Runtime
 
@@ -82,17 +82,19 @@ Guardrail penting:
 Gemini Live di Telefun sekarang memakai `realtimeInputConfig.automaticActivityDetection` untuk membuat endpointing lebih stabil saat user memberi respons pendek.
 
 - `startOfSpeechSensitivity`: `START_SENSITIVITY_LOW`
-- `endOfSpeechSensitivity`: `END_SENSITIVITY_LOW`
+- `endOfSpeechSensitivity`: `END_SENSITIVITY_HIGH`
 - `prefixPaddingMs`: `300`
-- `silenceDurationMs`: `800`
+- `silenceDurationMs`: `950`
+- `turnCoverage`: `TURN_INCLUDES_ONLY_ACTIVITY`
+- `inputAudioTranscription`: aktif (`{}`)
 
 Efek operasionalnya:
 
-- kata singkat seperti `iya`, `baik`, `oke`, atau `kemudian` tidak mudah dianggap sebagai akhir giliran bicara
-- percakapan tetap mengandalkan konteks prompt dan audio runtime, bukan deteksi diam yang terlalu agresif
+- akhir giliran user lebih cepat ditutup saat user benar-benar berhenti bicara, sehingga respons konsumen tidak terlalu lama menunggu boundary
+- `turnCoverage: TURN_INCLUDES_ONLY_ACTIVITY` mengurangi noise dari segmen hening panjang yang tidak relevan ke user turn
 - ini terpisah dari dead-air detector internal yang hanya memicu prompt saat user benar-benar diam terlalu lama
 
-Kalau user melaporkan sesi berhenti saat merespons singkat, cek first-level ini dulu sebelum menyimpulkan masalah ada di prompt atau runtime proxy.
+Kalau user melaporkan "sudah bertanya tapi konsumen diam", cek first-level ini dulu sebelum menyimpulkan masalah ada di prompt atau runtime proxy.
 
 ## Command
 
@@ -209,17 +211,17 @@ Runtime Telefun sekarang menambahkan timeline event terstruktur untuk investigas
 
 Client timeline:
 - `connect_start`, `mic_ready`, `ws_open`, `setup_sent`, `setup_complete_received`
-- `audio_chunk_send` (cadence ringkas)
+- `audio_chunk_send` (cadence ringkas), `audio_stream_end_sent`, `audio_stream_resumed`, `mute_changed`
 - `first_model_audio_chunk`, `turn_complete_received`, `interrupted_received`
-- `local_user_turn_end_detected`, `local_turn_nudge_sent`
+- `local_user_turn_end_detected`, `input_transcription_seen`
 - `playback_start`, `playback_end`
 - `dead_air_prompt_sent`, `interruption_prompt_sent`
-- `stalled_response_detected`, `recovering`, `disconnect`
+- `stalled_response_detected`, `recovering`, `no_model_response_after_audio_end`, `disconnect`
 
 Proxy timeline:
 - `client_connected`, `auth_passed`, `gemini_ws_open`
 - `client_setup_forwarded`, `pending_message_flushed`, `usage_metadata_seen`
-- `first_model_turn`, `turn_complete`, `interrupted`, `gemini_error`, `close_path`
+- `first_model_turn`, `input_transcription_seen`, `turn_complete`, `interrupted`, `gemini_error`, `close_path`
 
 ### Cara Baca Gejala
 
@@ -230,15 +232,14 @@ Proxy timeline:
 - **Diam karena dead-air path**: ada `dead_air_prompt_sent` tanpa error transport.
 - **Transport failure**: reason `websocket_transport_failure` atau `ws_close_*` pada client, lalu korelasikan dengan `close_path` (client/gemini/server) di proxy.
 
-### Fallback End-Of-Turn Lokal
+### End-Of-Turn Semantics (VAD + Audio Stream)
 
-Untuk kasus `turnComplete` dari server terlambat/tidak muncul, client sekarang punya fallback akhir giliran lokal:
-- saat user selesai bicara dan hening sekitar 1 detik, state dipindah ke `ai_thinking`
-- watchdog response-start mulai dihitung dari titik ini
-- client juga mengirim `local_turn_nudge_sent` sekali per giliran agar Gemini menjawab konteks terakhir jika automatic activity detection tidak menutup turn
-- jika user menekan mute setelah selesai bertanya, mute juga dianggap sebagai sinyal akhir giliran lokal selama audio user sebelumnya sudah terdeteksi
+Telefun tidak lagi mengandalkan `clientContent` nudge lokal untuk memaksa respons model setelah user selesai bicara. Alur yang dipakai:
+- default: automatic VAD Gemini menutup giliran user
+- fallback observability lokal: saat user selesai bicara dan hening sekitar 1 detik, state dipindah ke `ai_thinking` agar watchdog bisa mulai memantau response-start
+- saat user transisi **unmuted -> muted**, client mengirim `realtimeInput.audioStreamEnd` sekali untuk flush audio cache upstream
 
-Tujuan fallback ini adalah mencegah kondisi “user sudah tanya tapi konsumen tidak merespon” hanya karena sinyal turn boundary dari server tidak stabil.
+Dengan model ini, `Mute` tetap menjadi kontrol mikrofon/noise guard, bukan tombol submit teks.
 
 ## Data Persistence
 
@@ -279,6 +280,8 @@ Karena schema `ai_pricing_settings` saat ini menyimpan satu harga input dan satu
 
 - `PhoneInterface` memulai koneksi **sekali saja** saat `config` sesi berubah (panggilan baru).
 - Klik **Mute/Unmute** hanya memanggil `LiveSession.setMute(...)` tanpa me-restart call, memutus WebSocket, atau memutar ulang ringtone.
+- Saat transisi **unmuted -> muted**, runtime mengirim `audio_stream_end_sent` (`realtimeInput.audioStreamEnd: true`) satu kali agar Gemini menutup stream input dengan benar.
+- Saat unmute dan audio chunk pertama kembali terkirim, timeline mencatat `audio_stream_resumed`.
 - Callback `onRecordingReady` dan `onEndSession` distabilkan melalui `useRef` agar tidak memicu re-mount efek koneksi.
 
 ## Indikator Input Suara

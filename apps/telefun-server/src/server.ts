@@ -97,6 +97,9 @@ wss.on('connection', async (ws, req) => {
       const raw = data.toString();
       // Fast-path audio chunks
       if (raw.startsWith('{"realtimeInput"')) {
+        if (raw.includes('"audioStreamEnd":true')) {
+          logTimeline('audio_stream_end_forwarded');
+        }
         if (geminiWs && isGeminiOpen) geminiWs.send(raw);
         else pendingMessages.push(raw);
         return;
@@ -246,6 +249,8 @@ wss.on('connection', async (ws, req) => {
         } else if (parsed.serverContent?.turnComplete) {
           logTimeline('turn_complete');
           console.log('[Telefun] Gemini turnComplete');
+        } else if (parsed.serverContent?.inputTranscription?.text) {
+          logTimeline('input_transcription_seen', { textLength: parsed.serverContent.inputTranscription.text.length });
         } else if (parsed.serverContent?.modelTurn) {
           // audio chunk - skip logging to avoid spam
         } else {

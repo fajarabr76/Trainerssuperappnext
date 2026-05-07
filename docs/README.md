@@ -23,6 +23,7 @@ Dokumen ini adalah peta baca untuk kondisi aplikasi Trainers SuperApp saat ini. 
 - `docs/SIDAK_SCORING_GUARDRAILS.md`: Guardrail wajib sebelum mengubah scoring atau agregasi SIDAK.
 - `docs/SIDAK_KNOWN_ISSUE_HISTORICAL_AGENT_INPUT.md`: Toggle data keseluruhan untuk input agent historis/excluded, normalisasi `Tim BKO`, dan link `INPUT AUDIT`.
 - `docs/PDKT_CONSUMER_NAME_MENTION_PATTERN_CHANGELOG_2026-05-05.md`: Ringkasan perubahan user-facing untuk setting pola penyebutan nama konsumen di PDKT.
+- `docs/TELEFUN_MUTE_VAD_RESPONSE_HANDOFF_CHANGELOG_2026-05-07.md`: Ringkasan perubahan user-facing untuk semantik mute, VAD, dan handoff respons di Telefun Live.
 - `docs/superpowers/specs/2026-05-05-pdkt-consumer-name-mention-pattern-design.md`: Spec desain setting PDKT untuk pola penyebutan nama konsumen.
 - `docs/superpowers/plans/2026-05-05-pdkt-consumer-name-mention-pattern.md`: Rencana implementasi task-by-task untuk setting pola penyebutan nama konsumen di PDKT.
 

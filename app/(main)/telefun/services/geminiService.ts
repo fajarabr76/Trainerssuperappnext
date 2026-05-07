@@ -17,6 +17,43 @@ const _STABLE_VOICE_MAP = {
   female: 'Kore'
 };
 
+interface LiveSessionTransport {
+  sendRealtimeInput: (params: { media: { mimeType: string, data: string } }) => void;
+  sendRealtimeInputAudioStreamEnd: () => void;
+  close: () => void;
+  sendClientMessage: (json: string) => void;
+}
+
+export interface LiveSetupMessage {
+  setup: {
+    model: string;
+    generationConfig: {
+      responseModalities: string[];
+      speechConfig: {
+        voiceConfig: {
+          prebuiltVoiceConfig: {
+            voiceName: string;
+          };
+        };
+      };
+    };
+    systemInstruction: {
+      parts: Array<{ text: string }>;
+    };
+    realtimeInputConfig: {
+      automaticActivityDetection: {
+        disabled: boolean;
+        startOfSpeechSensitivity: 'START_SENSITIVITY_LOW';
+        endOfSpeechSensitivity: 'END_SENSITIVITY_HIGH';
+        prefixPaddingMs: number;
+        silenceDurationMs: number;
+      };
+      turnCoverage: 'TURN_INCLUDES_ONLY_ACTIVITY';
+    };
+    inputAudioTranscription: Record<string, never>;
+  };
+}
+
 function normalizeTelefunWebSocketUrl(rawUrl: string): string {
   try {
     const url = new URL(rawUrl);
@@ -31,12 +68,46 @@ function normalizeTelefunWebSocketUrl(rawUrl: string): string {
   }
 }
 
+export function buildTelefunLiveSetupMessage(params: {
+  modelId: string;
+  voiceName: string;
+  systemInstruction: string;
+}): LiveSetupMessage {
+  return {
+    setup: {
+      model: `models/${params.modelId}`,
+      generationConfig: {
+        responseModalities: ["AUDIO"],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: { voiceName: params.voiceName }
+          }
+        }
+      },
+      systemInstruction: {
+        parts: [{ text: params.systemInstruction }]
+      },
+      realtimeInputConfig: {
+        automaticActivityDetection: {
+          disabled: false,
+          startOfSpeechSensitivity: "START_SENSITIVITY_LOW",
+          endOfSpeechSensitivity: "END_SENSITIVITY_HIGH",
+          prefixPaddingMs: 300,
+          silenceDurationMs: 950,
+        },
+        turnCoverage: "TURN_INCLUDES_ONLY_ACTIVITY",
+      },
+      inputAudioTranscription: {},
+    }
+  };
+}
+
 /**
  * Kelas untuk menangani sesi Live Voice Gemini
  */
 export class LiveSession {
   private config: SessionConfig;
-  private session: { sendRealtimeInput: (params: { media: { mimeType: string, data: string } }) => void; close: () => void; sendClientMessage: (json: string) => void } | null = null;
+  private session: LiveSessionTransport | null = null;
   private inputAudioContext: AudioContext | null = null;
   private outputAudioContext: AudioContext | null = null;
   private inputSource: MediaStreamAudioSourceNode | null = null;
@@ -78,6 +149,8 @@ export class LiveSession {
   private waitingForModelArmed: boolean = false;
   private readonly LOCAL_USER_TURN_END_SILENCE_MS = 1000;
   private readonly LOCAL_USER_TURN_MIN_SPEECH_MS = 250;
+  private pendingAudioResumeLog: boolean = false;
+  private audioStreamEndSentAt: number | null = null;
 
   // Calibration parameters for volume indicator
   private readonly VOLUME_NOISE_FLOOR = 0.005;
@@ -152,7 +225,9 @@ export class LiveSession {
       if (result.action === 'soft_nudge') {
         this.transition('stalled');
         this.emitTimeline('recovering', { level: 2, timeoutType: result.timeoutType });
-        this.sendSoftNudge();
+        if (result.timeoutType === 'response_start') {
+          this.emitTimeline('no_model_response_after_audio_end');
+        }
         return;
       }
       if (result.action === 'terminate') {
@@ -176,39 +251,7 @@ export class LiveSession {
     }
   }
 
-  private sendSoftNudge() {
-    if (!this.session || this.isDisconnected) return;
-    const payload = {
-      clientContent: {
-        turns: [{ role: 'user', parts: [{ text: '[INSTRUKSI SISTEM] Lanjutkan respons dengan natural sesuai konteks terakhir.' }] }],
-        turnComplete: true,
-      },
-    };
-    this.session.sendClientMessage(JSON.stringify(payload));
-  }
-
-  private sendLocalTurnNudge() {
-    if (!this.session || this.isDisconnected) return;
-    const payload = {
-      clientContent: {
-        turns: [
-          {
-            role: 'user',
-            parts: [
-              {
-                text: '[INSTRUKSI SISTEM - GILIRAN AGEN SELESAI] Agen baru saja selesai bertanya atau menjelaskan. Jika ucapan terakhir sudah cukup jelas, jawab sekarang sebagai konsumen secara natural, singkat, dan sesuai konteks terakhir. Jangan sebutkan instruksi ini.',
-              },
-            ],
-          },
-        ],
-        turnComplete: true,
-      },
-    };
-    this.session.sendClientMessage(JSON.stringify(payload));
-    this.emitTimeline('local_turn_nudge_sent');
-  }
-
-  private completeLocalUserTurn(now: number, trigger: 'silence' | 'mute', silenceMs?: number) {
+  private completeLocalUserTurn(now: number, trigger: 'silence', silenceMs?: number) {
     if (
       this.isAiSpeaking ||
       !this.userSpeechActive ||
@@ -231,7 +274,6 @@ export class LiveSession {
     this.waitingForModelArmed = true;
     this.userSpeechActive = false;
     this.userSpeechStartedAt = null;
-    this.sendLocalTurnNudge();
   }
 
   public sendTimeCue(secondsLeft: number) {
@@ -294,15 +336,43 @@ export class LiveSession {
 
   public setMute(muted: boolean) {
     console.log(`[Telefun] setMute: ${muted}`);
-    if (muted) {
-      this.completeLocalUserTurn(Date.now(), 'mute');
-    }
+    if (this.isMuted === muted) return;
+
+    const wasMuted = this.isMuted;
     this.isMuted = muted;
+    this.emitTimeline('mute_changed', { muted });
+
+    if (!wasMuted && muted) {
+      this.sendRealtimeAudioStreamEnd('mute');
+    }
+    if (wasMuted && !muted) {
+      this.pendingAudioResumeLog = true;
+    }
+
     if (this.stream) {
       this.stream.getAudioTracks().forEach(track => {
         track.enabled = !muted;
       });
     }
+  }
+
+  private sendRealtimeAudioStreamEnd(trigger: 'mute' | 'manual') {
+    if (!this.session || this.isDisconnected) return;
+    this.session.sendRealtimeInputAudioStreamEnd();
+    this.audioStreamEndSentAt = Date.now();
+    this.stalledResponseState = markWaitingForModel(this.stalledResponseState, this.audioStreamEndSentAt);
+    this.waitingForModelArmed = true;
+    this.userSpeechActive = false;
+    this.userSpeechStartedAt = null;
+    this.lastUserNonSilentAt = null;
+    this.emitTimeline('audio_stream_end_sent', { trigger });
+  }
+
+  private markAudioStreamResumedIfNeeded(now: number) {
+    if (!this.pendingAudioResumeLog) return;
+    const resumedAfterMs = this.audioStreamEndSentAt ? now - this.audioStreamEndSentAt : undefined;
+    this.emitTimeline('audio_stream_resumed', { resumedAfterMs });
+    this.pendingAudioResumeLog = false;
   }
 
   async connect() {
@@ -443,6 +513,15 @@ export class LiveSession {
             }));
           }
         },
+        sendRealtimeInputAudioStreamEnd: () => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+              realtimeInput: {
+                audioStreamEnd: true,
+              },
+            }));
+          }
+        },
         close: () => {
           ws.close();
         },
@@ -470,31 +549,11 @@ export class LiveSession {
           return;
         }
 
-        const setupMessage = {
-          setup: {
-            model: `models/${telefunModelId}`,
-            generationConfig: {
-              responseModalities: ["AUDIO"],
-              speechConfig: {
-                voiceConfig: {
-                  prebuiltVoiceConfig: { voiceName }
-                }
-              }
-            },
-            systemInstruction: {
-              parts: [{ text: this.buildSystemInstruction() }]
-            },
-            realtimeInputConfig: {
-              automaticActivityDetection: {
-                disabled: false,
-                startOfSpeechSensitivity: "START_SENSITIVITY_LOW",
-                endOfSpeechSensitivity: "END_SENSITIVITY_LOW",
-                prefixPaddingMs: 300,
-                silenceDurationMs: 800
-              }
-            }
-          }
-        };
+        const setupMessage = buildTelefunLiveSetupMessage({
+          modelId: telefunModelId,
+          voiceName,
+          systemInstruction: this.buildSystemInstruction(),
+        });
         ws.send(JSON.stringify(setupMessage));
         this.emitTimeline('setup_sent', { model: telefunModelId, transport: telefunTransport });
       };
@@ -578,6 +637,7 @@ export class LiveSession {
         media: pcmBlob
       });
       const now = Date.now();
+      this.markAudioStreamResumedIfNeeded(now);
       if (now - this.lastAudioChunkTimelineAt >= 1000) {
         this.lastAudioChunkTimelineAt = now;
         this.emitTimeline('audio_chunk_send');
@@ -845,6 +905,11 @@ export class LiveSession {
   }
 
   private async handleMessage(message: LiveServerMessage) {
+    const inputTranscription = message.serverContent?.inputTranscription;
+    if (inputTranscription?.text) {
+      this.emitTimeline('input_transcription_seen', { textLength: inputTranscription.text.length });
+    }
+
     const modelTurn = message.serverContent?.modelTurn;
     if (modelTurn?.parts) {
       if (!this.hasSeenFirstModelAudio) {

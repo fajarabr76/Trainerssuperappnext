@@ -24,11 +24,11 @@ Checklist ini dipakai setelah perubahan runtime live voice Telefun (timeline obs
 2. Ajukan pertanyaan jelas selama 2-4 detik, lalu diam.
 3. Verifikasi:
    - Timeline client menampilkan `local_user_turn_end_detected`.
-   - Timeline client menampilkan `local_turn_nudge_sent` bila Gemini belum menutup turn sendiri.
+   - Jika model mendukung transkripsi input, ada `input_transcription_seen` di client/proxy.
    - Konsumen mulai menjawab setelah user selesai bicara.
 4. Ulangi dengan menekan mute setelah selesai bertanya.
 5. Verifikasi:
-   - `local_user_turn_end_detected` memiliki `trigger: mute`.
+   - Muncul `mute_changed` lalu `audio_stream_end_sent` satu kali per transisi mute.
    - Konsumen tetap mulai menjawab meskipun user menekan mute.
 
 ## Skenario 2: Interupsi Valid Menghentikan AI Sekali
@@ -46,7 +46,7 @@ Checklist ini dipakai setelah perubahan runtime live voice Telefun (timeline obs
    - Ada `setup_complete_received`.
    - Tidak ada `first_model_audio_chunk` dalam waktu timeout response-start.
    - Timeline memunculkan `stalled_response_detected` dengan `timeoutType: response_start`.
-   - Recovery berjalan bertahap (`mark_recovering` -> `soft_nudge` -> terminate bila tetap macet).
+   - Recovery berjalan bertahap (`mark_recovering` -> `no_model_response_after_audio_end` -> terminate bila tetap macet).
 
 ## Skenario 3B: Connect/Setup Timeout
 
