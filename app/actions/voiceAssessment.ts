@@ -120,25 +120,27 @@ export async function analyzeVoiceQuality(sessionId: string): Promise<{
 
   // 4. Call Gemini
   const prompt = `
-    Analyze the voice quality of the agent in this telemarketing/customer service simulation.
-    Scenario: ${row.scenario_title}
+    Lakukan analisis pada kualitas suara agen dalam simulasi telemarketing/customer service berikut.
+    Skenario: ${row.scenario_title}
     
-    Evaluate based on:
-    1. Speaking Rate: Optimal is 130-150 WPM.
-    2. Intonation: Variation in pitch, enthusiasm vs monotony.
-    3. Articulation: Clarity of words, slurring vs clear pronunciation.
-    4. Filler Words: "hm", "anu", "gitu", "apa ya", etc.
-     5. Emotional Tone: Empathy, patience, confidence.
-     
-     Provide a full transcript and key highlights.
-     Scoring rules:
-     - All score fields (overallScore and each aspect score) MUST be in range 0-10.
-     - 0 means very poor, 10 means excellent.
-   `;
+    Evaluasi berdasarkan:
+    1. Kecepatan Bicara (Speaking Rate): Idealnya 130-150 WPM.
+    2. Intonasi: Variasi nada, antusiasme vs monoton.
+    3. Artikulasi: Kejelasan kata, bergumam vs pengucapan jelas.
+    4. Kata Pengisi (Filler Words): "hm", "anu", "gitu", "eeeh", dll.
+    5. Nada Emosional (Emotional Tone): Empati, kesabaran, rasa percaya diri.
+    
+    Berikan transkrip lengkap dan poin-poin penting (highlights).
+    ATURAN WAJIB:
+    1. SEMUA teks, ulasan (verdict), umpan balik (feedback), poin penting, dan kelebihan WAJIB MENGGUNAKAN BAHASA INDONESIA. Jangan gunakan bahasa Inggris.
+    2. Sifat ulasan harus KRITIS dengan rasio 50% kritik konstruktif dan 50% apresiasi. Beritahu agen secara tegas apa saja yang masih kurang dan bagaimana cara memperbaikinya.
+    3. Semua field nilai (overallScore dan setiap skor aspek) HARUS berada di kisaran 0-10.
+    4. Nilai 0 berarti sangat buruk, 10 berarti sangat luar biasa. Jangan ragu untuk memberi skor sedang/rendah jika memang banyak ruang untuk perbaikan.
+  `;
 
   const response = await generateGeminiContent({
     model: VOICE_ASSESSMENT_MODEL,
-    systemInstruction: 'You are a professional vocal coach and speech analyzer.',
+    systemInstruction: 'Anda adalah pelatih vokal profesional dan analis wicara yang tegas dan objektif. Semua balasan WAJIB sepenuhnya dalam Bahasa Indonesia.',
     contents: [
       {
         role: 'user',

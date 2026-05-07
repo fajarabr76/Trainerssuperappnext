@@ -27,6 +27,7 @@ The Voice Assessment feature provides automated analysis of an agent's vocal per
     1. Authenticates user and verifies ownership of the session.
     2. Downloads `agent_only.webm` from private storage using the Admin Client.
     3. Sends audio + scenario context to `gemini-3.1-flash-lite-preview` with a structured JSON schema.
+       - **Prompt Refinement:** The prompt is strictly in Indonesian and enforces a 50% critique / 50% praise ratio for constructive feedback.
     4. Validates AI output strictly before persistence:
        - assessment root must be object
        - required aspects (`speakingRate`, `intonation`, `articulation`, `fillerWords`, `emotionalTone`) must exist
