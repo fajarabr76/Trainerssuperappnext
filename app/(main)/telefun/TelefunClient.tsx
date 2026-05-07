@@ -168,7 +168,7 @@ export default function TelefunClient() {
       let feedback = '';
 
       try {
-        const scoring = await generateScore(sessionConfig, selectedScenario, 0);
+        const scoring = await generateScore(sessionConfig, selectedScenario, callDurationSeconds);
         score = scoring.score;
         feedback = scoring.feedback;
       } catch (e) {
@@ -264,15 +264,11 @@ export default function TelefunClient() {
           }
 
           let serverRecord: CallRecord | null = null;
-
-          setRecordings(prev => {
-            const withoutOptimistic = prev.filter(r => r.id !== optimisticId);
-            const alreadyHasServerRecord = withoutOptimistic.some(r => r.id === result.session!.id);
-            if (alreadyHasServerRecord) {
-              serverRecord = withoutOptimistic.find(r => r.id === result.session!.id) || null;
-              return withoutOptimistic;
-            }
-
+          
+          const alreadyHasServerRecord = recordings.some(r => r.id === result.session!.id);
+          if (alreadyHasServerRecord) {
+            serverRecord = recordings.find(r => r.id === result.session!.id) || null;
+          } else {
             serverRecord = {
               id: result.session!.id,
               date: result.session!.date,
@@ -287,7 +283,14 @@ export default function TelefunClient() {
               voiceAssessment: result.session!.voice_assessment,
               sessionMetrics: result.session!.session_metrics,
             };
-            const merged = [serverRecord, ...withoutOptimistic];
+          }
+
+          setRecordings(prev => {
+            const withoutOptimistic = prev.filter(r => r.id !== optimisticId);
+            if (alreadyHasServerRecord) {
+              return withoutOptimistic;
+            }
+            const merged = [serverRecord!, ...withoutOptimistic];
             localStorage.setItem('telefun_history', JSON.stringify(merged));
             return merged;
           });

@@ -102,6 +102,7 @@ After a call ends, the review modal opens automatically with the **server record
 2. Session is persisted via `persistTelefunSession()` → returns server record with DB-generated UUID.
 3. Blobs are uploaded to Supabase Storage → paths captured in `recordingPath` / `agentRecordingPath`.
 4. `setRecordings()` merges the server record into state, replacing the optimistic entry.
+   - **Note:** `serverRecord` is calculated **outside** the state updater to avoid React 18 batching race conditions, ensuring the Review Modal opens immediately with complete data.
 5. Review modal opens with the server record, which includes `agentRecordingPath` → "Mulai Analisis" button is enabled.
 
 **Fallback paths** (all open review with optimistic data, button may be disabled):
@@ -115,10 +116,13 @@ After a call ends, the review modal opens automatically with the **server record
 
 ## DB Migration
 
-- **Migration file:** `supabase/migrations/20260507000000_telefun_voice_assessment.sql`
+- **Migration files:** 
+  - `supabase/migrations/20260428000000_create_telefun_history.sql` (Initial table)
+  - `supabase/migrations/20260507000000_telefun_voice_assessment.sql` (Storage & JSONB columns)
+  - `supabase/migrations/20260507203000_fix_missing_telefun_columns.sql` (Restored `score`, `feedback`, `created_at` columns)
 - **Storage bucket:** `telefun-recordings` (private, 50MB limit, webm/ogg/mp4 MIME types)
-- **RLS policies:** INSERT, SELECT, UPDATE scoped to `auth.uid()` folder
-- **New columns on `telefun_history`:** `recording_path`, `agent_recording_path`, `voice_assessment` (JSONB), `session_metrics` (JSONB)
+- **RLS policies:** INSERT, SELECT, DELETE scoped to `auth.uid()`
+- **Known issue:** The `score` and `feedback` columns were missing in production until the 20260507203000 migration was applied, causing session persistence failures.
 
 ## Security & Compliance
 - **PII Protection:** Audio recordings are stored in a private bucket with folder-level isolation.
