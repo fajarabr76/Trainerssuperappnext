@@ -55,8 +55,9 @@ export default function TelefunClient() {
       setSettings(saved);
 
       const historyResult = await loadTelefunHistory();
+      let dbRecords: CallRecord[] = [];
       if (historyResult.success && historyResult.records) {
-        const mapped: CallRecord[] = historyResult.records.map(r => ({
+        dbRecords = historyResult.records.map(r => ({
           id: r.id,
           date: r.date,
           url: r.recording_url,
@@ -70,16 +71,26 @@ export default function TelefunClient() {
           voiceAssessment: r.voice_assessment,
           sessionMetrics: r.session_metrics,
         }));
-        setRecordings(mapped);
-      } else {
-        const savedHistory = localStorage.getItem('telefun_history');
-        if (savedHistory) {
-          try {
-            setRecordings(JSON.parse(savedHistory));
-          } catch (e) {
-            console.error("Failed to parse history", e);
-          }
+      }
+
+      // Merge with localStorage: include localStorage records not already in DB
+      let localRecords: CallRecord[] = [];
+      const savedHistory = localStorage.getItem('telefun_history');
+      if (savedHistory) {
+        try {
+          localRecords = JSON.parse(savedHistory);
+        } catch (e) {
+          console.error("[Telefun] Failed to parse localStorage history", e);
         }
+      }
+
+      if (dbRecords.length > 0) {
+        const dbIds = new Set(dbRecords.map(r => r.id));
+        const localOnly = localRecords.filter(r => !dbIds.has(r.id));
+        const merged = [...dbRecords, ...localOnly];
+        setRecordings(merged);
+      } else if (localRecords.length > 0) {
+        setRecordings(localRecords);
       }
 
       const supabase = createClient();
