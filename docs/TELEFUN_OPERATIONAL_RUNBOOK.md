@@ -236,6 +236,7 @@ Untuk kasus `turnComplete` dari server terlambat/tidak muncul, client sekarang p
 - saat user selesai bicara dan hening sekitar 1 detik, state dipindah ke `ai_thinking`
 - watchdog response-start mulai dihitung dari titik ini
 - client juga mengirim `local_turn_nudge_sent` sekali per giliran agar Gemini menjawab konteks terakhir jika automatic activity detection tidak menutup turn
+- jika user menekan mute setelah selesai bertanya, mute juga dianggap sebagai sinyal akhir giliran lokal selama audio user sebelumnya sudah terdeteksi
 
 Tujuan fallback ini adalah mencegah kondisi “user sudah tanya tapi konsumen tidak merespon” hanya karena sinyal turn boundary dari server tidak stabil.
 

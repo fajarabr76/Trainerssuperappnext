@@ -26,6 +26,10 @@ Checklist ini dipakai setelah perubahan runtime live voice Telefun (timeline obs
    - Timeline client menampilkan `local_user_turn_end_detected`.
    - Timeline client menampilkan `local_turn_nudge_sent` bila Gemini belum menutup turn sendiri.
    - Konsumen mulai menjawab setelah user selesai bicara.
+4. Ulangi dengan menekan mute setelah selesai bertanya.
+5. Verifikasi:
+   - `local_user_turn_end_detected` memiliki `trigger: mute`.
+   - Konsumen tetap mulai menjawab meskipun user menekan mute.
 
 ## Skenario 2: Interupsi Valid Menghentikan AI Sekali
 

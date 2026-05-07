@@ -208,6 +208,32 @@ export class LiveSession {
     this.emitTimeline('local_turn_nudge_sent');
   }
 
+  private completeLocalUserTurn(now: number, trigger: 'silence' | 'mute', silenceMs?: number) {
+    if (
+      this.isAiSpeaking ||
+      !this.userSpeechActive ||
+      this.lastUserNonSilentAt === null ||
+      this.userSpeechStartedAt === null ||
+      this.lastUserNonSilentAt - this.userSpeechStartedAt < this.LOCAL_USER_TURN_MIN_SPEECH_MS ||
+      this.currentState !== 'user_speaking' ||
+      this.waitingForModelArmed
+    ) {
+      return;
+    }
+
+    this.emitTimeline('local_user_turn_end_detected', {
+      trigger,
+      silenceMs,
+      speechMs: this.lastUserNonSilentAt - this.userSpeechStartedAt,
+    });
+    this.transition('user_turn_end');
+    this.stalledResponseState = markWaitingForModel(this.stalledResponseState, now);
+    this.waitingForModelArmed = true;
+    this.userSpeechActive = false;
+    this.userSpeechStartedAt = null;
+    this.sendLocalTurnNudge();
+  }
+
   public sendTimeCue(secondsLeft: number) {
     if (!this.session || this.isDisconnected) return;
 
@@ -268,6 +294,9 @@ export class LiveSession {
 
   public setMute(muted: boolean) {
     console.log(`[Telefun] setMute: ${muted}`);
+    if (muted) {
+      this.completeLocalUserTurn(Date.now(), 'mute');
+    }
     this.isMuted = muted;
     if (this.stream) {
       this.stream.getAudioTracks().forEach(track => {
@@ -642,16 +671,7 @@ export class LiveSession {
       this.currentState === 'user_speaking' &&
       !this.waitingForModelArmed
     ) {
-      this.emitTimeline('local_user_turn_end_detected', {
-        silenceMs: now - this.lastUserNonSilentAt,
-        speechMs: this.lastUserNonSilentAt - this.userSpeechStartedAt,
-      });
-      this.transition('user_turn_end');
-      this.stalledResponseState = markWaitingForModel(this.stalledResponseState, now);
-      this.waitingForModelArmed = true;
-      this.userSpeechActive = false;
-      this.userSpeechStartedAt = null;
-      this.sendLocalTurnNudge();
+      this.completeLocalUserTurn(now, 'silence', now - this.lastUserNonSilentAt);
     }
 
     const interruption = updateInterruptionGuard(this.interruptionGuardState, {
