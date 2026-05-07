@@ -277,55 +277,35 @@ export default function TelefunClient() {
             }
           }
 
-          let serverRecord: CallRecord | null = null;
-          
-          const alreadyHasServerRecord = recordings.some(r => r.id === result.session!.id);
-          if (alreadyHasServerRecord) {
-            serverRecord = recordings.find(r => r.id === result.session!.id) || null;
-          } else {
-            serverRecord = {
-              id: result.session!.id,
-              date: result.session!.date,
-              url: result.session!.recording_url,
-              consumerName: result.session!.consumer_name,
-              scenarioTitle: result.session!.scenario_title,
-              duration: result.session!.duration,
-              recordingPath,
-              agentRecordingPath,
-              score: result.session!.score,
-              feedback: result.session!.feedback || undefined,
-              voiceAssessment: result.session!.voice_assessment,
-              sessionMetrics: result.session!.session_metrics,
-            };
-          }
+          const serverRecord: CallRecord = {
+            id: result.session!.id,
+            date: result.session!.date,
+            url: result.session!.recording_url,
+            consumerName: result.session!.consumer_name,
+            scenarioTitle: result.session!.scenario_title,
+            duration: result.session!.duration,
+            recordingPath,
+            agentRecordingPath,
+            score: result.session!.score,
+            feedback: result.session!.feedback || undefined,
+            voiceAssessment: result.session!.voice_assessment,
+            sessionMetrics: result.session!.session_metrics,
+          };
 
           setRecordings(prev => {
             const withoutOptimistic = prev.filter(r => r.id !== optimisticId);
+            const alreadyHasServerRecord = withoutOptimistic.some(r => r.id === result.session!.id);
             if (alreadyHasServerRecord) {
               return withoutOptimistic;
             }
-            const merged = [serverRecord!, ...withoutOptimistic];
+            const merged = [serverRecord, ...withoutOptimistic];
             localStorage.setItem('telefun_history', JSON.stringify(merged));
             return merged;
           });
 
           // Auto-open review modal with the server record (has agentRecordingPath)
-          if (serverRecord) {
-            setReviewRecord(serverRecord);
-            setIsReviewOpen(true);
-          } else {
-            console.warn('[Telefun] Server record not found after persist, opening fallback review');
-            const fallbackRecord: CallRecord = {
-              id: optimisticRecordIdRef.current!,
-              date: new Date().toISOString(),
-              url: recordingUrl || '',
-              consumerName: finalConsumerName,
-              scenarioTitle: selectedScenario?.title || 'Telepon Umum',
-              duration: callDurationSeconds,
-            };
-            setReviewRecord(fallbackRecord);
-            setIsReviewOpen(true);
-          }
+          setReviewRecord(serverRecord);
+          setIsReviewOpen(true);
         } else {
           // Persist failed — open review with optimistic data
           console.warn('[Telefun] Session persist failed, opening fallback review');

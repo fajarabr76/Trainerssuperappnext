@@ -180,7 +180,12 @@ export async function clearTelefunHistory(): Promise<{ success: boolean; error?:
 
   const allPaths = (records || []).flatMap(r => [r.recording_path, r.agent_recording_path]).filter(Boolean) as string[];
   if (allPaths.length > 0) {
-    await admin.storage.from('telefun-recordings').remove(allPaths);
+    // Supabase storage.remove() has a 1000 file limit. Batch in chunks of 500 for safety.
+    const chunkSize = 500;
+    for (let i = 0; i < allPaths.length; i += chunkSize) {
+      const chunk = allPaths.slice(i, i + chunkSize);
+      await admin.storage.from('telefun-recordings').remove(chunk);
+    }
   }
 
   const [historyResult, resultsResult] = await Promise.all([

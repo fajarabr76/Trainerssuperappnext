@@ -103,7 +103,7 @@ After a call ends, the review modal opens automatically with the **server record
 2. Session is persisted via `persistTelefunSession()` → returns server record with DB-generated UUID.
 3. Blobs are uploaded to Supabase Storage → paths captured in `recordingPath` / `agentRecordingPath`.
 4. `setRecordings()` merges the server record into state, replacing the optimistic entry.
-   - **Note:** `serverRecord` is calculated **outside** the state updater to avoid React 18 batching race conditions, ensuring the Review Modal opens immediately with complete data.
+    - **Note:** Deduplication logic is moved **inside** the state updater callback to ensure atomic updates against the latest state, while the Review Modal is opened with the fresh server record to avoid stale closure data.
 5. Review modal opens with the server record, which includes `agentRecordingPath` → "Mulai Analisis" button is enabled.
 
 **Fallback paths** (all open review with optimistic data, button may be disabled):
@@ -128,6 +128,7 @@ After a call ends, the review modal opens automatically with the **server record
 ## Security & Compliance
 - **PII Protection:** Audio recordings are stored in a private bucket with folder-level isolation.
 - **Cleanup:** `deleteTelefunSession` and `clearTelefunHistory` perform hard-deletion of all associated audio files from storage before removing database records.
+  - **Batching:** `clearTelefunHistory` implements chunked deletion (batch size: 500) to respect Supabase Storage's 1000-object limit per request.
 - **Integrity:** Database updates for assessment scores are performed via Admin Client in server actions to prevent client-side tampering.
 - **Path Validation:** `isValidRecordingPath()` and `getOwnedRecordingPathOrNull()` enforce strict ownership checks on all recording operations.
 
