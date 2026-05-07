@@ -30,6 +30,8 @@ export type TelefunTimelineEventName =
   | 'audio_chunk_send'
   | 'first_model_audio_chunk'
   | 'turn_complete_received'
+  | 'local_user_turn_end_detected'
+  | 'local_turn_nudge_sent'
   | 'interrupted_received'
   | 'playback_start'
   | 'playback_end'

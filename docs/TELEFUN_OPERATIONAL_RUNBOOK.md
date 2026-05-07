@@ -211,6 +211,7 @@ Client timeline:
 - `connect_start`, `mic_ready`, `ws_open`, `setup_sent`, `setup_complete_received`
 - `audio_chunk_send` (cadence ringkas)
 - `first_model_audio_chunk`, `turn_complete_received`, `interrupted_received`
+- `local_user_turn_end_detected`, `local_turn_nudge_sent`
 - `playback_start`, `playback_end`
 - `dead_air_prompt_sent`, `interruption_prompt_sent`
 - `stalled_response_detected`, `recovering`, `disconnect`
@@ -234,6 +235,7 @@ Proxy timeline:
 Untuk kasus `turnComplete` dari server terlambat/tidak muncul, client sekarang punya fallback akhir giliran lokal:
 - saat user selesai bicara dan hening sekitar 1 detik, state dipindah ke `ai_thinking`
 - watchdog response-start mulai dihitung dari titik ini
+- client juga mengirim `local_turn_nudge_sent` sekali per giliran agar Gemini menjawab konteks terakhir jika automatic activity detection tidak menutup turn
 
 Tujuan fallback ini adalah mencegah kondisi “user sudah tanya tapi konsumen tidak merespon” hanya karena sinyal turn boundary dari server tidak stabil.
 

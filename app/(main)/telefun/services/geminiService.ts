@@ -74,8 +74,10 @@ export class LiveSession {
   private readonly CONNECT_SETUP_TIMEOUT_MS = 15000;
   private userSpeechActive: boolean = false;
   private lastUserNonSilentAt: number | null = null;
+  private userSpeechStartedAt: number | null = null;
   private waitingForModelArmed: boolean = false;
   private readonly LOCAL_USER_TURN_END_SILENCE_MS = 1000;
+  private readonly LOCAL_USER_TURN_MIN_SPEECH_MS = 250;
 
   // Calibration parameters for volume indicator
   private readonly VOLUME_NOISE_FLOOR = 0.005;
@@ -183,6 +185,27 @@ export class LiveSession {
       },
     };
     this.session.sendClientMessage(JSON.stringify(payload));
+  }
+
+  private sendLocalTurnNudge() {
+    if (!this.session || this.isDisconnected) return;
+    const payload = {
+      clientContent: {
+        turns: [
+          {
+            role: 'user',
+            parts: [
+              {
+                text: '[INSTRUKSI SISTEM - GILIRAN AGEN SELESAI] Agen baru saja selesai bertanya atau menjelaskan. Jika ucapan terakhir sudah cukup jelas, jawab sekarang sebagai konsumen secara natural, singkat, dan sesuai konteks terakhir. Jangan sebutkan instruksi ini.',
+              },
+            ],
+          },
+        ],
+        turnComplete: true,
+      },
+    };
+    this.session.sendClientMessage(JSON.stringify(payload));
+    this.emitTimeline('local_turn_nudge_sent');
   }
 
   public sendTimeCue(secondsLeft: number) {
@@ -557,6 +580,7 @@ export class LiveSession {
       this.previousSmoothedVolume = 0;
       this.userSpeechActive = false;
       this.lastUserNonSilentAt = null;
+      this.userSpeechStartedAt = null;
       this.onVolumeChange?.(0);
       this.trackDeadAir(true);
       this.trackLongSpeech(true);
@@ -593,6 +617,9 @@ export class LiveSession {
     const normalizedVolume = Math.min(100, Math.round(smoothedRms * this.VOLUME_SENSITIVITY_SCALE));
 
     if (!this.isAiSpeaking && rawRms >= this.DEAD_AIR_RMS_THRESHOLD) {
+      if (!this.userSpeechActive) {
+        this.userSpeechStartedAt = now;
+      }
       this.userSpeechActive = true;
       this.lastUserNonSilentAt = now;
       if (this.currentState === 'ready') {
@@ -610,13 +637,21 @@ export class LiveSession {
       this.lastUserNonSilentAt !== null &&
       rawRms < this.DEAD_AIR_RMS_THRESHOLD &&
       now - this.lastUserNonSilentAt >= this.LOCAL_USER_TURN_END_SILENCE_MS &&
+      this.userSpeechStartedAt !== null &&
+      this.lastUserNonSilentAt - this.userSpeechStartedAt >= this.LOCAL_USER_TURN_MIN_SPEECH_MS &&
       this.currentState === 'user_speaking' &&
       !this.waitingForModelArmed
     ) {
+      this.emitTimeline('local_user_turn_end_detected', {
+        silenceMs: now - this.lastUserNonSilentAt,
+        speechMs: this.lastUserNonSilentAt - this.userSpeechStartedAt,
+      });
       this.transition('user_turn_end');
       this.stalledResponseState = markWaitingForModel(this.stalledResponseState, now);
       this.waitingForModelArmed = true;
       this.userSpeechActive = false;
+      this.userSpeechStartedAt = null;
+      this.sendLocalTurnNudge();
     }
 
     const interruption = updateInterruptionGuard(this.interruptionGuardState, {
@@ -955,6 +990,7 @@ export class LiveSession {
     this.lastInterruptionTime = 0;
     this.userSpeechActive = false;
     this.lastUserNonSilentAt = null;
+    this.userSpeechStartedAt = null;
     this.waitingForModelArmed = false;
     this.onDisconnect?.();
   }

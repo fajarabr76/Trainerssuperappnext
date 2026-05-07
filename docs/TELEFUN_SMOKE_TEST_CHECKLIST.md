@@ -18,6 +18,15 @@ Checklist ini dipakai setelah perubahan runtime live voice Telefun (timeline obs
    - Tidak ada stop prematur yang terasa seperti interupsi valid.
    - Timeline menunjukkan candidate pendek tidak berujung stop AI.
 
+## Skenario 1B: Konsumen Merespon Pertanyaan User
+
+1. Mulai call hingga status `Tersambung`.
+2. Ajukan pertanyaan jelas selama 2-4 detik, lalu diam.
+3. Verifikasi:
+   - Timeline client menampilkan `local_user_turn_end_detected`.
+   - Timeline client menampilkan `local_turn_nudge_sent` bila Gemini belum menutup turn sendiri.
+   - Konsumen mulai menjawab setelah user selesai bicara.
+
 ## Skenario 2: Interupsi Valid Menghentikan AI Sekali
 
 1. Saat AI bicara, lakukan interupsi lebih panjang dan jelas (durasi > pendek acknowledgment).
