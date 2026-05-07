@@ -263,12 +263,17 @@ export default function TelefunClient() {
             }
           }
 
+          let serverRecord: CallRecord | null = null;
+
           setRecordings(prev => {
             const withoutOptimistic = prev.filter(r => r.id !== optimisticId);
             const alreadyHasServerRecord = withoutOptimistic.some(r => r.id === result.session!.id);
-            if (alreadyHasServerRecord) return withoutOptimistic;
+            if (alreadyHasServerRecord) {
+              serverRecord = withoutOptimistic.find(r => r.id === result.session!.id) || null;
+              return withoutOptimistic;
+            }
 
-            const serverRecord: CallRecord = {
+            serverRecord = {
               id: result.session!.id,
               date: result.session!.date,
               url: result.session!.recording_url,
@@ -286,7 +291,51 @@ export default function TelefunClient() {
             localStorage.setItem('telefun_history', JSON.stringify(merged));
             return merged;
           });
+
+          // Auto-open review modal with the server record (has agentRecordingPath)
+          if (serverRecord) {
+            setReviewRecord(serverRecord);
+            setIsReviewOpen(true);
+          } else {
+            console.warn('[Telefun] Server record not found after persist, opening fallback review');
+            const fallbackRecord: CallRecord = {
+              id: optimisticRecordIdRef.current!,
+              date: new Date().toISOString(),
+              url: recordingUrl || '',
+              consumerName: finalConsumerName,
+              scenarioTitle: selectedScenario?.title || 'Telepon Umum',
+              duration: callDurationSeconds,
+            };
+            setReviewRecord(fallbackRecord);
+            setIsReviewOpen(true);
+          }
+        } else {
+          // Persist failed — open review with optimistic data
+          console.warn('[Telefun] Session persist failed, opening fallback review');
+          const fallbackRecord: CallRecord = {
+            id: optimisticRecordIdRef.current!,
+            date: new Date().toISOString(),
+            url: recordingUrl || '',
+            consumerName: finalConsumerName,
+            scenarioTitle: selectedScenario?.title || 'Telepon Umum',
+            duration: callDurationSeconds,
+          };
+          setReviewRecord(fallbackRecord);
+          setIsReviewOpen(true);
         }
+      } else {
+        // User not authenticated — open review with optimistic data
+        console.warn('[Telefun] User not authenticated, opening fallback review');
+        const fallbackRecord: CallRecord = {
+          id: optimisticRecordIdRef.current!,
+          date: new Date().toISOString(),
+          url: recordingUrl || '',
+          consumerName: finalConsumerName,
+          scenarioTitle: selectedScenario?.title || 'Telepon Umum',
+          duration: callDurationSeconds,
+        };
+        setReviewRecord(fallbackRecord);
+        setIsReviewOpen(true);
       }
     }
 
@@ -309,20 +358,6 @@ export default function TelefunClient() {
 
     sessionBaselineRef.current = null;
     setView('home');
-    
-    // Auto-open review modal with the optimistic record
-    if (optimisticRecordIdRef.current) {
-      const recordToReview = {
-        id: optimisticRecordIdRef.current,
-        date: new Date().toISOString(),
-        url: recordingUrl || '',
-        consumerName: finalConsumerName,
-        scenarioTitle: selectedScenario?.title || 'Telepon Umum',
-        duration: callDurationSeconds,
-      };
-      setReviewRecord(recordToReview);
-      setIsReviewOpen(true);
-    }
   };
 
   const handleDeleteSession = async (id: string) => {

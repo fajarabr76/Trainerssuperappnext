@@ -94,3 +94,16 @@ Checklist ini dipakai setelah perubahan runtime live voice Telefun (timeline obs
 5. Verifikasi:
    - tombol analisis disabled.
    - UI menampilkan pesan bahwa rekaman suara agen belum tersedia.
+
+## Skenario 7: Auto-Open Review Modal After Call
+
+1. Selesaikan satu call (tekan hangup atau tunggu timeout).
+2. Verifikasi:
+   - Review modal otomatis terbuka setelah call berakhir.
+   - Tab "Detail Sesi" menampilkan metadata sesi dengan benar.
+   - Pindah ke tab "Kualitas Suara AI" → tombol "Mulai Analisis" **aktif** (tidak disabled).
+   - Tidak ada warning `[Telefun]` di browser console terkait fallback review.
+3. Uji retry (selesaikan call kedua berturut-turut).
+4. Verifikasi:
+   - Review modal tetap terbuka untuk call kedua.
+   - Tombol "Mulai Analisis" tetap aktif.

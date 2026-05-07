@@ -94,6 +94,25 @@ Recording persistence uses a **two-step pattern** to handle the async nature of 
 
 Path validation is enforced by `recordingPath.ts` — only exact `{userId}/{sessionId}/{type}.webm` patterns are accepted, preventing directory traversal and cross-user access.
 
+## Review Modal Auto-Open Flow
+
+After a call ends, the review modal opens automatically with the **server record** (not the optimistic record) to ensure `agentRecordingPath` is available:
+
+1. Call ends → `handleEndCall()` receives blobs from `PhoneInterface`.
+2. Session is persisted via `persistTelefunSession()` → returns server record with DB-generated UUID.
+3. Blobs are uploaded to Supabase Storage → paths captured in `recordingPath` / `agentRecordingPath`.
+4. `setRecordings()` merges the server record into state, replacing the optimistic entry.
+5. Review modal opens with the server record, which includes `agentRecordingPath` → "Mulai Analisis" button is enabled.
+
+**Fallback paths** (all open review with optimistic data, button may be disabled):
+
+| Trigger | Behavior |
+|---|---|
+| Server record already exists in state (`alreadyHasServerRecord`) | Reuse existing record from state |
+| `persistTelefunSession()` fails | Open review with optimistic data |
+| User not authenticated (`!user`) | Open review with optimistic data |
+| Upload fails (storage error) | Open review with partial data (paths may be undefined) |
+
 ## DB Migration
 
 - **Migration file:** `supabase/migrations/20260507000000_telefun_voice_assessment.sql`
