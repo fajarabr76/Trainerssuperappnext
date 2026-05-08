@@ -3,7 +3,6 @@
 import { createClient } from '@/app/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { ChatMessage } from '@/app/types';
-import { triggerKetikAIReview } from '@/app/actions/ketik-ai-review';
 
 export interface PersistKetikSessionResult {
   success: boolean;
@@ -15,6 +14,7 @@ export interface PersistKetikSessionResult {
     consumer_phone: string;
     consumer_city: string;
     messages: ChatMessage[];
+    review_status?: 'pending' | 'completed' | 'failed';
   };
   warning?: string;
   error?: string;
@@ -53,11 +53,6 @@ export async function persistKetikSession(params: {
     };
   }
 
-  // Trigger AI Review asynchronously
-  triggerKetikAIReview(historyData.id).catch(err => {
-    console.error(`[Ketik Persistence] Failed to trigger AI Review for ${historyData.id}:`, err);
-  });
-
   let resultsWarning: string | undefined;
 
   const resultData = {
@@ -92,6 +87,7 @@ export async function persistKetikSession(params: {
       consumer_phone: historyData.consumer_phone,
       consumer_city: historyData.consumer_city,
       messages: historyData.messages,
+      review_status: historyData.review_status ?? 'pending',
     },
     warning: resultsWarning,
   };

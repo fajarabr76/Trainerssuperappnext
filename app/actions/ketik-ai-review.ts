@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/app/lib/supabase/admin';
 import { createClient } from '@/app/lib/supabase/server';
 import { generateGeminiContent } from '@/app/actions/gemini';
+import { normalizeModelId } from '@/app/lib/ai-models';
 import { Type } from '@google/genai';
 
 /**
@@ -28,6 +29,10 @@ interface AIReviewResponse {
     severity: 'minor' | 'medium' | 'critical';
   }>;
 }
+
+export type KetikAIReviewResult =
+  | { status: 'completed' | 'skipped' }
+  | { status: 'failed'; error: string };
 
 /**
  * Schema for Gemini to ensure structured JSON output.
@@ -71,37 +76,40 @@ const responseSchema = {
  * Triggers an asynchronous AI review for a KETIK session.
  * Evaluates the transcript and saves scores, summary, and typo findings to Supabase.
  */
-export async function triggerKetikAIReview(sessionId: string) {
-  const supabaseAdmin = createAdminClient();
-  const supabaseUser = await createClient();
+export async function triggerKetikAIReview(sessionId: string): Promise<KetikAIReviewResult> {
+  let supabaseAdmin: ReturnType<typeof createAdminClient> | null = null;
 
-  // 1. Ownership & Auth Check
-  const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
-  if (authError || !user) throw new Error('Unauthorized');
+  try {
+    supabaseAdmin = createAdminClient();
+    const supabaseUser = await createClient();
 
-  // 2. Fetch Session History and verify ownership
-  const { data: session, error: sessionError } = await supabaseAdmin
-    .from('ketik_history')
-    .select('*')
-    .eq('id', sessionId)
-    .eq('user_id', user.id) // Ensure ownership
-    .single();
+    // 1. Ownership & Auth Check
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+    if (authError || !user) throw new Error('Unauthorized');
 
-  if (sessionError || !session) {
-    console.error(`[triggerKetikAIReview] Session not found or unauthorized: ${sessionId}`);
-    throw new Error('Session not found or unauthorized');
-  }
+    // 2. Fetch Session History and verify ownership
+    const { data: session, error: sessionError } = await supabaseAdmin
+      .from('ketik_history')
+      .select('*')
+      .eq('id', sessionId)
+      .eq('user_id', user.id) // Ensure ownership
+      .single();
 
-  // 3. Idempotency Check: Skip if already reviewed
-  if (session.review_status === 'completed') {
-    console.log(`[triggerKetikAIReview] Session ${sessionId} already reviewed. Skipping.`);
-    return;
-  }
+    if (sessionError || !session) {
+      console.error(`[triggerKetikAIReview] Session not found or unauthorized: ${sessionId}`);
+      throw new Error('Session not found or unauthorized');
+    }
 
-  // 4. Prepare Transcript for AI
-  const transcript = JSON.stringify(session.messages);
+    // 3. Idempotency Check: Skip if already reviewed
+    if (session.review_status === 'completed') {
+      console.log(`[triggerKetikAIReview] Session ${sessionId} already reviewed. Skipping.`);
+      return { status: 'skipped' };
+    }
 
-  const systemInstruction = `
+    // 4. Prepare Transcript for AI
+    const transcript = JSON.stringify(session.messages);
+
+    const systemInstruction = `
     You are an expert Quality Assurance (QA) and Coaching AI for a customer service contact center.
     Review the customer service chat transcript between an Agent (user) and a Consumer (consumer).
     
@@ -118,10 +126,9 @@ export async function triggerKetikAIReview(sessionId: string) {
     - Severity: 'minor' (small typo), 'medium' (repeated or confusing), 'critical' (changes meaning or unprofessional).
   `;
 
-  try {
     // 5. Generate AI Content using centralized helper
     const aiResponse = await generateGeminiContent({
-      model: "gemini-3.1-flash-lite", // Using project standard model
+      model: normalizeModelId('gemini-3.1-flash-lite'),
       systemInstruction,
       contents: [{ role: 'user', parts: [{ text: `Transcript:\n${transcript}` }] }],
       responseMimeType: "application/json",
@@ -140,7 +147,7 @@ export async function triggerKetikAIReview(sessionId: string) {
     } catch (_parseError) {
       console.error("[triggerKetikAIReview] Failed to parse AI response JSON:", aiResponse.text);
       await supabaseAdmin.from('ketik_history').update({ review_status: 'failed' }).eq('id', sessionId);
-      return;
+      return { status: 'failed', error: 'AI response JSON tidak valid.' };
     }
 
     // 6. Update ketik_history with Scores
@@ -194,9 +201,14 @@ export async function triggerKetikAIReview(sessionId: string) {
     }
 
     console.log(`[triggerKetikAIReview] AI Review completed successfully for session: ${sessionId}`);
+    return { status: 'completed' };
 
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown AI review error';
     console.error(`[triggerKetikAIReview] Error during AI Review for session: ${sessionId}`, error);
-    await supabaseAdmin.from('ketik_history').update({ review_status: 'failed' }).eq('id', sessionId);
+    if (supabaseAdmin) {
+      await supabaseAdmin.from('ketik_history').update({ review_status: 'failed' }).eq('id', sessionId);
+    }
+    return { status: 'failed', error: message };
   }
 }

@@ -300,7 +300,8 @@ export default function AppKetik() {
     const runId = ++sessionRunIdRef.current;
     setIsLoading(true);
 
-    void getMyModuleUsage('ketik').then((usage) => {
+    const initUsage = async () => {
+      const usage = await getMyModuleUsage('ketik');
       if (usage && runId === sessionRunIdRef.current) {
         sessionBaselineRef.current = {
           total_calls: usage.total_calls,
@@ -309,9 +310,10 @@ export default function AppKetik() {
           periodLabel: usage.periodLabel,
         };
       }
-    });
-
-    setTimeout(() => { setIsLoading(false); setView('chat'); }, 500);
+      setIsLoading(false);
+      setView('chat');
+    };
+    initUsage();
   };
 
   const endSession = async (messages: ChatMessage[]) => {
@@ -350,7 +352,44 @@ export default function AppKetik() {
               consumerPhone: result.session!.consumer_phone,
               consumerCity: result.session!.consumer_city,
               messages: result.session!.messages,
+              reviewStatus: result.session!.review_status ?? 'pending',
             }, ...prev]);
+
+            const reviewResponse = await fetch('/api/ketik/review', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sessionId: result.session.id }),
+            });
+
+            if (!reviewResponse.ok) {
+              const payload = await reviewResponse.json().catch(() => null);
+              console.warn('[Ketik] AI review failed to complete:', payload);
+            }
+
+            const { data, error } = await supabase
+              .from('ketik_history')
+              .select('id, user_id, date, created_at, scenario_title, consumer_name, consumer_phone, consumer_city, messages, final_score, empathy_score, probing_score, typo_score, compliance_score, review_status')
+              .eq('user_id', user.id)
+              .order('date', { ascending: false })
+              .limit(50);
+
+            if (!error) {
+              setHistory((data || []).map((item) => ({
+                id: item.id,
+                date: safeDate(item.date ?? item.created_at),
+                scenarioTitle: item.scenario_title || 'Simulation Chat',
+                consumerName: item.consumer_name || 'Consumer',
+                consumerPhone: item.consumer_phone,
+                consumerCity: item.consumer_city,
+                messages: Array.isArray(item.messages) ? item.messages : [],
+                finalScore: item.final_score,
+                empathyScore: item.empathy_score,
+                probingScore: item.probing_score,
+                typoScore: item.typo_score,
+                complianceScore: item.compliance_score,
+                reviewStatus: item.review_status,
+              })));
+            }
           }
         }
       } catch (error) {
@@ -363,6 +402,7 @@ export default function AppKetik() {
 
     const runId = sessionRunIdRef.current;
     try {
+      await new Promise(resolve => setTimeout(resolve, 2000));
       const afterUsage = await getMyModuleUsage('ketik');
       if (afterUsage && runId === sessionRunIdRef.current) {
         const after: UsageSnapshot = {
@@ -409,6 +449,47 @@ export default function AppKetik() {
 
   const handleViewReview = async (session: ChatSession) => {
     setSelectedSessionForReview(session);
+
+    if (session.reviewStatus === 'pending') {
+      const reviewResponse = await fetch('/api/ketik/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: session.id }),
+      });
+
+      if (!reviewResponse.ok) {
+        const payload = await reviewResponse.json().catch(() => null);
+        console.warn('[Ketik] Pending AI review retry failed:', payload);
+      }
+
+      const { data: refreshedSession, error: refreshError } = await supabase
+        .from('ketik_history')
+        .select('id, date, created_at, scenario_title, consumer_name, consumer_phone, consumer_city, messages, final_score, empathy_score, probing_score, typo_score, compliance_score, review_status')
+        .eq('id', session.id)
+        .maybeSingle();
+
+      if (!refreshError && refreshedSession) {
+        const updatedSession: ChatSession = {
+          id: refreshedSession.id,
+          date: safeDate(refreshedSession.date ?? refreshedSession.created_at),
+          scenarioTitle: refreshedSession.scenario_title || 'Simulation Chat',
+          consumerName: refreshedSession.consumer_name || 'Consumer',
+          consumerPhone: refreshedSession.consumer_phone,
+          consumerCity: refreshedSession.consumer_city,
+          messages: Array.isArray(refreshedSession.messages) ? refreshedSession.messages : [],
+          finalScore: refreshedSession.final_score,
+          empathyScore: refreshedSession.empathy_score,
+          probingScore: refreshedSession.probing_score,
+          typoScore: refreshedSession.typo_score,
+          complianceScore: refreshedSession.compliance_score,
+          reviewStatus: refreshedSession.review_status,
+        };
+
+        setHistory(prev => prev.map(item => item.id === updatedSession.id ? updatedSession : item));
+        session = updatedSession;
+        setSelectedSessionForReview(updatedSession);
+      }
+    }
     
     if (session.reviewStatus === 'completed') {
       setIsReviewOpen(true);
@@ -520,9 +601,9 @@ export default function AppKetik() {
                   >
                     <BarChart3 className="h-4 w-4 opacity-60" />
                     <span>Usage Bulan Ini</span>
-                    {sessionDelta && sessionDelta.costIdr > 0 && (
+                    {sessionDelta && (sessionDelta.costIdr > 0 || sessionDelta.totalTokens > 0 || sessionDelta.totalCalls > 0) && (
                       <span className="ml-auto text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                        +{formatCompactIdr(sessionDelta.costIdr)} sesi terakhir
+                        {sessionDelta.costIdr > 0 ? `+${formatCompactIdr(sessionDelta.costIdr)}` : `+${sessionDelta.totalCalls} call`} sesi terakhir
                       </span>
                     )}
                   </motion.button>
