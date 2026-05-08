@@ -557,18 +557,23 @@ export default function AppKetik() {
             coachingFocus: reviewData.coaching_focus,
             createdAt: reviewData.created_at,
           });
-        }
-        
-        if (typosData) {
-          setSelectedTypos(typosData.map(t => ({
-            id: t.id,
-            sessionId: t.session_id,
-            messageId: t.message_id,
-            originalWord: t.original_word,
-            correctedWord: t.corrected_word,
-            severity: t.severity,
-            createdAt: t.created_at,
-          })));
+          
+          if (typosData) {
+            setSelectedTypos(typosData.map(t => ({
+              id: t.id,
+              sessionId: t.session_id,
+              messageId: t.message_id,
+              originalWord: t.original_word,
+              correctedWord: t.corrected_word,
+              severity: t.severity,
+              createdAt: t.created_at,
+            })));
+          }
+        } else {
+           console.warn('[Ketik] Review marked as completed but data missing on view.');
+           alert('Data review tidak ditemukan. Silakan jalankan ulang analisis.');
+           setSelectedSessionForReview({ ...session, reviewStatus: 'failed' });
+           setHistory(prev => prev.map(item => item.id === session.id ? { ...item, reviewStatus: 'failed' } : item));
         }
       } catch (err) {
         console.error('[Ketik] Error fetching review details:', err);

@@ -24,3 +24,15 @@ Modul **KETIK** (Kelas Etika & Trik Komunikasi) telah diperbarui untuk mengubah 
 - [x] Tombol "Mulai Analisis" berfungsi dan menampilkan data skor setelah selesai.
 - [x] Tidak ada skor "0" yang muncul di modal sebelum analisis dilakukan.
 - [x] `npm run lint` dan `npm run type-check` lulus verifikasi.
+
+---
+
+## Bugfix Update (Later in the day)
+
+### AI Review "Completed but Empty"
+- **Root Cause**: The idempotency check for `triggerKetikAIReview` only looked at `review_status === 'completed'` in `ketik_history`. If the actual data in `ketik_session_reviews` or `ketik_typo_findings` failed to save or was deleted, the review would skip silently.
+- **Fix**: Added a check to verify that `ketik_session_reviews` data actually exists before skipping. Added stricter shape validation (`JSON.parse`) to prevent bad data from being marked as completed. Added client-side retry logic and gracefully fallback to `failed` state with user-friendly alert if data is missing on view.
+
+### Slash Template Trigger & Empty State
+- **Root Cause**: The slash trigger effect was missing dependencies, making it stale. When a query didn't match any templates, it would silently show nothing, confusing users.
+- **Fix**: Updated `useEffect` dependencies (`inputText`, `config.quickTemplates`, `filteredTemplates.length`) to keep the shortcut state synced. Added an explicit empty-state message ("Tidak ada template yang cocok") inside the popup when the query string does not match any template. Reset index out-of-bounds carefully to avoid jumping. Kept the command-style UX (only trigger at start or after a space).

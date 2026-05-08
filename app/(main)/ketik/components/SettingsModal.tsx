@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { AppSettings, Scenario, ConsumerType, ConsumerDifficulty } from '@/app/types';
+import { AppSettings, Scenario, ConsumerType, ConsumerDifficulty, QuickTemplate } from '@/app/types';
 import { coerceKetikModelId } from '../constants';
 import { getModelsForModule } from '@/app/lib/ai-models';
 import { defaultSettings } from '../data';
-import { Clock, Trash2, X, Plus, Check, Edit2, RotateCcw, Save, Image as ImageIcon, User, Settings, FileText, Users, Fingerprint, Zap } from 'lucide-react';
+import { Clock, Trash2, X, Plus, Check, Edit2, RotateCcw, Save, Image as ImageIcon, Settings, FileText, Users, Fingerprint, Zap, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface SettingsModalProps {
@@ -15,13 +15,17 @@ interface SettingsModalProps {
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave }) => {
-  const [activeTab, setActiveTab] = useState<'scenarios' | 'consumers' | 'identity' | 'system'>('scenarios');
-  const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
+  const [activeTab, setActiveTab] = useState<'scenarios' | 'consumers' | 'identity' | 'system' | 'template'>('scenarios');
+  const [localSettings, setLocalSettings] = useState<AppSettings>(() => ({
+    ...settings,
+    quickTemplates: settings.quickTemplates || defaultSettings.quickTemplates || []
+  }));
   const TEXT_MODELS = getModelsForModule('ketik');
 
   // UI States for Forms
   const [isScenarioFormOpen, setIsScenarioFormOpen] = useState(false);
   const [isConsumerFormOpen, setIsConsumerFormOpen] = useState(false);
+  const [isTemplateFormOpen, setIsTemplateFormOpen] = useState(false);
 
   // Scenario Form State
   const [editingScenarioId, setEditingScenarioId] = useState<string | null>(null);
@@ -39,6 +43,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   const [newConsumerDesc, setNewConsumerDesc] = useState('');
   const [newConsumerDifficulty, setNewConsumerDifficulty] = useState<ConsumerDifficulty>(ConsumerDifficulty.Medium);
 
+  // Template Form State
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [newTemplateKeyword, setNewTemplateKeyword] = useState('');
+  const [newTemplateContent, setNewTemplateContent] = useState('');
+
   // Identity Form State
   const handleIdentityChange = (field: string, value: string) => {
     setLocalSettings(prev => ({
@@ -54,11 +63,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   useEffect(() => {
     if (isOpen) {
       const selectedModel = coerceKetikModelId(settings.selectedModel);
-      setLocalSettings({ ...settings, selectedModel });
+      setLocalSettings({ ...settings, selectedModel, quickTemplates: settings.quickTemplates || defaultSettings.quickTemplates || [] });
       setIsScenarioFormOpen(false);
       setIsConsumerFormOpen(false);
+      setIsTemplateFormOpen(false);
       setEditingScenarioId(null);
       setEditingConsumerId(null);
+      setEditingTemplateId(null);
     }
   }, [isOpen, settings]);
 
@@ -289,6 +300,64 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     }
   };
 
+  const handleAddTemplateClick = () => {
+    setEditingTemplateId(null);
+    setNewTemplateKeyword('');
+    setNewTemplateContent('');
+    setIsTemplateFormOpen(true);
+    setTimeout(() => {
+      document.getElementById('template-form')?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
+  const handleEditTemplate = (template: QuickTemplate) => {
+    setEditingTemplateId(template.id);
+    setNewTemplateKeyword(template.keyword);
+    setNewTemplateContent(template.content);
+    setIsTemplateFormOpen(true);
+    setTimeout(() => {
+      document.getElementById('template-form')?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
+  const handleDeleteTemplate = (id: string) => {
+    if (window.confirm('Hapus template ini?')) {
+      setLocalSettings(prev => ({
+        ...prev,
+        quickTemplates: (prev.quickTemplates || []).filter(t => t.id !== id)
+      }));
+    }
+  };
+
+  const handleSaveTemplate = () => {
+    if (!newTemplateKeyword || !newTemplateContent) return;
+    
+    // Ensure keyword is valid (lowercase, no spaces)
+    const sanitizedKeyword = newTemplateKeyword.trim().toLowerCase().replace(/\s+/g, '-');
+    
+    const newTemplate: QuickTemplate = {
+      id: editingTemplateId || `qt-${Date.now()}`,
+      keyword: sanitizedKeyword,
+      content: newTemplateContent.trim()
+    };
+
+    setLocalSettings(prev => ({
+      ...prev,
+      quickTemplates: editingTemplateId 
+        ? (prev.quickTemplates || []).map(t => t.id === editingTemplateId ? newTemplate : t)
+        : [...(prev.quickTemplates || []), newTemplate]
+    }));
+
+    handleCancelTemplateForm();
+  };
+
+  const handleCancelTemplateForm = () => {
+    setIsTemplateFormOpen(false);
+    setEditingTemplateId(null);
+    setNewTemplateKeyword('');
+    setNewTemplateContent('');
+  };
+
   const isScenarioDraftDirty = () => isScenarioFormOpen;
 
   const isScenarioDraftValid = () => {
@@ -374,6 +443,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   const handleSave = () => {
     const scenarioDirty = isScenarioDraftDirty();
     const consumerDirty = isConsumerDraftDirty();
+    const templateDirty = isTemplateFormOpen;
 
     if (scenarioDirty && !isScenarioDraftValid()) {
       setActiveTab('scenarios');
@@ -393,6 +463,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
       return;
     }
 
+    if (templateDirty && (!newTemplateKeyword || !newTemplateContent)) {
+      setActiveTab('template');
+      setTimeout(() => {
+        document.getElementById('template-form')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      alert('Template yang sedang Anda buat belum lengkap. Isi keyword dan konten terlebih dahulu, atau klik Batal untuk membatalkan template.');
+      return;
+    }
+
     let finalSettings = localSettings;
     if (scenarioDirty) {
       const applied = applyScenarioDraft(finalSettings);
@@ -402,11 +481,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
       const applied = applyConsumerDraft(finalSettings);
       if (applied) finalSettings = applied;
     }
+    if (templateDirty) {
+        const sanitizedKeyword = newTemplateKeyword.trim().toLowerCase().replace(/\s+/g, '-');
+        const newTemplate: QuickTemplate = {
+            id: editingTemplateId || `qt-${Date.now()}`,
+            keyword: sanitizedKeyword,
+            content: newTemplateContent.trim()
+        };
+        finalSettings = {
+            ...finalSettings,
+            quickTemplates: editingTemplateId 
+                ? (finalSettings.quickTemplates || []).map(t => t.id === editingTemplateId ? newTemplate : t)
+                : [...(finalSettings.quickTemplates || []), newTemplate]
+        };
+    }
 
-    if (scenarioDirty || consumerDirty) {
+    if (scenarioDirty || consumerDirty || templateDirty) {
       setLocalSettings(finalSettings);
       if (scenarioDirty) resetScenarioForm();
       if (consumerDirty) resetConsumerForm();
+      if (templateDirty) handleCancelTemplateForm();
     }
 
     onSave(finalSettings);
@@ -422,9 +516,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   const tabs = [
     { id: 'scenarios', label: 'Masalah', icon: FileText },
     { id: 'consumers', label: 'Karakter', icon: Users },
-    { id: 'identity', label: 'Identitas', icon: User },
+    { id: 'identity', label: 'Identitas', icon: Fingerprint },
+    { id: 'template', label: 'Template', icon: MessageSquare },
     { id: 'system', label: 'Sistem', icon: Settings },
-  ];
+  ] as const;
 
   return (
     <AnimatePresence>
@@ -949,7 +1044,114 @@ Akhir:
               </div>
           )}
 
-          {/* TAB 4: SYSTEM */}
+          {/* TAB 4: QUICK TEMPLATES */}
+          {activeTab === 'template' && (
+              <div className="space-y-8 pb-10">
+                {/* Header Section */}
+                <div className="bg-card p-8 rounded-[2rem] border border-border/50 shadow-sm relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+                  <div className="flex items-start gap-6 relative z-10">
+                    <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
+                      <MessageSquare className="w-7 h-7 text-primary" />
+                    </div>
+                    <div>
+                        <h3 className="font-black text-foreground text-xl tracking-tighter">Template Cepat</h3>
+                        <p className="text-sm text-muted-foreground mt-1 leading-relaxed font-medium">
+                            Kelola pesan template yang dapat Anda panggil dengan shortcut &quot;/&quot; di area chat.
+                        </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Template List */}
+                <div className="grid grid-cols-1 gap-4">
+                    {(localSettings.quickTemplates || []).map(t => (
+                       <div
+                          key={t.id}
+                          className="p-6 rounded-[2rem] border border-border/50 bg-card hover:bg-foreground/5 transition-all group"
+                       >
+                          <div className="flex justify-between items-start mb-2">
+                             <div className="flex items-center gap-3">
+                                <div className="px-3 py-1 bg-primary/10 text-primary rounded-lg text-[10px] font-black uppercase tracking-wider border border-primary/20">
+                                    /{t.keyword}
+                                </div>
+                             </div>
+                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                    onClick={() => handleEditTemplate(t)}
+                                    className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-all border border-border/50"
+                                >
+                                    <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={() => handleDeleteTemplate(t.id)}
+                                    className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all border border-border/50"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                             </div>
+                          </div>
+                          <p className="text-sm text-muted-foreground leading-relaxed font-medium line-clamp-2">
+                              {t.content}
+                          </p>
+                       </div>
+                    ))}
+                </div>
+
+                {/* Add New Template Button */}
+                {!isTemplateFormOpen && (
+                   <button
+                      onClick={handleAddTemplateClick}
+                      className="w-full py-6 flex flex-col items-center justify-center gap-3 bg-card/40 backdrop-blur-md border border-dashed border-border/50 rounded-[2.5rem] text-muted-foreground hover:text-primary hover:border-primary/30 transition-all font-black text-xs uppercase tracking-widest shadow-sm group"
+                  >
+                      <div className="w-12 h-12 rounded-2xl bg-foreground/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                        <Plus className="w-6 h-6" />
+                      </div>
+                      <span>Tambah Template Baru</span>
+                  </button>
+                )}
+
+                {/* Form for Add/Edit Template */}
+                {isTemplateFormOpen && (
+                    <div id="template-form" className="bg-card border border-border/50 rounded-[2.5rem] shadow-3xl overflow-hidden relative">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+                        <div className="px-8 py-6 border-b border-border/50 bg-foreground/5 relative z-10">
+                            <h3 className="font-black text-foreground text-lg tracking-tighter">{editingTemplateId ? 'Edit Template' : 'Tambah Template Baru'}</h3>
+                        </div>
+                        <div className="p-8 space-y-6 relative z-10">
+                            <div>
+                                <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 ml-1">Shortcut Keyword (Tanpa Spasi)</label>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-black">/</span>
+                                    <input 
+                                        className="w-full rounded-2xl border border-border/50 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-foreground/20 pl-8" 
+                                        value={newTemplateKeyword} 
+                                        onChange={e => setNewTemplateKeyword(e.target.value.toLowerCase().replace(/\s+/g, '-'))} 
+                                        placeholder="contoh: salam" 
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 ml-1">Isi Template</label>
+                                <textarea 
+                                    className="w-full rounded-2xl border border-border/50 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none resize-none transition-all placeholder:text-foreground/20 font-medium leading-relaxed" 
+                                    rows={5} 
+                                    value={newTemplateContent} 
+                                    onChange={e => setNewTemplateContent(e.target.value)} 
+                                    placeholder="Masukkan isi pesan yang akan muncul saat shortcut dipanggil..." 
+                                />
+                            </div>
+                            <div className="flex justify-end gap-3 pt-6 border-t border-border/50">
+                                <button onClick={handleCancelTemplateForm} className="px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:bg-foreground/5 transition-all">Batal</button>
+                                <button onClick={handleSaveTemplate} className="px-8 py-3 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">Simpan</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+              </div>
+          )}
+
+          {/* TAB 5: SYSTEM */}
           {activeTab === 'system' && (
               <div className="space-y-10 pb-10">
                  {/* AI Model Selection */}

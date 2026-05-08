@@ -185,6 +185,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const totalSlowCountRef = useRef(0);
   const consecutiveSlowCountRef = useRef(0);
   const sendGenerationRef = useRef(0);
+  
+  // Quick Template Shortcut State
+  const [showTemplatePopup, setShowTemplatePopup] = useState(false);
+  const [templateSearchQuery, setTemplateSearchQuery] = useState('');
+  const [selectedTemplateIndex, setSelectedTemplateIndex] = useState(0);
+  const templatePopupRef = useRef<HTMLDivElement>(null);
+
+  const filteredTemplates = (config.quickTemplates || []).filter(t => 
+    t.keyword.toLowerCase().includes(templateSearchQuery.toLowerCase())
+  );
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -238,7 +248,63 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         textareaRef.current.style.height = 'auto';
         textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
     }
-  }, [inputText]);
+
+    // Shortcut detection
+    const lastSlashIndex = inputText.lastIndexOf('/');
+    if (lastSlashIndex !== -1) {
+        const textAfterSlash = inputText.substring(lastSlashIndex + 1);
+        // Only trigger if "/" is at start or after a space, and no space after it
+        const beforeSlash = inputText.substring(0, lastSlashIndex);
+        const isTriggerValid = (lastSlashIndex === 0 || beforeSlash.endsWith(' ')) && !textAfterSlash.includes(' ');
+        
+        console.log('[QuickTemplate Debug]', { 
+            inputText, 
+            lastSlashIndex, 
+            textAfterSlash, 
+            beforeSlash, 
+            isTriggerValid,
+            filteredTemplatesCount: filteredTemplates.length,
+            configQuickTemplates: config.quickTemplates
+        });
+
+        if (isTriggerValid) {
+            setShowTemplatePopup(true);
+            setTemplateSearchQuery(textAfterSlash);
+            // Reset index only if current index is out of bounds to avoid jumping
+            setSelectedTemplateIndex((prev) => {
+               const newFiltered = (config.quickTemplates || []).filter(t => 
+                 t.keyword.toLowerCase().includes(textAfterSlash.toLowerCase())
+               );
+               return prev >= newFiltered.length ? 0 : prev;
+            });
+        } else {
+            setShowTemplatePopup(false);
+        }
+    } else {
+        setShowTemplatePopup(false);
+    }
+  }, [inputText, config.quickTemplates, filteredTemplates.length]);
+
+  // Click Outside Detection for Template Popup
+  useEffect(() => {
+    if (!showTemplatePopup) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+        if (
+            templatePopupRef.current && 
+            !templatePopupRef.current.contains(event.target as Node) &&
+            textareaRef.current && 
+            !textareaRef.current.contains(event.target as Node)
+        ) {
+            setShowTemplatePopup(false);
+        }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showTemplatePopup]);
 
   // IMPORTANT: Timeout closing message must be appended once and never replaced.
   // Do NOT regenerate/overwrite this message with async AI output —
@@ -482,6 +548,39 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setHasTemplateBeenClicked(true);
     setInputText(template);
     textareaRef.current?.focus();
+  };
+
+  const insertTemplate = (template: { content: string }) => {
+    const lastSlashIndex = inputText.lastIndexOf('/');
+    const beforeSlash = inputText.substring(0, lastSlashIndex);
+    const afterShortcut = ''; // We replace the shortcut entirely
+    
+    setInputText(beforeSlash + template.content + afterShortcut);
+    setShowTemplatePopup(false);
+    setTimeout(() => textareaRef.current?.focus(), 0);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (showTemplatePopup) {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setSelectedTemplateIndex(prev => (prev + 1) % filteredTemplates.length);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setSelectedTemplateIndex(prev => (prev - 1 + filteredTemplates.length) % filteredTemplates.length);
+        } else if (e.key === 'Enter' || e.key === 'Tab') {
+            if (filteredTemplates.length > 0) {
+                e.preventDefault();
+                insertTemplate(filteredTemplates[selectedTemplateIndex]);
+            }
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            setShowTemplatePopup(false);
+        }
+    } else if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+    }
   };
 
   const applyMaintenance = () => {
@@ -749,10 +848,54 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       ref={textareaRef}
                       value={inputText}
                       onChange={(e) => setInputText(e.target.value)}
+                      onKeyDown={handleKeyDown}
                       placeholder="Tulis pesan Anda..."
                       className="w-full bg-transparent border-none outline-none resize-none max-h-48 min-h-[40px] py-1 text-base text-foreground placeholder-foreground/50 font-medium"
                       rows={1}
                   />
+                  
+                  {/* Floating Template Popup */}
+                  <AnimatePresence>
+                    {showTemplatePopup && (
+                      <motion.div
+                        ref={templatePopupRef}
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute bottom-full left-6 mb-4 w-72 max-h-64 overflow-y-auto bg-card border border-border/50 rounded-[2rem] shadow-2xl z-[60] p-3 flex flex-col gap-1 custom-scrollbar"
+                      >
+                        <div className="px-4 py-2 border-b border-border/10 mb-1 flex items-center justify-between">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Pilih Template</span>
+                            <span className="text-[9px] font-medium text-primary/50">↑↓ Navigasi</span>
+                        </div>
+                        {filteredTemplates.length > 0 ? (
+                          filteredTemplates.map((t, i) => (
+                            <button
+                              key={t.id}
+                              onClick={() => insertTemplate(t)}
+                              onMouseEnter={() => setSelectedTemplateIndex(i)}
+                              className={`w-full text-left px-4 py-3 rounded-2xl transition-all flex flex-col gap-0.5 ${
+                                i === selectedTemplateIndex 
+                                  ? 'bg-primary/10 border border-primary/20' 
+                                  : 'hover:bg-foreground/5 border border-transparent'
+                              }`}
+                            >
+                              <span className={`text-[10px] font-black uppercase tracking-wider ${i === selectedTemplateIndex ? 'text-primary' : 'text-muted-foreground'}`}>
+                                  /{t.keyword}
+                              </span>
+                              <span className="text-xs text-foreground font-medium line-clamp-1 opacity-80">
+                                  {t.content}
+                              </span>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-4 py-3 text-center">
+                            <span className="text-xs text-muted-foreground font-medium">Tidak ada template yang cocok</span>
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
               </div>
               <motion.button 
                   whileTap={{ scale: 0.9 }}

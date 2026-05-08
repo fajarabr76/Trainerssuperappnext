@@ -64,11 +64,19 @@ export interface SessionConfig {
   maxCallDuration?: number;
   telefunTransport?: 'gemini-live' | 'openai-audio';
   telefunModelId?: string;
+  quickTemplates?: QuickTemplate[];
+}
+
+export interface QuickTemplate {
+  id: string;
+  keyword: string;
+  content: string;
 }
 
 export interface AppSettings {
   scenarios: Scenario[];
   consumerTypes: ConsumerType[];
+  quickTemplates?: QuickTemplate[];
   activeConsumerTypeId?: string;
   preferredConsumerTypeId?: string;
   identitySettings: ConsumerIdentitySettings;

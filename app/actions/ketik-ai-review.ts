@@ -147,10 +147,24 @@ export async function triggerKetikAIReview(sessionId: string): Promise<KetikAIRe
     let reviewResult: AIReviewResponse;
     try {
       reviewResult = JSON.parse(aiResponse.text);
+      
+      // Verify minimal shape
+      if (
+        !reviewResult ||
+        typeof reviewResult !== 'object' ||
+        !reviewResult.scores ||
+        typeof reviewResult.scores.final !== 'number' ||
+        typeof reviewResult.summary !== 'string' ||
+        !Array.isArray(reviewResult.strengths) ||
+        !Array.isArray(reviewResult.weaknesses) ||
+        !Array.isArray(reviewResult.coachingFocus)
+      ) {
+        throw new Error('Invalid AI response shape');
+      }
     } catch (_parseError) {
-      console.error("[triggerKetikAIReview] Failed to parse AI response JSON:", aiResponse.text);
+      console.error("[triggerKetikAIReview] Failed to parse or validate AI response JSON:", aiResponse.text);
       await supabaseAdmin.from('ketik_history').update({ review_status: 'failed' }).eq('id', sessionId);
-      return { status: 'failed', error: 'AI response JSON tidak valid.' };
+      return { status: 'failed', error: 'AI response JSON tidak valid atau format tidak sesuai.' };
     }
 
     // 6. Update ketik_history with Scores

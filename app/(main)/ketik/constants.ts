@@ -43,6 +43,7 @@ export const parseSettings = (parsed: any): any => ({
   ...parsed,
   scenarios: mergeWithDefaults(parsed.scenarios, DEFAULT_SCENARIOS),
   consumerTypes: mergeWithDefaults(parsed.consumerTypes, DEFAULT_CONSUMER_TYPES),
+  quickTemplates: mergeWithDefaults(parsed.quickTemplates || [], DEFAULT_QUICK_TEMPLATES),
   activeConsumerTypeId: parsed.activeConsumerTypeId || 'random',
   identitySettings: {
     displayName: parsed.identitySettings?.displayName || '',
@@ -53,6 +54,14 @@ export const parseSettings = (parsed: any): any => ({
   selectedModel: coerceKetikModelId(parsed.selectedModel),
   simulationDuration: parsed.simulationDuration || 5,
 });
+
+export const DEFAULT_QUICK_TEMPLATES: any[] = [
+  { id: 'qt-selesai', keyword: 'selesai', content: 'Terima kasih telah menghubungi Layanan Kontak OJK 157. Semoga informasi yang kami berikan bermanfaat.' },
+  { id: 'qt-closing', keyword: 'closinghdsi', content: 'Demikian informasi yang dapat kami sampaikan. Jika ada hal lain yang ingin ditanyakan, silakan menghubungi kami kembali. Selamat pagi/siang/sore.' },
+  { id: 'qt-greeting', keyword: 'greetinghdsi', content: 'Selamat pagi/siang/sore, dengan Layanan Kontak OJK 157. Ada yang bisa kami bantu terkait informasi sektor jasa keuangan?' },
+  { id: 'qt-isiform', keyword: 'isiformhdsi', content: 'Mohon kesediaan Bapak/Ibu untuk melengkapi data diri pada link berikut agar kami dapat memproses laporan Anda lebih lanjut: [LINK_FORM]' },
+  { id: 'qt-tanya-akun', keyword: 'tanyaakun', content: 'Boleh diinformasikan nomor akun atau ID pelanggan yang Bapak/Ibu gunakan untuk layanan tersebut?' }
+];
 
 export const DEFAULT_SCENARIOS: Scenario[] = [
   {
