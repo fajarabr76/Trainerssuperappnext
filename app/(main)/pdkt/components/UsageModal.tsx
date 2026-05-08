@@ -125,25 +125,25 @@ export const UsageModal: React.FC<UsageModalProps> = ({ isOpen, onClose, module,
               )}
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-foreground/[0.02] rounded-xl p-4">
-                  <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Call Sukses</div>
-                  <div className="text-2xl font-black">{usage.total_calls}</div>
+                <div className="bg-foreground/[0.02] rounded-xl p-4 col-span-2 border border-primary/20 bg-primary/5">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">Estimasi Biaya Bulan Ini</div>
+                  <div className="text-3xl font-black text-primary">{formatIdr(usage.total_cost_idr)}</div>
                 </div>
                 <div className="bg-foreground/[0.02] rounded-xl p-4">
-                  <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Estimasi Biaya</div>
-                  <div className="text-2xl font-black text-primary">{formatIdr(usage.total_cost_idr)}</div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Total Tokens</div>
+                  <div className="text-xl font-black">{formatTokenCount(usage.total_tokens)}</div>
+                </div>
+                <div className="bg-foreground/[0.02] rounded-xl p-4">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Call AI</div>
+                  <div className="text-xl font-black">{usage.total_calls}</div>
                 </div>
                 <div className="bg-foreground/[0.02] rounded-xl p-4">
                   <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Input Tokens</div>
-                  <div className="text-lg font-black">{formatTokenCount(usage.total_input_tokens)}</div>
+                  <div className="text-base font-bold text-foreground/70">{formatTokenCount(usage.total_input_tokens)}</div>
                 </div>
                 <div className="bg-foreground/[0.02] rounded-xl p-4">
                   <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Output Tokens</div>
-                  <div className="text-lg font-black">{formatTokenCount(usage.total_output_tokens)}</div>
-                </div>
-                <div className="bg-foreground/[0.02] rounded-xl p-4 col-span-2">
-                  <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Total Tokens</div>
-                  <div className="text-2xl font-black">{formatTokenCount(usage.total_tokens)}</div>
+                  <div className="text-base font-bold text-foreground/70">{formatTokenCount(usage.total_output_tokens)}</div>
                 </div>
               </div>
             </>
@@ -157,7 +157,7 @@ export const UsageModal: React.FC<UsageModalProps> = ({ isOpen, onClose, module,
 
         <footer className="module-clean-toolbar px-5 sm:px-6 py-4 border-t text-center shrink-0">
           <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em]">
-            Data usage berdasarkan request AI yang berhasil
+            Estimasi biaya berdasarkan penggunaan token AI
           </p>
         </footer>
       </motion.div>

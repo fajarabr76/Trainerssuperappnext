@@ -41,10 +41,13 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (existingJob) {
+      // Normalisasi status: queued tampil sebagai processing di UI
+      const clientStatus = existingJob.status === 'queued' ? 'processing' : existingJob.status;
+      
       if (session.review_status !== existingJob.status && session.review_status !== 'completed') {
          await supabase.from('ketik_history').update({ review_status: existingJob.status }).eq('id', sessionId);
       }
-      return NextResponse.json({ ok: true, status: existingJob.status });
+      return NextResponse.json({ ok: true, status: clientStatus });
     }
 
     // 3. Enqueue job
@@ -54,22 +57,20 @@ export async function POST(request: Request) {
 
     if (insertError) {
       // Duplicate insert race: treat as idempotent success.
-      if ((insertError as { code?: string }).code === '23505') {
-        return NextResponse.json({ ok: true, status: 'processing' });
+      if ((insertError as { code?: string }).code !== '23505') {
+        throw insertError;
       }
-      throw insertError;
     }
 
     // 4. Update history status
-    const { error: updateError } = await supabase
+    await supabase
       .from('ketik_history')
       .update({ review_status: 'processing' })
       .eq('id', sessionId);
 
-    if (updateError) {
-      throw updateError;
-    }
-
+    // Manual-only trigger: We only enqueue the job here.
+    // The worker or another manual trigger will process it.
+    // Return 'processing' (normalized from 'queued') for instant feedback.
     return NextResponse.json({ ok: true, status: 'processing' });
   } catch (error) {
     console.error('[Ketik Review Route] Failed to enqueue review session:', error);

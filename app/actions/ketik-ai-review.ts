@@ -131,7 +131,89 @@ export async function triggerKetikAIReview(sessionId: string): Promise<KetikAIRe
 }
 
 /**
- * Processes a review job synchronously. Used by the worker.
+ * Claims and processes a specific review job.
+ * Used by both the immediate trigger and the background worker.
+ */
+export async function claimAndProcessKetikReviewJob(
+  sessionId: string,
+  workerId: string = 'system-auto'
+): Promise<KetikAIReviewResult> {
+  const supabaseAdmin = createAdminClient();
+
+  // 1. Fetch the job to check if it's claimable
+  const { data: job, error: jobError } = await supabaseAdmin
+    .from('ketik_review_jobs')
+    .select('id, attempt_count, status, lease_expires_at')
+    .eq('session_id', sessionId)
+    .maybeSingle();
+
+  if (jobError) throw jobError;
+  if (!job) throw new Error('Job not found');
+
+  // If already completed, just return success
+  if (job.status === 'completed') return { status: 'completed' };
+
+  // If already processing and lease not expired, skip (someone else is working on it)
+  if (
+    job.status === 'processing' &&
+    job.lease_expires_at &&
+    new Date(job.lease_expires_at) > new Date()
+  ) {
+    return { status: 'processing' };
+  }
+
+  const nextAttempt = (job.attempt_count || 0) + 1;
+  if (nextAttempt > 3) {
+    await supabaseAdmin
+      .from('ketik_review_jobs')
+      .update({ status: 'failed', error_message: 'Max attempts reached' })
+      .eq('id', job.id);
+    await supabaseAdmin
+      .from('ketik_history')
+      .update({ review_status: 'failed' })
+      .eq('id', sessionId);
+    return { status: 'failed', error: 'Max attempts reached' };
+  }
+
+  // 2. Claim the job
+  const leaseExpiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+  const { error: claimError } = await supabaseAdmin
+    .from('ketik_review_jobs')
+    .update({
+      status: 'processing',
+      lease_owner: workerId,
+      lease_expires_at: leaseExpiresAt,
+      attempt_count: nextAttempt,
+      error_message: null,
+    })
+    .eq('id', job.id);
+
+  if (claimError) throw claimError;
+
+  // 3. Process the job
+  try {
+    return await processKetikReviewJob(sessionId);
+  } catch (error) {
+    const error_message = error instanceof Error ? error.message : 'Unknown processing error';
+    await supabaseAdmin
+      .from('ketik_review_jobs')
+      .update({
+        status: 'failed',
+        error_message,
+        lease_owner: null,
+        lease_expires_at: null,
+      })
+      .eq('id', job.id);
+    await supabaseAdmin
+      .from('ketik_history')
+      .update({ review_status: 'failed' })
+      .eq('id', sessionId);
+    return { status: 'failed', error: error_message };
+  }
+}
+
+/**
+ * Processes a review job synchronously.
  */
 export async function processKetikReviewJob(sessionId: string): Promise<KetikAIReviewResult> {
   const supabaseAdmin = createAdminClient();

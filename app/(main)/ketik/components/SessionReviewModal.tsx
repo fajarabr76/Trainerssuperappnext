@@ -260,10 +260,10 @@ export const SessionReviewModal: React.FC<SessionReviewModalProps> = ({
               </p>
               <button
                 onClick={handleAnalyze}
-                disabled={isAnalyzing}
+                disabled={isProcessing}
                 className="inline-flex h-14 items-center justify-center gap-3 rounded-2xl bg-primary px-8 text-xs font-black uppercase tracking-widest text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
               >
-                {isAnalyzing ? (
+                {isProcessing ? (
                   <>
                     <div className="w-5 h-5 border-2 border-current/30 border-t-current rounded-full animate-spin" />
                     Menganalisis Sesi...

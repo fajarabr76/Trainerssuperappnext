@@ -17,7 +17,7 @@ import { moduleTheme } from '@/app/components/ui/moduleTheme';
 import ModuleWorkspaceIntro from '@/app/components/ModuleWorkspaceIntro';
 import { normalizeModelId } from '@/app/lib/ai-models';
 import { getMyModuleUsage } from '@/app/actions/usage';
-import { type UsageSnapshot, computeUsageDelta, formatCompactIdr } from '@/app/lib/usage-snapshot';
+import { type UsageSnapshot, computeUsageDelta, formatUsageDeltaLabel } from '@/app/lib/usage-snapshot';
 
 const supabase = createClient();
 
@@ -599,9 +599,9 @@ const PdktPage: React.FC = () => {
                   >
                     <BarChart3 className="h-4 w-4 opacity-60" />
                     <span>Usage Bulan Ini</span>
-                    {sessionDelta && sessionDelta.costIdr > 0 && (
+                    {sessionDelta && (sessionDelta.costIdr > 0 || sessionDelta.totalTokens > 0 || sessionDelta.totalCalls > 0) && (
                       <span className="ml-auto text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                        +{formatCompactIdr(sessionDelta.costIdr)} sesi terakhir
+                        {formatUsageDeltaLabel(sessionDelta)} sesi terakhir
                       </span>
                     )}
                   </motion.button>

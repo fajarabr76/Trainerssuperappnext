@@ -62,18 +62,21 @@ Scope quick-view:
 
 Isi modal:
 
-- call sukses bulan berjalan
-- input tokens
-- output tokens
-- total tokens
-- estimasi billing Rupiah
+- **Estimasi Biaya Bulan Ini** (Metrik Utama)
+- **Kenaikan Biaya Sesi Terakhir** (Metrik Utama jika ada sesi baru)
+- Call AI (Metrik Sekunder)
+- Total Tokens (Metrik Sekunder)
+- Input & Output Tokens (Detail Teknis)
 - label periode aktif, misalnya `1 April 2026 - 30 April 2026 WIB`
 
 QA Analyzer ikut tercatat dalam monitoring usage bulanan, tetapi tidak memiliki quick-view modal khusus.
 
 #### Indikator Kenaikan Biaya Sesi (`+Rp`)
 
-Setelah sesi selesai, tombol `Usage Bulan Ini` dan bagian atas modal menampilkan indikator kenaikan biaya yang disebabkan oleh sesi terakhir.
+Setelah sesi selesai, tombol `Usage Bulan Ini` (atau `Usage` di Telefun) dan bagian atas modal menampilkan indikator kenaikan biaya yang disebabkan oleh sesi terakhir.
+
+**Prinsip Utama:**
+Indikator ini memprioritaskan pertambahan biaya dalam **Rupiah** untuk memberikan visibilitas langsung terhadap konsumsi saldo AI. Jika sesi menghasilkan kenaikan token tetapi biaya estimasi tetap `0` (karena pricing model diatur `$0`), badge akan tetap menampilkan `+Rp0` daripada jumlah request sukses. Metrik teknis seperti jumlah call dan token tetap tersedia di dalam modal sebagai informasi sekunder.
 
 **Cara kerja:**
 
@@ -82,7 +85,22 @@ Setelah sesi selesai, tombol `Usage Bulan Ini` dan bagian atas modal menampilkan
    - `costIdr`: selisih estimasi biaya (clamped minimum 0)
    - `totalTokens`: selisih total token (clamped minimum 0)
    - `totalCalls`: selisih jumlah call (clamped minimum 0)
-3. Delta ditampilkan sebagai badge kecil di tombol `Usage Bulan Ini` dan sebagai blok ringkas di header modal.
+3. Delta ditampilkan sebagai badge kecil di tombol `Usage Bulan Ini` dan sebagai blok ringkas di header modal menggunakan helper `formatUsageDeltaLabel`.
+
+#### Kebijakan Backfill Biaya (Rp0)
+
+Jika ditemukan data penggunaan (`ai_usage_logs`) pada **bulan berjalan** yang memiliki `estimated_cost_idr = 0` padahal jumlah token positif (misalnya karena saat request dikirim, harga model belum diatur), sistem mendukung backfill terbatas.
+
+**Aturan Backfill:**
+- Hanya berlaku untuk baris pada bulan berjalan (WIB).
+- Hanya menyasar baris dengan `estimated_cost_idr = 0` dan token > 0.
+- Menggunakan harga model (`ai_pricing_settings`) dan kurs terbaru saat ini.
+- Baris yang sudah memiliki nilai biaya non-zero (snapshot lama) **tidak disentuh** untuk menjaga integritas histori audit.
+
+#### Ringkasan Perubahan Semantik Usage (Mei 2026)
+- Badge usage di modul selalu memakai format `+Rp...`, tidak lagi fallback ke `+N call`.
+- Modal usage diatur ulang agar estimasi biaya Rupiah tampil paling menonjol sebagai metrik bisnis utama.
+- Copy footer diperbarui untuk menegaskan bahwa "usage" adalah estimasi biaya dari token AI.
 
 **Alur khusus PDKT (evaluasi async):**
 

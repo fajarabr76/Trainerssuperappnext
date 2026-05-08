@@ -24,6 +24,10 @@ vi.mock('@/app/lib/supabase/server', () => ({
   }),
 }));
 
+vi.mock('@/app/actions/ketik-ai-review', () => ({
+  claimAndProcessKetikReviewJob: vi.fn(),
+}));
+
 describe('KETIK AI review route - durable pipeline', () => {
   beforeEach(() => {
     vi.resetModules();
@@ -32,8 +36,15 @@ describe('KETIK AI review route - durable pipeline', () => {
     mockQuery.eq.mockReturnThis();
     mockQuery.single.mockReset();
     mockQuery.maybeSingle.mockReset();
+    mockQuery.insert.mockReset();
     mockQuery.insert.mockReturnThis();
+    mockQuery.update.mockReset();
     mockQuery.update.mockReturnThis();
+    
+    // Reset mock actions
+    import('@/app/actions/ketik-ai-review').then(m => {
+      (m.claimAndProcessKetikReviewJob as any).mockClear();
+    });
   });
 
   it('rejects unauthenticated review requests', async () => {
@@ -81,7 +92,7 @@ describe('KETIK AI review route - durable pipeline', () => {
     expect(mockQuery.insert).not.toHaveBeenCalled();
   });
 
-  it('enqueues a new job and updates history status to processing', async () => {
+  it('enqueues a new job and updates history status to processing but DOES NOT process immediately', async () => {
     getUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
     // First query: ownership check
     mockQuery.single.mockResolvedValueOnce({ data: { user_id: 'user-1', review_status: 'pending' }, error: null });
@@ -93,6 +104,7 @@ describe('KETIK AI review route - durable pipeline', () => {
     mockQuery.update.mockReturnThis();
 
     const { POST } = await import('@/app/api/ketik/review/route');
+    const { claimAndProcessKetikReviewJob } = await import('@/app/actions/ketik-ai-review');
 
     const response = await POST(new Request('http://localhost/api/ketik/review', {
       method: 'POST',
@@ -103,5 +115,8 @@ describe('KETIK AI review route - durable pipeline', () => {
     await expect(response.json()).resolves.toEqual({ ok: true, status: 'processing' });
     expect(mockQuery.insert).toHaveBeenCalled();
     expect(mockQuery.update).toHaveBeenCalled();
+    
+    // The key requirement: NO immediate processing
+    expect(claimAndProcessKetikReviewJob).not.toHaveBeenCalled();
   });
 });

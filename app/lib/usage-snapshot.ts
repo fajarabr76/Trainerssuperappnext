@@ -32,3 +32,9 @@ export function formatCompactIdr(value: number): string {
   }
   return `Rp${value}`;
 }
+
+export function formatUsageDeltaLabel(delta: UsageDelta): string {
+  // Always prioritize Rupiah, even if +Rp0.
+  // This fulfills the requirement to prioritize "pertambahan biaya Rupiah".
+  return `+${formatCompactIdr(delta.costIdr)}`;
+}

@@ -17,7 +17,7 @@ import ModuleWorkspaceIntro from '@/app/components/ModuleWorkspaceIntro';
 import { User } from '@supabase/supabase-js';
 import { persistKetikSession } from './actions';
 import { getMyModuleUsage } from '@/app/actions/usage';
-import { type UsageSnapshot, computeUsageDelta, formatCompactIdr } from '@/app/lib/usage-snapshot';
+import { type UsageSnapshot, computeUsageDelta, formatUsageDeltaLabel } from '@/app/lib/usage-snapshot';
 
 const supabase = createClient();
 
@@ -551,7 +551,14 @@ export default function AppKetik() {
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
-    if (selectedSessionForReview && (selectedSessionForReview.reviewStatus === 'pending' || selectedSessionForReview.reviewStatus === 'processing')) {
+    // Poll if pending/processing OR if completed but we don't have the review data yet
+    const shouldPoll = selectedSessionForReview && (
+      selectedSessionForReview.reviewStatus === 'pending' || 
+      selectedSessionForReview.reviewStatus === 'processing' ||
+      (selectedSessionForReview.reviewStatus === 'completed' && !selectedReview)
+    );
+
+    if (shouldPoll) {
       const poll = async () => {
         try {
           const res = await fetch(`/api/ketik/review/status?sessionId=${selectedSessionForReview.id}`);
@@ -559,7 +566,8 @@ export default function AppKetik() {
             const data = await res.json();
             const updatedStatus = data.status;
             
-            if (updatedStatus !== selectedSessionForReview.reviewStatus) {
+            // If status changed OR if result just became ready
+            if (updatedStatus !== selectedSessionForReview.reviewStatus || (updatedStatus === 'completed' && data.resultReady && !selectedReview)) {
               const updatedSession = { ...selectedSessionForReview, reviewStatus: updatedStatus };
               setSelectedSessionForReview(updatedSession);
               setHistory(prev => prev.map(item => item.id === updatedSession.id ? updatedSession : item));
@@ -576,12 +584,13 @@ export default function AppKetik() {
       };
 
       interval = setInterval(poll, 3000);
+      poll(); // Immediate first call
     }
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [selectedSessionForReview?.id, selectedSessionForReview?.reviewStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedSessionForReview?.id, selectedSessionForReview?.reviewStatus, !!selectedReview]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div data-module="ketik" className={`${theme.root} min-h-screen transition-colors duration-500 font-sans selection:bg-primary/20`}>
@@ -641,7 +650,7 @@ export default function AppKetik() {
                     <span>Usage Bulan Ini</span>
                     {sessionDelta && (sessionDelta.costIdr > 0 || sessionDelta.totalTokens > 0 || sessionDelta.totalCalls > 0) && (
                       <span className="ml-auto text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                        {sessionDelta.costIdr > 0 ? `+${formatCompactIdr(sessionDelta.costIdr)}` : `+${sessionDelta.totalCalls} call`} sesi terakhir
+                        {formatUsageDeltaLabel(sessionDelta)} sesi terakhir
                       </span>
                     )}
                   </motion.button>

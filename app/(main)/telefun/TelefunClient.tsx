@@ -16,7 +16,7 @@ import { generateScore } from './services/geminiService';
 import { persistTelefunSession, loadTelefunHistory, deleteTelefunSession, clearTelefunHistory, finalizeTelefunRecording } from './actions';
 import { SessionMetrics, VoiceQualityAssessment } from '@/app/types/voiceAssessment';
 import { getMyModuleUsage } from '@/app/actions/usage';
-import { type UsageSnapshot, computeUsageDelta, formatCompactIdr } from '@/app/lib/usage-snapshot';
+import { type UsageSnapshot, computeUsageDelta, formatUsageDeltaLabel } from '@/app/lib/usage-snapshot';
 import { createClient } from '@/app/lib/supabase/client';
 import ModuleWorkspaceIntro from '@/app/components/ModuleWorkspaceIntro';
 import { CallRecord } from './types';
@@ -499,9 +499,9 @@ export default function TelefunClient() {
                   >
                     <BarChart3 className="h-4 w-4 opacity-70" />
                     <span>Usage</span>
-                    {sessionDelta && sessionDelta.costIdr > 0 && (
+                    {sessionDelta && (sessionDelta.costIdr > 0 || sessionDelta.totalTokens > 0 || sessionDelta.totalCalls > 0) && (
                       <span className="ml-1 text-[9px] font-bold text-primary/70">
-                        +{formatCompactIdr(sessionDelta.costIdr)}
+                        {formatUsageDeltaLabel(sessionDelta)}
                       </span>
                     )}
                   </motion.button>
