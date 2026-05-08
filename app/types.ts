@@ -102,7 +102,7 @@ export interface ChatSession {
   probingScore?: number;
   typoScore?: number;
   complianceScore?: number;
-  reviewStatus?: 'pending' | 'completed' | 'failed';
+  reviewStatus?: 'pending' | 'processing' | 'completed' | 'failed';
 }
 
 export interface KetikSessionReview {

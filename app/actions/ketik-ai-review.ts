@@ -6,10 +6,6 @@ import { generateGeminiContent } from '@/app/actions/gemini';
 import { normalizeModelId } from '@/app/lib/ai-models';
 import { Type } from '@google/genai';
 
-/**
- * Interface for the AI Review response from Gemini.
- * Matches the schema we'll ask Gemini to generate.
- */
 interface AIReviewResponse {
   summary: string;
   strengths: string[];
@@ -31,12 +27,9 @@ interface AIReviewResponse {
 }
 
 export type KetikAIReviewResult =
-  | { status: 'completed' | 'skipped' }
+  | { status: 'completed' | 'skipped' | 'pending' }
   | { status: 'failed'; error: string };
 
-/**
- * Schema for Gemini to ensure structured JSON output.
- */
 const responseSchema = {
   type: Type.OBJECT,
   properties: {
@@ -74,7 +67,7 @@ const responseSchema = {
 
 /**
  * Triggers an asynchronous AI review for a KETIK session.
- * Evaluates the transcript and saves scores, summary, and typo findings to Supabase.
+ * Enqueues a job into ketik_review_jobs and lets the worker handle it.
  */
 export async function triggerKetikAIReview(sessionId: string): Promise<KetikAIReviewResult> {
   let supabaseAdmin: ReturnType<typeof createAdminClient> | null = null;
@@ -93,7 +86,7 @@ export async function triggerKetikAIReview(sessionId: string): Promise<KetikAIRe
       .from('ketik_history')
       .select('*')
       .eq('id', sessionId)
-      .eq('user_id', user.id) // Ensure ownership
+      .eq('user_id', user.id)
       .single();
 
     if (sessionError || !session) {
@@ -103,129 +96,161 @@ export async function triggerKetikAIReview(sessionId: string): Promise<KetikAIRe
 
     canMarkFailed = true;
 
-    // 3. Idempotency Check: Skip if already reviewed
     if (session.review_status === 'completed') {
-      console.log(`[triggerKetikAIReview] Session ${sessionId} already reviewed. Skipping.`);
       return { status: 'skipped' };
     }
 
-    // 4. Prepare Transcript for AI
-    const transcript = JSON.stringify(session.messages);
+    // Insert pending job
+    const { error: jobError } = await supabaseAdmin
+      .from('ketik_review_jobs')
+      .upsert({ session_id: sessionId, status: 'pending' }, { onConflict: 'session_id' });
 
-    const systemInstruction = `
-    You are an expert Quality Assurance (QA) and Coaching AI for a customer service contact center.
-    Review the customer service chat transcript between an Agent (user) and a Consumer (consumer).
+    if (jobError) throw jobError;
     
-    Evaluation Categories:
-    - Communication (naturalness, empathy, readability, professionalism)
-    - Probing (depth, relevance, chronology gathering)
-    - Resolution (clarity, actionable response, completeness)
-    - Compliance (no misinformation, no victim blaming, no rude wording)
-    - Typo & Writing (typo frequency, readability)
+    await supabaseAdmin.from('ketik_history').update({ review_status: 'pending' }).eq('id', sessionId);
 
-    Rules for Typo Detection:
-    - Ignore common Indonesian slang/informal words like 'yg', 'sy', 'kak', 'ga', 'gak', 'ok', 'oke'.
-    - Identify formal typos that affect professionalism or readability.
-    - Severity: 'minor' (small typo), 'medium' (repeated or confusing), 'critical' (changes meaning or unprofessional).
-  `;
-
-    // 5. Generate AI Content using centralized helper
-    const aiResponse = await generateGeminiContent({
-      model: normalizeModelId('gemini-3.1-flash-lite'),
-      systemInstruction,
-      contents: [{ role: 'user', parts: [{ text: `Transcript:\n${transcript}` }] }],
-      responseMimeType: "application/json",
-      responseSchema: responseSchema as any,
-      usageContext: { module: 'ketik', action: 'coaching_review' },
-      userId: session.user_id
-    });
-
-    if (!aiResponse.success || !aiResponse.text) {
-      throw new Error(aiResponse.error || "AI Response failed or empty");
-    }
-    
-    let reviewResult: AIReviewResponse;
-    try {
-      reviewResult = JSON.parse(aiResponse.text);
-      
-      // Verify minimal shape
-      if (
-        !reviewResult ||
-        typeof reviewResult !== 'object' ||
-        !reviewResult.scores ||
-        typeof reviewResult.scores.final !== 'number' ||
-        typeof reviewResult.summary !== 'string' ||
-        !Array.isArray(reviewResult.strengths) ||
-        !Array.isArray(reviewResult.weaknesses) ||
-        !Array.isArray(reviewResult.coachingFocus)
-      ) {
-        throw new Error('Invalid AI response shape');
-      }
-    } catch (_parseError) {
-      console.error("[triggerKetikAIReview] Failed to parse or validate AI response JSON:", aiResponse.text);
-      await supabaseAdmin.from('ketik_history').update({ review_status: 'failed' }).eq('id', sessionId);
-      return { status: 'failed', error: 'AI response JSON tidak valid atau format tidak sesuai.' };
-    }
-
-    // 6. Update ketik_history with Scores
-    const { error: updateError } = await supabaseAdmin
-      .from('ketik_history')
-      .update({
-        final_score: reviewResult.scores.final,
-        empathy_score: reviewResult.scores.empathy,
-        probing_score: reviewResult.scores.probing,
-        typo_score: reviewResult.scores.typo,
-        compliance_score: reviewResult.scores.compliance,
-        review_status: 'completed'
-      })
-      .eq('id', sessionId);
-
-    if (updateError) throw updateError;
-
-    // 7. Insert AI Review Summary (using session_id to maintain consistency)
-    // Cleanup existing if any (extra safety for idempotency)
-    await supabaseAdmin.from('ketik_session_reviews').delete().eq('session_id', sessionId);
-    
-    const { error: reviewInsertError } = await supabaseAdmin
-      .from('ketik_session_reviews')
-      .insert({
-        session_id: sessionId,
-        ai_summary: reviewResult.summary,
-        strengths: reviewResult.strengths,
-        weaknesses: reviewResult.weaknesses,
-        coaching_focus: reviewResult.coachingFocus
-      });
-
-    if (reviewInsertError) throw reviewInsertError;
-
-    // 8. Insert Typo Findings if any
-    await supabaseAdmin.from('ketik_typo_findings').delete().eq('session_id', sessionId);
-
-    if (reviewResult.typos && reviewResult.typos.length > 0) {
-      const typoInserts = reviewResult.typos.map(t => ({
-        session_id: sessionId,
-        message_id: t.messageId,
-        original_word: t.originalWord,
-        corrected_word: t.correctedWord,
-        severity: t.severity
-      }));
-
-      const { error: typoInsertError } = await supabaseAdmin
-        .from('ketik_typo_findings')
-        .insert(typoInserts);
-
-      if (typoInsertError) throw typoInsertError;
-    }
-
-    console.log(`[triggerKetikAIReview] AI Review completed successfully for session: ${sessionId}`);
-    return { status: 'completed' };
+    return { status: 'pending' };
 
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown AI review error';
-    console.error(`[triggerKetikAIReview] Error during AI Review for session: ${sessionId}`, error);
+    console.error(`[triggerKetikAIReview] Error during AI Review trigger for session: ${sessionId}`, error);
     if (supabaseAdmin && canMarkFailed) {
       await supabaseAdmin.from('ketik_history').update({ review_status: 'failed' }).eq('id', sessionId);
     }
     return { status: 'failed', error: message };
   }
+}
+
+/**
+ * Processes a review job synchronously. Used by the worker.
+ */
+export async function processKetikReviewJob(sessionId: string): Promise<KetikAIReviewResult> {
+  const supabaseAdmin = createAdminClient();
+  
+  // 1. Fetch ketik_history for messages
+  const { data: session, error: sessionError } = await supabaseAdmin
+    .from('ketik_history')
+    .select('*')
+    .eq('id', sessionId)
+    .single();
+
+  if (sessionError || !session) {
+    throw new Error('Session not found');
+  }
+
+  // 2. Prepare Transcript
+  const transcript = JSON.stringify(session.messages);
+
+  const systemInstruction = `
+  You are an expert Quality Assurance (QA) and Coaching AI for a customer service contact center.
+  Review the customer service chat transcript between an Agent (user) and a Consumer (consumer).
+  
+  Evaluation Categories:
+  - Communication (naturalness, empathy, readability, professionalism)
+  - Probing (depth, relevance, chronology gathering)
+  - Resolution (clarity, actionable response, completeness)
+  - Compliance (no misinformation, no victim blaming, no rude wording)
+  - Typo & Writing (typo frequency, readability)
+
+  Rules for Typo Detection:
+  - Ignore common Indonesian slang/informal words like 'yg', 'sy', 'kak', 'ga', 'gak', 'ok', 'oke'.
+  - Identify formal typos that affect professionalism or readability.
+  - Severity: 'minor' (small typo), 'medium' (repeated or confusing), 'critical' (changes meaning or unprofessional).
+  `;
+
+  // 3. Call AI
+  const aiResponse = await generateGeminiContent({
+    model: normalizeModelId('gemini-3.1-flash-lite'),
+    systemInstruction,
+    contents: [{ role: 'user', parts: [{ text: `Transcript:\n${transcript}` }] }],
+    responseMimeType: "application/json",
+    responseSchema: responseSchema as any,
+    usageContext: { module: 'ketik', action: 'coaching_review' },
+    userId: session.user_id
+  });
+
+  if (!aiResponse.success || !aiResponse.text) {
+    throw new Error(aiResponse.error || "AI Response failed or empty");
+  }
+  
+  let reviewResult: AIReviewResponse;
+  try {
+    reviewResult = JSON.parse(aiResponse.text);
+    
+    // Verify minimal shape
+    if (
+      !reviewResult ||
+      typeof reviewResult !== 'object' ||
+      !reviewResult.scores ||
+      typeof reviewResult.scores.final !== 'number' ||
+      typeof reviewResult.summary !== 'string' ||
+      !Array.isArray(reviewResult.strengths) ||
+      !Array.isArray(reviewResult.weaknesses) ||
+      !Array.isArray(reviewResult.coachingFocus)
+    ) {
+      throw new Error('Invalid AI response shape');
+    }
+  } catch (_parseError) {
+    console.error("[processKetikReviewJob] Failed to parse AI response JSON:", aiResponse.text);
+    throw new Error('AI response JSON tidak valid atau format tidak sesuai.');
+  }
+
+  // 4. Persist review rows FIRST to ketik_session_reviews and ketik_typo_findings
+  await supabaseAdmin.from('ketik_session_reviews').delete().eq('session_id', sessionId);
+  
+  const { error: reviewInsertError } = await supabaseAdmin
+    .from('ketik_session_reviews')
+    .insert({
+      session_id: sessionId,
+      ai_summary: reviewResult.summary,
+      strengths: reviewResult.strengths,
+      weaknesses: reviewResult.weaknesses,
+      coaching_focus: reviewResult.coachingFocus
+    });
+
+  if (reviewInsertError) throw reviewInsertError;
+
+  await supabaseAdmin.from('ketik_typo_findings').delete().eq('session_id', sessionId);
+
+  if (reviewResult.typos && reviewResult.typos.length > 0) {
+    const typoInserts = reviewResult.typos.map(t => ({
+      session_id: sessionId,
+      message_id: t.messageId,
+      original_word: t.originalWord,
+      corrected_word: t.correctedWord,
+      severity: t.severity
+    }));
+
+    const { error: typoInsertError } = await supabaseAdmin
+      .from('ketik_typo_findings')
+      .insert(typoInserts);
+
+    if (typoInsertError) throw typoInsertError;
+  }
+
+  // 5. Update ketik_history scores + review_status='completed' LAST
+  const { error: updateError } = await supabaseAdmin
+    .from('ketik_history')
+    .update({
+      final_score: reviewResult.scores.final,
+      empathy_score: reviewResult.scores.empathy,
+      probing_score: reviewResult.scores.probing,
+      typo_score: reviewResult.scores.typo,
+      compliance_score: reviewResult.scores.compliance,
+      review_status: 'completed'
+    })
+    .eq('id', sessionId);
+
+  if (updateError) throw updateError;
+
+  // 6. Update ketik_review_jobs.status='completed'
+  const { error: jobUpdateError } = await supabaseAdmin
+    .from('ketik_review_jobs')
+    .update({ status: 'completed' })
+    .eq('session_id', sessionId);
+
+  if (jobUpdateError) throw jobUpdateError;
+
+  console.log(`[processKetikReviewJob] AI Review completed successfully for session: ${sessionId}`);
+  return { status: 'completed' };
 }

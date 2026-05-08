@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/app/lib/supabase/server';
-import { triggerKetikAIReview } from '@/app/actions/ketik-ai-review';
 
 export const maxDuration = 60;
 
@@ -22,17 +21,56 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'sessionId is required' }, { status: 400 });
     }
 
-    const result = await triggerKetikAIReview(sessionId);
+    // 1. Verify session ownership
+    const { data: session, error: sessionError } = await supabase
+      .from('ketik_history')
+      .select('user_id, review_status')
+      .eq('id', sessionId)
+      .eq('user_id', user.id)
+      .single();
 
-    if (result.status === 'failed') {
-      return NextResponse.json({ error: result.error, status: 'failed' }, { status: 500 });
+    if (sessionError || !session) {
+      return NextResponse.json({ error: 'Session not found or unauthorized' }, { status: 403 });
     }
 
-    return NextResponse.json({ ok: true, status: result.status === 'skipped' ? 'completed' : result.status });
+    // 2. Check if job already exists
+    const { data: existingJob } = await supabase
+      .from('ketik_review_jobs')
+      .select('status')
+      .eq('session_id', sessionId)
+      .maybeSingle();
+
+    if (existingJob) {
+      if (session.review_status !== existingJob.status && session.review_status !== 'completed') {
+         await supabase.from('ketik_history').update({ review_status: existingJob.status }).eq('id', sessionId);
+      }
+      return NextResponse.json({ ok: true, status: existingJob.status });
+    }
+
+    // 3. Enqueue job
+    const { error: insertError } = await supabase
+      .from('ketik_review_jobs')
+      .insert({ session_id: sessionId, status: 'pending' });
+
+    if (insertError) {
+      throw insertError;
+    }
+
+    // 4. Update history status
+    const { error: updateError } = await supabase
+      .from('ketik_history')
+      .update({ review_status: 'processing' })
+      .eq('id', sessionId);
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    return NextResponse.json({ ok: true, status: 'processing' });
   } catch (error) {
-    console.error('[Ketik Review Route] Failed to review session:', error);
+    console.error('[Ketik Review Route] Failed to enqueue review session:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to review session' },
+      { error: error instanceof Error ? error.message : 'Failed to enqueue review session' },
       { status: 500 }
     );
   }

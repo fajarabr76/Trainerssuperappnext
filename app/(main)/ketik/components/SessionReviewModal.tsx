@@ -38,11 +38,12 @@ export const SessionReviewModal: React.FC<SessionReviewModalProps> = ({
   onStartReview
 }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const isProcessing = isAnalyzing || session.reviewStatus === 'pending' || session.reviewStatus === 'processing';
 
   if (!isOpen) return null;
 
   const handleAnalyze = async () => {
-    if (!onStartReview) return;
+    if (!onStartReview || isProcessing) return;
     setIsAnalyzing(true);
     try {
       await onStartReview(session.id);

@@ -145,16 +145,16 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, his
                           <div className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-black">Review AI</div>
                           <div className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-1.5 w-fit ${
                             session.reviewStatus === 'completed' ? 'bg-emerald-500/10 text-emerald-500' :
-                            session.reviewStatus === 'pending' ? 'bg-amber-500/10 text-amber-500 animate-pulse' :
+                            (session.reviewStatus === 'pending' || session.reviewStatus === 'processing') ? 'bg-amber-500/10 text-amber-500 animate-pulse' :
                             'bg-rose-500/10 text-rose-500'
                           }`}>
                             <div className={`w-1 h-1 rounded-full ${
                               session.reviewStatus === 'completed' ? 'bg-emerald-500' :
-                              session.reviewStatus === 'pending' ? 'bg-amber-500' :
+                              (session.reviewStatus === 'pending' || session.reviewStatus === 'processing') ? 'bg-amber-500' :
                               'bg-rose-500'
                             }`} />
                             {session.reviewStatus === 'completed' ? 'Selesai' :
-                             session.reviewStatus === 'pending' ? 'Proses' : 'Gagal'}
+                             (session.reviewStatus === 'pending' || session.reviewStatus === 'processing') ? 'Proses' : 'Gagal'}
                           </div>
                         </div>
                       )}

@@ -14,7 +14,7 @@ export interface PersistKetikSessionResult {
     consumer_phone: string;
     consumer_city: string;
     messages: ChatMessage[];
-    review_status?: 'pending' | 'completed' | 'failed';
+    review_status?: 'pending' | 'processing' | 'completed' | 'failed';
   };
   warning?: string;
   error?: string;

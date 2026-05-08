@@ -136,7 +136,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to evaluate session' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to evaluate session' },
       { status: 500 }
     );
   }

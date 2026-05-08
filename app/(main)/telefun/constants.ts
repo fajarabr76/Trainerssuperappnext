@@ -1,4 +1,5 @@
 import { AppSettings, Scenario, ConsumerType, ConsumerDifficulty, Identity, ConsumerIdentitySettings } from '@/app/types';
+import { normalizeModelId } from '@/app/lib/ai-models';
 
 const mergeWithDefaults = <T extends { id: string; isCustom?: boolean; description?: string }>(
   stored: T[],
@@ -39,7 +40,7 @@ export const parseTelefunSettings = (parsed: Record<string, unknown>): AppSettin
     city: (parsed.identitySettings as Record<string, unknown>)?.city as string || '',
     signatureName: (parsed.identitySettings as Record<string, unknown>)?.signatureName as string || '',
   },
-  selectedModel: (parsed.selectedModel as string) || 'gemini-3.1-flash-lite',
+  selectedModel: normalizeModelId((parsed.selectedModel as string) || 'gemini-3.1-flash-lite'),
   telefunModelId: (parsed.telefunModelId as string) || 'gemini-3.1-flash-live-preview',
   maxCallDuration: (parsed.maxCallDuration as number) || 5,
   responsePacingMode:
