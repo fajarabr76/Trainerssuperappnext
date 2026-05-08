@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { X, History, Trash2, ChevronRight, MessageSquare, Calendar, Clock, Database } from 'lucide-react';
+import { X, History, Trash2, ChevronRight, MessageSquare, Calendar, Clock, Database, Play } from 'lucide-react';
 import { ChatSession } from '@/app/types';
+import { SessionReplayModal } from './SessionReplayModal';
 
 interface HistoryModalProps {
   isOpen: boolean;
@@ -15,6 +16,8 @@ interface HistoryModalProps {
 }
 
 export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, history, onClear, onDelete, onReview }) => {
+  const [replaySession, setReplaySession] = useState<ChatSession | null>(null);
+
   if (!isOpen) return null;
 
   return (
@@ -104,12 +107,21 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, his
                         </div>
                       </div>
                     </div>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); onDelete(session.id); }}
-                      className="w-10 h-10 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-red-500/60 hover:text-red-500 rounded-xl transition-all"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setReplaySession(session); }}
+                        className="w-10 h-10 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-primary/10 text-primary/60 hover:text-primary rounded-xl transition-all"
+                        title="Replay Sesi"
+                      >
+                        <Play className="w-4 h-4 fill-current" />
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onDelete(session.id); }}
+                        className="w-10 h-10 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-red-500/60 hover:text-red-500 rounded-xl transition-all"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="mt-5 pt-4 border-t border-border/50 flex items-center justify-between relative z-10">
@@ -147,6 +159,15 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, his
           </p>
         </footer>
       </motion.div>
+
+      {/* Session Replay Overlay */}
+      <SessionReplayModal 
+        isOpen={!!replaySession}
+        onClose={() => setReplaySession(null)}
+        messages={replaySession?.messages || []}
+        scenarioTitle={replaySession?.scenarioTitle}
+        consumerName={replaySession?.consumerName}
+      />
     </div>
   );
 };

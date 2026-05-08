@@ -3,6 +3,7 @@
 import { createClient } from '@/app/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { ChatMessage } from '@/app/types';
+import { triggerKetikAIReview } from '@/app/actions/ketik-ai-review';
 
 export interface PersistKetikSessionResult {
   success: boolean;
@@ -51,6 +52,11 @@ export async function persistKetikSession(params: {
       error: historyError?.message || 'Gagal menyimpan riwayat Ketik.',
     };
   }
+
+  // Trigger AI Review asynchronously
+  triggerKetikAIReview(historyData.id).catch(err => {
+    console.error(`[Ketik Persistence] Failed to trigger AI Review for ${historyData.id}:`, err);
+  });
 
   let resultsWarning: string | undefined;
 
