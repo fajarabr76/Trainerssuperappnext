@@ -27,7 +27,7 @@ interface AIReviewResponse {
 }
 
 export type KetikAIReviewResult =
-  | { status: 'completed' | 'skipped' | 'pending' }
+  | { status: 'completed' | 'skipped' | 'queued' | 'processing' }
   | { status: 'failed'; error: string };
 
 const responseSchema = {
@@ -100,16 +100,25 @@ export async function triggerKetikAIReview(sessionId: string): Promise<KetikAIRe
       return { status: 'skipped' };
     }
 
-    // Insert pending job
+    // Insert/refresh queued job
     const { error: jobError } = await supabaseAdmin
       .from('ketik_review_jobs')
-      .upsert({ session_id: sessionId, status: 'pending' }, { onConflict: 'session_id' });
+      .upsert(
+        {
+          session_id: sessionId,
+          status: 'queued',
+          lease_owner: null,
+          lease_expires_at: null,
+          error_message: null,
+        },
+        { onConflict: 'session_id' }
+      );
 
     if (jobError) throw jobError;
     
     await supabaseAdmin.from('ketik_history').update({ review_status: 'pending' }).eq('id', sessionId);
 
-    return { status: 'pending' };
+    return { status: 'queued' };
 
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown AI review error';
@@ -246,7 +255,7 @@ export async function processKetikReviewJob(sessionId: string): Promise<KetikAIR
   // 6. Update ketik_review_jobs.status='completed'
   const { error: jobUpdateError } = await supabaseAdmin
     .from('ketik_review_jobs')
-    .update({ status: 'completed' })
+    .update({ status: 'completed', lease_owner: null, lease_expires_at: null })
     .eq('session_id', sessionId);
 
   if (jobUpdateError) throw jobUpdateError;

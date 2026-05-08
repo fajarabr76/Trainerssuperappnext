@@ -6,13 +6,14 @@ export const maxDuration = 300;
 
 export async function GET(req: Request) {
   const supabaseAdmin = createAdminClient();
+  const workerId = req.headers.get('x-worker-id') || `ketik-worker-${Date.now()}`;
 
-  // Fetch 1 job
-  // We want status = 'pending' OR (status = 'processing' AND leased_until < now())
-  const { data: job, error: jobError } = await supabaseAdmin
+  // Fetch oldest claimable job candidate
+  const nowIso = new Date().toISOString();
+  const { data: candidate, error: jobError } = await supabaseAdmin
     .from('ketik_review_jobs')
-    .select('*')
-    .or('status.eq.pending,and(status.eq.processing,leased_until.lt.now())')
+    .select('id, session_id, status, attempt_count, lease_expires_at')
+    .or(`status.eq.queued,and(status.eq.processing,lease_expires_at.lt.${nowIso})`)
     .order('created_at', { ascending: true })
     .limit(1)
     .maybeSingle();
@@ -21,38 +22,50 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Failed to fetch job' }, { status: 500 });
   }
 
-  if (!job) {
+  if (!candidate) {
     return NextResponse.json({ message: 'No jobs to process' }, { status: 200 });
   }
 
-  // Increment attempt_count
-  const attempt_count = (job.attempt_count || 0) + 1;
+  const nextAttempt = (candidate.attempt_count || 0) + 1;
 
-  if (attempt_count >= 3) {
+  if (nextAttempt >= 3) {
     // Fail job
     await supabaseAdmin
       .from('ketik_review_jobs')
-      .update({ status: 'failed', error_message: 'Max attempts reached' })
-      .eq('id', job.id);
+      .update({
+        status: 'failed',
+        error_message: 'Max attempts reached',
+      })
+      .eq('id', candidate.id);
       
     await supabaseAdmin
       .from('ketik_history')
       .update({ review_status: 'failed' })
-      .eq('id', job.session_id);
+      .eq('id', candidate.session_id);
 
     return NextResponse.json({ message: 'Job failed: max attempts reached' }, { status: 200 });
   }
 
-  // Claim lease: set status = 'processing', leased_until = now() + 5 minutes
-  const leased_until = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-  await supabaseAdmin
+  // Atomic-ish claim: only one worker can transition to processing on this row version.
+  const leaseExpiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+  const { error: claimError } = await supabaseAdmin
     .from('ketik_review_jobs')
-    .update({ status: 'processing', leased_until, attempt_count })
-    .eq('id', job.id);
+    .update({
+      status: 'processing',
+      lease_owner: workerId,
+      lease_expires_at: leaseExpiresAt,
+      attempt_count: nextAttempt,
+      error_message: null,
+    })
+    .eq('id', candidate.id);
+
+  if (claimError) {
+    return NextResponse.json({ error: 'Failed to claim job', detail: claimError.message }, { status: 500 });
+  }
 
   try {
     // Process the review
-    await processKetikReviewJob(job.session_id);
+    await processKetikReviewJob(candidate.session_id);
     
     // The processKetikReviewJob handles marking job as completed
     return NextResponse.json({ message: 'Job processed successfully' }, { status: 200 });
@@ -62,13 +75,18 @@ export async function GET(req: Request) {
     // Catch processing error and mark failed
     await supabaseAdmin
       .from('ketik_review_jobs')
-      .update({ status: 'failed', error_message })
-      .eq('id', job.id);
+      .update({
+        status: 'failed',
+        error_message,
+        lease_owner: null,
+        lease_expires_at: null,
+      })
+      .eq('id', candidate.id);
       
     await supabaseAdmin
       .from('ketik_history')
       .update({ review_status: 'failed' })
-      .eq('id', job.session_id);
+      .eq('id', candidate.session_id);
       
     return NextResponse.json({ message: 'Job processed with error', error: error_message }, { status: 200 });
   }

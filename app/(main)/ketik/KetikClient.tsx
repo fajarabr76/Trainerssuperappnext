@@ -92,7 +92,12 @@ function mapResultRowToKetikSession(item: Record<string, unknown>): ChatSession 
     probingScore: typeof details.probing_score === 'number' ? details.probing_score : undefined,
     typoScore: typeof details.typo_score === 'number' ? details.typo_score : undefined,
     complianceScore: typeof details.compliance_score === 'number' ? details.compliance_score : undefined,
-    reviewStatus: (details.review_status === 'pending' || details.review_status === 'completed' || details.review_status === 'failed') ? details.review_status : undefined,
+    reviewStatus: (
+      details.review_status === 'pending' ||
+      details.review_status === 'processing' ||
+      details.review_status === 'completed' ||
+      details.review_status === 'failed'
+    ) ? details.review_status : undefined,
   };
 }
 

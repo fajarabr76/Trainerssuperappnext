@@ -50,9 +50,13 @@ export async function POST(request: Request) {
     // 3. Enqueue job
     const { error: insertError } = await supabase
       .from('ketik_review_jobs')
-      .insert({ session_id: sessionId, status: 'pending' });
+      .insert({ session_id: sessionId, status: 'queued' });
 
     if (insertError) {
+      // Duplicate insert race: treat as idempotent success.
+      if ((insertError as { code?: string }).code === '23505') {
+        return NextResponse.json({ ok: true, status: 'processing' });
+      }
       throw insertError;
     }
 

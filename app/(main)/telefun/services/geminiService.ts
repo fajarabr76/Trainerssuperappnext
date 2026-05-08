@@ -12,7 +12,7 @@ import {
   markWaitingForModel,
   type StalledResponseState,
 } from './stalledResponseGuards';
-import { normalizeModelId } from '@/app/lib/ai-models';
+import { getProviderFromModelId, normalizeModelId } from '@/app/lib/ai-models';
 
 const _STABLE_VOICE_MAP = {
   male: 'Fenrir',
@@ -1408,6 +1408,35 @@ ${s.script}\n` : ''}
   }
 }
 
+async function callTelefunTextAI(options: {
+  model: string;
+  systemInstruction: string;
+  contents: { role: string; parts: { text: string }[] }[];
+  temperature?: number;
+  responseMimeType?: string;
+  usageContext: { module: 'telefun'; action: string };
+  userId?: string;
+}) {
+  const normalizedModel = normalizeModelId(options.model);
+  const provider = getProviderFromModelId(normalizedModel);
+  const payload = {
+    model: normalizedModel,
+    systemInstruction: options.systemInstruction,
+    contents: options.contents,
+    temperature: options.temperature,
+    responseMimeType: options.responseMimeType,
+    usageContext: options.usageContext,
+    userId: options.userId,
+  };
+
+  if (provider === 'openrouter') {
+    const { generateOpenRouterContent } = await import('@/app/actions/openrouter');
+    return generateOpenRouterContent(payload);
+  }
+
+  return generateGeminiContent(payload);
+}
+
 /**
  * Menghasilkan respon suara konsumen menggunakan Gemini 2.5 Flash TTS
  */
@@ -1496,8 +1525,8 @@ ${scenario.script}`
   }));
 
   try {
-    const response = await generateGeminiContent({
-      model: normalizeModelId(config.selectedModel || "gemini-3.1-flash-lite"),
+    const response = await callTelefunTextAI({
+      model: config.selectedModel || "gemini-3.1-flash-lite",
       contents: contents,
       systemInstruction,
       temperature: 0.7,
@@ -1548,8 +1577,8 @@ ${scenario.script}`
   `;
 
   try {
-    const response = await generateGeminiContent({
-      model: normalizeModelId(config.selectedModel || "gemini-3.1-flash-lite"),
+    const response = await callTelefunTextAI({
+      model: config.selectedModel || "gemini-3.1-flash-lite",
       contents: [{ role: 'user', parts: [{ text: "Berikan pesan pembuka telepon." }] }],
       systemInstruction,
       temperature: 0.7,
@@ -1590,8 +1619,8 @@ export const generateScore = async (
   `;
 
   try {
-    const response = await generateGeminiContent({
-      model: normalizeModelId("gemini-3.1-flash-lite"),
+    const response = await callTelefunTextAI({
+      model: config.selectedModel || "gemini-3.1-flash-lite",
       contents: [{ role: 'user', parts: [{ text: "Berikan penilaian untuk simulasi telepon." }] }],
       systemInstruction,
       responseMimeType: "application/json",

@@ -1,5 +1,5 @@
 import { AppSettings, Scenario, ConsumerType, ConsumerDifficulty, Identity, ConsumerIdentitySettings } from '@/app/types';
-import { normalizeModelId } from '@/app/lib/ai-models';
+import { normalizeModelId, TELEFUN_AUDIO_MODELS } from '@/app/lib/ai-models';
 
 const mergeWithDefaults = <T extends { id: string; isCustom?: boolean; description?: string }>(
   stored: T[],
@@ -41,7 +41,9 @@ export const parseTelefunSettings = (parsed: Record<string, unknown>): AppSettin
     signatureName: (parsed.identitySettings as Record<string, unknown>)?.signatureName as string || '',
   },
   selectedModel: normalizeModelId((parsed.selectedModel as string) || 'gemini-3.1-flash-lite'),
-  telefunModelId: (parsed.telefunModelId as string) || 'gemini-3.1-flash-live-preview',
+  telefunModelId: TELEFUN_AUDIO_MODELS.some((m) => m.id === (parsed.telefunModelId as string))
+    ? (parsed.telefunModelId as string)
+    : 'gemini-3.1-flash-live-preview',
   maxCallDuration: (parsed.maxCallDuration as number) || 5,
   responsePacingMode:
     (parsed.responsePacingMode === 'realistic' || parsed.responsePacingMode === 'training_fast')

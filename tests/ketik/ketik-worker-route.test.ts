@@ -147,7 +147,12 @@ describe('GET /api/ketik/worker', () => {
 
     expect(res.status).toBe(200); // the worker successfully caught the error
     expect(json.message).toBe('Job processed with error');
-    expect(mockAdminUpdateJob).toHaveBeenCalledWith({ status: 'failed', error_message: 'AI error' });
+    expect(mockAdminUpdateJob).toHaveBeenLastCalledWith({
+      status: 'failed',
+      error_message: 'AI error',
+      lease_owner: null,
+      lease_expires_at: null,
+    });
     expect(mockAdminUpdateHistory).toHaveBeenCalledWith({ review_status: 'failed' });
   });
 });

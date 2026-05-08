@@ -57,5 +57,10 @@ export async function GET(req: Request) {
     }
   }
 
+  // Queue lifecycle is internal; UI should treat queued as processing.
+  if (status === 'queued') {
+    status = 'processing';
+  }
+
   return NextResponse.json({ status, resultReady });
 }
