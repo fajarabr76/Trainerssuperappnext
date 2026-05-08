@@ -15,14 +15,14 @@ export const AI_MODELS = [
     provider: 'gemini' as const,
   },
   {
-    id: 'gemini-2.5-flash-lite',
-    name: 'Gemini 2.5 Flash Lite',
-    description: 'Model ringan Gemini 2.5 untuk respons cepat dan hemat biaya.',
+    id: 'gemini-2.0-flash-lite',
+    name: 'Gemini 2.0 Flash Lite',
+    description: 'Model ringan Gemini 2.0 untuk respons cepat dan hemat biaya.',
     provider: 'gemini' as const,
   },
   {
-    id: 'gemini-2.5-flash-preview-tts',
-    name: 'Gemini 2.5 Flash TTS',
+    id: 'gemini-2.0-flash-preview-tts',
+    name: 'Gemini 2.0 Flash TTS',
     description: 'Model Gemini untuk text-to-speech di Telefun.',
     provider: 'gemini' as const,
   },
@@ -40,9 +40,9 @@ export const AI_MODELS = [
     provider: 'openrouter' as const,
   },
   {
-    id: 'google/gemini-2.5-flash-lite',
-    name: 'Gemini 2.5 Flash Lite',
-    description: 'Model Gemini 2.5 ringan untuk respons cepat dan hemat biaya via OpenRouter.',
+    id: 'google/gemini-2.0-flash-lite',
+    name: 'Gemini 2.0 Flash Lite',
+    description: 'Model Gemini 2.0 ringan untuk respons cepat dan hemat biaya via OpenRouter.',
     provider: 'openrouter' as const,
   },
   {

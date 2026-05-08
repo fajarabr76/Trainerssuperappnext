@@ -224,7 +224,7 @@ Catatan:
 - Login sebagai `leader`; pastikan tab `Penggunaan Token` ada, tetapi tab `Harga & Kurs` tidak ada
 - Uji race condition: mulai sesi baru sebelum fetch baseline sesi sebelumnya selesai, pastikan delta yang ditampilkan sesuai dengan sesi terakhir (bukan sesi sebelumnya)
 - Buka tab `Penggunaan Token`, pastikan tabel breakdown menampilkan kolom Pengguna, Modul, dan Model secara terpisah
-- Pastikan model yang sama di modul berbeda (misal `gemini-2.5-flash` di `ketik` dan `pdkt`) muncul sebagai baris breakdown terpisah
+- Pastikan model yang sama di modul berbeda (misal `gemini-2.0-flash-lite` di `ketik` dan `pdkt`) muncul sebagai baris breakdown terpisah
 - Pilih satu pengguna dari dropdown breakdown, lalu ganti bulan/filter/search; pastikan jika pengguna tersebut tidak ada di data baru, dropdown auto-reset ke `Semua Pengguna`
 - Ketik di kolom `Cari pengguna...` menggunakan nama atau email; pastikan hasil filter mencakup kecocokan di kedua field
 

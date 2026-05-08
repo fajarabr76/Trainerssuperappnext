@@ -90,10 +90,8 @@ export const DEFAULT_CONSUMER_TYPES: ConsumerType[] = [
   }
 ];
 
-export const AI_MODELS = [
-  { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite', description: 'Cepat dan efisien untuk percakapan natural.' },
-  { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', description: 'Lebih cerdas untuk skenario yang sangat kompleks.' }
-];
+// AI Models definition is now shared from lib/ai-models
+export { AI_MODELS } from './lib/ai-models';
 
 export const TEMPLATE_GREETING = "Selamat pagi/siang/sore Bapak/Ibu. Terima kasih telah menghubungi Kontak OJK 157. Ada yang bisa kami bantu?";
 

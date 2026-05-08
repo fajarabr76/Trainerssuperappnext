@@ -12,7 +12,7 @@ export const defaultTelefunSettings: AppSettings = {
     city: '',
     signatureName: '',
   },
-  selectedModel: 'gemini-3.1-flash-lite-preview',
+  selectedModel: 'gemini-3.1-flash-lite',
   telefunModelId: 'gemini-3.1-flash-live-preview',
   maxCallDuration: 5,
   responsePacingMode: 'realistic',
