@@ -3,12 +3,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Play, Pause, ChevronLeft, ChevronRight, RotateCcw, MessageSquare, Clock } from 'lucide-react';
-import { ChatMessage } from '@/app/types';
+import { ChatMessage, KetikTypoFinding } from '@/app/types';
 
 interface SessionReplayModalProps {
   isOpen: boolean;
   onClose: () => void;
   messages: ChatMessage[];
+  typos?: KetikTypoFinding[];
   scenarioTitle?: string;
   consumerName?: string;
 }
@@ -17,12 +18,59 @@ export const SessionReplayModal: React.FC<SessionReplayModalProps> = ({
   isOpen, 
   onClose, 
   messages,
+  typos = [],
   scenarioTitle = 'Session Replay',
   consumerName = 'Consumer'
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const renderTextWithHighlights = (text: string, messageId?: string) => {
+    if (!messageId || !typos || typos.length === 0) return text;
+    const messageTypos = typos.filter(t => t.messageId === messageId);
+    if (messageTypos.length === 0) return text;
+
+    let parts: (string | React.ReactNode)[] = [text];
+    
+    messageTypos.forEach((typo) => {
+      const newParts: (string | React.ReactNode)[] = [];
+      parts.forEach((part) => {
+        if (typeof part === 'string') {
+          const escapedWord = typo.originalWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const regex = new RegExp(`(${escapedWord})`, 'gi');
+          
+          const split = part.split(regex);
+          for (let i = 0; i < split.length; i++) {
+            if (i % 2 === 1) { // Match
+              newParts.push(
+                <span 
+                  key={`${typo.id}-${i}`}
+                  className="relative group/typo cursor-help inline-block"
+                >
+                  <span className="underline decoration-red-400 decoration-wavy underline-offset-4 bg-red-400/5 px-0.5 rounded transition-colors group-hover/typo:bg-red-400/10">
+                    {split[i]}
+                  </span>
+                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg opacity-0 group-hover/typo:opacity-100 transition-opacity whitespace-nowrap z-[210] shadow-xl pointer-events-none border border-white/10">
+                    <span className="text-white/50 mr-1 italic">Saran:</span>
+                    <span className="text-green-400">{typo.correctedWord}</span>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-slate-900" />
+                  </span>
+                </span>
+              );
+            } else if (split[i]) {
+              newParts.push(split[i]);
+            }
+          }
+        } else {
+          newParts.push(part);
+        }
+      });
+      parts = newParts;
+    });
+    
+    return parts;
+  };
 
   // Auto-play logic
   useEffect(() => {
@@ -151,7 +199,7 @@ export const SessionReplayModal: React.FC<SessionReplayModalProps> = ({
                       }`}
                     >
                       <div className="font-medium whitespace-pre-wrap break-words">
-                        {msg.text}
+                        {renderTextWithHighlights(msg.text, msg.id)}
                       </div>
                       <div className={`text-[8px] font-black uppercase tracking-widest mt-2 flex items-center gap-1.5 opacity-60 ${isAgent ? 'justify-end' : 'justify-start'}`}>
                         <Clock className="w-2.5 h-2.5" />
