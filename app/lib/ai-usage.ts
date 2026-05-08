@@ -44,13 +44,19 @@ export async function logAiUsage(options: {
     let outputPricePerMillion = 0;
     const usdToIdrRate = billing?.usd_to_idr_rate ?? 15000;
 
+    const IS_LIVE_MODEL = normalizedModelId.includes('live');
+    const DEFAULT_INPUT = IS_LIVE_MODEL ? 3.0 : 0;
+    const DEFAULT_OUTPUT = IS_LIVE_MODEL ? 12.0 : 0;
+
     if (!pricing) {
       console.warn(
-        `[AI Usage] No pricing found for model "${normalizedModelId}". Token count logged but billing will be 0 IDR until admin configures pricing in the editor.`
+        `[AI Usage] No pricing found for model "${normalizedModelId}". Using fallback of ${DEFAULT_INPUT}/${DEFAULT_OUTPUT} USD.`
       );
+      inputPricePerMillion = DEFAULT_INPUT;
+      outputPricePerMillion = DEFAULT_OUTPUT;
     } else {
-      inputPricePerMillion = pricing.input_price_usd_per_million ?? 0;
-      outputPricePerMillion = pricing.output_price_usd_per_million ?? 0;
+      inputPricePerMillion = pricing.input_price_usd_per_million ?? DEFAULT_INPUT;
+      outputPricePerMillion = pricing.output_price_usd_per_million ?? DEFAULT_OUTPUT;
     }
 
     const estimatedCostUsd =
