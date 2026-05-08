@@ -119,6 +119,82 @@ export default function AppKetik() {
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [selectedSessionForReview, setSelectedSessionForReview] = useState<ChatSession | null>(null);
 
+  const handleStartManualReview = async (sessionId: string) => {
+    try {
+      const reviewResponse = await fetch('/api/ketik/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId }),
+      });
+
+      if (!reviewResponse.ok) {
+        const payload = await reviewResponse.json().catch(() => null);
+        console.warn('[Ketik] AI review failed:', payload);
+        alert('Gagal memulai analisis AI. Silakan coba lagi.');
+        return;
+      }
+
+      // Fetch updated session and review details
+      const { data: refreshedSession, error: refreshError } = await supabase
+        .from('ketik_history')
+        .select('id, date, created_at, scenario_title, consumer_name, consumer_phone, consumer_city, messages, final_score, empathy_score, probing_score, typo_score, compliance_score, review_status')
+        .eq('id', sessionId)
+        .maybeSingle();
+
+      if (!refreshError && refreshedSession) {
+        const updatedSession: ChatSession = {
+          id: refreshedSession.id,
+          date: safeDate(refreshedSession.date ?? refreshedSession.created_at),
+          scenarioTitle: refreshedSession.scenario_title || 'Simulation Chat',
+          consumerName: refreshedSession.consumer_name || 'Consumer',
+          consumerPhone: refreshedSession.consumer_phone,
+          consumerCity: refreshedSession.consumer_city,
+          messages: Array.isArray(refreshedSession.messages) ? refreshedSession.messages : [],
+          finalScore: refreshedSession.final_score,
+          empathyScore: refreshedSession.empathy_score,
+          probingScore: refreshedSession.probing_score,
+          typoScore: refreshedSession.typo_score,
+          complianceScore: refreshedSession.compliance_score,
+          reviewStatus: (refreshedSession.review_status === 'pending' || refreshedSession.review_status === 'completed' || refreshedSession.review_status === 'failed') ? refreshedSession.review_status : undefined,
+        };
+
+        setHistory(prev => prev.map(item => item.id === updatedSession.id ? updatedSession : item));
+        setSelectedSessionForReview(updatedSession);
+
+        if (updatedSession.reviewStatus === 'completed') {
+          const { data: reviewData } = await supabase.from('ketik_session_reviews').select('*').eq('session_id', sessionId).maybeSingle();
+          const { data: typosData } = await supabase.from('ketik_typo_findings').select('*').eq('session_id', sessionId);
+
+          if (reviewData) {
+            setSelectedReview({
+              id: reviewData.id,
+              sessionId: reviewData.session_id,
+              aiSummary: reviewData.ai_summary,
+              strengths: reviewData.strengths,
+              weaknesses: reviewData.weaknesses,
+              coachingFocus: reviewData.coaching_focus,
+              createdAt: reviewData.created_at,
+            });
+          }
+          if (typosData) {
+            setSelectedTypos(typosData.map(t => ({
+              id: t.id,
+              sessionId: t.session_id,
+              messageId: t.message_id,
+              originalWord: t.original_word,
+              correctedWord: t.corrected_word,
+              severity: t.severity,
+              createdAt: t.created_at,
+            })));
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[Ketik] Error starting manual review:', error);
+      alert('Terjadi kesalahan saat memulai analisis.');
+    }
+  };
+
   const sessionBaselineRef = useRef<UsageSnapshot | null>(null);
   const sessionRunIdRef = useRef(0);
 
@@ -349,7 +425,7 @@ export default function AppKetik() {
             console.warn('[Ketik] Session saved with warning:', result.warning);
           }
           if (result.session) {
-            setHistory(prev => [{
+            const newSession: ChatSession = {
               id: result.session!.id,
               date: safeDate(result.session!.date),
               scenarioTitle: result.session!.scenario_title,
@@ -358,43 +434,15 @@ export default function AppKetik() {
               consumerCity: result.session!.consumer_city,
               messages: result.session!.messages,
               reviewStatus: result.session!.review_status ?? 'pending',
-            }, ...prev]);
+            };
+            
+            setHistory(prev => [newSession, ...prev]);
 
-            const reviewResponse = await fetch('/api/ketik/review', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ sessionId: result.session.id }),
-            });
-
-            if (!reviewResponse.ok) {
-              const payload = await reviewResponse.json().catch(() => null);
-              console.warn('[Ketik] AI review failed to complete:', payload);
-            }
-
-            const { data, error } = await supabase
-              .from('ketik_history')
-              .select('id, user_id, date, created_at, scenario_title, consumer_name, consumer_phone, consumer_city, messages, final_score, empathy_score, probing_score, typo_score, compliance_score, review_status')
-              .eq('user_id', user.id)
-              .order('date', { ascending: false })
-              .limit(50);
-
-            if (!error) {
-              setHistory((data || []).map((item) => ({
-                id: item.id,
-                date: safeDate(item.date ?? item.created_at),
-                scenarioTitle: item.scenario_title || 'Simulation Chat',
-                consumerName: item.consumer_name || 'Consumer',
-                consumerPhone: item.consumer_phone,
-                consumerCity: item.consumer_city,
-                messages: Array.isArray(item.messages) ? item.messages : [],
-                finalScore: item.final_score,
-                empathyScore: item.empathy_score,
-                probingScore: item.probing_score,
-                typoScore: item.typo_score,
-                complianceScore: item.compliance_score,
-                reviewStatus: item.review_status,
-              })));
-            }
+            // Open review modal immediately (Manual trigger state)
+            setSelectedSessionForReview(newSession);
+            setIsReviewOpen(true);
+            setSelectedReview(null);
+            setSelectedTypos([]);
           }
         }
       } catch (error) {
@@ -469,45 +517,12 @@ export default function AppKetik() {
   const handleViewReview = async (session: ChatSession) => {
     setSelectedSessionForReview(session);
 
-    if (session.reviewStatus === 'pending') {
-      const reviewResponse = await fetch('/api/ketik/review', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: session.id }),
-      });
-
-      if (!reviewResponse.ok) {
-        const payload = await reviewResponse.json().catch(() => null);
-        console.warn('[Ketik] Pending AI review retry failed:', payload);
-      }
-
-      const { data: refreshedSession, error: refreshError } = await supabase
-        .from('ketik_history')
-        .select('id, date, created_at, scenario_title, consumer_name, consumer_phone, consumer_city, messages, final_score, empathy_score, probing_score, typo_score, compliance_score, review_status')
-        .eq('id', session.id)
-        .maybeSingle();
-
-      if (!refreshError && refreshedSession) {
-        const updatedSession: ChatSession = {
-          id: refreshedSession.id,
-          date: safeDate(refreshedSession.date ?? refreshedSession.created_at),
-          scenarioTitle: refreshedSession.scenario_title || 'Simulation Chat',
-          consumerName: refreshedSession.consumer_name || 'Consumer',
-          consumerPhone: refreshedSession.consumer_phone,
-          consumerCity: refreshedSession.consumer_city,
-          messages: Array.isArray(refreshedSession.messages) ? refreshedSession.messages : [],
-          finalScore: refreshedSession.final_score,
-          empathyScore: refreshedSession.empathy_score,
-          probingScore: refreshedSession.probing_score,
-          typoScore: refreshedSession.typo_score,
-          complianceScore: refreshedSession.compliance_score,
-          reviewStatus: refreshedSession.review_status,
-        };
-
-        setHistory(prev => prev.map(item => item.id === updatedSession.id ? updatedSession : item));
-        session = updatedSession;
-        setSelectedSessionForReview(updatedSession);
-      }
+    // If not completed, just open the modal (which will show the manual trigger button)
+    if (session.reviewStatus === 'pending' || session.reviewStatus === 'failed' || !session.reviewStatus) {
+      setIsReviewOpen(true);
+      setSelectedReview(null);
+      setSelectedTypos([]);
+      return;
     }
     
     if (session.reviewStatus === 'completed') {
@@ -668,6 +683,7 @@ export default function AppKetik() {
           review={selectedReview || undefined}
           typos={selectedTypos}
           onReplay={() => handleReviewHistory(selectedSessionForReview)}
+          onStartReview={handleStartManualReview}
         />
       )}
     </div>
