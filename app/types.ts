@@ -88,24 +88,31 @@ export interface ChatSession {
   consumerPhone?: string;
   consumerCity?: string;
   messages: ChatMessage[];
+  // New score fields
+  finalScore?: number;
+  empathyScore?: number;
+  probingScore?: number;
+  typoScore?: number;
+  complianceScore?: number;
+  reviewStatus?: 'pending' | 'completed' | 'failed';
 }
 
 export interface KetikSessionReview {
   id: string;
-  session_id: string;
-  ai_summary: string;
+  sessionId: string;
+  aiSummary: string;
   strengths: string[];
   weaknesses: string[];
-  coaching_focus: string[];
-  created_at: string;
+  coachingFocus: string[];
+  createdAt: string;
 }
 
 export interface KetikTypoFinding {
   id: string;
-  session_id: string;
-  message_id: string;
-  original_word: string;
-  corrected_word: string;
+  sessionId: string;
+  messageId: string;
+  originalWord: string;
+  correctedWord: string;
   severity: 'minor' | 'medium' | 'critical';
-  created_at: string;
+  createdAt: string;
 }
