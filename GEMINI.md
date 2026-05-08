@@ -114,8 +114,10 @@ Telefun live simulation runs as a standalone Node.js service (in `apps/telefun-s
 
 - **Architecture:** Follows Next.js App Router paradigm
 - **Type Safety:** Avoid `any`. Use `unknown` and proper type casting. Leverage centralized types (e.g., `app/types/auth.ts`)
-- **Supabase Data Handling:** Use unwrap helpers (like `unwrapIndicator`, `unwrapPeriod`) for type safety when dealing with dynamic data
-- **UI/UX:** Use Tailwind CSS and existing UI components. Consult `docs/design-guidelines.md`
+- **Supabase Data Handling**: Use unwrap helpers (like `unwrapIndicator`, `unwrapPeriod`) for type safety when dealing with dynamic data
+- **KETIK Manual Review**: Review AI pada modul KETIK bersifat **manual-only**. Endpoint `POST /api/ketik/review` hanya memasukkan job ke antrean; pemrosesan sebenarnya tidak boleh otomatis dipicu segera setelah sesi selesai untuk menjaga kontrol penuh di tangan user.
+- **UI/UX**: Use Tailwind CSS and existing UI components. Consult `docs/design-guidelines.md`
+
 - **Dependency Management:** Do not add new dependencies without explicit instruction
 - **State Management:** Be cautious with `useEffect` dependency arrays to avoid infinite loops
 

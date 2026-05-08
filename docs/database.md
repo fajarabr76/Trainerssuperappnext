@@ -75,6 +75,7 @@ Menyimpan hasil simulasi legacy/kompatibilitas dari modul Ketik dan Telefun, ser
 
 **Catatan Kontrak Billing:**
 - Histori biaya tidak dihitung ulang dari setting terbaru. Snapshot harga dan kurs disimpan langsung pada row usage.
+- **Kebijakan Backfill Terbatas**: Jika ditemukan data penggunaan pada **bulan berjalan** (WIB) yang bernilai `Rp0` padahal token positif, sistem mendukung koreksi harga/biaya secara retrospektif menggunakan pricing terbaru. Log lama di luar bulan berjalan tidak disentuh untuk menjaga audit trail.
 - Request gagal, timeout, atau 429 final tidak boleh membuat row usage baru.
 - Jika provider tidak mengembalikan metadata token atau pricing model belum tersedia, flow user tetap lanjut tetapi usage tidak dicatat.
 - Akses monitoring lintas akun dilakukan server-side dengan `createAdminClient()`, bukan direct browser read.
