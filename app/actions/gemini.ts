@@ -89,7 +89,7 @@ export async function generateGeminiContent(options: {
       throw new Error("GEMINI_API_KEY is not set in environment variables");
     }
     const ai = new GoogleGenAI({ apiKey });
-    const modelName = options.model || "gemini-1.5-flash";
+    const modelName = options.model || "gemini-3.1-flash-lite";
 
     const buildRequest = (withSystemInstruction: boolean) => ({
       model: modelName,
@@ -144,7 +144,7 @@ export async function generateGeminiContent(options: {
         const totalTokens = typeof u.totalTokenCount === 'number' ? u.totalTokenCount : inputTokens + outputTokens;
 
         if (inputTokens > 0 || outputTokens > 0) {
-          const modelName = options.model || "gemini-1.5-flash";
+          const modelName = options.model || "gemini-3.1-flash-lite";
           const provider = getProviderFromModelId(modelName);
           const requestId = `gemini-${randomUUID()}`;
 

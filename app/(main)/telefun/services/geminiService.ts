@@ -12,6 +12,7 @@ import {
   markWaitingForModel,
   type StalledResponseState,
 } from './stalledResponseGuards';
+import { normalizeModelId } from '@/app/lib/ai-models';
 
 const _STABLE_VOICE_MAP = {
   male: 'Fenrir',
@@ -1420,7 +1421,7 @@ export const generateConsumerVoice = async (
     const voiceName = config.identity.gender === 'male' ? 'Fenrir' : 'Kore';
 
     const response = await generateGeminiContent({
-      model: "gemini-2.5-flash-preview-tts",
+      model: "gemini-2.0-flash-preview-tts",
       contents: [{ parts: [{ text: prompt }] }],
       responseModalities: ["AUDIO"] as unknown as string[],
       speechConfig: {
@@ -1496,7 +1497,7 @@ ${scenario.script}`
 
   try {
     const response = await generateGeminiContent({
-      model: config.selectedModel || "gemini-3.1-flash-lite",
+      model: normalizeModelId(config.selectedModel || "gemini-3.1-flash-lite"),
       contents: contents,
       systemInstruction,
       temperature: 0.7,
@@ -1548,7 +1549,7 @@ ${scenario.script}`
 
   try {
     const response = await generateGeminiContent({
-      model: config.selectedModel || "gemini-3.1-flash-lite",
+      model: normalizeModelId(config.selectedModel || "gemini-3.1-flash-lite"),
       contents: [{ role: 'user', parts: [{ text: "Berikan pesan pembuka telepon." }] }],
       systemInstruction,
       temperature: 0.7,
@@ -1590,7 +1591,7 @@ export const generateScore = async (
 
   try {
     const response = await generateGeminiContent({
-      model: "gemini-3.1-flash-lite",
+      model: normalizeModelId("gemini-3.1-flash-lite"),
       contents: [{ role: 'user', parts: [{ text: "Berikan penilaian untuk simulasi telepon." }] }],
       systemInstruction,
       responseMimeType: "application/json",

@@ -2,7 +2,7 @@
 
 import { createClient } from '@/app/lib/supabase/server';
 import { createAdminClient } from '@/app/lib/supabase/admin';
-import { getProviderFromModelId } from '@/app/lib/ai-models';
+import { getProviderFromModelId, normalizeModelId } from '@/app/lib/ai-models';
 import { generateOpenRouterContent } from '@/app/actions/openrouter';
 import { generateGeminiContent } from '@/app/actions/gemini';
 import { qaServiceServer } from '../../../services/qaService.server';
@@ -48,13 +48,14 @@ async function requireReportUser() {
 }
 
 async function narrationWithTimeout(modelId: string, systemInstruction: string, userPrompt: string): Promise<string> {
+  const normalizedModel = normalizeModelId(modelId);
   const contents = [{ role: 'user' as const, parts: [{ text: userPrompt }] }];
-  const provider = getProviderFromModelId(modelId);
+  const provider = getProviderFromModelId(normalizedModel);
 
   const run = async () => {
     if (provider === 'openrouter') {
       const r = await generateOpenRouterContent({
-        model: modelId,
+        model: normalizedModel,
         systemInstruction,
         contents,
         temperature: 0.5,
@@ -64,7 +65,7 @@ async function narrationWithTimeout(modelId: string, systemInstruction: string, 
       return r.text || '';
     }
     const r = await generateGeminiContent({
-      model: modelId,
+      model: normalizedModel,
       systemInstruction,
       contents,
       temperature: 0.5,
@@ -203,7 +204,7 @@ export async function generateReportAction(
     };
   }
 
-  const modelId = input.modelId;
+  const modelId = normalizeModelId(input.modelId);
   const provider = getProviderFromModelId(modelId);
   const aiProvider = provider;
 

@@ -62,7 +62,7 @@ describe('PDKT settings model defaults', () => {
     localStorage.setItem(
       'pdkt_settings_v2',
       JSON.stringify({
-        selectedModel: 'gemini-3.1-flash-lite-preview',
+        selectedModel: 'gemini-1.5-flash-preview',
         scenarios: [],
         consumerTypes: [],
       })

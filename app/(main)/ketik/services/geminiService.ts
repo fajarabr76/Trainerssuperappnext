@@ -1,7 +1,7 @@
 import { SessionConfig, ChatMessage, Scenario } from '@/app/types';
 import { generateGeminiContent } from '@/app/actions/gemini';
 import { generateOpenRouterContent } from '@/app/actions/openrouter';
-import { getProviderFromModelId } from '@/app/lib/ai-models';
+import { getProviderFromModelId, normalizeModelId } from '@/app/lib/ai-models';
 import type { UsageContext } from '@/app/lib/ai-usage';
 
 function sanitizeConsumerText(rawText: string): string {
@@ -195,6 +195,7 @@ ${scenario.script}`
     : '';
 
   const timeLimitInstruction = buildTimeLimitInstruction(config.simulationDuration, timing);
+  const normalizedModel = normalizeModelId(config.selectedModel || 'gemini-3.1-flash-lite');
 
   const systemInstruction = `
 ROLEPLAY: Anda adalah KONSUMEN yang sedang menghubungi Kontak OJK 157 melalui chat. Anda bukan agen, bukan petugas, dan bukan AI.
@@ -259,7 +260,7 @@ ${extraPrompt || 'Balas sebagai konsumen:'}`;
 
   try {
     const response = await callAI({
-      model: config.selectedModel || 'gemini-3.1-flash-lite',
+      model: normalizedModel,
       prompt,
       systemInstruction,
       temperature: 0.82,

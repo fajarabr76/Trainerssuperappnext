@@ -1,7 +1,7 @@
 # Telefun AI Voice Assessment
 
 ## Overview
-The Voice Assessment feature provides automated analysis of an agent's vocal performance during Telefun simulations. It evaluates metrics such as speaking rate, intonation, articulation, and emotional tone using `gemini-3.1-flash-lite-preview`.
+The Voice Assessment feature provides automated analysis of an agent's vocal performance during Telefun simulations. It evaluates metrics such as speaking rate, intonation, articulation, and emotional tone using `gemini-3.1-flash-lite`.
 
 ## Architecture
 
@@ -26,7 +26,7 @@ The Voice Assessment feature provides automated analysis of an agent's vocal per
 - **Process:**
     1. Authenticates user and verifies ownership of the session.
     2. Downloads `agent_only.webm` from private storage using the Admin Client.
-    3. Sends audio + scenario context to `gemini-3.1-flash-lite-preview` with a structured JSON schema.
+    3. Sends audio + scenario context to `gemini-3.1-flash-lite` with a structured JSON schema.
        - **Prompt Refinement:** The prompt is strictly in Indonesian and enforces a 50% critique / 50% praise ratio for constructive feedback.
     4. Validates AI output strictly before persistence:
        - assessment root must be object
@@ -148,5 +148,5 @@ After a call ends, the review modal opens automatically with the **server record
 
 ## Troubleshooting
 - **No Audio in Assessment:** Ensure microphone permissions were granted and `agent_only.webm` exists. Missing full-call recorder alone should not block assessment.
-- **Assessment Timeout:** `gemini-3.1-flash-lite-preview` may take 5-15 seconds for long recordings (>3 mins).
+- **Assessment Timeout:** `gemini-3.1-flash-lite` may take 5-15 seconds for long recordings (>3 mins).
 - **Signed URL Expired:** Refresh the Review Modal to generate a new URL.

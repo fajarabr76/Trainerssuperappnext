@@ -66,7 +66,7 @@ Superpowers skills menentukan **process dan workflow** yang wajib diikuti sebelu
 
 ### Voice-Assessment-Vocalist
 **Trigger:** Modifikasi pada module Telefun voice assessment (`app/actions/voiceAssessment.ts`, `docs/TELEFUN_VOICE_ASSESSMENT.md`).
-- Gunakan `gemini-3.1-flash-lite-preview` untuk analisis audio-to-JSON.
+- Gunakan `gemini-3.1-flash-lite` untuk analisis audio-to-JSON.
 - Pastikan rekaman yang digunakan adalah `agent_only.webm` (bukan mixed) untuk akurasi penilaian.
 - Mutasi pada `voice_assessment` atau `session_metrics` wajib dilakukan via server actions menggunakan `createAdminClient()` setelah validasi ownership.
 - Jangan menambahkan `UPDATE` RLS policy pada `telefun_history` untuk kolom assessment.
