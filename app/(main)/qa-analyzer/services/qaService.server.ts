@@ -3465,7 +3465,19 @@ export const qaServiceServer = {
     const pIds = sortedPeriods.map(p => p.id);
     const labels = sortedPeriods.map(p => `${MONTHS_SHORT[p.month - 1]} ${String(p.year).slice(-2)}`);
 
-    if (pIds.length === 0) return { labels: [], totalData: [], serviceData: {}, activeServices: [], serviceSummary: {}, totalSummary: { totalDefects: 0, auditedAgents: 0, activeServiceCount: 0 }, periodStats: [] };
+    if (pIds.length === 0) {
+      return {
+        status: 'missing_periods',
+        reason: `No periods found for year ${year} in selected range`,
+        labels: [],
+        totalData: [],
+        serviceData: {},
+        activeServices: [],
+        serviceSummary: {},
+        totalSummary: { totalDefects: 0, auditedAgents: 0, activeServiceCount: 0 },
+        periodStats: []
+      };
+    }
 
     // Use paginated fetch to bypass 1000 row limit
     const temuan = await this.fetchPaginatedTrendData(supabase, pIds, year);
