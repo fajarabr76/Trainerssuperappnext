@@ -1,6 +1,7 @@
 'use server';
 
 import { createAdminClient } from '@/app/lib/supabase/admin';
+import { createClient } from '@/app/lib/supabase/server';
 import { generateGeminiContent } from '@/app/actions/gemini';
 import { SchemaType } from '@google/genai';
 
@@ -71,21 +72,33 @@ const responseSchema = {
  * Evaluates the transcript and saves scores, summary, and typo findings to Supabase.
  */
 export async function triggerKetikAIReview(sessionId: string) {
-  const supabase = createAdminClient();
+  const supabaseAdmin = createAdminClient();
+  const supabaseUser = await createClient();
 
-  // 1. Fetch Session History
-  const { data: session, error: sessionError } = await supabase
+  // 1. Ownership & Auth Check
+  const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+  if (authError || !user) throw new Error('Unauthorized');
+
+  // 2. Fetch Session History and verify ownership
+  const { data: session, error: sessionError } = await supabaseAdmin
     .from('ketik_history')
     .select('*')
     .eq('id', sessionId)
+    .eq('user_id', user.id) // Ensure ownership
     .single();
 
   if (sessionError || !session) {
-    console.error(`[triggerKetikAIReview] Session not found: ${sessionId}`, sessionError);
-    throw new Error('Session not found');
+    console.error(`[triggerKetikAIReview] Session not found or unauthorized: ${sessionId}`);
+    throw new Error('Session not found or unauthorized');
   }
 
-  // 2. Prepare Transcript for AI
+  // 3. Idempotency Check: Skip if already reviewed
+  if (session.review_status === 'completed') {
+    console.log(`[triggerKetikAIReview] Session ${sessionId} already reviewed. Skipping.`);
+    return;
+  }
+
+  // 4. Prepare Transcript for AI
   const transcript = JSON.stringify(session.messages);
 
   const systemInstruction = `
@@ -106,14 +119,14 @@ export async function triggerKetikAIReview(sessionId: string) {
   `;
 
   try {
-    // 3. Generate AI Content using centralized helper
+    // 5. Generate AI Content using centralized helper
     const aiResponse = await generateGeminiContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3.1-flash-lite", // Using project standard model
       systemInstruction,
       contents: [{ role: 'user', parts: [{ text: `Transcript:\n${transcript}` }] }],
       responseMimeType: "application/json",
       responseSchema: responseSchema as any,
-      usageContext: "ketik-coaching-review",
+      usageContext: { module: 'ketik', action: 'coaching_review' },
       userId: session.user_id
     });
 
@@ -126,12 +139,12 @@ export async function triggerKetikAIReview(sessionId: string) {
       reviewResult = JSON.parse(aiResponse.text);
     } catch (parseError) {
       console.error("[triggerKetikAIReview] Failed to parse AI response JSON:", aiResponse.text);
-      await supabase.from('ketik_history').update({ review_status: 'failed' }).eq('id', sessionId);
+      await supabaseAdmin.from('ketik_history').update({ review_status: 'failed' }).eq('id', sessionId);
       return;
     }
 
-    // 4. Update ketik_history with Scores
-    const { error: updateError } = await supabase
+    // 6. Update ketik_history with Scores
+    const { error: updateError } = await supabaseAdmin
       .from('ketik_history')
       .update({
         final_score: reviewResult.scores.final,
@@ -145,8 +158,11 @@ export async function triggerKetikAIReview(sessionId: string) {
 
     if (updateError) throw updateError;
 
-    // 5. Insert AI Review Summary
-    const { error: reviewInsertError } = await supabase
+    // 7. Insert AI Review Summary (using session_id to maintain consistency)
+    // Cleanup existing if any (extra safety for idempotency)
+    await supabaseAdmin.from('ketik_session_reviews').delete().eq('session_id', sessionId);
+    
+    const { error: reviewInsertError } = await supabaseAdmin
       .from('ketik_session_reviews')
       .insert({
         session_id: sessionId,
@@ -158,7 +174,9 @@ export async function triggerKetikAIReview(sessionId: string) {
 
     if (reviewInsertError) throw reviewInsertError;
 
-    // 6. Insert Typo Findings if any
+    // 8. Insert Typo Findings if any
+    await supabaseAdmin.from('ketik_typo_findings').delete().eq('session_id', sessionId);
+
     if (reviewResult.typos && reviewResult.typos.length > 0) {
       const typoInserts = reviewResult.typos.map(t => ({
         session_id: sessionId,
@@ -168,7 +186,7 @@ export async function triggerKetikAIReview(sessionId: string) {
         severity: t.severity
       }));
 
-      const { error: typoInsertError } = await supabase
+      const { error: typoInsertError } = await supabaseAdmin
         .from('ketik_typo_findings')
         .insert(typoInserts);
 
@@ -179,6 +197,6 @@ export async function triggerKetikAIReview(sessionId: string) {
 
   } catch (error) {
     console.error(`[triggerKetikAIReview] Error during AI Review for session: ${sessionId}`, error);
-    await supabase.from('ketik_history').update({ review_status: 'failed' }).eq('id', sessionId);
+    await supabaseAdmin.from('ketik_history').update({ review_status: 'failed' }).eq('id', sessionId);
   }
 }
