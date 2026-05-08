@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Play, Pause, ChevronLeft, ChevronRight, RotateCcw, MessageSquare, User, Clock } from 'lucide-react';
+import { X, Play, Pause, ChevronLeft, ChevronRight, RotateCcw, MessageSquare, Clock } from 'lucide-react';
 import { ChatMessage } from '@/app/types';
 
 interface SessionReplayModalProps {

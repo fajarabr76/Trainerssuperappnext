@@ -3,7 +3,7 @@
 import { createAdminClient } from '@/app/lib/supabase/admin';
 import { createClient } from '@/app/lib/supabase/server';
 import { generateGeminiContent } from '@/app/actions/gemini';
-import { SchemaType } from '@google/genai';
+import { Type } from '@google/genai';
 
 /**
  * Interface for the AI Review response from Gemini.
@@ -33,32 +33,32 @@ interface AIReviewResponse {
  * Schema for Gemini to ensure structured JSON output.
  */
 const responseSchema = {
-  type: SchemaType.OBJECT,
+  type: Type.OBJECT,
   properties: {
-    summary: { type: SchemaType.STRING },
-    strengths: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-    weaknesses: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-    coachingFocus: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+    summary: { type: Type.STRING },
+    strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
+    weaknesses: { type: Type.ARRAY, items: { type: Type.STRING } },
+    coachingFocus: { type: Type.ARRAY, items: { type: Type.STRING } },
     scores: {
-      type: SchemaType.OBJECT,
+      type: Type.OBJECT,
       properties: {
-        final: { type: SchemaType.NUMBER },
-        empathy: { type: SchemaType.NUMBER },
-        probing: { type: SchemaType.NUMBER },
-        typo: { type: SchemaType.NUMBER },
-        compliance: { type: SchemaType.NUMBER },
+        final: { type: Type.NUMBER },
+        empathy: { type: Type.NUMBER },
+        probing: { type: Type.NUMBER },
+        typo: { type: Type.NUMBER },
+        compliance: { type: Type.NUMBER },
       },
       required: ["final", "empathy", "probing", "typo", "compliance"]
     },
     typos: {
-      type: SchemaType.ARRAY,
+      type: Type.ARRAY,
       items: {
-        type: SchemaType.OBJECT,
+        type: Type.OBJECT,
         properties: {
-          messageId: { type: SchemaType.STRING },
-          originalWord: { type: SchemaType.STRING },
-          correctedWord: { type: SchemaType.STRING },
-          severity: { type: SchemaType.STRING, enum: ["minor", "medium", "critical"] },
+          messageId: { type: Type.STRING },
+          originalWord: { type: Type.STRING },
+          correctedWord: { type: Type.STRING },
+          severity: { type: Type.STRING, enum: ["minor", "medium", "critical"] },
         },
         required: ["messageId", "originalWord", "correctedWord", "severity"]
       }
@@ -137,7 +137,7 @@ export async function triggerKetikAIReview(sessionId: string) {
     let reviewResult: AIReviewResponse;
     try {
       reviewResult = JSON.parse(aiResponse.text);
-    } catch (parseError) {
+    } catch (_parseError) {
       console.error("[triggerKetikAIReview] Failed to parse AI response JSON:", aiResponse.text);
       await supabaseAdmin.from('ketik_history').update({ review_status: 'failed' }).eq('id', sessionId);
       return;

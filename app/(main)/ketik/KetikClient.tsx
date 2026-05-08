@@ -86,6 +86,12 @@ function mapResultRowToKetikSession(item: Record<string, unknown>): ChatSession 
     consumerPhone: typeof details.consumer_phone === 'string' ? details.consumer_phone : undefined,
     consumerCity: typeof details.consumer_city === 'string' ? details.consumer_city : undefined,
     messages: messages as ChatMessage[],
+    finalScore: typeof details.final_score === 'number' ? details.final_score : undefined,
+    empathyScore: typeof details.empathy_score === 'number' ? details.empathy_score : undefined,
+    probingScore: typeof details.probing_score === 'number' ? details.probing_score : undefined,
+    typoScore: typeof details.typo_score === 'number' ? details.typo_score : undefined,
+    complianceScore: typeof details.compliance_score === 'number' ? details.compliance_score : undefined,
+    reviewStatus: (details.review_status === 'pending' || details.review_status === 'completed' || details.review_status === 'failed') ? details.review_status : undefined,
   };
 }
 
@@ -138,7 +144,7 @@ export default function AppKetik() {
       try {
         const { data, error } = await supabase
           .from('ketik_history')
-          .select('id, user_id, date, created_at, scenario_title, consumer_name, consumer_phone, consumer_city, messages')
+          .select('id, user_id, date, created_at, scenario_title, consumer_name, consumer_phone, consumer_city, messages, final_score, empathy_score, probing_score, typo_score, compliance_score, review_status')
           .eq('user_id', user.id)
           .order('date', { ascending: false })
           .limit(50);
@@ -177,6 +183,12 @@ export default function AppKetik() {
           consumerPhone: item.consumer_phone,
           consumerCity: item.consumer_city,
           messages: Array.isArray(item.messages) ? item.messages : [],
+          finalScore: item.final_score,
+          empathyScore: item.empathy_score,
+          probingScore: item.probing_score,
+          typoScore: item.typo_score,
+          complianceScore: item.compliance_score,
+          reviewStatus: item.review_status,
         })));
       } catch (error) {
         console.warn('[Ketik] Unexpected error fetching history:', normalizeSupabaseError(error));
