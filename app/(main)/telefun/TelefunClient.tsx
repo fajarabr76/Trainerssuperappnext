@@ -150,14 +150,19 @@ export default function TelefunClient() {
     const runId = ++sessionRunIdRef.current;
 
     const initUsage = async () => {
-      const usage = await getMyModuleUsage('telefun');
-      if (usage && runId === sessionRunIdRef.current) {
-        sessionBaselineRef.current = {
-          total_calls: usage.total_calls,
-          total_tokens: usage.total_tokens,
-          total_cost_idr: usage.total_cost_idr,
-          periodLabel: usage.periodLabel,
-        };
+      try {
+        const usage = await getMyModuleUsage('telefun');
+        if (usage && runId === sessionRunIdRef.current) {
+          sessionBaselineRef.current = {
+            total_calls: usage.total_calls,
+            total_tokens: usage.total_tokens,
+            total_cost_idr: usage.total_cost_idr,
+            periodLabel: usage.periodLabel,
+          };
+        }
+      } catch (e) {
+        console.warn('[Telefun] Failed to fetch usage baseline, continuing as best-effort:', e);
+        sessionBaselineRef.current = null;
       }
       setView('chat');
     };
@@ -342,20 +347,30 @@ export default function TelefunClient() {
 
     void (async () => {
       try {
+        // Initial wait for AI usage to persist
         await new Promise(resolve => setTimeout(resolve, 2000));
-        const afterUsage = await getMyModuleUsage('telefun');
-        if (afterUsage && runId === sessionRunIdRef.current) {
-          const after: UsageSnapshot = {
-            total_calls: afterUsage.total_calls,
-            total_tokens: afterUsage.total_tokens,
-            total_cost_idr: afterUsage.total_cost_idr,
-            periodLabel: afterUsage.periodLabel,
-          };
-          const delta = computeUsageDelta(baseline, after);
-          setSessionDelta(delta);
+
+        let retries = 5;
+        while (retries > 0 && runId === sessionRunIdRef.current) {
+          const afterUsage = await getMyModuleUsage('telefun');
+          if (afterUsage) {
+            const after: UsageSnapshot = {
+              total_calls: afterUsage.total_calls,
+              total_tokens: afterUsage.total_tokens,
+              total_cost_idr: afterUsage.total_cost_idr,
+              periodLabel: afterUsage.periodLabel,
+            };
+            const delta = computeUsageDelta(baseline, after);
+            if (delta.totalCalls > 0) {
+              setSessionDelta(delta);
+              break;
+            }
+          }
+          retries--;
+          if (retries > 0) await new Promise(resolve => setTimeout(resolve, 1000));
         }
       } catch (e) {
-        console.warn('[Telefun] Failed to fetch post-session usage:', e);
+        console.warn('[Telefun] Failed to fetch post-session usage retry loop:', e);
       }
     })();
 

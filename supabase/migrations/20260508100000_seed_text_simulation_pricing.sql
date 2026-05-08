@@ -4,7 +4,4 @@ VALUES
   ('gemini-3.1-flash-lite', 0.10, 0.40, NOW(), NOW()),
   ('gemini-2.0-flash-lite', 0.10, 0.40, NOW(), NOW())
 ON CONFLICT (model_id) 
-DO UPDATE SET 
-  input_price_usd_per_million = EXCLUDED.input_price_usd_per_million,
-  output_price_usd_per_million = EXCLUDED.output_price_usd_per_million,
-  updated_at = NOW();
+DO NOTHING;

@@ -170,6 +170,7 @@ const PdktPage: React.FC = () => {
     const runId = sessionRunIdRef.current;
     let attempts = 0;
     const maxAttempts = 18;
+    let aborted = false;
 
     const timer = window.setInterval(async () => {
       attempts++;
@@ -187,23 +188,50 @@ const PdktPage: React.FC = () => {
         }
 
         if (data && data.evaluation_status !== 'processing') {
-          const usage = await getMyModuleUsage('pdkt');
-          if (usage && runId === sessionRunIdRef.current) {
-            const after: UsageSnapshot = {
-              total_calls: usage.total_calls,
-              total_tokens: usage.total_tokens,
-              total_cost_idr: usage.total_cost_idr,
-              periodLabel: usage.periodLabel,
-            };
-            const delta = computeUsageDelta(closedSessionBaseline, after);
-            setSessionDelta(delta);
-            setSessionDeltaPending(false);
-            setClosedSessionId(null);
-            setClosedSessionBaseline(null);
-          }
           window.clearInterval(timer);
+
+          // Deterministic retry loop
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          let retryCount = 0;
+          const maxRetries = 5;
+          const retryInterval = 1000;
+
+          while (retryCount <= maxRetries) {
+            if (aborted || runId !== sessionRunIdRef.current) break;
+
+            try {
+              const usage = await getMyModuleUsage('pdkt');
+              if (usage) {
+                const after: UsageSnapshot = {
+                  total_calls: usage.total_calls,
+                  total_tokens: usage.total_tokens,
+                  total_cost_idr: usage.total_cost_idr,
+                  periodLabel: usage.periodLabel,
+                };
+                const delta = computeUsageDelta(closedSessionBaseline, after);
+                
+                if (delta.totalCalls > 0 || retryCount === maxRetries) {
+                  if (!aborted && runId === sessionRunIdRef.current) {
+                    setSessionDelta(delta);
+                    setSessionDeltaPending(false);
+                    setClosedSessionId(null);
+                    setClosedSessionBaseline(null);
+                  }
+                  break;
+                }
+              }
+            } catch (e) {
+              console.warn(`[PDKT] Usage fetch retry ${retryCount} failed:`, e);
+            }
+
+            retryCount++;
+            if (retryCount <= maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, retryInterval));
+            }
+          }
         } else if (attempts >= maxAttempts) {
-          if (runId === sessionRunIdRef.current) {
+          if (!aborted && runId === sessionRunIdRef.current) {
             setSessionDeltaPending(false);
             setClosedSessionId(null);
             setClosedSessionBaseline(null);
@@ -215,7 +243,10 @@ const PdktPage: React.FC = () => {
       }
     }, 10000);
 
-    return () => window.clearInterval(timer);
+    return () => {
+      aborted = true;
+      window.clearInterval(timer);
+    };
   }, [closedSessionId, closedSessionBaseline, user]);
 
   // ── Simpan settings ke localStorage + Supabase ────────
@@ -277,14 +308,18 @@ const PdktPage: React.FC = () => {
     sessionBaselineRef.current = null;
     const runId = ++sessionRunIdRef.current;
 
-    const usage = await getMyModuleUsage('pdkt');
-    if (usage && runId === sessionRunIdRef.current) {
-      sessionBaselineRef.current = {
-        total_calls: usage.total_calls,
-        total_tokens: usage.total_tokens,
-        total_cost_idr: usage.total_cost_idr,
-        periodLabel: usage.periodLabel,
-      };
+    try {
+      const usage = await getMyModuleUsage('pdkt');
+      if (usage && runId === sessionRunIdRef.current) {
+        sessionBaselineRef.current = {
+          total_calls: usage.total_calls,
+          total_tokens: usage.total_tokens,
+          total_cost_idr: usage.total_cost_idr,
+          periodLabel: usage.periodLabel,
+        };
+      }
+    } catch (e) {
+      console.warn('[PDKT] Failed to fetch usage baseline (best-effort):', e);
     }
 
     try {
@@ -391,33 +426,81 @@ const PdktPage: React.FC = () => {
 
       void (async () => {
         await new Promise(resolve => setTimeout(resolve, 2000));
-        const usage = await getMyModuleUsage('pdkt');
-        if (usage && runId === sessionRunIdRef.current) {
-          const after: UsageSnapshot = {
-            total_calls: usage.total_calls,
-            total_tokens: usage.total_tokens,
-            total_cost_idr: usage.total_cost_idr,
-            periodLabel: usage.periodLabel,
-          };
-          const delta = computeUsageDelta(baseline, after);
-          setSessionDelta(delta);
-          setSessionDeltaPending(true);
+        
+        let retryCount = 0;
+        const maxRetries = 5;
+        const retryInterval = 1000;
+
+        while (retryCount <= maxRetries) {
+          if (runId !== sessionRunIdRef.current) break;
+
+          try {
+            const usage = await getMyModuleUsage('pdkt');
+            if (usage) {
+              const after: UsageSnapshot = {
+                total_calls: usage.total_calls,
+                total_tokens: usage.total_tokens,
+                total_cost_idr: usage.total_cost_idr,
+                periodLabel: usage.periodLabel,
+              };
+              const delta = computeUsageDelta(baseline, after);
+              
+              if (delta.totalCalls > 0 || retryCount === maxRetries) {
+                if (runId === sessionRunIdRef.current) {
+                  setSessionDelta(delta);
+                  setSessionDeltaPending(true);
+                }
+                break;
+              }
+            }
+          } catch (e) {
+            console.warn(`[PDKT] Usage fetch retry ${retryCount} failed:`, e);
+          }
+
+          retryCount++;
+          if (retryCount <= maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, retryInterval));
+          }
         }
       })();
     } else if (baseline) {
       void (async () => {
         await new Promise(resolve => setTimeout(resolve, 2000));
-        const usage = await getMyModuleUsage('pdkt');
-        if (usage && runId === sessionRunIdRef.current) {
-          const after: UsageSnapshot = {
-            total_calls: usage.total_calls,
-            total_tokens: usage.total_tokens,
-            total_cost_idr: usage.total_cost_idr,
-            periodLabel: usage.periodLabel,
-          };
-          const delta = computeUsageDelta(baseline, after);
-          setSessionDelta(delta);
-          setSessionDeltaPending(false);
+
+        let retryCount = 0;
+        const maxRetries = 5;
+        const retryInterval = 1000;
+
+        while (retryCount <= maxRetries) {
+          if (runId !== sessionRunIdRef.current) break;
+
+          try {
+            const usage = await getMyModuleUsage('pdkt');
+            if (usage) {
+              const after: UsageSnapshot = {
+                total_calls: usage.total_calls,
+                total_tokens: usage.total_tokens,
+                total_cost_idr: usage.total_cost_idr,
+                periodLabel: usage.periodLabel,
+              };
+              const delta = computeUsageDelta(baseline, after);
+              
+              if (delta.totalCalls > 0 || retryCount === maxRetries) {
+                if (runId === sessionRunIdRef.current) {
+                  setSessionDelta(delta);
+                  setSessionDeltaPending(false);
+                }
+                break;
+              }
+            }
+          } catch (e) {
+            console.warn(`[PDKT] Usage fetch retry ${retryCount} failed:`, e);
+          }
+
+          retryCount++;
+          if (retryCount <= maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, retryInterval));
+          }
         }
       })();
     }

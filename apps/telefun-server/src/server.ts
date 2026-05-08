@@ -76,7 +76,7 @@ wss.on('connection', async (ws, req) => {
     let closePath: 'client' | 'gemini' | 'server' | 'unknown' = 'unknown';
     let usageSnapshot: LiveUsageSnapshot | null = null;
     let usageFlushed = false;
-    let activeModelId = 'gemini-2.0-flash-exp';
+    let activeModelId = 'gemini-3.1-flash-live-preview';
 
     function logTimeline(event: string, meta?: Record<string, unknown>) {
       console.log('[Telefun][ProxyTimeline]', {
@@ -110,10 +110,15 @@ wss.on('connection', async (ws, req) => {
         const parsed = JSON.parse(raw);
         if (parsed.setup) {
           sawSetupForward = true;
-          const rawModel = parsed.setup.model || '';
-          activeModelId = rawModel.replace(/^models\//, '');
-          logTimeline('client_setup_forwarded', { model: activeModelId });
-          console.log('[Telefun] Client setup message received, model:', activeModelId);
+          const rawModel = parsed.setup.model;
+          if (typeof rawModel === 'string' && rawModel.length > 0) {
+            activeModelId = rawModel.replace(/^models\//, '');
+            logTimeline('client_setup_forwarded', { model: activeModelId });
+            console.log('[Telefun] Client setup message received, model:', activeModelId);
+          } else {
+            console.warn('[Telefun] Client setup message missing or invalid model, using default:', activeModelId);
+            logTimeline('client_setup_model_invalid', { rawModel });
+          }
         } else {
           console.log(`[Telefun] Client message: ${Object.keys(parsed).join(',')}`);
         }
