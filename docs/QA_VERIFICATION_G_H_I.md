@@ -7,7 +7,7 @@ This report documents the verification of implementation for Backlogs G (Perform
 ### Verification Matrix: AI Evaluation & Fallback
 | Scenario | Input Sample | Expected Result | Actual Result | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **Model Normalization** | Model ID: `gemini-3.1-flash-lite-preview` | Normalized to `gemini-3.1-flash-lite` | Used standard model from `ai-models.ts` | ✅ PASS |
+| **Model Normalization** | Model ID: `gemini-3.1-flash-lite` | Verified as GA standard model | Used standard model from `ai-models.ts` | ✅ PASS |
 | **Transient Error Retry** | Simulate 429 (Busy) | Trigger retry (max 3x) with delay | Retried on "Server AI sedang sibuk" | ✅ PASS |
 | **Network Error Fallback** | Disconnect Internet | Retry, then show "Kesalahan koneksi" | Marked as `failed` with clear UI msg | ✅ PASS |
 | **High Quality Reply** | Clear, logical, no typos | Score 85-100, minimal feedback | Score 92, constructive feedback | ✅ PASS |

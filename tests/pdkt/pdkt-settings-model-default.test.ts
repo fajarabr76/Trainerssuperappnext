@@ -49,16 +49,16 @@ describe('PDKT settings model defaults', () => {
     });
   });
 
-  it('defaults to the first OpenRouter text model for fresh settings', async () => {
+  it('defaults to the Gemini 3.1 Flash Lite model for fresh settings', async () => {
     const { loadPdktSettings } = await import('@/app/(main)/pdkt/services/settingService');
 
     const settings = await loadPdktSettings();
 
-    expect(settings.selectedModel).toBe('openai/gpt-oss-120b:free');
+    expect(settings.selectedModel).toBe('gemini-3.1-flash-lite');
     expect(settings.consumerNameMentionPattern).toBe('random');
   });
 
-  it('migrates legacy direct Gemini model selections to the OpenRouter default', async () => {
+  it('migrates legacy direct Gemini model selections to the Gemini default', async () => {
     localStorage.setItem(
       'pdkt_settings_v2',
       JSON.stringify({
@@ -72,7 +72,7 @@ describe('PDKT settings model defaults', () => {
 
     const settings = await loadPdktSettings();
 
-    expect(settings.selectedModel).toBe('openai/gpt-oss-120b:free');
+    expect(settings.selectedModel).toBe('gemini-3.1-flash-lite');
   });
 
   it('coerces missing consumerNameMentionPattern to random for legacy settings', async () => {
