@@ -89,3 +89,23 @@ export interface ChatSession {
   consumerCity?: string;
   messages: ChatMessage[];
 }
+
+export interface KetikSessionReview {
+  id: string;
+  session_id: string;
+  ai_summary: string;
+  strengths: string[];
+  weaknesses: string[];
+  coaching_focus: string[];
+  created_at: string;
+}
+
+export interface KetikTypoFinding {
+  id: string;
+  session_id: string;
+  message_id: string;
+  original_word: string;
+  corrected_word: string;
+  severity: 'minor' | 'medium' | 'critical';
+  created_at: string;
+}
