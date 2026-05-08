@@ -78,6 +78,7 @@ const responseSchema = {
  */
 export async function triggerKetikAIReview(sessionId: string): Promise<KetikAIReviewResult> {
   let supabaseAdmin: ReturnType<typeof createAdminClient> | null = null;
+  let canMarkFailed = false;
 
   try {
     supabaseAdmin = createAdminClient();
@@ -99,6 +100,8 @@ export async function triggerKetikAIReview(sessionId: string): Promise<KetikAIRe
       console.error(`[triggerKetikAIReview] Session not found or unauthorized: ${sessionId}`);
       throw new Error('Session not found or unauthorized');
     }
+
+    canMarkFailed = true;
 
     // 3. Idempotency Check: Skip if already reviewed
     if (session.review_status === 'completed') {
@@ -206,7 +209,7 @@ export async function triggerKetikAIReview(sessionId: string): Promise<KetikAIRe
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown AI review error';
     console.error(`[triggerKetikAIReview] Error during AI Review for session: ${sessionId}`, error);
-    if (supabaseAdmin) {
+    if (supabaseAdmin && canMarkFailed) {
       await supabaseAdmin.from('ketik_history').update({ review_status: 'failed' }).eq('id', sessionId);
     }
     return { status: 'failed', error: message };

@@ -35,6 +35,7 @@ const config = [
       'trainers-superapp/**',
       '.agent/**',
       '.codex-plugin/**',
+      '.worktrees/**',
       '**/.next/**',
     ],
   },

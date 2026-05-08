@@ -17,11 +17,6 @@ describe('SIDAK dashboard range year-period mismatch guard', () => {
     'utf8'
   );
 
-  const actionsSource = readFileSync(
-    'app/(main)/dashboard/actions.ts',
-    'utf8'
-  );
-
   describe('getServiceTrendForDashboardByRange hybrid flow', () => {
     it('tries summary reader path before raw fallback', () => {
       const fnMatch = qaServiceSource.match(

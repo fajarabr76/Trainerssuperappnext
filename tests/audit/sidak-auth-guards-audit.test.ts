@@ -75,8 +75,6 @@ function makeSupabase(options: {
     return promise;
   }
 
-  let pesertaCallCount = 0;
-
   const pesertaQuery = {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
