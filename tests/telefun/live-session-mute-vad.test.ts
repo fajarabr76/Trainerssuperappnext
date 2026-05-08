@@ -29,7 +29,7 @@ function createSessionConfig(): SessionConfig {
       phone: '081234567890',
       gender: 'female',
     },
-    selectedModel: 'gemini-2.0-flash-lite',
+    selectedModel: 'gemini-3.1-flash-lite',
     simulationDuration: 10,
     responsePacingMode: 'realistic',
     maxCallDuration: 5,
