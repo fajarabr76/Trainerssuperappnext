@@ -16,17 +16,17 @@ export function parseUsageMetadata(raw: unknown): LiveUsageSnapshot | null {
   if (!raw || typeof raw !== 'object') return null;
   const meta = raw as Record<string, unknown>;
 
-  const prompt =
-    typeof meta.promptTokenCount === 'number' ? meta.promptTokenCount : 0;
+  let prompt = typeof meta.promptTokenCount === 'number' ? meta.promptTokenCount : 0;
+  if (prompt === 0 && Array.isArray(meta.promptTokensDetails)) {
+    for (const detail of meta.promptTokensDetails as Record<string, unknown>[]) {
+      if (typeof detail?.tokenCount === 'number') prompt += detail.tokenCount;
+    }
+  }
 
-  // responseTokenCount is the primary field; candidatesTokenCount is a legacy alias.
-  // responseTokensDetails may be the only response-side surface in some SDK versions.
-  let response =
-    typeof meta.responseTokenCount === 'number' ? meta.responseTokenCount : 0;
+  let response = typeof meta.responseTokenCount === 'number' ? meta.responseTokenCount : 0;
   if (response === 0 && typeof meta.candidatesTokenCount === 'number') {
     response = meta.candidatesTokenCount;
   }
-  // Derive from responseTokensDetails if still zero
   if (response === 0 && Array.isArray(meta.responseTokensDetails)) {
     for (const detail of meta.responseTokensDetails as Record<string, unknown>[]) {
       if (typeof detail?.tokenCount === 'number') response += detail.tokenCount;
@@ -84,15 +84,22 @@ export async function flushLiveUsage(
     let outputPricePerMillion = 0;
     const usdToIdrRate = billing?.usd_to_idr_rate ?? 15000;
 
+    const IS_LIVE_MODEL = MODEL_ID.includes('live');
+    const DEFAULT_INPUT = IS_LIVE_MODEL ? 3.0 : 0;
+    const DEFAULT_OUTPUT = IS_LIVE_MODEL ? 12.0 : 0;
+
     if (!pricing) {
       console.warn(
-        `[Telefun Usage] No pricing found for model "${MODEL_ID}". Token count logged but billing will be 0 IDR until admin configures pricing in the editor.`,
+        `[Telefun Usage] No pricing found for model "${MODEL_ID}". Using fallback of ${DEFAULT_INPUT}/${DEFAULT_OUTPUT} USD.`,
       );
+      inputPricePerMillion = DEFAULT_INPUT;
+      outputPricePerMillion = DEFAULT_OUTPUT;
     } else {
-      inputPricePerMillion = pricing.input_price_usd_per_million ?? 0;
-      outputPricePerMillion = pricing.output_price_usd_per_million ?? 0;
+      inputPricePerMillion = pricing.input_price_usd_per_million ?? DEFAULT_INPUT;
+      outputPricePerMillion = pricing.output_price_usd_per_million ?? DEFAULT_OUTPUT;
     }
 
+    // Also remove the "billing will be 0 IDR" warning if prices are valid now.
     if (inputPricePerMillion === 0 && outputPricePerMillion === 0) {
       console.warn(
         `[Telefun Usage] Pricing for "${MODEL_ID}" is 0/0 USD. Tokens logged but billing will be 0 IDR until admin updates pricing.`,
