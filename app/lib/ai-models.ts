@@ -1,3 +1,5 @@
+import { GoogleGenAI } from "@google/genai";
+
 const DEFAULT_MODEL_ID = 'gemini-3.1-flash-lite';
 
 export const VOICE_ASSESSMENT_MODEL = 'gemini-3.1-flash-lite';
@@ -139,4 +141,16 @@ export function getModelsForModule(module: 'ketik' | 'pdkt' | 'telefun' | 'defau
 }
 
 export type AIProvider = 'gemini' | 'openrouter';
+
+/**
+ * Returns a configured Gemini AI client.
+ * Requires GEMINI_API_KEY environment variable.
+ */
+export function getGeminiClient() {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is not set in environment variables");
+  }
+  return new GoogleGenAI({ apiKey });
+}
 
