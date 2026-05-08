@@ -76,6 +76,7 @@ wss.on('connection', async (ws, req) => {
     let closePath: 'client' | 'gemini' | 'server' | 'unknown' = 'unknown';
     let usageSnapshot: LiveUsageSnapshot | null = null;
     let usageFlushed = false;
+    let activeModelId = 'gemini-2.0-flash-exp';
 
     function logTimeline(event: string, meta?: Record<string, unknown>) {
       console.log('[Telefun][ProxyTimeline]', {
@@ -90,7 +91,7 @@ wss.on('connection', async (ws, req) => {
     async function flushUsage() {
       if (usageFlushed || !authed || !usageSnapshot) return;
       usageFlushed = true;
-      await flushLiveUsage(requestId, userId, usageSnapshot);
+      await flushLiveUsage(requestId, userId, usageSnapshot, activeModelId);
     }
 
     ws.on('message', (data) => {
@@ -109,8 +110,10 @@ wss.on('connection', async (ws, req) => {
         const parsed = JSON.parse(raw);
         if (parsed.setup) {
           sawSetupForward = true;
-          logTimeline('client_setup_forwarded', { model: parsed.setup.model });
-          console.log('[Telefun] Client setup message received, model:', parsed.setup.model);
+          const rawModel = parsed.setup.model || '';
+          activeModelId = rawModel.replace(/^models\//, '');
+          logTimeline('client_setup_forwarded', { model: activeModelId });
+          console.log('[Telefun] Client setup message received, model:', activeModelId);
         } else {
           console.log(`[Telefun] Client message: ${Object.keys(parsed).join(',')}`);
         }

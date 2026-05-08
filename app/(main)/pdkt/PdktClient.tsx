@@ -277,16 +277,15 @@ const PdktPage: React.FC = () => {
     sessionBaselineRef.current = null;
     const runId = ++sessionRunIdRef.current;
 
-    void getMyModuleUsage('pdkt').then((usage) => {
-      if (usage && runId === sessionRunIdRef.current) {
-        sessionBaselineRef.current = {
-          total_calls: usage.total_calls,
-          total_tokens: usage.total_tokens,
-          total_cost_idr: usage.total_cost_idr,
-          periodLabel: usage.periodLabel,
-        };
-      }
-    });
+    const usage = await getMyModuleUsage('pdkt');
+    if (usage && runId === sessionRunIdRef.current) {
+      sessionBaselineRef.current = {
+        total_calls: usage.total_calls,
+        total_tokens: usage.total_tokens,
+        total_cost_idr: usage.total_cost_idr,
+        periodLabel: usage.periodLabel,
+      };
+    }
 
     try {
       console.log('[PDKT] Starting session with config:', config);
@@ -390,7 +389,9 @@ const PdktPage: React.FC = () => {
       setClosedSessionId(exitingSessionId);
       setClosedSessionBaseline(baseline);
 
-      void getMyModuleUsage('pdkt').then((usage) => {
+      void (async () => {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const usage = await getMyModuleUsage('pdkt');
         if (usage && runId === sessionRunIdRef.current) {
           const after: UsageSnapshot = {
             total_calls: usage.total_calls,
@@ -402,9 +403,11 @@ const PdktPage: React.FC = () => {
           setSessionDelta(delta);
           setSessionDeltaPending(true);
         }
-      });
+      })();
     } else if (baseline) {
-      void getMyModuleUsage('pdkt').then((usage) => {
+      void (async () => {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const usage = await getMyModuleUsage('pdkt');
         if (usage && runId === sessionRunIdRef.current) {
           const after: UsageSnapshot = {
             total_calls: usage.total_calls,
@@ -416,7 +419,7 @@ const PdktPage: React.FC = () => {
           setSessionDelta(delta);
           setSessionDeltaPending(false);
         }
-      });
+      })();
     }
 
     sessionBaselineRef.current = null;

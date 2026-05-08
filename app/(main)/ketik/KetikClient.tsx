@@ -401,22 +401,26 @@ export default function AppKetik() {
     }
 
     const runId = sessionRunIdRef.current;
-    try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      const afterUsage = await getMyModuleUsage('ketik');
-      if (afterUsage && runId === sessionRunIdRef.current) {
-        const after: UsageSnapshot = {
-          total_calls: afterUsage.total_calls,
-          total_tokens: afterUsage.total_tokens,
-          total_cost_idr: afterUsage.total_cost_idr,
-          periodLabel: afterUsage.periodLabel,
-        };
-        const delta = computeUsageDelta(sessionBaselineRef.current, after);
-        setSessionDelta(delta);
+    const baseline = sessionBaselineRef.current;
+    
+    void (async () => {
+      try {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const afterUsage = await getMyModuleUsage('ketik');
+        if (afterUsage && runId === sessionRunIdRef.current) {
+          const after: UsageSnapshot = {
+            total_calls: afterUsage.total_calls,
+            total_tokens: afterUsage.total_tokens,
+            total_cost_idr: afterUsage.total_cost_idr,
+            periodLabel: afterUsage.periodLabel,
+          };
+          const delta = computeUsageDelta(baseline, after);
+          setSessionDelta(delta);
+        }
+      } catch (e) {
+        console.warn('[Ketik] Failed to fetch post-session usage:', e);
       }
-    } catch (e) {
-      console.warn('[Ketik] Failed to fetch post-session usage:', e);
-    }
+    })();
 
     sessionBaselineRef.current = null;
     setView('home');

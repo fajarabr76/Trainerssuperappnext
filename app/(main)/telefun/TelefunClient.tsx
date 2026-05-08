@@ -149,7 +149,8 @@ export default function TelefunClient() {
     sessionBaselineRef.current = null;
     const runId = ++sessionRunIdRef.current;
 
-    void getMyModuleUsage('telefun').then((usage) => {
+    const initUsage = async () => {
+      const usage = await getMyModuleUsage('telefun');
       if (usage && runId === sessionRunIdRef.current) {
         sessionBaselineRef.current = {
           total_calls: usage.total_calls,
@@ -158,9 +159,9 @@ export default function TelefunClient() {
           periodLabel: usage.periodLabel,
         };
       }
-    });
-
-    setView('chat');
+      setView('chat');
+    };
+    initUsage();
   };
 
   const handleEndSessionOnly = () => {
@@ -337,21 +338,26 @@ export default function TelefunClient() {
     }
 
     const runId = sessionRunIdRef.current;
-    try {
-      const afterUsage = await getMyModuleUsage('telefun');
-      if (afterUsage && runId === sessionRunIdRef.current) {
-        const after: UsageSnapshot = {
-          total_calls: afterUsage.total_calls,
-          total_tokens: afterUsage.total_tokens,
-          total_cost_idr: afterUsage.total_cost_idr,
-          periodLabel: afterUsage.periodLabel,
-        };
-        const delta = computeUsageDelta(sessionBaselineRef.current, after);
-        setSessionDelta(delta);
+    const baseline = sessionBaselineRef.current;
+
+    void (async () => {
+      try {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const afterUsage = await getMyModuleUsage('telefun');
+        if (afterUsage && runId === sessionRunIdRef.current) {
+          const after: UsageSnapshot = {
+            total_calls: afterUsage.total_calls,
+            total_tokens: afterUsage.total_tokens,
+            total_cost_idr: afterUsage.total_cost_idr,
+            periodLabel: afterUsage.periodLabel,
+          };
+          const delta = computeUsageDelta(baseline, after);
+          setSessionDelta(delta);
+        }
+      } catch (e) {
+        console.warn('[Telefun] Failed to fetch post-session usage:', e);
       }
-    } catch (e) {
-      console.warn('[Telefun] Failed to fetch post-session usage:', e);
-    }
+    })();
 
     sessionBaselineRef.current = null;
     setView('home');

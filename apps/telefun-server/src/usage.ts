@@ -3,7 +3,6 @@ import { env } from './env.js';
 
 const admin = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
-const MODEL_ID = 'gemini-3.1-flash-live-preview';
 const PROVIDER = 'gemini' as const;
 
 export interface LiveUsageSnapshot {
@@ -64,13 +63,14 @@ export async function flushLiveUsage(
   requestId: string,
   userId: string,
   snapshot: LiveUsageSnapshot,
+  modelId: string,
 ): Promise<void> {
   try {
     const [{ data: pricing }, { data: billing }] = await Promise.all([
       admin
         .from('ai_pricing_settings')
         .select('input_price_usd_per_million, output_price_usd_per_million')
-        .eq('model_id', MODEL_ID)
+        .eq('model_id', modelId)
         .single(),
       admin
         .from('ai_billing_settings')
@@ -84,13 +84,13 @@ export async function flushLiveUsage(
     let outputPricePerMillion = 0;
     const usdToIdrRate = billing?.usd_to_idr_rate ?? 15000;
 
-    const IS_LIVE_MODEL = MODEL_ID.includes('live');
+    const IS_LIVE_MODEL = modelId.includes('live');
     const DEFAULT_INPUT = IS_LIVE_MODEL ? 3.0 : 0;
     const DEFAULT_OUTPUT = IS_LIVE_MODEL ? 12.0 : 0;
 
     if (!pricing) {
       console.warn(
-        `[Telefun Usage] No pricing found for model "${MODEL_ID}". Using fallback of ${DEFAULT_INPUT}/${DEFAULT_OUTPUT} USD.`,
+        `[Telefun Usage] No pricing found for model "${modelId}". Using fallback of ${DEFAULT_INPUT}/${DEFAULT_OUTPUT} USD.`,
       );
       inputPricePerMillion = DEFAULT_INPUT;
       outputPricePerMillion = DEFAULT_OUTPUT;
@@ -102,7 +102,7 @@ export async function flushLiveUsage(
     // Also remove the "billing will be 0 IDR" warning if prices are valid now.
     if (inputPricePerMillion === 0 && outputPricePerMillion === 0) {
       console.warn(
-        `[Telefun Usage] Pricing for "${MODEL_ID}" is 0/0 USD. Tokens logged but billing will be 0 IDR until admin updates pricing.`,
+        `[Telefun Usage] Pricing for "${modelId}" is 0/0 USD. Tokens logged but billing will be 0 IDR until admin updates pricing.`,
       );
     }
 
@@ -121,7 +121,7 @@ export async function flushLiveUsage(
       request_id: requestId,
       user_id: userId,
       provider: PROVIDER,
-      model_id: MODEL_ID,
+      model_id: modelId,
       module: 'telefun',
       action: 'voice_live',
       input_tokens: snapshot.promptTokenCount,
