@@ -140,6 +140,24 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, his
                            {session.messages.length} Chat
                         </div>
                       </div>
+                      {session.reviewStatus && (
+                        <div className="space-y-1.5">
+                          <div className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-black">Review AI</div>
+                          <div className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-1.5 w-fit ${
+                            session.reviewStatus === 'completed' ? 'bg-emerald-500/10 text-emerald-500' :
+                            session.reviewStatus === 'pending' ? 'bg-amber-500/10 text-amber-500 animate-pulse' :
+                            'bg-rose-500/10 text-rose-500'
+                          }`}>
+                            <div className={`w-1 h-1 rounded-full ${
+                              session.reviewStatus === 'completed' ? 'bg-emerald-500' :
+                              session.reviewStatus === 'pending' ? 'bg-amber-500' :
+                              'bg-rose-500'
+                            }`} />
+                            {session.reviewStatus === 'completed' ? 'Selesai' :
+                             session.reviewStatus === 'pending' ? 'Proses' : 'Gagal'}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="w-9 h-9 bg-foreground/5 rounded-lg flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all duration-500">
                       <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />

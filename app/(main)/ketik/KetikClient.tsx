@@ -3,12 +3,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Settings, History, Play, MessageSquare, BarChart3 } from 'lucide-react';
-import { AppSettings, ChatSession, SessionConfig, Scenario, ConsumerType, Identity, ChatMessage } from '@/app/types';
+import { AppSettings, ChatSession, SessionConfig, Scenario, ConsumerType, Identity, ChatMessage, KetikSessionReview, KetikTypoFinding } from '@/app/types';
 import { defaultSettings } from './data';
 import { SettingsModal } from './components/SettingsModal';
 import { HistoryModal } from './components/HistoryModal';
 import { UsageModal } from './components/UsageModal';
 import { ChatInterface } from './components/ChatInterface';
+import { SessionReviewModal } from './components/SessionReviewModal';
 import { createClient } from '@/app/lib/supabase/client';
 import { loadSettings, saveSettings } from './services/settingService';
 import { moduleTheme } from '@/app/components/ui/moduleTheme';
@@ -112,6 +113,12 @@ export default function AppKetik() {
   const [currentScenario, setCurrentScenario] = useState<Scenario | null>(null);
   const [reviewMessages, setReviewMessages] = useState<ChatMessage[]>([]);
   const [sessionDelta, setSessionDelta] = useState<ReturnType<typeof computeUsageDelta>>(null);
+
+  const [selectedReview, setSelectedReview] = useState<KetikSessionReview | null>(null);
+  const [selectedTypos, setSelectedTypos] = useState<KetikTypoFinding[]>([]);
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [selectedSessionForReview, setSelectedSessionForReview] = useState<ChatSession | null>(null);
+
   const sessionBaselineRef = useRef<UsageSnapshot | null>(null);
   const sessionRunIdRef = useRef(0);
 
@@ -396,7 +403,65 @@ export default function AppKetik() {
     );
     setReviewMessages(session.messages);
     setIsHistoryOpen(false);
+    setIsReviewOpen(false);
     setView('chat');
+  };
+
+  const handleViewReview = async (session: ChatSession) => {
+    setSelectedSessionForReview(session);
+    
+    if (session.reviewStatus === 'completed') {
+      setIsReviewOpen(true);
+      setSelectedReview(null);
+      setSelectedTypos([]);
+
+      try {
+        const { data: reviewData, error: reviewError } = await supabase
+          .from('ketik_session_reviews')
+          .select('*')
+          .eq('session_id', session.id)
+          .maybeSingle();
+
+        if (reviewError) throw reviewError;
+
+        const { data: typosData, error: typosError } = await supabase
+          .from('ketik_typo_findings')
+          .select('*')
+          .eq('session_id', session.id);
+
+        if (typosError) throw typosError;
+
+        // Transform snake_case from DB to camelCase for the interface
+        if (reviewData) {
+          setSelectedReview({
+            id: reviewData.id,
+            sessionId: reviewData.session_id,
+            aiSummary: reviewData.ai_summary,
+            strengths: reviewData.strengths,
+            weaknesses: reviewData.weaknesses,
+            coachingFocus: reviewData.coaching_focus,
+            createdAt: reviewData.created_at,
+          });
+        }
+        
+        if (typosData) {
+          setSelectedTypos(typosData.map(t => ({
+            id: t.id,
+            sessionId: t.session_id,
+            messageId: t.message_id,
+            originalWord: t.original_word,
+            correctedWord: t.corrected_word,
+            severity: t.severity,
+            createdAt: t.created_at,
+          })));
+        }
+      } catch (err) {
+        console.error('[Ketik] Error fetching review details:', err);
+      }
+    } else {
+      // If not completed, fallback to legacy review view
+      handleReviewHistory(session);
+    }
   };
 
   return (
@@ -492,8 +557,19 @@ export default function AppKetik() {
       </AnimatePresence>
 
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} settings={settings} onSave={handleSaveSettings} />
-      <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} history={history} onClear={handleClearHistory} onDelete={handleDeleteSession} onReview={handleReviewHistory} />
+      <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} history={history} onClear={handleClearHistory} onDelete={handleDeleteSession} onReview={handleViewReview} />
       <UsageModal isOpen={isUsageOpen} onClose={() => setIsUsageOpen(false)} module="ketik" sessionDelta={sessionDelta} sessionDeltaPending={false} />
+      
+      {selectedSessionForReview && (
+        <SessionReviewModal 
+          isOpen={isReviewOpen}
+          onClose={() => setIsReviewOpen(false)}
+          session={selectedSessionForReview}
+          review={selectedReview || undefined}
+          typos={selectedTypos}
+          onReplay={() => handleReviewHistory(selectedSessionForReview)}
+        />
+      )}
     </div>
   );
 }
