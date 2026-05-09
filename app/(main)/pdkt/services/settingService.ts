@@ -1,6 +1,6 @@
 import { createClient } from '@/app/lib/supabase/client';
-import { AppSettings, ConsumerNameMentionPattern, ResolvedConsumerNameMentionPattern } from '../types';
-import { DEFAULT_SCENARIOS, DEFAULT_CONSUMER_TYPES } from '../constants';
+import { AppSettings, ConsumerNameMentionPattern, ResolvedConsumerNameMentionPattern, SessionConfig, Scenario, ConsumerType, Identity } from '../types';
+import { DEFAULT_SCENARIOS, DEFAULT_CONSUMER_TYPES, DUMMY_PROFILES, DUMMY_CITIES } from '../constants';
 import { normalizeModelId, TEXT_SIMULATION_MODELS } from '@/app/lib/ai-models';
 
 const supabase = createClient();
@@ -101,7 +101,25 @@ export async function loadPdktSettings(): Promise<AppSettings> {
   }
 
   // Ensure scenarios and consumerTypes are present
-  if (!settings.scenarios || settings.scenarios.length === 0) settings.scenarios = DEFAULT_SCENARIOS;
+  if (!settings.scenarios || settings.scenarios.length === 0) {
+    settings.scenarios = DEFAULT_SCENARIOS;
+  } else {
+    // Migration logic for legacy script field
+    settings.scenarios = settings.scenarios.map(s => {
+      if (s.script && (!s.sampleEmailTemplate || !s.sampleEmailTemplate.body)) {
+        return {
+          ...s,
+          sampleEmailTemplate: {
+            ...s.sampleEmailTemplate,
+            body: s.script
+          },
+          alwaysUseSampleEmail: false
+        };
+      }
+      return s;
+    });
+  }
+
   if (!settings.consumerTypes || settings.consumerTypes.length === 0) settings.consumerTypes = DEFAULT_CONSUMER_TYPES;
   settings.selectedModel = coercePdktModelId(settings.selectedModel);
   settings.consumerNameMentionPattern = coerceConsumerNameMentionPattern(
@@ -145,4 +163,37 @@ export async function savePdktSettings(settings: AppSettings): Promise<void> {
   } catch (e) {
     console.error('Failed to save PDKT settings to Supabase', e);
   }
+}
+
+export function generateSessionConfig(settings: AppSettings, scenario?: Scenario): SessionConfig {
+  let selectedConsumerType: ConsumerType;
+  if (settings.globalConsumerTypeId && settings.globalConsumerTypeId !== 'random') {
+    selectedConsumerType = settings.consumerTypes.find(t => t.id === settings.globalConsumerTypeId)
+      || settings.consumerTypes[Math.floor(Math.random() * settings.consumerTypes.length)];
+  } else {
+    selectedConsumerType = settings.consumerTypes[Math.floor(Math.random() * settings.consumerTypes.length)];
+  }
+
+  const randomProfile = DUMMY_PROFILES[Math.floor(Math.random() * DUMMY_PROFILES.length)];
+  const randomCity = DUMMY_CITIES[Math.floor(Math.random() * DUMMY_CITIES.length)];
+  const customIdentity = settings.customIdentity;
+
+  const identity: Identity = {
+    name: customIdentity?.senderName || randomProfile.name,
+    email: customIdentity?.email || randomProfile.email,
+    city: customIdentity?.city || randomCity,
+    bodyName: customIdentity?.bodyName || (customIdentity?.senderName || randomProfile.name),
+  };
+
+  const resolvedConsumerNameMentionPattern =
+    resolveConsumerNameMentionPattern(settings.consumerNameMentionPattern);
+
+  return {
+    scenarios: scenario ? [scenario] : settings.scenarios.filter(s => s.isActive),
+    consumerType: selectedConsumerType,
+    identity,
+    enableImageGeneration: settings.enableImageGeneration ?? true,
+    selectedModel: normalizeModelId(settings.selectedModel),
+    resolvedConsumerNameMentionPattern,
+  };
 }

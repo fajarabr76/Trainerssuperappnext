@@ -45,7 +45,14 @@ Menyimpan hasil simulasi legacy/kompatibilitas dari modul Ketik dan Telefun, ser
 ### 3. Modul Simulasi
 - **`ketik_history`**: Riwayat sesi KETIK per user, termasuk skenario, identitas konsumen, dan messages.
 - **`ketik_review_jobs`**: Antrean durable untuk proses review AI KETIK. Menyimpan status job (`queued`, `processing`, `completed`, `failed`), lease metadata (`lease_owner`, `lease_expires_at`), jumlah percobaan, dan pesan error terminal.
-- **`pdkt_history`**: Riwayat sesi PDKT per user, email thread, config, waktu pengerjaan, dan hasil evaluasi async.
+- **`pdkt_history`**: Riwayat sesi PDKT per user, email thread, config, waktu pengerjaan, dan hasil evaluasi async. Kolom `evaluation_status` mendukung state `processing`, `completed`, dan `failed`.
+- **`pdkt_mailbox_items`**: Kotak masuk simulasi PDKT yang persisten. Menyimpan inbound email, snapshot skenario, status (`open`, `replied`, `deleted`), dan referensi ke `pdkt_history` setelah dibalas. Mendukung soft-deletion dan audit timestamps (`updated_at`, `replied_at`, `deleted_at`).
+
+**Catatan Integritas PDKT Mailbox:**
+- Fanout inbound email menggunakan RPC `submit_pdkt_mailbox_batch` dengan `SECURITY DEFINER`, `SET search_path = public`, validasi `auth.uid()`, dan role creator internal via `profiles`.
+- Recipient fanout dibatasi ke akun aktif-approved (`status='approved'`, `is_deleted=false`) dengan role normalized `leader/agent`.
+- Idempotensi memakai kombinasi unik `(created_by_user_id, client_request_id, user_id)` dan duplicate request ditolak secara **strict** (`Duplicate mailbox request`) agar tidak ada insert parsial.
+- Eksekusi fungsi mailbox RPC direvoke dari `public, anon` dan hanya digrant ke role `authenticated`.
 - **`telefun_history`**: Riwayat sesi TELEFUN per user, termasuk skenario, identitas konsumen, durasi, URL rekaman, skor, dan feedback. Row ini menjadi sumber utama histori Telefun; `results` tetap diisi untuk kompatibilitas monitoring lama melalui `details.legacy_history_id`.
 - **`user_settings`**: Settings modul yang disimpan per user untuk KETIK, PDKT, dan TELEFUN. Modul tetap local-first di browser, lalu sync ke Supabase saat user login.
 

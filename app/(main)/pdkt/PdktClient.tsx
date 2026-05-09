@@ -5,26 +5,25 @@ import { SettingsModal } from './components/SettingsModal';
 import { EmailInterface } from './components/EmailInterface';
 import { HistoryModal } from './components/HistoryModal';
 import { UsageModal } from './components/UsageModal';
-import { AppSettings, SessionConfig, Identity, ConsumerType, EmailMessage, EvaluationResult, SessionHistory, EvaluationStatus } from './types';
-import { DUMMY_CITIES, DUMMY_PROFILES } from './constants';
-import { initializeEmailSession } from './services/geminiService';
-import { loadPdktSettings, savePdktSettings, defaultPdktSettings, resolveConsumerNameMentionPattern } from './services/settingService';
+import { MailboxInterface } from './components/MailboxInterface';
+import { AppSettings, SessionConfig, EmailMessage, EvaluationResult, SessionHistory, EvaluationStatus } from './types';
+import { loadPdktSettings, savePdktSettings, defaultPdktSettings } from './services/settingService';
 
 import { History, Settings, Play, Mail, BarChart3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { createClient } from '@/app/lib/supabase/client';
 import { moduleTheme } from '@/app/components/ui/moduleTheme';
 import ModuleWorkspaceIntro from '@/app/components/ModuleWorkspaceIntro';
-import { normalizeModelId } from '@/app/lib/ai-models';
 import { getMyModuleUsage } from '@/app/actions/usage';
 import { type UsageSnapshot, computeUsageDelta, formatUsageDeltaLabel } from '@/app/lib/usage-snapshot';
+import { retryEvaluation } from './actions';
 
 const supabase = createClient();
 
 const PdktPage: React.FC = () => {
   const theme = moduleTheme.pdkt;
   const [user, setUser] = useState<any>(null);
-  const [view, setView] = useState<'home' | 'email'>('home');
+  const [view, setView] = useState<'home' | 'email' | 'mailbox'>('home');
 
   // ── Helper aman untuk konversi date ──────────────────────
   const safeDate = (val: any): Date => {
@@ -255,98 +254,53 @@ const PdktPage: React.FC = () => {
     await savePdktSettings(newSettings);
   };
 
-  const startSession = async () => {
-    const activeScenarios = settings.scenarios.filter(s => s.isActive);
-    if (activeScenarios.length === 0) {
-      alert('Harap aktifkan minimal satu skenario di pengaturan.');
-      return;
-    }
-
-    let selectedConsumerType: ConsumerType;
-    if (settings.globalConsumerTypeId && settings.globalConsumerTypeId !== 'random') {
-      selectedConsumerType = settings.consumerTypes.find(t => t.id === settings.globalConsumerTypeId)
-        || settings.consumerTypes[Math.floor(Math.random() * settings.consumerTypes.length)];
-    } else {
-      selectedConsumerType = settings.consumerTypes[Math.floor(Math.random() * settings.consumerTypes.length)];
-    }
-
-    const randomProfile = DUMMY_PROFILES[Math.floor(Math.random() * DUMMY_PROFILES.length)];
-    const randomCity = DUMMY_CITIES[Math.floor(Math.random() * DUMMY_CITIES.length)];
-    const customIdentity = settings.customIdentity;
-
-    const identity: Identity = {
-      name: customIdentity?.senderName || randomProfile.name,
-      email: customIdentity?.email || randomProfile.email,
-      city: customIdentity?.city || randomCity,
-      bodyName: customIdentity?.bodyName || (customIdentity?.senderName || randomProfile.name),
-    };
-
-    const resolvedConsumerNameMentionPattern =
-      resolveConsumerNameMentionPattern(settings.consumerNameMentionPattern);
-
-    const config: SessionConfig = {
-      scenarios: activeScenarios,
-      consumerType: selectedConsumerType,
-      identity,
-      enableImageGeneration: settings.enableImageGeneration ?? true,
-      selectedModel: normalizeModelId(settings.selectedModel),
-      resolvedConsumerNameMentionPattern,
-    };
-
-    setCurrentConfig(config);
-    setView('email');
-    setIsLoading(true);
-    setEmails([]);
-    setEvaluation(null);
-    setEvaluationStatus(null);
-    setEvaluationError(null);
-    setCurrentSessionId(null);
-    setSessionDelta(null);
-    setSessionDeltaPending(false);
-    setClosedSessionId(null);
-    setClosedSessionBaseline(null);
-    sessionBaselineRef.current = null;
-    const runId = ++sessionRunIdRef.current;
-
-    try {
-      const usage = await getMyModuleUsage('pdkt');
-      if (usage && runId === sessionRunIdRef.current) {
-        sessionBaselineRef.current = {
-          total_calls: usage.total_calls,
-          total_tokens: usage.total_tokens,
-          total_cost_idr: usage.total_cost_idr,
-          periodLabel: usage.periodLabel,
-        };
-      }
-    } catch (e) {
-      console.warn('[PDKT] Failed to fetch usage baseline (best-effort):', e);
-    }
-
-    try {
-      console.log('[PDKT] Starting session with config:', config);
-      const initResult = await initializeEmailSession(config, user?.id);
-      if (!initResult.success) {
-        const err = 'error' in initResult ? initResult.error : 'Gagal memulai sesi.';
-        console.warn('[PDKT] Failed to start session:', err);
-        alert(err);
-        setView('home');
-        return;
-      }
-      console.log('[PDKT] First email received:', initResult.message);
-      setEmails([initResult.message]);
-      setSessionStartTime(Date.now());
-    } catch (e) {
-      console.warn('[PDKT] Failed to start session:', e);
-      alert(
-        e instanceof Error
-          ? e.message
-          : 'Gagal memulai sesi email. Periksa API Key atau koneksi.'
-      );
-      setView('home');
-    } finally {
-      setIsLoading(false);
-    }
+  const startSession = () => {
+    setView('mailbox');
   };
+
+  const updateUsageDelta = useCallback(async (manualBaseline?: UsageSnapshot) => {
+    const baseline = manualBaseline || sessionBaselineRef.current;
+    if (!baseline) return;
+
+    setSessionDeltaPending(true);
+    
+    // Exponential backoff for usage sync
+    let retryCount = 0;
+    const maxRetries = 5;
+    const retryInterval = 1000;
+
+    while (retryCount <= maxRetries) {
+      try {
+        const usage = await getMyModuleUsage('pdkt');
+        if (usage) {
+          const after: UsageSnapshot = {
+            total_calls: usage.total_calls,
+            total_tokens: usage.total_tokens,
+            total_cost_idr: usage.total_cost_idr,
+            periodLabel: usage.periodLabel,
+          };
+          const delta = computeUsageDelta(baseline, after);
+          
+          if (delta.totalCalls > 0 || retryCount === maxRetries) {
+            setSessionDelta(delta);
+            setSessionDeltaPending(false);
+            
+            if (!manualBaseline) {
+              sessionBaselineRef.current = after;
+            }
+            break;
+          }
+        }
+      } catch (e) {
+        console.warn(`[PDKT] Usage fetch retry ${retryCount} failed:`, e);
+      }
+
+      retryCount++;
+      if (retryCount <= maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, retryInterval));
+      }
+    }
+  }, []);
 
   const handleSendReply = async (text: string) => {
     const agentEmail: EmailMessage = {
@@ -396,13 +350,8 @@ const PdktPage: React.FC = () => {
           setEvaluationStatus(mapped.evaluationStatus);
           setEvaluationError(mapped.evaluationError || null);
 
-          void fetch('/api/pdkt/evaluate', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ historyId: mapped.id }),
-            keepalive: true,
+          void retryEvaluation(mapped.id).catch((error) => {
+            console.error('[PDKT] Failed to trigger internal evaluation:', error);
           });
         }
       }
@@ -601,12 +550,26 @@ const PdktPage: React.FC = () => {
                     <span>Usage Bulan Ini</span>
                     {sessionDelta && (sessionDelta.costIdr > 0 || sessionDelta.totalTokens > 0 || sessionDelta.totalCalls > 0) && (
                       <span className="ml-auto text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                        {formatUsageDeltaLabel(sessionDelta)} sesi terakhir
+                        {formatUsageDeltaLabel(sessionDelta)} aktivitas terakhir
                       </span>
                     )}
                   </motion.button>
                 </>
               }
+            />
+          </motion.div>
+        ) : view === 'mailbox' ? (
+          <motion.div
+            key="mailbox"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] module-clean-stage flex flex-col transition-colors duration-500"
+          >
+            <MailboxInterface 
+              settings={settings}
+              onBack={() => setView('home')}
+              onActivityComplete={updateUsageDelta}
             />
           </motion.div>
         ) : (

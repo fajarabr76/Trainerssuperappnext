@@ -39,16 +39,17 @@ Ruang simulasi untuk melatih kemampuan komunikasi tertulis melalui media chat.
 - **Dokumen Terkait**: `docs/AI_RELIABILITY_REFACTOR_V2_CHANGELOG_2026-05-08.md`, `docs/KETIK_MANUAL_AI_REVIEW_CHANGELOG_2026-05-08.md`, `docs/KETIK_KNOWN_ISSUE_TIMEOUT_CONTEXT_HISTORY.md`, `docs/KETIK_PDKT_SETTINGS_DRAFT_AUTOCOMMIT.md`, `docs/MONITORING_TOKEN_USAGE_BILLING.md`.
 
 ## 3. PDKT (Paham Dulu Kasih Tanggapan)
-Workspace untuk latihan korespondensi email yang terstandarisasi.
+Workspace untuk latihan korespondensi email yang terstandarisasi dengan sistem persistent mailbox.
 
 - **Fungsi**: Simulasi penulisan email balasan untuk keluhan atau pertanyaan pelanggan.
 - **Fitur Utama**:
-  - **Detail View Inbound**: Email masuk utama tampil sebagai detail view, bukan bubble thread besar.
+  - **Durable Mailbox**: Inbound email tersimpan secara persisten di database. User bisa memiliki banyak email masuk yang menunggu balasan.
+  - **Manual Scenario Selection**: User secara eksplisit memilih skenario untuk menghasilkan email baru masuk ke mailbox.
   - **Composer Reply**: Balasan memakai panel composer-style dengan field read-only untuk `Kepada`, `Cc`, dan `Subjek`.
-  - **Riwayat Ringkas**: History sesi bisa di-collapse agar detail utama tetap fokus.
-  - **Feedback Analitik**: Evaluasi kualitas bahasa dan ketepatan solusi tetap dipertahankan.
-- **Catatan Teknis**: Output model untuk draft email awal dan evaluasi QA divalidasi dulu sebagai string valid sebelum diparse sebagai JSON. Di modal pengaturan, `Simpan Perubahan` ikut meng-commit draft skenario atau karakter yang masih terbuka. PDKT memiliki quick-view `Usage Bulan Ini` dengan akumulasi khusus modul `pdkt`. **Pemilihan Model AI**: PDKT mendukung penggunaan model AI yang sama dengan KETIK, mencakup baik direct Gemini maupun OpenRouter melalui `TEXT_SIMULATION_MODELS`. Default model untuk PDKT adalah direct `gemini-3.1-flash-lite`. Pengaturan model lama yang mengacu pada model yang sudah tidak tersedia akan otomatis dikoersi ke default terbaru saat settings dimuat. Evaluasi async `POST /api/pdkt/evaluate` menggunakan `config.selectedModel` sebagai sumber model kanonik (dengan fallback kompatibilitas ke key lama jika ada). UI selector memisahkan kategori model berdasarkan provider untuk kejelasan penggunaan.
-- **Dokumen Terkait**: `docs/PDKT_EMAIL_COMPOSER_REFRESH_V1.md`, `docs/KETIK_PDKT_SETTINGS_DRAFT_AUTOCOMMIT.md`, `docs/MONITORING_TOKEN_USAGE_BILLING.md`.
+  - **Async Evaluation**: Penilaian AI berjalan di latar belakang setelah balasan dikirim. Hasil evaluasi dapat dilihat langsung di detail email mailbox.
+  - **Filtering & Search**: Memudahkan user mencari email tertentu atau memfilter berdasarkan status (`Belum Balas`, `Terbalas`).
+- **Catatan Teknis**: PDKT menggunakan tabel `pdkt_mailbox_items` sebagai penyimpanan utama kotak masuk. Saat email dibalas, RPC `submit_pdkt_mailbox_reply` dijalankan untuk memindahkan data ke `pdkt_history` secara atomik sambil menandai item mailbox sebagai `replied`. Endpoint evaluasi `/api/pdkt/evaluate` memiliki fitur *stale recovery* yang memungkinkan proses evaluasi yang macet (>5 menit) untuk di-*retry* secara otomatis. Usage sesi dihitung per aktivitas AI (pembuatan email atau pengiriman balasan) dengan indikator `aktivitas terakhir` pada UI.
+- **Dokumen Terkait**: `docs/PDKT_MAILBOX.md`, `docs/PDKT_EMAIL_COMPOSER_REFRESH_V1.md`, `docs/KETIK_PDKT_SETTINGS_DRAFT_AUTOCOMMIT.md`, `docs/MONITORING_TOKEN_USAGE_BILLING.md`.
 
 ## 4. TELEFUN (Telephone Fun)
 Modul simulasi komunikasi suara untuk melatih intonasi dan kecepatan respon telepon.

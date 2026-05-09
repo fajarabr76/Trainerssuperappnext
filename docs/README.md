@@ -33,6 +33,7 @@ Dokumen ini adalah peta baca untuk kondisi aplikasi Trainers SuperApp saat ini. 
 - `docs/AUTH_KNOWN_ISSUE_TRANSIENT_PROFILE_READS.md`: Perlakuan transient profile read agar sesi tidak dihancurkan.
 - `docs/KETIK_KNOWN_ISSUE_TIMEOUT_CONTEXT_HISTORY.md`: Timeout, konteks chat, dan history KETIK.
 - `docs/KETIK_PDKT_SETTINGS_DRAFT_AUTOCOMMIT.md`: Draft settings modal KETIK/PDKT/TELEFUN yang harus ikut tersimpan saat `Simpan Perubahan`.
+- `docs/PDKT_MAILBOX.md`: Panduan teknis sistem persistent mailbox PDKT, manual scenario selection, dan async evaluation auto-recovery.
 - `docs/PDKT_EMAIL_COMPOSER_REFRESH_V1.md`: Refresh UI composer PDKT.
 - `docs/TELEFUN_KNOWN_ISSUE_RAILWAY_STALE_DIST.md`: Diagnostik Telefun saat Railway menjalankan `dist/server.js` lama.
 - `docs/SIDAK_KNOWN_ISSUE_AGENT_DETAIL_SCORE.md`: Penutupan mismatch skor detail agent.

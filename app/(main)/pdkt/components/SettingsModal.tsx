@@ -28,7 +28,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   const [isNewCategoryInput, setIsNewCategoryInput] = useState(false);
   const [newScenarioTitle, setNewScenarioTitle] = useState('');
   const [newScenarioDesc, setNewScenarioDesc] = useState('');
-  const [newScenarioScript, setNewScenarioScript] = useState('');
+  const [newScenarioTemplateSubject, setNewScenarioTemplateSubject] = useState('');
+  const [newScenarioTemplateBody, setNewScenarioTemplateBody] = useState('');
+  const [newScenarioAlwaysUseTemplate, setNewScenarioAlwaysUseTemplate] = useState(false);
   
   // Changed to array for multiple images
   const [newScenarioImages, setNewScenarioImages] = useState<string[]>([]);
@@ -108,7 +110,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     setNewScenarioCategory('');
     setNewScenarioTitle('');
     setNewScenarioDesc('');
-    setNewScenarioScript('');
+    setNewScenarioTemplateSubject('');
+    setNewScenarioTemplateBody('');
+    setNewScenarioAlwaysUseTemplate(false);
     setNewScenarioImages([]);
     setIsNewCategoryInput(false);
     
@@ -127,7 +131,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     setNewScenarioCategory(scenario.category);
     setNewScenarioTitle(scenario.title);
     setNewScenarioDesc(scenario.description);
-    setNewScenarioScript(scenario.script || '');
+    setNewScenarioTemplateSubject(scenario.sampleEmailTemplate?.subject || '');
+    setNewScenarioTemplateBody(scenario.sampleEmailTemplate?.body || '');
+    setNewScenarioAlwaysUseTemplate(scenario.alwaysUseSampleEmail || false);
     
     // Handle migration: Check for attachmentImages (new) or attachmentImage (old legacy data)
     let images: string[] = [];
@@ -152,7 +158,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     setIsAddingScenario(false);
     setNewScenarioTitle('');
     setNewScenarioDesc('');
-    setNewScenarioScript('');
+    setNewScenarioTemplateSubject('');
+    setNewScenarioTemplateBody('');
+    setNewScenarioAlwaysUseTemplate(false);
     setNewScenarioCategory('');
     setNewScenarioImages([]);
     setIsNewCategoryInput(false);
@@ -193,6 +201,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
 
   const handleSaveScenario = () => {
     if (!newScenarioTitle || !newScenarioDesc) return;
+    if (newScenarioAlwaysUseTemplate && !newScenarioTemplateBody.trim()) {
+      alert('Isi body template email jika Anda memilih "Selalu gunakan template ini".');
+      return;
+    }
     const category = isNewCategoryInput ? newScenarioCategory : newScenarioCategory || "Umum";
     
     if (editingScenarioId) {
@@ -205,7 +217,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                 category, 
                 title: newScenarioTitle, 
                 description: newScenarioDesc, 
-                script: newScenarioScript,
+                sampleEmailTemplate: {
+                  subject: newScenarioTemplateSubject,
+                  body: newScenarioTemplateBody
+                },
+                alwaysUseSampleEmail: newScenarioAlwaysUseTemplate,
                 attachmentImages: newScenarioImages
               }
             : s
@@ -217,7 +233,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
         category,
         title: newScenarioTitle,
         description: newScenarioDesc,
-        script: newScenarioScript,
+        sampleEmailTemplate: {
+          subject: newScenarioTemplateSubject,
+          body: newScenarioTemplateBody
+        },
+        alwaysUseSampleEmail: newScenarioAlwaysUseTemplate,
         isActive: true,
         attachmentImages: newScenarioImages
       };
@@ -323,7 +343,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                 category,
                 title: newScenarioTitle,
                 description: newScenarioDesc,
-                script: newScenarioScript,
+                sampleEmailTemplate: {
+                  subject: newScenarioTemplateSubject,
+                  body: newScenarioTemplateBody
+                },
+                alwaysUseSampleEmail: newScenarioAlwaysUseTemplate,
                 attachmentImages: newScenarioImages
               }
             : s
@@ -335,7 +359,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
         category,
         title: newScenarioTitle,
         description: newScenarioDesc,
-        script: newScenarioScript,
+        sampleEmailTemplate: {
+          subject: newScenarioTemplateSubject,
+          body: newScenarioTemplateBody
+        },
+        alwaysUseSampleEmail: newScenarioAlwaysUseTemplate,
         isActive: true,
         attachmentImages: newScenarioImages
       };
@@ -392,6 +420,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
         document.getElementById('scenario-form')?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
       alert('Skenario yang sedang Anda buat belum lengkap. Isi judul dan deskripsi masalah terlebih dahulu, atau klik Batal untuk membatalkan skenario.');
+      return;
+    }
+
+    if (newScenarioAlwaysUseTemplate && !newScenarioTemplateBody.trim()) {
+      setActiveTab('scenarios');
+      setTimeout(() => {
+        document.getElementById('scenario-form')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      alert('Isi body template email jika Anda memilih "Selalu gunakan template ini".');
       return;
     }
 
@@ -815,15 +852,41 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                           />
                         </div>
                         
-                        <div className="col-span-2">
-                          <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-3 ml-2">Instruksi Perilaku AI (Opsional)</label>
-                          <textarea 
-                            className="w-full rounded-2xl border-white/5 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none resize-none font-medium placeholder:text-foreground/10"
-                            rows={2}
-                            placeholder="Berikan instruksi tambahan khusus untuk skenario ini..."
-                            value={newScenarioScript}
-                            onChange={(e) => setNewScenarioScript(e.target.value)}
-                          />
+                        <div className="col-span-2 space-y-4 pt-2">
+                          <div className="flex items-center justify-between ml-2">
+                            <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Template Email (Opsional)</label>
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest group-hover:text-primary transition-colors">Selalu gunakan template ini</span>
+                              <div className="relative inline-flex items-center cursor-pointer">
+                                <input 
+                                  type="checkbox" 
+                                  className="sr-only peer" 
+                                  checked={newScenarioAlwaysUseTemplate}
+                                  onChange={(e) => setNewScenarioAlwaysUseTemplate(e.target.checked)}
+                                />
+                                <div className="w-8 h-4 bg-foreground/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary"></div>
+                              </div>
+                            </label>
+                          </div>
+                          <div className="space-y-3">
+                            <input 
+                              type="text"
+                              className="w-full rounded-xl border-white/5 bg-foreground/5 p-3 text-xs text-foreground focus:ring-2 focus:ring-primary outline-none font-medium placeholder:text-foreground/10"
+                              placeholder="Subjek email template (opsional)..."
+                              value={newScenarioTemplateSubject}
+                              onChange={(e) => setNewScenarioTemplateSubject(e.target.value)}
+                            />
+                            <textarea 
+                              className="w-full rounded-2xl border-white/5 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none resize-none font-medium placeholder:text-foreground/10"
+                              rows={4}
+                              placeholder="Tulis isi email template di sini. Gunakan wording netral; nama konsumen akan disisipkan otomatis sesuai pengaturan sistem."
+                              value={newScenarioTemplateBody}
+                              onChange={(e) => setNewScenarioTemplateBody(e.target.value)}
+                            />
+                            <p className="text-[10px] text-muted-foreground/60 italic ml-2">
+                              * Jika &quot;Selalu gunakan template ini&quot; aktif, AI tidak akan meng-generate email baru; sistem akan langsung memakai teks di atas.
+                            </p>
+                          </div>
                         </div>
                         
                         <div className="col-span-2">

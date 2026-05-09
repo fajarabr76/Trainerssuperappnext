@@ -32,6 +32,11 @@ export interface Scenario {
   title: string;
   description: string;
   script?: string;
+  sampleEmailTemplate?: {
+    subject?: string;
+    body: string;
+  };
+  alwaysUseSampleEmail?: boolean;
   isActive: boolean;
   attachmentImages?: string[];
 }
@@ -101,4 +106,34 @@ export interface SessionHistory {
   evaluationStartedAt?: string | null;
   evaluationCompletedAt?: string | null;
   timeTaken: number | null;
+}
+
+export type MailboxStatus = 'open' | 'replied' | 'deleted';
+
+export interface PdktMailboxItem {
+  id: string;
+  user_id: string;
+  status: MailboxStatus;
+  created_at: string;
+  updated_at?: string;
+  deleted_at?: string | null;
+  replied_at?: string | null;
+  sender_name: string;
+  sender_email: string;
+  subject: string;
+  snippet: string;
+  scenario_snapshot: Scenario;
+  config_snapshot: SessionConfig;
+  inbound_email: EmailMessage;
+  emails_thread: EmailMessage[];
+  history_id?: string | null;
+  last_activity_at: string;
+
+  // Fanout and shared fields
+  created_by_user_id?: string | null;
+  source_mailbox_item_id?: string | null;
+  share_batch_id?: string | null;
+  client_request_id?: string | null;
+  is_shared_copy?: boolean;
+  shared_at?: string | null;
 }
