@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
     const telefunWsSource = getTelefunWebSocketCspSource();
     const cspHeader = `
       default-src 'self';
-      script-src 'self' 'unsafe-eval' 'unsafe-inline';
+      script-src 'self' 'unsafe-eval' 'unsafe-inline' https://va.vercel-scripts.com;
       style-src 'self' 'unsafe-inline';
       img-src 'self' blob: data: https://picsum.photos https://*.supabase.co https://api.dicebear.com;
       font-src 'self' data:;
@@ -30,7 +30,7 @@ const nextConfig: NextConfig = {
       base-uri 'self';
       form-action 'self';
       frame-ancestors 'none';
-      connect-src 'self' https://*.supabase.co https://*.googleapis.com https://generativelanguage.googleapis.com wss://*.railway.app wss://*.up.railway.app ${telefunWsSource};
+      connect-src 'self' https://*.supabase.co https://*.googleapis.com https://generativelanguage.googleapis.com https://va.vercel-scripts.com wss://*.railway.app wss://*.up.railway.app ${telefunWsSource};
       upgrade-insecure-requests;
     `.replace(/\s{2,}/g, ' ').trim();
 

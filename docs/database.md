@@ -52,7 +52,8 @@ Menyimpan hasil simulasi legacy/kompatibilitas dari modul Ketik dan Telefun, ser
 **Catatan Integritas KETIK Review:**
 - `ketik_history.review_status='completed'` hanya dianggap valid jika row terkait tersedia di `ketik_session_reviews`.
 - Jika polling menemukan `completed` tanpa row review, status di-auto-heal ke `failed` agar sesi dapat di-trigger ulang.
-- Siklus eksekusi review: enqueue (`POST /api/ketik/review`) -> worker claim/process (`/api/ketik/worker`) -> polling status (`/api/ketik/review/status`).
+- `pending` berarti sesi belum dianalisis dan tombol "Mulai Analisis" harus tetap aktif; loading/spinner hanya dipakai untuk status `processing` atau request manual yang sedang berjalan.
+- Siklus eksekusi review: manual trigger (`POST /api/ketik/review`) membuat/menyegarkan job durable lalu mencoba claim/process langsung via helper worker. `/api/ketik/worker` tetap tersedia sebagai fallback/background drain untuk job yang belum selesai atau lease yang kedaluwarsa, dan `/api/ketik/review/status` dipakai untuk polling serta auto-heal hasil yang tidak lengkap.
 
 ### 4. Modul Profiler (KTP)
 - **`profiler_years`**: Daftar tahun database.

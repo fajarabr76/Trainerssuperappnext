@@ -236,17 +236,25 @@ export async function processKetikReviewJob(sessionId: string): Promise<KetikAIR
   You are an expert Quality Assurance (QA) and Coaching AI for a customer service contact center.
   Review the customer service chat transcript between an Agent (user) and a Consumer (consumer).
   
-  Evaluation Categories:
+  Evaluation Categories (Skala 0-100):
   - Communication (naturalness, empathy, readability, professionalism)
   - Probing (depth, relevance, chronology gathering)
   - Resolution (clarity, actionable response, completeness)
   - Compliance (no misinformation, no victim blaming, no rude wording)
   - Typo & Writing (typo frequency, readability)
 
+  Rubrik Penilaian (0-100):
+  - 90-100: Sangat Baik (Excellent)
+  - 75-89: Baik (Good)
+  - 60-74: Cukup (Fair)
+  - <60: Perlu Coaching (Needs Coaching)
+
   Rules for Typo Detection:
   - Ignore common Indonesian slang/informal words like 'yg', 'sy', 'kak', 'ga', 'gak', 'ok', 'oke'.
   - Identify formal typos that affect professionalism or readability.
   - Severity: 'minor' (small typo), 'medium' (repeated or confusing), 'critical' (changes meaning or unprofessional).
+
+  IMPORTANT: ALL textual response (summary, strengths, weaknesses, coachingFocus) MUST be in Indonesian.
   `;
 
   // 3. Call AI
@@ -268,21 +276,52 @@ export async function processKetikReviewJob(sessionId: string): Promise<KetikAIR
   try {
     reviewResult = JSON.parse(aiResponse.text);
     
+    // 3.1. Clamping & Validation
+    const clamp = (val: any) => {
+      const num = Number(val);
+      if (isNaN(num)) return 0;
+      return Math.max(0, Math.min(100, Math.round(num)));
+    };
+
+    reviewResult.scores = {
+      empathy: clamp(reviewResult.scores?.empathy),
+      probing: clamp(reviewResult.scores?.probing),
+      typo: clamp(reviewResult.scores?.typo),
+      compliance: clamp(reviewResult.scores?.compliance),
+      final: clamp(reviewResult.scores?.final),
+    };
+
+    // Calculate a safe final score if missing or 0
+    const calculatedFinal = Math.round(
+      (reviewResult.scores.empathy +
+        reviewResult.scores.probing +
+        reviewResult.scores.typo +
+        reviewResult.scores.compliance) / 4
+    );
+    
+    // If the model gave 0 but sub-scores are high, or if it's vastly different, prefer a consistent mean
+    if (reviewResult.scores.final === 0 || Math.abs(reviewResult.scores.final - calculatedFinal) > 15) {
+      reviewResult.scores.final = calculatedFinal;
+    }
+
+    // Default Indonesian fallbacks
+    if (!reviewResult.summary) reviewResult.summary = "Ringkasan tidak tersedia.";
+    if (!Array.isArray(reviewResult.strengths) || reviewResult.strengths.length === 0) reviewResult.strengths = ["Pertahankan profesionalisme dalam berkomunikasi."];
+    if (!Array.isArray(reviewResult.weaknesses) || reviewResult.weaknesses.length === 0) reviewResult.weaknesses = ["Terus latih teknik probing dan empati."];
+    if (!Array.isArray(reviewResult.coachingFocus) || reviewResult.coachingFocus.length === 0) reviewResult.coachingFocus = ["Fokus pada detail kebutuhan konsumen."];
+
     // Verify minimal shape
     if (
       !reviewResult ||
       typeof reviewResult !== 'object' ||
       !reviewResult.scores ||
       typeof reviewResult.scores.final !== 'number' ||
-      typeof reviewResult.summary !== 'string' ||
-      !Array.isArray(reviewResult.strengths) ||
-      !Array.isArray(reviewResult.weaknesses) ||
-      !Array.isArray(reviewResult.coachingFocus)
+      typeof reviewResult.summary !== 'string'
     ) {
-      throw new Error('Invalid AI response shape');
+      throw new Error('Invalid AI response shape after normalization');
     }
-  } catch (_parseError) {
-    console.error("[processKetikReviewJob] Failed to parse AI response JSON:", aiResponse.text);
+  } catch (error) {
+    console.error("[processKetikReviewJob] Failed to parse or normalize AI response:", error, aiResponse.text);
     throw new Error('AI response JSON tidak valid atau format tidak sesuai.');
   }
 
@@ -342,6 +381,8 @@ export async function processKetikReviewJob(sessionId: string): Promise<KetikAIR
 
   if (jobUpdateError) throw jobUpdateError;
 
-  console.log(`[processKetikReviewJob] AI Review completed successfully for session: ${sessionId}`);
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[processKetikReviewJob] AI Review completed successfully for session: ${sessionId}`);
+  }
   return { status: 'completed' };
 }

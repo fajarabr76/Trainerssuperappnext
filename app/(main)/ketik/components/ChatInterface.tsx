@@ -257,15 +257,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         const beforeSlash = inputText.substring(0, lastSlashIndex);
         const isTriggerValid = (lastSlashIndex === 0 || beforeSlash.endsWith(' ')) && !textAfterSlash.includes(' ');
         
-        console.log('[QuickTemplate Debug]', { 
-            inputText, 
-            lastSlashIndex, 
-            textAfterSlash, 
-            beforeSlash, 
-            isTriggerValid,
-            filteredTemplatesCount: filteredTemplates.length,
-            configQuickTemplates: config.quickTemplates
-        });
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[QuickTemplate Debug]', { 
+              inputText, 
+              lastSlashIndex, 
+              textAfterSlash, 
+              beforeSlash, 
+              isTriggerValid,
+              filteredTemplatesCount: filteredTemplates.length,
+              configQuickTemplates: config.quickTemplates
+          });
+        }
 
         if (isTriggerValid) {
             setShowTemplatePopup(true);

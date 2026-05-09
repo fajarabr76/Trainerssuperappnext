@@ -21,7 +21,7 @@ export async function GET(req: Request) {
 
   const { data: session, error: sessionError } = await supabaseAdmin
     .from('ketik_history')
-    .select('id, user_id, review_status')
+    .select('id, user_id, review_status, final_score, empathy_score, probing_score, typo_score, compliance_score')
     .eq('id', sessionId)
     .single();
 
@@ -31,6 +31,7 @@ export async function GET(req: Request) {
 
   let status = session.review_status || 'pending';
   let resultReady = false;
+  let scores = null;
 
   if (status === 'completed') {
     // Auto-heal check
@@ -54,6 +55,13 @@ export async function GET(req: Request) {
         .eq('session_id', sessionId);
     } else {
       resultReady = true;
+      scores = {
+        final: session.final_score,
+        empathy: session.empathy_score,
+        probing: session.probing_score,
+        typo: session.typo_score,
+        compliance: session.compliance_score
+      };
     }
   }
 
@@ -62,5 +70,5 @@ export async function GET(req: Request) {
     status = 'processing';
   }
 
-  return NextResponse.json({ status, resultReady });
+  return NextResponse.json({ status, resultReady, scores });
 }

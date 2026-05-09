@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'motion/react';
 import { 
   X, 
@@ -26,6 +26,11 @@ interface SessionReviewModalProps {
   typos?: KetikTypoFinding[];
   onReplay: () => void;
   onStartReview?: (sessionId: string) => Promise<void>;
+  progress?: {
+    status: 'idle' | 'starting' | 'processing' | 'delayed' | 'loading-result' | 'ready' | 'failed';
+    percent: number;
+    etaSeconds: number;
+  };
 }
 
 export const SessionReviewModal: React.FC<SessionReviewModalProps> = ({
@@ -35,21 +40,38 @@ export const SessionReviewModal: React.FC<SessionReviewModalProps> = ({
   review,
   typos = [],
   onReplay,
-  onStartReview
+  onStartReview,
+  progress = { status: 'idle', percent: 0, etaSeconds: 0 }
 }) => {
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const isProcessing = isAnalyzing || session.reviewStatus === 'pending' || session.reviewStatus === 'processing';
+  const isProcessing = session.reviewStatus === 'processing' || 
+                       ['starting', 'processing', 'delayed', 'loading-result'].includes(progress.status);
+  
+  // A stable "is loading results" state that prevents flickering back to CTA
+  const isLoadingResults = progress.status === 'loading-result' || (session.reviewStatus === 'completed' && !review);
 
   if (!isOpen) return null;
 
   const handleAnalyze = async () => {
     if (!onStartReview || isProcessing) return;
-    setIsAnalyzing(true);
     try {
       await onStartReview(session.id);
-    } finally {
-      setIsAnalyzing(false);
+    } catch (e) {
+      console.error('Manual review trigger failed:', e);
     }
+  };
+
+  const getStatusText = () => {
+    if (progress.status === 'starting') return 'Memulai analisis...';
+    if (progress.status === 'processing') {
+      if (progress.percent < 30) return 'Menganalisis pesan...';
+      if (progress.percent < 60) return 'Menilai performa...';
+      return 'Menyusun ringkasan...';
+    }
+    if (progress.status === 'delayed') return 'Sedikit lagi...';
+    if (progress.status === 'loading-result') return 'Memuat hasil...';
+    if (progress.status === 'ready') return 'Analisis selesai!';
+    if (progress.status === 'failed') return 'Analisis gagal.';
+    return 'Menunggu...';
   };
 
   const scoreCards = [
@@ -256,25 +278,63 @@ export const SessionReviewModal: React.FC<SessionReviewModalProps> = ({
               </div>
               <h3 className="text-lg font-bold text-foreground mb-2">Analisis Performa Chat AI</h3>
               <p className="text-sm text-muted-foreground max-w-md mb-8">
-                Gunakan AI untuk menilai empati, teknik probing, kepatuhan prosedur, dan mendeteksi typo pada sesi chat Anda.
+                {session.reviewStatus === 'failed'
+                  ? 'Analisis sebelumnya gagal atau hasilnya tidak lengkap. Jalankan ulang analisis AI untuk membuat hasil review baru.'
+                  : 'Gunakan AI untuk menilai empati, teknik probing, kepatuhan prosedur, dan mendeteksi typo pada sesi chat Anda.'}
               </p>
-              <button
-                onClick={handleAnalyze}
-                disabled={isProcessing}
-                className="inline-flex h-14 items-center justify-center gap-3 rounded-2xl bg-primary px-8 text-xs font-black uppercase tracking-widest text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
-              >
-                {isProcessing ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-current/30 border-t-current rounded-full animate-spin" />
-                    Menganalisis Sesi...
-                  </>
-                ) : (
-                  <>
-                    <BrainCircuit className="w-5 h-5" />
-                    Mulai Analisis
-                  </>
-                )}
-              </button>
+              
+              {!review && isLoadingResults ? (
+                 <div className="w-full max-w-sm space-y-4">
+                    <div className="flex items-center justify-center gap-3 text-primary animate-pulse">
+                      <div className="w-5 h-5 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                      <span className="text-xs font-black uppercase tracking-widest">{getStatusText()}</span>
+                    </div>
+                    <div className="h-2 bg-foreground/5 rounded-full overflow-hidden">
+                      <motion.div 
+                        className="h-full bg-primary"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${progress.percent}%` }}
+                        transition={{ duration: 0.5 }}
+                      />
+                    </div>
+                 </div>
+              ) : (
+                <button
+                  onClick={handleAnalyze}
+                  disabled={isProcessing}
+                  className="inline-flex h-14 w-full max-w-sm flex-col items-center justify-center gap-1 rounded-2xl bg-primary px-8 text-xs font-black uppercase tracking-widest text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-80 disabled:hover:scale-100 overflow-hidden relative"
+                >
+                  {isProcessing ? (
+                    <>
+                      <div 
+                        className="absolute inset-0 bg-white/10 origin-left transition-transform duration-500 ease-out z-0" 
+                        style={{ transform: `scaleX(${progress.percent / 100})` }}
+                      />
+                      <div className="relative z-10 flex items-center gap-3">
+                        <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                        <span>{getStatusText()}</span>
+                        <span className="opacity-60 tabular-nums">{Math.round(progress.percent)}%</span>
+                      </div>
+                      {progress.etaSeconds > 0 && (
+                        <div className="relative z-10 text-[9px] font-bold opacity-70 tracking-normal normal-case">
+                          Estimasi: {progress.etaSeconds} detik lagi
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <BrainCircuit className="w-5 h-5" />
+                      <span>{session.reviewStatus === 'failed' ? 'Jalankan Ulang Analisis' : 'Mulai Analisis'}</span>
+                    </div>
+                  )}
+                </button>
+              )}
+
+              {progress.status === 'delayed' && (
+                <p className="mt-4 text-[10px] text-muted-foreground animate-pulse">
+                  Proses ini memakan waktu lebih lama dari biasanya. Harap tunggu...
+                </p>
+              )}
             </div>
           )}
         </div>

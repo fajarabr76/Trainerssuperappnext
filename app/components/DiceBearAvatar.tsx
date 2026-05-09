@@ -30,6 +30,7 @@ export default function DiceBearAvatar({
       alt={`Avatar ${name}`}
       width={size}
       height={size}
+      unoptimized
       className={`object-cover ${className}`}
       onError={() => setHasError(true)}
     />

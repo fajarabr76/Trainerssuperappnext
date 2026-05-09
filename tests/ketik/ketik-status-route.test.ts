@@ -81,7 +81,7 @@ describe('GET /api/ketik/review/status', () => {
     const json = await res.json();
 
     expect(res.status).toBe(200);
-    expect(json).toEqual({ status: 'processing', resultReady: false });
+    expect(json).toEqual({ status: 'processing', resultReady: false, scores: null });
   });
 
   it('auto-heals if status completed but review data missing', async () => {
@@ -101,7 +101,7 @@ describe('GET /api/ketik/review/status', () => {
           return {
             select: vi.fn().mockReturnThis(),
             update: mockAdminUpdateKetikHistory,
-            eq: function (field: string, value: string) {
+            eq: function (_field: string, _value: string) {
                 if (this.update) {
                     return mockAdminEqKetikHistory;
                 }
@@ -125,7 +125,7 @@ describe('GET /api/ketik/review/status', () => {
     };
     
     // Better mocking
-    mockAdmin.from = vi.fn().mockImplementation((table) => {
+    mockAdmin.from = vi.fn().mockImplementation((_table) => {
         const chain = {
             select: vi.fn().mockReturnThis(),
             update: vi.fn().mockReturnThis(),
@@ -143,7 +143,7 @@ describe('GET /api/ketik/review/status', () => {
     const json = await res.json();
 
     expect(res.status).toBe(200);
-    expect(json).toEqual({ status: 'failed', resultReady: false });
+    expect(json).toEqual({ status: 'failed', resultReady: false, scores: null });
     // Verify auto-heal updates
     expect(mockAdmin.from).toHaveBeenCalledWith('ketik_history');
     expect(mockAdmin.from).toHaveBeenCalledWith('ketik_review_jobs');
@@ -180,6 +180,16 @@ describe('GET /api/ketik/review/status', () => {
     const json = await res.json();
 
     expect(res.status).toBe(200);
-    expect(json).toEqual({ status: 'completed', resultReady: true });
+    expect(json).toEqual({ 
+      status: 'completed', 
+      resultReady: true,
+      scores: {
+        final: undefined,
+        empathy: undefined,
+        probing: undefined,
+        typo: undefined,
+        compliance: undefined,
+      }
+    });
   });
 });

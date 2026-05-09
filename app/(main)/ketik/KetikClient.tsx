@@ -124,8 +124,15 @@ export default function AppKetik() {
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [selectedSessionForReview, setSelectedSessionForReview] = useState<ChatSession | null>(null);
 
+  const [reviewProgress, setReviewProgress] = useState<{
+    status: 'idle' | 'starting' | 'processing' | 'delayed' | 'loading-result' | 'ready' | 'failed';
+    percent: number;
+    etaSeconds: number;
+  }>({ status: 'idle', percent: 0, etaSeconds: 0 });
+
   const handleStartManualReview = async (sessionId: string) => {
     try {
+      setReviewProgress({ status: 'starting', percent: 5, etaSeconds: 30 });
       const reviewResponse = await fetch('/api/ketik/review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -133,27 +140,35 @@ export default function AppKetik() {
       });
 
       if (!reviewResponse.ok) {
-        const payload = await reviewResponse.json().catch(() => null);
-        console.warn('[Ketik] AI review failed:', payload);
+        setReviewProgress(prev => ({ ...prev, status: 'failed' }));
         alert('Gagal memulai analisis AI. Silakan coba lagi.');
         return;
       }
 
       const { status } = await reviewResponse.json();
 
-      // Optimistically update the status to trigger polling or immediate completion
+      // Update the status returned by the manual trigger. The route either
+      // completes the review inline or returns processing if another worker has
+      // already claimed the job.
       if (selectedSessionForReview && selectedSessionForReview.id === sessionId) {
         const updatedSession = { ...selectedSessionForReview, reviewStatus: status };
         setSelectedSessionForReview(updatedSession);
         setHistory(prev => prev.map(item => item.id === sessionId ? updatedSession : item));
         
         if (status === 'completed') {
+           // handleViewReview will handle setting the final ready status after loading details
            handleViewReview(updatedSession);
+        } else if (status === 'failed') {
+          setReviewProgress(prev => ({ ...prev, status: 'failed' }));
+          alert('Analisis AI gagal. Silakan coba lagi.');
+        } else {
+          setReviewProgress({ status: 'processing', percent: 15, etaSeconds: 25 });
         }
       }
 
     } catch (error) {
       console.error('[Ketik] Error starting manual review:', error);
+      setReviewProgress(prev => ({ ...prev, status: 'failed' }));
       alert('Terjadi kesalahan saat memulai analisis.');
     }
   };
@@ -478,40 +493,55 @@ export default function AppKetik() {
   };
 
   const handleViewReview = async (session: ChatSession) => {
-    setSelectedSessionForReview(session);
+    const isSameSession = selectedSessionForReview?.id === session.id;
+    
+    // If not the same session, reset modal state first
+    if (!isSameSession) {
+      setSelectedSessionForReview(session);
+      setSelectedReview(null);
+      setSelectedTypos([]);
+    }
 
     // If not completed, just open the modal (which will show the manual trigger button)
     if (session.reviewStatus === 'pending' || session.reviewStatus === 'failed' || !session.reviewStatus) {
       setIsReviewOpen(true);
-      setSelectedReview(null);
-      setSelectedTypos([]);
       return;
     }
     
     if (session.reviewStatus === 'completed') {
       setIsReviewOpen(true);
-      setSelectedReview(null);
-      setSelectedTypos([]);
+      
+      // If we already have the review for this session, don't reload
+      if (isSameSession && selectedReview) {
+        setReviewProgress({ status: 'ready', percent: 100, etaSeconds: 0 });
+        return;
+      }
+
+      setReviewProgress(prev => ({ 
+        ...prev, 
+        status: 'loading-result', 
+        percent: Math.max(prev.percent, 92) 
+      }));
 
       try {
-        const { data: reviewData, error: reviewError } = await supabase
-          .from('ketik_session_reviews')
-          .select('*')
-          .eq('session_id', session.id)
-          .maybeSingle();
+        const [{ data: reviewData, error: reviewError }, { data: typosData, error: typosError }] = await Promise.all([
+          supabase
+            .from('ketik_session_reviews')
+            .select('*')
+            .eq('session_id', session.id)
+            .maybeSingle(),
+          supabase
+            .from('ketik_typo_findings')
+            .select('*')
+            .eq('session_id', session.id)
+        ]);
 
         if (reviewError) throw reviewError;
-
-        const { data: typosData, error: typosError } = await supabase
-          .from('ketik_typo_findings')
-          .select('*')
-          .eq('session_id', session.id);
-
         if (typosError) throw typosError;
 
         // Transform snake_case from DB to camelCase for the interface
         if (reviewData) {
-          setSelectedReview({
+          const mappedReview: KetikSessionReview = {
             id: reviewData.id,
             sessionId: reviewData.session_id,
             aiSummary: reviewData.ai_summary,
@@ -519,27 +549,32 @@ export default function AppKetik() {
             weaknesses: reviewData.weaknesses,
             coachingFocus: reviewData.coaching_focus,
             createdAt: reviewData.created_at,
-          });
+          };
           
-          if (typosData) {
-            setSelectedTypos(typosData.map(t => ({
-              id: t.id,
-              sessionId: t.session_id,
-              messageId: t.message_id,
-              originalWord: t.original_word,
-              correctedWord: t.corrected_word,
-              severity: t.severity,
-              createdAt: t.created_at,
-            })));
-          }
+          const mappedTypos: KetikTypoFinding[] = (typosData || []).map(t => ({
+            id: t.id,
+            sessionId: t.session_id,
+            messageId: t.message_id,
+            originalWord: t.original_word,
+            correctedWord: t.corrected_word,
+            severity: t.severity,
+            createdAt: t.created_at,
+          }));
+
+          setSelectedReview(mappedReview);
+          setSelectedTypos(mappedTypos);
+          setReviewProgress({ status: 'ready', percent: 100, etaSeconds: 0 });
         } else {
            console.warn('[Ketik] Review marked as completed but data missing on view.');
            alert('Data review tidak ditemukan. Silakan jalankan ulang analisis.');
-           setSelectedSessionForReview({ ...session, reviewStatus: 'failed' });
-           setHistory(prev => prev.map(item => item.id === session.id ? { ...item, reviewStatus: 'failed' } : item));
+           const failedSession = { ...session, reviewStatus: 'failed' as const };
+           setSelectedSessionForReview(failedSession);
+           setHistory(prev => prev.map(item => item.id === session.id ? failedSession : item));
+           setReviewProgress({ status: 'failed', percent: 0, etaSeconds: 0 });
         }
       } catch (err) {
         console.error('[Ketik] Error fetching review details:', err);
+        setReviewProgress({ status: 'failed', percent: 0, etaSeconds: 0 });
       }
     } else {
       // If not completed, fallback to legacy review view
@@ -550,31 +585,83 @@ export default function AppKetik() {
   // Poll for review status
   useEffect(() => {
     let interval: NodeJS.Timeout;
+    let progressInterval: NodeJS.Timeout;
 
-    // Poll if pending/processing OR if completed but we don't have the review data yet
+    const currentSessionId = selectedSessionForReview?.id;
+    if (!currentSessionId) return;
+
+    // Poll only after a review has actually been started, or if a completed
+    // status needs its review payload loaded. Fresh pending sessions remain
+    // actionable and should not show an indefinite loading state.
     const shouldPoll = selectedSessionForReview && (
-      selectedSessionForReview.reviewStatus === 'pending' || 
       selectedSessionForReview.reviewStatus === 'processing' ||
-      (selectedSessionForReview.reviewStatus === 'completed' && !selectedReview)
+      (selectedSessionForReview.reviewStatus === 'pending' && reviewProgress.status !== 'idle') ||
+      (selectedSessionForReview.reviewStatus === 'completed' && !selectedReview && reviewProgress.status !== 'loading-result')
     );
 
     if (shouldPoll) {
+      // Smooth progress animation
+      progressInterval = setInterval(() => {
+        setReviewProgress(prev => {
+          if (prev.status === 'ready' || prev.status === 'failed' || prev.status === 'idle') return prev;
+          
+          let nextPercent = prev.percent + (prev.percent < 90 ? 1.5 : 0.2);
+          const nextEta = Math.max(0, prev.etaSeconds - 1);
+          let nextStatus = prev.status;
+
+          // Cap progress during processing
+          if (nextPercent > 92 && prev.status === 'processing') {
+            nextPercent = 92;
+            nextStatus = 'delayed';
+          }
+          
+          // Cap progress during result loading
+          if (nextPercent > 98 && prev.status === 'loading-result') {
+            nextPercent = 98;
+          }
+
+          return { ...prev, percent: nextPercent, etaSeconds: nextEta, status: nextStatus };
+        });
+      }, 1000);
+
       const poll = async () => {
         try {
-          const res = await fetch(`/api/ketik/review/status?sessionId=${selectedSessionForReview.id}`);
+          const res = await fetch(`/api/ketik/review/status?sessionId=${currentSessionId}`);
           if (res.ok) {
             const data = await res.json();
+            
+            // Re-check ID to avoid race conditions with quick session switches
+            if (selectedSessionForReview?.id !== currentSessionId) return;
+
             const updatedStatus = data.status;
             
             // If status changed OR if result just became ready
-            if (updatedStatus !== selectedSessionForReview.reviewStatus || (updatedStatus === 'completed' && data.resultReady && !selectedReview)) {
-              const updatedSession = { ...selectedSessionForReview, reviewStatus: updatedStatus };
+            const statusChanged = updatedStatus !== selectedSessionForReview.reviewStatus;
+            const resultNewlyReady = updatedStatus === 'completed' && data.resultReady && !selectedReview;
+
+            if (statusChanged || resultNewlyReady) {
+              let updatedSession = { ...selectedSessionForReview, reviewStatus: updatedStatus };
+              
+              // Hydrate scores if available in status
+              if (updatedStatus === 'completed' && data.scores) {
+                updatedSession = {
+                  ...updatedSession,
+                  finalScore: data.scores.final,
+                  empathyScore: data.scores.empathy,
+                  probingScore: data.scores.probing,
+                  typoScore: data.scores.typo,
+                  complianceScore: data.scores.compliance,
+                };
+              }
+
               setSelectedSessionForReview(updatedSession);
               setHistory(prev => prev.map(item => item.id === updatedSession.id ? updatedSession : item));
               
               if (updatedStatus === 'completed' && data.resultReady) {
-                // Fetch the newly ready review data
+                // Fetch the newly ready review data - handleViewReview handles transitioning to ready/completed
                 handleViewReview(updatedSession);
+              } else if (updatedStatus === 'failed') {
+                setReviewProgress(prev => ({ ...prev, status: 'failed' }));
               }
             }
           }
@@ -585,12 +672,15 @@ export default function AppKetik() {
 
       interval = setInterval(poll, 3000);
       poll(); // Immediate first call
+    } else if (reviewProgress.status !== 'ready' && reviewProgress.status !== 'failed' && !selectedReview) {
+      setReviewProgress({ status: 'idle', percent: 0, etaSeconds: 0 });
     }
 
     return () => {
       if (interval) clearInterval(interval);
+      if (progressInterval) clearInterval(progressInterval);
     };
-  }, [selectedSessionForReview?.id, selectedSessionForReview?.reviewStatus, !!selectedReview]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedSessionForReview?.id, selectedSessionForReview?.reviewStatus, !!selectedReview, reviewProgress.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div data-module="ketik" className={`${theme.root} min-h-screen transition-colors duration-500 font-sans selection:bg-primary/20`}>
@@ -697,6 +787,7 @@ export default function AppKetik() {
           typos={selectedTypos}
           onReplay={() => handleReviewHistory(selectedSessionForReview)}
           onStartReview={handleStartManualReview}
+          progress={reviewProgress}
         />
       )}
     </div>

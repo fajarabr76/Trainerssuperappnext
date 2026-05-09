@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/app/lib/supabase/server';
+import { createAdminClient } from '@/app/lib/supabase/admin';
+import { claimAndProcessKetikReviewJob } from '@/app/actions/ketik-ai-review';
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
+    const supabaseAdmin = createAdminClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -22,7 +25,7 @@ export async function POST(request: Request) {
     }
 
     // 1. Verify session ownership
-    const { data: session, error: sessionError } = await supabase
+    const { data: session, error: sessionError } = await supabaseAdmin
       .from('ketik_history')
       .select('user_id, review_status')
       .eq('id', sessionId)
@@ -34,44 +37,75 @@ export async function POST(request: Request) {
     }
 
     // 2. Check if job already exists
-    const { data: existingJob } = await supabase
+    const { data: existingJob } = await supabaseAdmin
       .from('ketik_review_jobs')
       .select('status')
       .eq('session_id', sessionId)
       .maybeSingle();
 
-    if (existingJob) {
-      // Normalisasi status: queued tampil sebagai processing di UI
-      const clientStatus = existingJob.status === 'queued' ? 'processing' : existingJob.status;
-      
-      if (session.review_status !== existingJob.status && session.review_status !== 'completed') {
-         await supabase.from('ketik_history').update({ review_status: existingJob.status }).eq('id', sessionId);
+    if (existingJob?.status === 'completed') {
+      if (session.review_status !== 'completed') {
+        await supabaseAdmin.from('ketik_history').update({ review_status: 'completed' }).eq('id', sessionId);
       }
-      return NextResponse.json({ ok: true, status: clientStatus });
+
+      return NextResponse.json({ ok: true, status: 'completed' });
     }
 
-    // 3. Enqueue job
-    const { error: insertError } = await supabase
-      .from('ketik_review_jobs')
-      .insert({ session_id: sessionId, status: 'queued' });
+    if (existingJob?.status === 'processing') {
+      if (session.review_status !== 'processing') {
+        await supabaseAdmin.from('ketik_history').update({ review_status: 'processing' }).eq('id', sessionId);
+      }
 
-    if (insertError) {
-      // Duplicate insert race: treat as idempotent success.
-      if ((insertError as { code?: string }).code !== '23505') {
-        throw insertError;
+      return NextResponse.json({ ok: true, status: 'processing' });
+    }
+
+    if (existingJob?.status === 'failed') {
+      const { error: retryError } = await supabaseAdmin
+        .from('ketik_review_jobs')
+        .update({
+          status: 'queued',
+          lease_owner: null,
+          lease_expires_at: null,
+          error_message: null,
+        })
+        .eq('session_id', sessionId);
+
+      if (retryError) {
+        throw retryError;
+      }
+    }
+
+    if (!existingJob) {
+      // 3. Enqueue job
+      const { error: insertError } = await supabaseAdmin
+        .from('ketik_review_jobs')
+        .insert({ session_id: sessionId, status: 'queued' });
+
+      if (insertError) {
+        // Duplicate insert race: treat as idempotent success.
+        if ((insertError as { code?: string }).code !== '23505') {
+          throw insertError;
+        }
       }
     }
 
     // 4. Update history status
-    await supabase
+    await supabaseAdmin
       .from('ketik_history')
       .update({ review_status: 'processing' })
       .eq('id', sessionId);
 
-    // Manual-only trigger: We only enqueue the job here.
-    // The worker or another manual trigger will process it.
-    // Return 'processing' (normalized from 'queued') for instant feedback.
-    return NextResponse.json({ ok: true, status: 'processing' });
+    // Manual-only trigger: processing begins only after the user clicks
+    // "Mulai Analisis". We claim the queued job here so deployments without a
+    // separate cron worker do not leave the modal stuck in a loading state.
+    const workerId = `ketik-review-route-${Date.now()}`;
+    const result = await claimAndProcessKetikReviewJob(sessionId, workerId);
+
+    if (result.status === 'failed') {
+      return NextResponse.json({ ok: false, status: 'failed', error: result.error }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true, status: result.status });
   } catch (error) {
     console.error('[Ketik Review Route] Failed to enqueue review session:', error);
     return NextResponse.json(

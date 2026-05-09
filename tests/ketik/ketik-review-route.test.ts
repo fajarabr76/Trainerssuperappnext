@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
 
@@ -20,6 +20,11 @@ vi.mock('@/app/lib/supabase/server', () => ({
     auth: {
       getUser,
     },
+  }),
+}));
+
+vi.mock('@/app/lib/supabase/admin', () => ({
+  createAdminClient: () => ({
     from: (_table: string) => mockQuery,
   }),
 }));
@@ -43,7 +48,7 @@ describe('KETIK AI review route - durable pipeline', () => {
     
     // Reset mock actions
     import('@/app/actions/ketik-ai-review').then(m => {
-      (m.claimAndProcessKetikReviewJob as any).mockClear();
+      (m.claimAndProcessKetikReviewJob as Mock).mockClear();
     });
   });
 
@@ -92,7 +97,7 @@ describe('KETIK AI review route - durable pipeline', () => {
     expect(mockQuery.insert).not.toHaveBeenCalled();
   });
 
-  it('enqueues a new job and updates history status to processing but DOES NOT process immediately', async () => {
+  it('enqueues a new job, marks history processing, and claims it from the manual trigger', async () => {
     getUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
     // First query: ownership check
     mockQuery.single.mockResolvedValueOnce({ data: { user_id: 'user-1', review_status: 'pending' }, error: null });
@@ -103,8 +108,33 @@ describe('KETIK AI review route - durable pipeline', () => {
     // Update history
     mockQuery.update.mockReturnThis();
 
-    const { POST } = await import('@/app/api/ketik/review/route');
     const { claimAndProcessKetikReviewJob } = await import('@/app/actions/ketik-ai-review');
+    (claimAndProcessKetikReviewJob as Mock).mockResolvedValue({ status: 'completed' });
+    const { POST } = await import('@/app/api/ketik/review/route');
+
+    const response = await POST(new Request('http://localhost/api/ketik/review', {
+      method: 'POST',
+      body: JSON.stringify({ sessionId: 'session-1' }),
+    }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ ok: true, status: 'completed' });
+    expect(mockQuery.insert).toHaveBeenCalled();
+    expect(mockQuery.update).toHaveBeenCalled();
+    expect(claimAndProcessKetikReviewJob).toHaveBeenCalledWith(
+      'session-1',
+      expect.stringMatching(/^ketik-review-route-/)
+    );
+  });
+
+  it('resets failed jobs before claiming them again', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
+    mockQuery.single.mockResolvedValueOnce({ data: { user_id: 'user-1', review_status: 'failed' }, error: null });
+    mockQuery.maybeSingle.mockResolvedValueOnce({ data: { status: 'failed' }, error: null });
+
+    const { claimAndProcessKetikReviewJob } = await import('@/app/actions/ketik-ai-review');
+    (claimAndProcessKetikReviewJob as Mock).mockResolvedValue({ status: 'processing' });
+    const { POST } = await import('@/app/api/ketik/review/route');
 
     const response = await POST(new Request('http://localhost/api/ketik/review', {
       method: 'POST',
@@ -113,10 +143,15 @@ describe('KETIK AI review route - durable pipeline', () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ ok: true, status: 'processing' });
-    expect(mockQuery.insert).toHaveBeenCalled();
-    expect(mockQuery.update).toHaveBeenCalled();
-    
-    // The key requirement: NO immediate processing
-    expect(claimAndProcessKetikReviewJob).not.toHaveBeenCalled();
+    expect(mockQuery.update).toHaveBeenCalledWith({
+      status: 'queued',
+      lease_owner: null,
+      lease_expires_at: null,
+      error_message: null,
+    });
+    expect(claimAndProcessKetikReviewJob).toHaveBeenCalledWith(
+      'session-1',
+      expect.stringMatching(/^ketik-review-route-/)
+    );
   });
 });

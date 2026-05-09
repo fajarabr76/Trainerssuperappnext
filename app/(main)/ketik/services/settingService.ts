@@ -58,7 +58,9 @@ export async function saveSettings(settings: AppSettings): Promise<void> {
   if (error) {
     console.error('[Settings] Gagal menyimpan ke Supabase:', error.message);
   } else {
-    console.log('[Settings] Pengaturan berhasil disimpan ke Supabase');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Settings] Pengaturan berhasil disimpan ke Supabase');
+    }
   }
 }
 
@@ -74,7 +76,9 @@ export async function loadSettings(): Promise<AppSettings> {
       .maybeSingle();
 
     if (!error && data?.settings?.ketik) {
-      console.log('[Settings] Pengaturan dimuat dari Supabase');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Settings] Pengaturan dimuat dari Supabase');
+      }
       const parsed = parseSettings(data.settings.ketik);
       // Sinkronkan juga ke localStorage
       saveToLocal(parsed);
@@ -85,11 +89,15 @@ export async function loadSettings(): Promise<AppSettings> {
   // Fallback: coba dari localStorage
   const local = loadFromLocal();
   if (local) {
-    console.log('[Settings] Pengaturan dimuat dari localStorage');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Settings] Pengaturan dimuat dari localStorage');
+    }
     return local;
   }
 
   // Fallback terakhir: pakai default
-  console.log('[Settings] Menggunakan pengaturan default');
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[Settings] Menggunakan pengaturan default');
+  }
   return defaultSettings;
 }
