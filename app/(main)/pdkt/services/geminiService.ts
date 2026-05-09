@@ -1,33 +1,36 @@
 import { SessionConfig, EmailMessage, EvaluationResult } from "../types";
 import { generateGeminiContent } from '@/app/actions/gemini';
 import { generateOpenRouterContent } from '@/app/actions/openrouter';
-import { getProviderFromModelId, normalizeModelId } from '@/app/lib/ai-models';
+import { normalizeModelId, resolveModelProvider } from '@/app/lib/ai-models';
 import type { UsageContext } from '@/app/lib/ai-usage';
 import { getConsumerNameMentionInstruction } from './promptHelpers';
 
 /**
  * Helper to call the appropriate AI provider based on model ID.
  */
-async function callAI(options: { 
-  model: string; 
-  systemInstruction: string; 
-  prompt: string; 
+async function callAI(options: {
+  model: string;
+  systemInstruction: string;
+  prompt: string;
   temperature?: number;
   responseMimeType?: string;
   usageContext?: UsageContext;
   userId?: string;
 }) {
-  const normalizedModel = normalizeModelId(options.model);
-  const provider = getProviderFromModelId(normalizedModel);
-  
+  const { modelId, provider, isFallback } = resolveModelProvider(options.model);
+
+  if (process.env.NODE_ENV === 'development') {
+    console.info(`[PDKT AI] Routing request to: ${provider} | Model: ${modelId}${isFallback ? ' (Fallback)' : ''}`);
+  }
+
   const callPayload = {
-    model: normalizedModel,
+    model: modelId,
     systemInstruction: options.systemInstruction,
     contents: [{ role: 'user', parts: [{ text: options.prompt }] }],
     temperature: options.temperature,
     responseMimeType: options.responseMimeType,
     usageContext: options.usageContext,
-    userId: options.userId,
+    userId: options.userId
   };
 
   if (provider === 'openrouter') {

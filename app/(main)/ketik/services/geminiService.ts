@@ -1,7 +1,7 @@
 import { SessionConfig, ChatMessage, Scenario } from '@/app/types';
 import { generateGeminiContent } from '@/app/actions/gemini';
 import { generateOpenRouterContent } from '@/app/actions/openrouter';
-import { getProviderFromModelId, normalizeModelId } from '@/app/lib/ai-models';
+import { normalizeModelId, resolveModelProvider } from '@/app/lib/ai-models';
 import type { UsageContext } from '@/app/lib/ai-usage';
 
 function sanitizeConsumerText(rawText: string): string {
@@ -46,7 +46,12 @@ async function callAI(options: {
   usageContext?: UsageContext;
   userId?: string;
 }) {
-  const provider = getProviderFromModelId(options.model);
+  const { modelId, provider, isFallback } = resolveModelProvider(options.model);
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.info(`[KETIK AI] Routing request to: ${provider} | Model: ${modelId}${isFallback ? ' (Fallback)' : ''}`);
+  }
+
   const isOpenRouter = provider === 'openrouter';
   const providerSystemInstruction =
     isOpenRouter && options.strictScriptMode
@@ -54,7 +59,7 @@ async function callAI(options: {
       : options.systemInstruction;
 
   const callPayload = {
-    model: options.model,
+    model: modelId,
     systemInstruction: providerSystemInstruction,
     contents: [{ role: 'user', parts: [{ text: options.prompt }] }],
     temperature: isOpenRouter && options.strictScriptMode

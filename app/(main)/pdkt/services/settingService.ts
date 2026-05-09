@@ -24,9 +24,13 @@ const RESOLVED_CONSUMER_NAME_MENTION_PATTERNS = [
 
 function coercePdktModelId(modelId?: string | null): string {
   const normalizedModelId = normalizeModelId(modelId);
-  return TEXT_SIMULATION_MODELS.some((model) => model.id === normalizedModelId)
-    ? normalizedModelId
-    : DEFAULT_PDKT_MODEL_ID;
+  const exists = TEXT_SIMULATION_MODELS.some((model) => model.id === normalizedModelId);
+  
+  if (modelId && !exists) {
+    console.warn(`[PDKT] Model ID "${modelId}" is not in curated list. Coercing to default.`);
+  }
+
+  return exists ? normalizedModelId : DEFAULT_PDKT_MODEL_ID;
 }
 
 export function coerceConsumerNameMentionPattern(

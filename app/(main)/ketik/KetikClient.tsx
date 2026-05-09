@@ -203,15 +203,33 @@ export default function AppKetik() {
     const fetchHistory = async () => {
       if (!user?.id) return;
       try {
-        const { data, error } = await supabase
+        // Tier 1: Try specific columns (includes migration-dependent score fields)
+        const { data: specificData, error: specificError } = await supabase
           .from('ketik_history')
           .select('id, user_id, date, created_at, scenario_title, consumer_name, consumer_phone, consumer_city, messages, final_score, empathy_score, probing_score, typo_score, compliance_score, review_status')
           .eq('user_id', user.id)
           .order('date', { ascending: false })
           .limit(50);
 
-        if (error) {
-          const normalized = normalizeSupabaseError(error);
+        let data = specificData;
+        let fetchError = specificError;
+
+        if (specificError) {
+          // Tier 2: Fall back to wildcard select (works even if migration not applied)
+          const { data: wildcardData, error: wildcardError } = await supabase
+            .from('ketik_history')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('date', { ascending: false })
+            .limit(50);
+          
+          data = wildcardData;
+          fetchError = wildcardError;
+        }
+
+        if (fetchError) {
+          const normalized = normalizeSupabaseError(fetchError);
+          // Only warn if even '*' select failed, which usually means the table is missing or DB is down
           console.warn('[Ketik] Error fetching ketik_history. Falling back to results:', normalized);
 
           const { data: fallbackData, error: fallbackError } = await supabase

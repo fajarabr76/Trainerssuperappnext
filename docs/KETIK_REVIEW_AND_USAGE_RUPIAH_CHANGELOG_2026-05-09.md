@@ -39,6 +39,11 @@ Perubahan ini bertujuan untuk membuat proses review AI di modul KETIK lebih resp
   - Menggunakan prop `unoptimized` pada `DiceBearAvatar` untuk menghindari error 400 dan konflik CSP pada avatar SVG eksternal.
   - Membatasi log debug (seperti `QuickTemplate Debug` dan status simpan settings) hanya pada environment development.
 
+### 4. Technical Refinements & Reliability
+- **Hardened History Query**: Implementasi strategi query dua tahap pada `KetikClient.tsx` untuk `ketik_history`. Sistem mencoba fetch kolom spesifik (termasuk field skor baru) terlebih dahulu, lalu otomatis fallback ke `select('*')` jika terjadi error schema. Hal ini mencegah query error dan warning berisik pada environment yang migrasinya belum lengkap.
+- **Model Routing Diagnostics**: Penambahan helper `resolveModelProvider` di `app/lib/ai-models.ts` untuk deteksi provider berbasis registry (bukan hanya heuristik string). Logging diagnostik ditambahkan pada `geminiService.ts` (KETIK & PDKT) untuk memberikan visibilitas terhadap model dan provider yang digunakan saat request AI.
+- **Observability for Coercion**: Penambahan warning log saat terjadi koersi model ID yang tidak valid kembali ke default, memudahkan debugging jika terdapat model yang dihapus dari registry tetapi masih dipilih oleh user.
+
 ## Verifikasi
 - [x] Review manual KETIK dari sesi `pending` dapat ditekan, mengklaim job, dan mengembalikan hasil `completed` tanpa menunggu worker eksternal.
 - [x] Hidrasi skor berjalan otomatis; modal review tidak lagi menampilkan skor 0 setelah analisis selesai.

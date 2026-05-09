@@ -36,6 +36,11 @@ const mergeWithDefaults = <T extends { id: string; isCustom?: boolean; descripti
 export function coerceKetikModelId(modelId?: string | null): string {
   const normalized = normalizeModelId(modelId);
   const exists = TEXT_SIMULATION_MODELS.some(m => m.id === normalized);
+  
+  if (modelId && !exists) {
+    console.warn(`[KETIK] Model ID "${modelId}" is not in curated list. Coercing to default.`);
+  }
+
   return exists ? normalized : 'gemini-3.1-flash-lite';
 }
 

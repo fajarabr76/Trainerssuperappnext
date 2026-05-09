@@ -126,6 +126,26 @@ export function getProviderFromModelId(modelId: string): AIProvider {
 }
 
 /**
+ * Resolves the provider and formal model ID from the registry.
+ */
+export function resolveModelProvider(modelId?: string | null): { 
+  modelId: string; 
+  provider: AIProvider;
+  isFallback: boolean;
+} {
+  const normalized = normalizeModelId(modelId);
+  const found = AI_MODELS.find(m => m.id === normalized);
+  
+  if (found) {
+    return { modelId: found.id, provider: found.provider, isFallback: false };
+  }
+
+  // Fallback if not in registry
+  const provider = getProviderFromModelId(normalized);
+  return { modelId: normalized, provider, isFallback: true };
+}
+
+/**
  * Returns models filtered by module use case.
  */
 export function getModelsForModule(module: 'ketik' | 'pdkt' | 'telefun' | 'default' = 'default') {
