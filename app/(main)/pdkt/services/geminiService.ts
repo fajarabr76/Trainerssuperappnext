@@ -1,4 +1,4 @@
-import { SessionConfig, EmailMessage, EvaluationResult, Identity, ResolvedConsumerNameMentionPattern } from "../types";
+import { SessionConfig, EmailMessage, EvaluationResult, Identity, ResolvedConsumerNameMentionPattern, Scenario, AppSettings } from "../types";
 import { generateGeminiContent } from '@/app/actions/gemini';
 import { generateOpenRouterContent } from '@/app/actions/openrouter';
 import { normalizeModelId, resolveModelProvider } from '@/app/lib/ai-models';
@@ -152,6 +152,56 @@ const getSystemInstruction = (config: SessionConfig, hasCustomImages: boolean) =
 export type InitializeEmailSessionResult =
   | { success: true; message: EmailMessage }
   | { success: false; error: string };
+
+/**
+ * Generate a template email for a scenario using AI.
+ * Returns { subject, body } but does NOT create any mailbox items.
+ */
+export async function generateScenarioEmailTemplate(
+  scenario: Scenario,
+  settings: AppSettings,
+  userId?: string
+): Promise<{ subject: string; body: string }> {
+  const modelId = normalizeModelId(settings.selectedModel || "gemini-3.1-flash-lite");
+  
+  const systemInstruction = `
+    Anda adalah Simulator Konsumen untuk pelatihan Agen Email Kontak OJK 157.
+    Tugas Anda adalah membuat SATU CONTOH TEMPLATE EMAIL pengaduan berdasarkan skenario yang diberikan.
+    
+    ATURAN:
+    1. SUBJECT: Singkat (maks 6 kata), samar, tidak mengandung kata terlarang (fraud, penipuan, pinjol, dll).
+    2. BODY: Gunakan placeholder {{consumer_name}} jika ingin menyebut nama diri sendiri.
+    3. GAYA BAHASA: Netral namun menunjukkan masalah yang jelas. Tidak perlu sepanjang email simulasi asli (cukup 100-200 kata).
+    4. JANGAN menyertakan prompt gambar.
+    5. JANGAN menyertakan identitas spesifik (kota, email asli) selain placeholder.
+    
+    FORMAT OUTPUT JSON:
+    { "subject": "...", "body": "..." }
+  `;
+
+  const prompt = `Buat template email untuk skenario: [${scenario.category}] ${scenario.title}. Detail: ${scenario.description}`;
+
+  const response = await callAI({
+    model: modelId,
+    prompt,
+    systemInstruction,
+    responseMimeType: "application/json",
+    usageContext: { module: 'pdkt', action: 'generate_template' },
+    userId,
+  });
+
+  if (!response.success) {
+    throw new Error(response.error || 'Gagal generate template.');
+  }
+
+  const responseText = typeof response.text === 'string' ? response.text : "{}";
+  const jsonResponse = parseJsonFromModelText(responseText);
+
+  return {
+    subject: normalizeSubject(jsonResponse.subject),
+    body: jsonResponse.body || ""
+  };
+}
 
 export const initializeEmailSession = async (
   config: SessionConfig,

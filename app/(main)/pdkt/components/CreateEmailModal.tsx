@@ -63,6 +63,9 @@ export const CreateEmailModal: React.FC<CreateEmailModalProps> = ({
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.1em] mb-4">
                     Pilih Skenario Sesuai Masalah
                   </p>
+                  <p className="text-[10px] text-muted-foreground/70 mb-3">
+                    Setiap skenario aktif dibuat sebagai email terpisah. Pilih satu skenario saat Create Email.
+                  </p>
                   {activeScenarios.map((scenario) => (
                     <motion.button
                       key={scenario.id}
@@ -76,8 +79,23 @@ export const CreateEmailModal: React.FC<CreateEmailModalProps> = ({
                         <Play className="w-4 h-4 fill-current" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-black text-foreground uppercase tracking-wide mb-1">
-                          {scenario.title}
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="text-xs font-black text-foreground uppercase tracking-wide truncate">
+                            {scenario.title}
+                          </div>
+                          {scenario.alwaysUseSampleEmail && scenario.sampleEmailTemplate?.body ? (
+                            <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[7px] font-black uppercase tracking-widest shrink-0">
+                              Always use
+                            </span>
+                          ) : scenario.sampleEmailTemplate?.body ? (
+                            <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 border border-blue-500/20 text-[7px] font-black uppercase tracking-widest shrink-0">
+                              Template tersedia
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 rounded bg-green-500/10 text-green-500 border border-green-500/20 text-[7px] font-black uppercase tracking-widest shrink-0">
+                              AI generated
+                            </span>
+                          )}
                         </div>
                         <div className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
                           {scenario.description}

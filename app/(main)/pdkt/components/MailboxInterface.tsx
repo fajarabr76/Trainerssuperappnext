@@ -170,7 +170,8 @@ export const MailboxInterface: React.FC<MailboxInterfaceProps> = ({
     await captureBaseline();
     try {
       const config = generateSessionConfig(settings, scenario);
-      const newItem = await createMailboxItem(config, scenario);
+      const clientRequestId = `req-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const newItem = await createMailboxItem(config, scenario, clientRequestId);
       setItems(prev => [newItem, ...prev]);
       setSelectedId(newItem.id);
       setIsCreateModalOpen(false);

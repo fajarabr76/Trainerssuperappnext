@@ -5,7 +5,8 @@ import Image from 'next/image';
 import { AppSettings, Scenario, ConsumerType, ConsumerDifficulty } from '../types';
 import { DEFAULT_SCENARIOS, DEFAULT_CONSUMER_TYPES } from '../constants';
 import { normalizeModelId, getModelsForModule } from '@/app/lib/ai-models';
-import { X, Plus, Check, Edit2, Trash2, Image as ImageIcon, User, Settings, FileText, Users, Save } from 'lucide-react';
+import { generateTemplate } from '../actions';
+import { X, Plus, Check, Edit2, Trash2, Image as ImageIcon, User, Settings, FileText, Users, Save, Sparkles, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface SettingsModalProps {
@@ -31,6 +32,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   const [newScenarioTemplateSubject, setNewScenarioTemplateSubject] = useState('');
   const [newScenarioTemplateBody, setNewScenarioTemplateBody] = useState('');
   const [newScenarioAlwaysUseTemplate, setNewScenarioAlwaysUseTemplate] = useState(false);
+  const [isGeneratingTemplate, setIsGeneratingTemplate] = useState(false);
+  const templateGenerationTokenRef = useRef<string | null>(null);
   
   // Changed to array for multiple images
   const [newScenarioImages, setNewScenarioImages] = useState<string[]>([]);
@@ -154,6 +157,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   };
 
   const resetScenarioForm = () => {
+    templateGenerationTokenRef.current = null;
     setEditingScenarioId(null);
     setIsAddingScenario(false);
     setNewScenarioTitle('');
@@ -202,7 +206,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   const handleSaveScenario = () => {
     if (!newScenarioTitle || !newScenarioDesc) return;
     if (newScenarioAlwaysUseTemplate && !newScenarioTemplateBody.trim()) {
-      alert('Isi body template email jika Anda memilih "Selalu gunakan template ini".');
+      alert('Isi body template email jika Anda memilih "Always use this email".');
       return;
     }
     const category = isNewCategoryInput ? newScenarioCategory : newScenarioCategory || "Umum";
@@ -247,6 +251,46 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
       }));
     }
     resetScenarioForm();
+  };
+
+  const handleGenerateTemplate = async () => {
+    if (!newScenarioTitle || !newScenarioDesc) {
+      alert('Isi judul dan deskripsi masalah terlebih dahulu untuk generate template.');
+      return;
+    }
+
+    const draftIdentity = `${editingScenarioId || 'new'}|${newScenarioTitle}|${newScenarioDesc}|${newScenarioCategory}`;
+    templateGenerationTokenRef.current = draftIdentity;
+    setIsGeneratingTemplate(true);
+    try {
+      const category = isNewCategoryInput ? newScenarioCategory : newScenarioCategory || "Umum";
+      const draft: Scenario = {
+        id: editingScenarioId || 'draft',
+        category,
+        title: newScenarioTitle,
+        description: newScenarioDesc,
+        isActive: true,
+        sampleEmailTemplate: {
+          subject: newScenarioTemplateSubject,
+          body: newScenarioTemplateBody
+        },
+        attachmentImages: newScenarioImages
+      };
+
+      const result = await generateTemplate(draft, localSettings);
+      if (templateGenerationTokenRef.current !== draftIdentity) {
+        return;
+      }
+      setNewScenarioTemplateSubject(result.subject);
+      setNewScenarioTemplateBody(result.body);
+    } catch (e: any) {
+      alert(e.message || 'Gagal generate template.');
+    } finally {
+      if (templateGenerationTokenRef.current === draftIdentity) {
+        setIsGeneratingTemplate(false);
+        templateGenerationTokenRef.current = null;
+      }
+    }
   };
 
   const handleAddConsumer = () => {
@@ -428,7 +472,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
       setTimeout(() => {
         document.getElementById('scenario-form')?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
-      alert('Isi body template email jika Anda memilih "Selalu gunakan template ini".');
+      alert('Isi body template email jika Anda memilih "Always use this email".');
       return;
     }
 
@@ -854,9 +898,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                         
                         <div className="col-span-2 space-y-4 pt-2">
                           <div className="flex items-center justify-between ml-2">
-                            <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Template Email (Opsional)</label>
+                            <div className="flex items-center gap-3">
+                              <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Template Email (Opsional)</label>
+                              <button 
+                                onClick={handleGenerateTemplate}
+                                disabled={isGeneratingTemplate || !newScenarioTitle || !newScenarioDesc}
+                                className="flex items-center gap-2 px-3 py-1 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50"
+                              >
+                                {isGeneratingTemplate ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                                <span>{isGeneratingTemplate ? 'Generating...' : 'Generate'}</span>
+                              </button>
+                            </div>
                             <label className="flex items-center gap-2 cursor-pointer group">
-                              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest group-hover:text-primary transition-colors">Selalu gunakan template ini</span>
+                              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest group-hover:text-primary transition-colors">Always use this email</span>
                               <div className="relative inline-flex items-center cursor-pointer">
                                 <input 
                                   type="checkbox" 
@@ -884,7 +938,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                               onChange={(e) => setNewScenarioTemplateBody(e.target.value)}
                             />
                             <p className="text-[10px] text-muted-foreground/60 italic ml-2">
-                              * Jika &quot;Selalu gunakan template ini&quot; aktif, AI tidak akan meng-generate email baru; sistem akan langsung memakai teks di atas.
+                              * Jika &quot;Always use this email&quot; aktif, AI tidak akan meng-generate email baru; sistem akan langsung memakai teks di atas.
+                            </p>
+                            <p className="text-[10px] text-muted-foreground/60 italic ml-2">
+                              * Setiap skenario aktif dibuat sebagai email terpisah. Pilih satu skenario saat Create Email.
                             </p>
                           </div>
                         </div>

@@ -10,8 +10,8 @@ Penyimpanan utama inbound email berada pada tabel `pdkt_mailbox_items`.
 1. **Pemicuan (Creation)**: User memilih skenario secara manual.
     - Jika user adalah **Admin/Trainer**, email yang dihasilkan akan otomatis di-*fanout* (disalin) ke semua akun Leader dan Agent yang aktif dan disetujui.
     - Jika user adalah **Leader/Agent**, email hanya dibuat untuk akun mereka sendiri.
-    - Idempotensi dijaga menggunakan `client_request_id` untuk mencegah duplikasi akibat double-click.
-    - Batch fanout bersifat **strict**: jika terdeteksi duplikasi request (`Duplicate mailbox request`) atau terjadi kegagalan insert, transaksi dibatalkan tanpa menyisakan row parsial.
+    - Idempotensi dijaga menggunakan `client_request_id` yang dibuat oleh UI; RPC `submit_pdkt_mailbox_batch` akan mengembalikan ID yang sudah ada jika terdeteksi duplikasi, mencegah duplikasi row namun tetap mengembalikan hasil yang sukses.
+    - Batch fanout bersifat **atomic**: transaksi dibatalkan jika terjadi kegagalan sistem tanpa menyisakan row parsial.
 2. **Interaksi**: Email yang berstatus `open` tampil di sidebar mailbox. User dapat memilih email untuk melihat detail dan menulis balasan.
 3. **Penyelesaian (Submission)**: Saat user mengirim balasan, sistem memanggil RPC `submit_pdkt_mailbox_reply`. 
     - Row baru di `pdkt_history` dibuat untuk menyimpan riwayat sesi dan memicu evaluasi.
@@ -21,8 +21,10 @@ Penyimpanan utama inbound email berada pada tabel `pdkt_mailbox_items`.
 ## Shared Scenario Templates
 Skenario sekarang mendukung **Sample Email Template**:
 - **Subject & Body**: Penanggung jawab (Admin/Trainer) dapat menentukan draft email contoh untuk skenario tertentu.
-- **Forced Mode (Selalu gunakan template ini)**: Jika aktif, sistem tidak akan memanggil AI untuk meng-*generate* email baru, melainkan langsung menggunakan teks template tersebut.
+- **Generate with AI**: Di Pengaturan PDKT, tersedia tombol untuk meng-generate draft template secara otomatis menggunakan AI berdasarkan deskripsi skenario. Draft ini dapat diedit sebelum disimpan.
+- **Always use this email**: Jika aktif, sistem tidak akan memanggil AI untuk meng-*generate* email baru saat Create Email, melainkan langsung menggunakan teks template tersebut.
 - **Substitusi Nama**: Jika menggunakan mode template, nama konsumen akan disisipkan secara determinis sesuai pengaturan `Consumer Name Placement` (Awal, Tengah, Akhir, atau Tidak Disebut).
+- **Status Badges**: Di modal Create Email, setiap skenario diberi label `Always Use`, `Template`, atau `AI Generated` untuk transparansi asal-usul email yang akan dibuat.
 
 ## Tabel `pdkt_mailbox_items`
 | Kolom | Tipe | Deskripsi |

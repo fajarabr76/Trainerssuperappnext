@@ -51,7 +51,7 @@ describe('PDKT Mailbox Reliability', () => {
     vi.clearAllMocks();
   });
 
-  it('createMailboxItem uses batch RPC for fanout', async () => {
+  it('createMailboxItem uses batch RPC for fanout and returns the created item', async () => {
     const mockScenario = { id: 's1', title: 'Test', description: 'Desc' };
     const mockConfig = { scenarios: [mockScenario], identity: { email: 'c@c.com', name: 'Consumer' } };
     
@@ -60,17 +60,20 @@ describe('PDKT Mailbox Reliability', () => {
       message: { id: 'm1', from: 'c@c.com', body: 'Hello', subject: 'Sub' }
     });
 
+    mocks.rpc.mockResolvedValue({ data: 'new-id', error: null });
     mocks.chain.single.mockResolvedValue({ data: { id: 'new-id' }, error: null });
 
-    await createMailboxItem(mockConfig as any, mockScenario as any);
+    const result = await createMailboxItem(mockConfig as any, mockScenario as any, 'req-123');
 
     expect(mocks.rpc).toHaveBeenCalledWith('submit_pdkt_mailbox_batch', expect.objectContaining({
+        p_client_request_id: 'req-123',
         p_sender_name: 'Consumer',
         p_subject: 'Sub'
     }));
+    expect(result.id).toBe('new-id');
   });
 
-  it('createMailboxItem rejects duplicate client request id batch failures', async () => {
+  it('createMailboxItem handles successful idempotency from RPC', async () => {
     const mockScenario = { id: 's1', title: 'Test', description: 'Desc' };
     const mockConfig = { scenarios: [mockScenario], identity: { email: 'c@c.com', name: 'Consumer' } };
 
@@ -79,9 +82,14 @@ describe('PDKT Mailbox Reliability', () => {
       message: { id: 'm1', from: 'c@c.com', body: 'Hello', subject: 'Sub' }
     });
 
-    mocks.rpc.mockResolvedValueOnce({ error: { message: 'Duplicate mailbox request' } });
+    // Mock RPC returning existing ID on duplicate
+    mocks.rpc.mockResolvedValue({ data: 'existing-id', error: null });
+    mocks.chain.single.mockResolvedValue({ data: { id: 'existing-id' }, error: null });
 
-    await expect(createMailboxItem(mockConfig as any, mockScenario as any)).rejects.toThrow('Gagal menyimpan email baru.');
+    const result = await createMailboxItem(mockConfig as any, mockScenario as any, 'req-duplicate');
+    
+    expect(result.id).toBe('existing-id');
+    expect(mocks.chain.eq).toHaveBeenCalledWith('id', 'existing-id');
   });
 
   it('processPdktEvaluation reclaims stale rows', async () => {

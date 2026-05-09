@@ -2,9 +2,28 @@
 
 import { createClient } from '@/app/lib/supabase/server';
 import { PdktMailboxItem, Scenario, SessionConfig, EmailMessage } from './types';
-import { initializeEmailSession, InitializeEmailSessionResult } from './services/geminiService';
+import { initializeEmailSession, InitializeEmailSessionResult, generateScenarioEmailTemplate } from './services/geminiService';
 import { processPdktEvaluation } from './services/evaluationService';
 import { revalidatePath } from 'next/cache';
+import { AppSettings } from './types';
+
+/**
+ * AI action to generate a scenario email template.
+ */
+export async function generateTemplate(scenarioDraft: Scenario, settings: AppSettings) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Unauthorized');
+
+  try {
+    const result = await generateScenarioEmailTemplate(scenarioDraft, settings, user.id);
+    return result;
+  } catch (error: any) {
+    console.error('[PDKT Action] Failed to generate template:', error);
+    throw new Error(error.message || 'Gagal generate template.');
+  }
+}
 
 /**
  * Fetch all mailbox items for the current user.
@@ -40,7 +59,7 @@ export async function fetchMailboxItems(includeDeleted = false) {
  * Create a new mailbox item from a specific scenario.
  * Supports Admin/Trainer fanout via RPC.
  */
-export async function createMailboxItem(config: SessionConfig, scenario: Scenario) {
+export async function createMailboxItem(config: SessionConfig, scenario: Scenario, clientRequestId?: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -63,8 +82,8 @@ export async function createMailboxItem(config: SessionConfig, scenario: Scenari
   const snippet = inboundEmail.body.substring(0, 150) + (inboundEmail.body.length > 150 ? '...' : '');
 
   // Use RPC for atomic batch insertion with fanout
-  const { error } = await supabase.rpc('submit_pdkt_mailbox_batch', {
-    p_client_request_id: `req-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+  const { data: createdId, error } = await supabase.rpc('submit_pdkt_mailbox_batch', {
+    p_client_request_id: clientRequestId || `req-${Date.now()}-${Math.random().toString(36).substring(7)}`,
     p_sender_name: inboundEmail.from === singleScenarioConfig.identity.email ? singleScenarioConfig.identity.name : inboundEmail.from,
     p_sender_email: inboundEmail.from,
     p_subject: inboundEmail.subject || '',
@@ -81,13 +100,11 @@ export async function createMailboxItem(config: SessionConfig, scenario: Scenari
 
   revalidatePath('/pdkt');
   
-  // Since we insert for the creator in the same batch, we can just fetch the latest item
+  // Fetch by returned id so concurrent creates cannot select the wrong mailbox row
   const { data: newItem } = await supabase
     .from('pdkt_mailbox_items')
     .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
+    .eq('id', createdId)
     .single();
 
   return newItem as PdktMailboxItem;
