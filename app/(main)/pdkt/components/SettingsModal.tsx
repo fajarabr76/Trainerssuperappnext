@@ -932,7 +932,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                             />
                             <textarea 
                               className="w-full rounded-2xl border-white/5 bg-foreground/5 p-4 text-sm text-foreground focus:ring-2 focus:ring-primary outline-none resize-none font-medium placeholder:text-foreground/10"
-                              rows={4}
+                              rows={10}
                               placeholder="Tulis isi email template di sini. Gunakan wording netral; nama konsumen akan disisipkan otomatis sesuai pengaturan sistem."
                               value={newScenarioTemplateBody}
                               onChange={(e) => setNewScenarioTemplateBody(e.target.value)}

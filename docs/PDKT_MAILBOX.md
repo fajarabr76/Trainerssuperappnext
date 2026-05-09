@@ -21,7 +21,7 @@ Penyimpanan utama inbound email berada pada tabel `pdkt_mailbox_items`.
 ## Shared Scenario Templates
 Skenario sekarang mendukung **Sample Email Template**:
 - **Subject & Body**: Penanggung jawab (Admin/Trainer) dapat menentukan draft email contoh untuk skenario tertentu.
-- **Generate with AI**: Di Pengaturan PDKT, tersedia tombol untuk meng-generate draft template secara otomatis menggunakan AI berdasarkan deskripsi skenario. Draft ini dapat diedit sebelum disimpan.
+- **Generate with AI**: Di Pengaturan PDKT, tersedia tombol untuk meng-generate draft template secara otomatis menggunakan AI berdasarkan deskripsi skenario. Sistem akan menghasilkan contoh email yang panjang (300-400 kata), natural, dan bertele-tele agar sesuai dengan kualitas simulasi asli. Draft ini dapat diedit sebelum disimpan.
 - **Always use this email**: Jika aktif, sistem tidak akan memanggil AI untuk meng-*generate* email baru saat Create Email, melainkan langsung menggunakan teks template tersebut.
 - **Substitusi Nama**: Jika menggunakan mode template, nama konsumen akan disisipkan secara determinis sesuai pengaturan `Consumer Name Placement` (Awal, Tengah, Akhir, atau Tidak Disebut).
 - **Status Badges**: Di modal Create Email, setiap skenario diberi label `Always Use`, `Template`, atau `AI Generated` untuk transparansi asal-usul email yang akan dibuat.

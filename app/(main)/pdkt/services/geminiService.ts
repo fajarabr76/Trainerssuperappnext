@@ -171,7 +171,7 @@ export async function generateScenarioEmailTemplate(
     ATURAN:
     1. SUBJECT: Singkat (maks 6 kata), samar, tidak mengandung kata terlarang (fraud, penipuan, pinjol, dll).
     2. BODY: Gunakan placeholder {{consumer_name}} jika ingin menyebut nama diri sendiri.
-    3. GAYA BAHASA: Netral namun menunjukkan masalah yang jelas. Tidak perlu sepanjang email simulasi asli (cukup 100-200 kata).
+    3. GAYA BAHASA: Sangat PANJANG (300-400 kata), natural, bertele-tele, penuh detail kronologi curhatan, tanpa bullet points. Wajib 3-5 paragraf.
     4. JANGAN menyertakan prompt gambar.
     5. JANGAN menyertakan identitas spesifik (kota, email asli) selain placeholder.
     
@@ -179,27 +179,48 @@ export async function generateScenarioEmailTemplate(
     { "subject": "...", "body": "..." }
   `;
 
-  const prompt = `Buat template email untuk skenario: [${scenario.category}] ${scenario.title}. Detail: ${scenario.description}`;
+  const prompt = `Buat template email panjang dan natural untuk skenario: [${scenario.category}] ${scenario.title}. Detail: ${scenario.description}`;
 
-  const response = await callAI({
-    model: modelId,
-    prompt,
-    systemInstruction,
-    responseMimeType: "application/json",
-    usageContext: { module: 'pdkt', action: 'generate_template' },
-    userId,
-  });
+  const executeGeneration = async (retryPrompt?: string) => {
+    const finalPrompt = retryPrompt ? `${prompt}\n\nREVISI: ${retryPrompt}` : prompt;
+    const response = await callAI({
+      model: modelId,
+      prompt: finalPrompt,
+      systemInstruction,
+      responseMimeType: "application/json",
+      usageContext: { module: 'pdkt', action: 'generate_template' },
+      userId,
+    });
 
-  if (!response.success) {
-    throw new Error(response.error || 'Gagal generate template.');
+    if (!response.success) {
+      throw new Error(response.error || 'Gagal generate template.');
+    }
+
+    const responseText = typeof response.text === 'string' ? response.text : "{}";
+    const jsonResponse = parseJsonFromModelText(responseText);
+    
+    const subject = normalizeSubject(jsonResponse.subject);
+    const body = jsonResponse.body || "";
+    const wordCount = body.split(/\s+/).filter(Boolean).length;
+
+    return { subject, body, wordCount };
+  };
+
+  let result = await executeGeneration();
+
+  // Retry once if body is shorter than requested minimum.
+  if (result.wordCount < 300) {
+    result = await executeGeneration("Hasil sebelumnya terlalu pendek. Tolong buat jauh lebih panjang, detail, dan bertele-tele (target 300-400 kata, minimal 300 kata, 3-5 paragraf, tanpa bullet points).");
   }
 
-  const responseText = typeof response.text === 'string' ? response.text : "{}";
-  const jsonResponse = parseJsonFromModelText(responseText);
+  // Final validation after retry.
+  if (result.wordCount < 300) {
+    throw new Error('Hasil template terlalu pendek. Silakan klik Generate ulang untuk mencoba lagi.');
+  }
 
   return {
-    subject: normalizeSubject(jsonResponse.subject),
-    body: jsonResponse.body || ""
+    subject: result.subject,
+    body: result.body
   };
 }
 
