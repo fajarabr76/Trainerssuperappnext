@@ -10,14 +10,16 @@ const mocks = vi.hoisted(() => {
   const chain: any = vi.fn().mockImplementation(() => chain);
   chain.select = vi.fn().mockImplementation(() => chain);
   chain.eq = vi.fn().mockImplementation(() => chain);
+  chain.neq = vi.fn().mockImplementation(() => chain);
+  chain.or = vi.fn().mockImplementation(() => chain);
   chain.update = vi.fn().mockImplementation(() => chain);
   chain.order = vi.fn().mockImplementation(() => chain);
   chain.limit = vi.fn().mockImplementation(() => chain);
   chain.single = vi.fn().mockResolvedValue({ data: null, error: null });
   chain.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
   
-  // Make it thenable
-  chain.then = (onFulfilled: any) => Promise.resolve({ data: null, error: null }).then(onFulfilled);
+  // Make it thenable — .update().select() resolves through this
+  chain.then = vi.fn((onFulfilled: any) => Promise.resolve({ data: null, error: null }).then(onFulfilled));
 
   return {
     chain,
@@ -106,6 +108,11 @@ describe('PDKT Mailbox Reliability', () => {
          },
          error: null
      });
+
+     // Atomic claim should succeed for stale rows
+     mocks.chain.then.mockImplementationOnce((onFulfilled: any) =>
+       Promise.resolve({ data: [{ id: 'h1' }], error: null }).then(onFulfilled)
+     );
      
      await processPdktEvaluation('h1', 'test-user');
      
@@ -148,6 +155,11 @@ describe('PDKT Mailbox Reliability', () => {
       },
       error: null,
     });
+
+    // Atomic claim should succeed for rows with null started_at
+    mocks.chain.then.mockImplementationOnce((onFulfilled: any) =>
+      Promise.resolve({ data: [{ id: 'h-mailbox' }], error: null }).then(onFulfilled)
+    );
 
     await processPdktEvaluation('h-mailbox', 'test-user');
 

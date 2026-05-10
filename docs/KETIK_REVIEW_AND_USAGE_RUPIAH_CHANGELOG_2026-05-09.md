@@ -53,3 +53,31 @@ Perubahan ini bertujuan untuk membuat proses review AI di modul KETIK lebih resp
 - [x] Badge `+Rp` muncul di seluruh modul yang terdampak.
 - [x] Modal usage menampilkan estimasi biaya sebagai metrik utama.
 - [x] Dokumentasi `MONITORING_TOKEN_USAGE_BILLING.md` dan `modules.md` telah diperbarui.
+
+---
+
+## Patch 2026-05-10: Atomic Claim Race Condition Fix
+
+### Masalah
+`claimAndProcessKetikReviewJob` menggunakan pola **read-then-write** non-atomik untuk mengklaim job. Dua pemanggil konkuren — manual trigger (`POST /api/ketik/review`) dan cron worker (`GET /api/ketik/worker`) — dapat:
+1. Membaca job dengan status `queued` secara bersamaan
+2. Keduanya lolos guard "already processing"
+3. Keduanya menimpa lease satu sama lain
+4. Keduanya memanggil `processKetikReviewJob` yang melakukan **DELETE + INSERT** destruktif pada `ketik_session_reviews` dan `ketik_typo_findings`
+
+**Dampak:** Double AI cost, hasil review tertimpa (overwrite), data inkonsisten.
+
+### Perbaikan
+Klaim job diubah menjadi **atomic conditional update**:
+```sql
+UPDATE ketik_review_jobs
+SET status = 'processing', lease_owner = $1, lease_expires_at = $2, error_message = NULL
+WHERE session_id = $3
+  AND (status = 'queued' OR (status = 'processing' AND lease_expires_at < NOW()))
+RETURNING id, attempt_count
+```
+Jika update mengembalikan 0 row (tidak ada yang diklaim), pemanggil akan mengecek status terkini dan mengembalikan respons yang sesuai (`completed`, `failed`, atau `processing`). Hanya pemanggil yang berhasil mengklaim yang boleh melanjutkan ke pemrosesan AI.
+
+### Verifikasi
+- [x] 16 test KETIK existing tetap pass
+- [x] Lint dan type-check bersih

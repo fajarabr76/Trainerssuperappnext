@@ -140,34 +140,49 @@ export async function claimAndProcessKetikReviewJob(
 ): Promise<KetikAIReviewResult> {
   const supabaseAdmin = createAdminClient();
 
-  // 1. Fetch the job to check if it's claimable
-  const { data: job, error: jobError } = await supabaseAdmin
+  const nowIso = new Date().toISOString();
+  const leaseExpiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+  // 1. Atomic claim: update only if job is in a claimable state.
+  //    This prevents concurrent workers from double-processing the same job.
+  const { data: claimed, error: claimError } = await supabaseAdmin
     .from('ketik_review_jobs')
-    .select('id, attempt_count, status, lease_expires_at')
+    .update({
+      status: 'processing',
+      lease_owner: workerId,
+      lease_expires_at: leaseExpiresAt,
+      error_message: null,
+    })
     .eq('session_id', sessionId)
-    .maybeSingle();
+    .or(`status.eq.queued,and(status.eq.processing,lease_expires_at.lt.${nowIso})`)
+    .select('id, attempt_count');
 
-  if (jobError) throw jobError;
-  if (!job) throw new Error('Job not found');
+  if (claimError) throw claimError;
 
-  // If already completed, just return success
-  if (job.status === 'completed') return { status: 'completed' };
+  if (!claimed || claimed.length === 0) {
+    const { data: current } = await supabaseAdmin
+      .from('ketik_review_jobs')
+      .select('status')
+      .eq('session_id', sessionId)
+      .maybeSingle();
 
-  // If already processing and lease not expired, skip (someone else is working on it)
-  if (
-    job.status === 'processing' &&
-    job.lease_expires_at &&
-    new Date(job.lease_expires_at) > new Date()
-  ) {
+    if (!current) return { status: 'skipped' };
+    if (current.status === 'completed') return { status: 'completed' };
+    if (current.status === 'failed') return { status: 'failed', error: 'Job previously failed' };
     return { status: 'processing' };
   }
 
-  const nextAttempt = (job.attempt_count || 0) + 1;
+  const nextAttempt = (claimed[0].attempt_count || 0) + 1;
   if (nextAttempt > 3) {
     await supabaseAdmin
       .from('ketik_review_jobs')
-      .update({ status: 'failed', error_message: 'Max attempts reached' })
-      .eq('id', job.id);
+      .update({
+        status: 'failed',
+        error_message: 'Max attempts reached',
+        lease_owner: null,
+        lease_expires_at: null,
+      })
+      .eq('session_id', sessionId);
     await supabaseAdmin
       .from('ketik_history')
       .update({ review_status: 'failed' })
@@ -175,22 +190,12 @@ export async function claimAndProcessKetikReviewJob(
     return { status: 'failed', error: 'Max attempts reached' };
   }
 
-  // 2. Claim the job
-  const leaseExpiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-  const { error: claimError } = await supabaseAdmin
+  await supabaseAdmin
     .from('ketik_review_jobs')
-    .update({
-      status: 'processing',
-      lease_owner: workerId,
-      lease_expires_at: leaseExpiresAt,
-      attempt_count: nextAttempt,
-      error_message: null,
-    })
-    .eq('id', job.id);
+    .update({ attempt_count: nextAttempt })
+    .eq('session_id', sessionId);
 
-  if (claimError) throw claimError;
-
-  // 3. Process the job
+  // 2. Process the job
   try {
     return await processKetikReviewJob(sessionId);
   } catch (error) {
@@ -203,7 +208,7 @@ export async function claimAndProcessKetikReviewJob(
         lease_owner: null,
         lease_expires_at: null,
       })
-      .eq('id', job.id);
+      .eq('session_id', sessionId);
     await supabaseAdmin
       .from('ketik_history')
       .update({ review_status: 'failed' })

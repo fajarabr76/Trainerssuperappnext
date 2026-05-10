@@ -7,14 +7,16 @@ const mocks = vi.hoisted(() => {
   const chain: any = vi.fn().mockImplementation(() => chain);
   chain.select = vi.fn().mockImplementation(() => chain);
   chain.eq = vi.fn().mockImplementation(() => chain);
+  chain.neq = vi.fn().mockImplementation(() => chain);
+  chain.or = vi.fn().mockImplementation(() => chain);
   chain.update = vi.fn().mockImplementation(() => chain);
   chain.is = vi.fn().mockImplementation(() => chain);
   chain.single = vi.fn().mockResolvedValue({ data: null, error: null });
   chain.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
   chain.insert = vi.fn().mockResolvedValue({ error: null });
   
-  // Make it thenable so it can be awaited (for update().eq())
-  chain.then = (onFulfilled: any) => Promise.resolve({ data: null, error: null }).then(onFulfilled);
+  // Make it thenable so it can be awaited (for update().select())
+  chain.then = (onFulfilled: any) => Promise.resolve({ data: [{}], error: null }).then(onFulfilled);
 
   return {
     chain,

@@ -22,39 +22,53 @@ export async function processPdktEvaluation(historyId: string, userId: string) {
     throw new Error('PDKT History not found');
   }
 
-  // 2. Check if already completed or stale
-  // Mailbox RPC creates rows with evaluation_status='processing' but evaluation_started_at=NULL
-  // until this worker stamps started_at — those must not be treated as "already running".
-  // We only block when another run has already set evaluation_started_at and it is fresh.
-  const isStale =
-    history.evaluation_status === 'processing' &&
-    history.evaluation_started_at != null &&
-    new Date().getTime() - new Date(history.evaluation_started_at).getTime() > 5 * 60 * 1000;
-
+  // 2. Check if already completed
   if (history.evaluation_status === 'completed' && history.evaluation) {
     return history.evaluation as EvaluationResult;
   }
 
-  if (
-    history.evaluation_status === 'processing' &&
-    history.evaluation_started_at != null &&
-    !isStale
-  ) {
-    throw new Error('Evaluation is already in progress');
-  }
+  // 3. Atomic claim: stamp evaluation_started_at only if still unclaimed.
+  //    Mailbox RPC creates rows with evaluation_status='processing' but
+  //    evaluation_started_at=NULL — the first caller to stamp it wins.
+  const nowIso = new Date().toISOString();
+  const staleThreshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
 
-  // 3. Mark as processing
-  const { error: updateStartError } = await supabase
+  const { data: claimed, error: claimError } = await supabase
     .from('pdkt_history')
     .update({
       evaluation_status: 'processing',
-      evaluation_started_at: new Date().toISOString(),
-      evaluation_error: null
+      evaluation_started_at: nowIso,
+      evaluation_error: null,
     })
-    .eq('id', historyId);
+    .eq('id', historyId)
+    .eq('user_id', userId)
+    .or(`evaluation_started_at.is.null,evaluation_started_at.lt.${staleThreshold}`)
+    .neq('evaluation_status', 'completed')
+    .select('id');
 
-  if (updateStartError) {
-    throw new Error('Failed to update evaluation status');
+  if (claimError) {
+    throw new Error('Failed to claim evaluation');
+  }
+
+  if (!claimed || claimed.length === 0) {
+    const { data: current } = await supabase
+      .from('pdkt_history')
+      .select('evaluation_status, evaluation_started_at')
+      .eq('id', historyId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (current?.evaluation_status === 'completed') {
+      const { data: completed } = await supabase
+        .from('pdkt_history')
+        .select('evaluation')
+        .eq('id', historyId)
+        .single();
+      if (completed?.evaluation) return completed.evaluation as EvaluationResult;
+      throw new Error('Evaluation marked completed but no results found');
+    }
+
+    throw new Error('Evaluation is already in progress');
   }
 
   try {

@@ -42,8 +42,8 @@ Skenario sekarang mendukung **Sample Email Template**:
 | `replied_at` | timestamptz | Timestamp saat balasan dikirim |
 
 ## Keandalan Evaluasi (Async Recovery)
-Sistem evaluasi mendukung **Stale Recovery**:
-- Jika proses evaluasi macet (> 5 menit), endpoint akan mengizinkan proses tersebut untuk di-*claim* ulang.
+- **Atomic Claim**: `processPdktEvaluation` menggunakan *atomic conditional update* saat mengklaim row untuk evaluasi. Sistem hanya men-stamp `evaluation_started_at` jika kolom tersebut masih `NULL` atau sudah *stale* (> 5 menit). Ini mencegah **duplicate evaluation** — dua pemanggil konkuren (misal auto-evaluation setelah reply + manual retry) tidak akan bisa memproses row yang sama. Jika klaim gagal, pemanggil akan mengecek status terkini dan mengembalikan hasil yang sudah ada atau melempar error "Evaluation is already in progress".
+- **Stale Recovery**: Jika proses evaluasi macet (> 5 menit), sistem akan mengizinkan proses tersebut untuk di-*claim* ulang.
 - User juga dapat memicu retry manual melalui tombol "Coba Lagi" pada UI jika evaluasi gagal.
 
 ## Usage Tracking Accuracy
