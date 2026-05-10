@@ -59,7 +59,7 @@ export const VoiceAssessmentSection: React.FC<VoiceAssessmentSectionProps> = ({
     return (
       <div className="rounded-2xl border border-dashed border-slate-950/10 bg-slate-950/5 p-8 text-center dark:border-white/10 dark:bg-white/5">
         <Sparkles className="mx-auto mb-3 h-8 w-8 text-emerald-500" />
-        <h3 className="mb-2 text-lg font-bold">Analisis Kualitas Suara AI</h3>
+        <h3 className="mb-2 text-lg font-bold">Analisis Kualitas Suara Agen</h3>
         <p className="mb-6 text-sm text-slate-500 dark:text-white/55">
           Gunakan AI untuk menilai kecepatan bicara, intonasi, dan artikulasi suara Anda dalam simulasi ini.
         </p>

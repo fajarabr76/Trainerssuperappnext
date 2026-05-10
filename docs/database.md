@@ -51,7 +51,7 @@ Menyimpan hasil simulasi legacy/kompatibilitas dari modul Ketik dan Telefun, ser
 **Catatan Integritas PDKT Mailbox:**
 - Fanout inbound email menggunakan RPC `submit_pdkt_mailbox_batch` dengan `SECURITY DEFINER`, `SET search_path = public`, validasi `auth.uid()`, dan role creator internal via `profiles`.
 - Recipient fanout dibatasi ke akun aktif-approved (`status='approved'`, `is_deleted=false`) dengan role normalized `leader/agent`.
-- Idempotensi memakai kombinasi unik `(created_by_user_id, client_request_id, user_id)` dan duplicate request ditolak secara **strict** (`Duplicate mailbox request`) agar tidak ada insert parsial.
+- Idempotensi memakai kombinasi unik `(created_by_user_id, client_request_id, user_id)`. Duplicate request mengembalikan source mailbox row milik creator (`user_id = created_by_user_id`, `is_shared_copy = false`) agar retry UI tidak menerima ID shared copy milik recipient.
 - Eksekusi fungsi mailbox RPC direvoke dari `public, anon` dan hanya digrant ke role `authenticated`.
 - **`telefun_history`**: Riwayat sesi TELEFUN per user, termasuk skenario, identitas konsumen, durasi, URL rekaman, skor, dan feedback. Row ini menjadi sumber utama histori Telefun; `results` tetap diisi untuk kompatibilitas monitoring lama melalui `details.legacy_history_id`.
 - **`user_settings`**: Settings modul yang disimpan per user untuk KETIK, PDKT, dan TELEFUN. Modul tetap local-first di browser, lalu sync ke Supabase saat user login.
@@ -61,6 +61,7 @@ Menyimpan hasil simulasi legacy/kompatibilitas dari modul Ketik dan Telefun, ser
 - Jika polling menemukan `completed` tanpa row review, status di-auto-heal ke `failed` agar sesi dapat di-trigger ulang.
 - `pending` berarti sesi belum dianalisis dan tombol "Mulai Analisis" harus tetap aktif; loading/spinner hanya dipakai untuk status `processing` atau request manual yang sedang berjalan.
 - Siklus eksekusi review: manual trigger (`POST /api/ketik/review`) membuat/menyegarkan job durable lalu mencoba claim/process langsung via helper worker. `/api/ketik/worker` tetap tersedia sebagai fallback/background drain untuk job yang belum selesai atau lease yang kedaluwarsa, dan `/api/ketik/review/status` dipakai untuk polling serta auto-heal hasil yang tidak lengkap.
+- Sebelum menulis hasil review secara destruktif (`DELETE + INSERT` review/typo rows), worker memperbarui lease dengan syarat `lease_owner` masih sama. Worker stale yang lease-nya sudah diambil worker lain harus berhenti tanpa menimpa hasil terbaru.
 
 ### 4. Modul Profiler (KTP)
 - **`profiler_years`**: Daftar tahun database.

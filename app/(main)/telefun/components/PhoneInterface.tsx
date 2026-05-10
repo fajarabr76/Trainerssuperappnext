@@ -518,8 +518,8 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
         shrink-0 z-20 
         bg-white/88 dark:bg-slate-950/82 backdrop-blur-md border-t border-slate-950/10 dark:border-white/10 md:border-t-0 md:border-l
         flex 
-        flex-row justify-center items-center gap-6 md:gap-8 py-6 px-6  /* Mobile Styles */
-        md:flex-col md:justify-center md:px-6 md:py-0 md:w-32 /* Desktop Styles */
+        flex-row justify-center items-center gap-6 md:gap-8 py-6 px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]  /* Mobile Styles */
+        md:flex-col md:justify-center md:px-6 md:py-0 md:w-32 md:pb-6 /* Desktop Styles */
       ">
          
           <div className="flex flex-col items-center gap-2">

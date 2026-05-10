@@ -110,6 +110,27 @@ describe('LiveSession metrics', () => {
     const metrics = session.getSessionMetrics();
     expect(metrics.volumeConsistency).toBeCloseTo(100, 8);
   });
+
+  it('caps persisted volume and transcription samples', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(2_000);
+    const session = new LiveSession(createSessionConfig()) as unknown as {
+      sessionStartTime: number;
+      volumeSamples: number[];
+      inputTranscriptionChunks: string[];
+      getSessionMetrics: () => { volumeSamples: number[]; inputTranscriptionChunks: string[] };
+    };
+
+    session.sessionStartTime = 1_000;
+    session.volumeSamples = Array.from({ length: 700 }, (_, i) => i);
+    session.inputTranscriptionChunks = Array.from({ length: 150 }, (_, i) => `chunk-${i}`);
+
+    const metrics = session.getSessionMetrics();
+
+    expect(metrics.volumeSamples).toHaveLength(600);
+    expect(metrics.volumeSamples[0]).toBe(100);
+    expect(metrics.inputTranscriptionChunks).toHaveLength(100);
+    expect(metrics.inputTranscriptionChunks[0]).toBe('chunk-50');
+  });
 });
 
 describe('LiveSession recorder fallback', () => {

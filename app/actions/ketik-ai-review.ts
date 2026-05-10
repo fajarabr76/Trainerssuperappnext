@@ -197,7 +197,7 @@ export async function claimAndProcessKetikReviewJob(
 
   // 2. Process the job
   try {
-    return await processKetikReviewJob(sessionId);
+    return await processKetikReviewJob(sessionId, workerId);
   } catch (error) {
     const error_message = error instanceof Error ? error.message : 'Unknown processing error';
     await supabaseAdmin
@@ -220,7 +220,7 @@ export async function claimAndProcessKetikReviewJob(
 /**
  * Processes a review job synchronously.
  */
-export async function processKetikReviewJob(sessionId: string): Promise<KetikAIReviewResult> {
+export async function processKetikReviewJob(sessionId: string, leaseOwner?: string): Promise<KetikAIReviewResult> {
   const supabaseAdmin = createAdminClient();
   
   // 1. Fetch ketik_history for messages
@@ -330,6 +330,24 @@ export async function processKetikReviewJob(sessionId: string): Promise<KetikAIR
     throw new Error('AI response JSON tidak valid atau format tidak sesuai.');
   }
 
+  if (leaseOwner) {
+    const renewedLeaseExpiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+    const { data: leaseRows, error: leaseError } = await supabaseAdmin
+      .from('ketik_review_jobs')
+      .update({ lease_expires_at: renewedLeaseExpiresAt })
+      .eq('session_id', sessionId)
+      .eq('status', 'processing')
+      .eq('lease_owner', leaseOwner)
+      .select('id');
+
+    if (leaseError) throw leaseError;
+
+    if (!leaseRows || leaseRows.length === 0) {
+      console.warn(`[processKetikReviewJob] Lease lost before persistence for session: ${sessionId}`);
+      return { status: 'processing' };
+    }
+  }
+
   // 4. Persist review rows FIRST to ketik_session_reviews and ketik_typo_findings
   await supabaseAdmin.from('ketik_session_reviews').delete().eq('session_id', sessionId);
   
@@ -379,10 +397,17 @@ export async function processKetikReviewJob(sessionId: string): Promise<KetikAIR
   if (updateError) throw updateError;
 
   // 6. Update ketik_review_jobs.status='completed'
-  const { error: jobUpdateError } = await supabaseAdmin
+  let jobUpdateQuery = supabaseAdmin
     .from('ketik_review_jobs')
     .update({ status: 'completed', lease_owner: null, lease_expires_at: null })
-    .eq('session_id', sessionId);
+    .eq('session_id', sessionId)
+    .eq('status', 'processing');
+
+  if (leaseOwner) {
+    jobUpdateQuery = jobUpdateQuery.eq('lease_owner', leaseOwner);
+  }
+
+  const { error: jobUpdateError } = await jobUpdateQuery;
 
   if (jobUpdateError) throw jobUpdateError;
 

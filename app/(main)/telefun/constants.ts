@@ -44,6 +44,9 @@ export const parseTelefunSettings = (parsed: Record<string, unknown>): AppSettin
   telefunModelId: TELEFUN_AUDIO_MODELS.some((m) => m.id === (parsed.telefunModelId as string))
     ? (parsed.telefunModelId as string)
     : 'gemini-3.1-flash-live-preview',
+  telefunTransport: (parsed.telefunTransport === 'gemini-live' || parsed.telefunTransport === 'openai-audio')
+    ? (parsed.telefunTransport as 'gemini-live' | 'openai-audio')
+    : 'gemini-live',
   maxCallDuration: (parsed.maxCallDuration as number) || 5,
   responsePacingMode:
     (parsed.responsePacingMode === 'realistic' || parsed.responsePacingMode === 'training_fast')

@@ -2,6 +2,8 @@
 -- Date: 2026-05-09
 
 -- Revert submit_pdkt_mailbox_batch to return void and throw on duplicate
+DROP FUNCTION IF EXISTS public.submit_pdkt_mailbox_batch(text, text, text, text, text, jsonb, jsonb, jsonb);
+
 CREATE OR REPLACE FUNCTION public.submit_pdkt_mailbox_batch(
     p_client_request_id text,
     p_sender_name text,
@@ -127,3 +129,6 @@ BEGIN
     END IF;
 END;
 $$;
+
+REVOKE EXECUTE ON FUNCTION public.submit_pdkt_mailbox_batch(text, text, text, text, text, jsonb, jsonb, jsonb) FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.submit_pdkt_mailbox_batch(text, text, text, text, text, jsonb, jsonb, jsonb) TO authenticated;

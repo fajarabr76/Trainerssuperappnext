@@ -101,11 +101,16 @@ export async function createMailboxItem(config: SessionConfig, scenario: Scenari
   revalidatePath('/pdkt');
   
   // Fetch by returned id so concurrent creates cannot select the wrong mailbox row
-  const { data: newItem } = await supabase
+  const { data: newItem, error: fetchError } = await supabase
     .from('pdkt_mailbox_items')
     .select('*')
     .eq('id', createdId)
     .single();
+
+  if (fetchError || !newItem) {
+    console.error('[PDKT Action] Created mailbox item is not visible:', fetchError);
+    throw new Error('Gagal mengambil email baru.');
+  }
 
   return newItem as PdktMailboxItem;
 }

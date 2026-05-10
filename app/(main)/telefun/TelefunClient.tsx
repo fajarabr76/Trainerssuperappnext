@@ -1,12 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'motion/react';
-import { SettingsModal } from './components/SettingsModal';
-import { HistoryModal } from './components/HistoryModal';
-import { UsageModal } from './components/UsageModal';
 import { PhoneInterface } from './components/PhoneInterface';
-import { ReviewModal } from './components/ReviewModal';
 import { AppSettings, Scenario, SessionConfig } from '@/app/types';
 import { Settings, PhoneCall, History, Play, BarChart3 } from 'lucide-react';
 import { loadTelefunSettings, saveTelefunSettings } from './services/settingService';
@@ -20,6 +17,16 @@ import { type UsageSnapshot, computeUsageDelta, formatUsageDeltaLabel } from '@/
 import { createClient } from '@/app/lib/supabase/client';
 import ModuleWorkspaceIntro from '@/app/components/ModuleWorkspaceIntro';
 import { CallRecord } from './types';
+import {
+  getPersistableRecordingUrl,
+  getServerRecordRecordingUrl,
+  shouldRevokeOptimisticRecordingUrl,
+} from './recordingUrl';
+
+const SettingsModal = dynamic(() => import('./components/SettingsModal').then(m => ({ default: m.SettingsModal })), { ssr: false });
+const HistoryModal = dynamic(() => import('./components/HistoryModal').then(m => ({ default: m.HistoryModal })), { ssr: false });
+const UsageModal = dynamic(() => import('./components/UsageModal').then(m => ({ default: m.UsageModal })), { ssr: false });
+const ReviewModal = dynamic(() => import('./components/ReviewModal').then(m => ({ default: m.ReviewModal })), { ssr: false });
 
 export default function TelefunClient() {
   const [view, setView] = useState<'home' | 'chat'>('home');
@@ -78,7 +85,10 @@ export default function TelefunClient() {
       const savedHistory = localStorage.getItem('telefun_history');
       if (savedHistory) {
         try {
-          localRecords = JSON.parse(savedHistory);
+          localRecords = (JSON.parse(savedHistory) as CallRecord[]).map(record => ({
+            ...record,
+            url: getPersistableRecordingUrl(record.url),
+          }));
         } catch (e) {
           console.error("[Telefun] Failed to parse localStorage history", e);
         }
@@ -210,7 +220,10 @@ export default function TelefunClient() {
       };
       const updatedHistory = [newRecord, ...recordings];
       setRecordings(updatedHistory);
-      localStorage.setItem('telefun_history', JSON.stringify(updatedHistory));
+      localStorage.setItem('telefun_history', JSON.stringify(updatedHistory.map(record => ({
+        ...record,
+        url: getPersistableRecordingUrl(record.url),
+      }))));
 
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -222,7 +235,7 @@ export default function TelefunClient() {
           consumerPhone: sessionConfig.identity.phone,
           consumerCity: sessionConfig.identity.city,
           duration: callDurationSeconds,
-          recordingUrl: recordingUrl || '',
+          recordingUrl: getPersistableRecordingUrl(recordingUrl),
           score,
           feedback,
           sessionMetrics: metrics,
@@ -272,21 +285,33 @@ export default function TelefunClient() {
               });
 
               if (recordingPath || agentRecordingPath) {
-                await finalizeTelefunRecording({
+                const finalizeResult = await finalizeTelefunRecording({
                   sessionId: serverSessionId,
                   recordingPath,
                   agentRecordingPath,
                 });
+                if (!finalizeResult.success) {
+                  console.warn('[Telefun] Recording finalize failed:', finalizeResult.error);
+                  // Clear paths so UI doesn't show assessment as available when DB is empty
+                  recordingPath = undefined;
+                  agentRecordingPath = undefined;
+                }
               }
             } catch (err) {
               console.error('[Telefun] Critical upload error:', err);
+              recordingPath = undefined;
+              agentRecordingPath = undefined;
             }
           }
 
           const serverRecord: CallRecord = {
             id: result.session!.id,
             date: result.session!.date,
-            url: result.session!.recording_url,
+            url: getServerRecordRecordingUrl({
+              recordingPath,
+              persistedRecordingUrl: result.session!.recording_url,
+              localRecordingUrl: recordingUrl || '',
+            }),
             consumerName: result.session!.consumer_name,
             scenarioTitle: result.session!.scenario_title,
             duration: result.session!.duration,
@@ -300,12 +325,19 @@ export default function TelefunClient() {
 
           setRecordings(prev => {
             const withoutOptimistic = prev.filter(r => r.id !== optimisticId);
+            const optimisticRecord = prev.find(r => r.id === optimisticId);
+            if (shouldRevokeOptimisticRecordingUrl(optimisticRecord?.url, serverRecord.url)) {
+              try { URL.revokeObjectURL(optimisticRecord.url); } catch (_) {}
+            }
             const alreadyHasServerRecord = withoutOptimistic.some(r => r.id === result.session!.id);
             if (alreadyHasServerRecord) {
               return withoutOptimistic;
             }
             const merged = [serverRecord, ...withoutOptimistic];
-            localStorage.setItem('telefun_history', JSON.stringify(merged));
+            localStorage.setItem('telefun_history', JSON.stringify(merged.map(record => ({
+              ...record,
+              url: getPersistableRecordingUrl(record.url),
+            }))));
             return merged;
           });
 
@@ -387,7 +419,13 @@ export default function TelefunClient() {
     if (optimisticRecordIdRef.current === id) {
       optimisticRecordIdRef.current = null;
     }
-    setRecordings(prev => prev.filter(r => r.id !== id));
+    setRecordings(prev => {
+      const toRemove = prev.find(r => r.id === id);
+      if (toRemove?.url?.startsWith('blob:')) {
+        try { URL.revokeObjectURL(toRemove.url); } catch (_) {}
+      }
+      return prev.filter(r => r.id !== id);
+    });
     const savedHistory = localStorage.getItem('telefun_history');
     if (savedHistory) {
       try {
@@ -407,7 +445,15 @@ export default function TelefunClient() {
       return;
     }
     optimisticRecordIdRef.current = null;
-    setRecordings([]);
+    // Revoke all blob URLs before clearing
+    setRecordings(prev => {
+      prev.forEach(r => {
+        if (r.url?.startsWith('blob:')) {
+          try { URL.revokeObjectURL(r.url); } catch (_) {}
+        }
+      });
+      return [];
+    });
     localStorage.removeItem('telefun_history');
   };
 
@@ -516,6 +562,7 @@ export default function TelefunClient() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex flex-col bg-background"
+            style={{ height: '100dvh' }}
           >
             <PhoneInterface
               config={activeSessionConfig!}
@@ -527,32 +574,40 @@ export default function TelefunClient() {
         )}
       </AnimatePresence>
 
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        settings={settings}
-        onSave={handleSaveSettings}
-      />
-      <HistoryModal
-        isOpen={isHistoryOpen}
-        onClose={() => setIsHistoryOpen(false)}
-        history={recordings}
-        onDeleteSession={handleDeleteSession}
-        onClearHistory={handleClearHistory}
-        onReviewSession={handleReviewSession}
-      />
-      <UsageModal
-        isOpen={isUsageOpen}
-        onClose={() => setIsUsageOpen(false)}
-        sessionDelta={sessionDelta}
-        sessionDeltaPending={false}
-      />
-      <ReviewModal
-        isOpen={isReviewOpen}
-        onClose={() => setIsReviewOpen(false)}
-        record={reviewRecord}
-        onAssessmentComplete={handleAssessmentComplete}
-      />
+      {isSettingsOpen && (
+        <SettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          settings={settings}
+          onSave={handleSaveSettings}
+        />
+      )}
+      {isHistoryOpen && (
+        <HistoryModal
+          isOpen={isHistoryOpen}
+          onClose={() => setIsHistoryOpen(false)}
+          history={recordings}
+          onDeleteSession={handleDeleteSession}
+          onClearHistory={handleClearHistory}
+          onReviewSession={handleReviewSession}
+        />
+      )}
+      {isUsageOpen && (
+        <UsageModal
+          isOpen={isUsageOpen}
+          onClose={() => setIsUsageOpen(false)}
+          sessionDelta={sessionDelta}
+          sessionDeltaPending={false}
+        />
+      )}
+      {isReviewOpen && (
+        <ReviewModal
+          isOpen={isReviewOpen}
+          onClose={() => setIsReviewOpen(false)}
+          record={reviewRecord}
+          onAssessmentComplete={handleAssessmentComplete}
+        />
+      )}
     </div>
   );
 }

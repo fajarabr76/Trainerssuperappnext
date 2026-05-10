@@ -212,6 +212,8 @@ export class LiveSession {
   private volumeSamples: number[] = [];
   private inputTranscriptionChunks: string[] = [];
   private sessionStartTime: number = 0;
+  private readonly MAX_PERSISTED_VOLUME_SAMPLES = 600;
+  private readonly MAX_PERSISTED_INPUT_TRANSCRIPTION_CHUNKS = 100;
 
   constructor(config: SessionConfig) {
     this.config = config;
@@ -754,6 +756,7 @@ export class LiveSession {
     }
     
     this.onVolumeChange?.(normalizedVolume);
+    this.volumeSamples.push(normalizedVolume);
     this.trackDeadAir(rawRms < this.DEAD_AIR_RMS_THRESHOLD);
     this.trackLongSpeech(rawRms < this.DEAD_AIR_RMS_THRESHOLD);
 
@@ -782,6 +785,7 @@ export class LiveSession {
     if (silentDuration >= this.DEAD_AIR_THRESHOLD_MS) {
       if (now - this.lastDeadAirPromptTime >= this.DEAD_AIR_COOLDOWN_MS) {
         this.sendDeadAirPrompt();
+        this.deadAirCount++;
         this.lastDeadAirPromptTime = now;
         this.deadAirStartTime = null;
       }
@@ -822,6 +826,7 @@ export class LiveSession {
   private sendInterruptionPrompt() {
     if (!this.session || this.isDisconnected) return;
     this.emitTimeline('interruption_prompt_sent');
+    this.interruptionCount++;
 
     const c = this.config.consumerType;
     const lowerName = c.name.toLowerCase();
@@ -913,6 +918,7 @@ export class LiveSession {
   private async handleMessage(message: LiveServerMessage) {
     const inputTranscription = message.serverContent?.inputTranscription;
     if (inputTranscription?.text) {
+      this.inputTranscriptionChunks.push(inputTranscription.text);
       this.emitTimeline('input_transcription_seen', { textLength: inputTranscription.text.length });
     }
 
@@ -1220,6 +1226,8 @@ export class LiveSession {
 
     const duration = now - this.sessionStartTime;
     this.totalSilenceMs = Math.max(0, duration - this.totalSpeakingMs);
+    const volumeSamples = this.volumeSamples.slice(-this.MAX_PERSISTED_VOLUME_SAMPLES);
+    const inputTranscriptionChunks = this.inputTranscriptionChunks.slice(-this.MAX_PERSISTED_INPUT_TRANSCRIPTION_CHUNKS);
 
     return {
       speechSegments: this.speechSegments,
@@ -1227,9 +1235,9 @@ export class LiveSession {
       totalSilenceMs: this.totalSilenceMs,
       deadAirCount: this.deadAirCount,
       interruptionCount: this.interruptionCount,
-      volumeSamples: this.volumeSamples,
+      volumeSamples,
       volumeConsistency: this.calculateVolumeConsistency(),
-      inputTranscriptionChunks: this.inputTranscriptionChunks,
+      inputTranscriptionChunks,
       sessionDurationMs: duration,
     };
   }

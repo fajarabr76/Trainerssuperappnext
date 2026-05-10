@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createMailboxItem } from '@/app/(main)/pdkt/actions';
 import { initializeEmailSession } from '@/app/(main)/pdkt/services/geminiService';
@@ -92,6 +94,45 @@ describe('PDKT Mailbox Reliability', () => {
     
     expect(result.id).toBe('existing-id');
     expect(mocks.chain.eq).toHaveBeenCalledWith('id', 'existing-id');
+  });
+
+  it('createMailboxItem throws if the RPC returns an invisible mailbox id', async () => {
+    const mockScenario = { id: 's1', title: 'Test', description: 'Desc' };
+    const mockConfig = { scenarios: [mockScenario], identity: { email: 'c@c.com', name: 'Consumer' } };
+
+    (initializeEmailSession as any).mockResolvedValue({
+      success: true,
+      message: { id: 'm1', from: 'c@c.com', body: 'Hello', subject: 'Sub' }
+    });
+
+    mocks.rpc.mockResolvedValue({ data: 'recipient-copy-id', error: null });
+    mocks.chain.single.mockResolvedValue({ data: null, error: { code: 'PGRST116' } });
+
+    await expect(createMailboxItem(mockConfig as any, mockScenario as any, 'req-duplicate'))
+      .rejects.toThrow('Gagal mengambil email baru');
+  });
+
+  it('mailbox RPC migration drops the old return type before recreating the function', () => {
+    const sql = readFileSync(
+      join(process.cwd(), 'supabase/migrations/20260509140000_pdkt_mailbox_rpc_update.sql'),
+      'utf8',
+    );
+
+    const dropIndex = sql.indexOf('DROP FUNCTION IF EXISTS public.submit_pdkt_mailbox_batch');
+    const createIndex = sql.indexOf('CREATE OR REPLACE FUNCTION public.submit_pdkt_mailbox_batch');
+
+    expect(dropIndex).toBeGreaterThanOrEqual(0);
+    expect(createIndex).toBeGreaterThan(dropIndex);
+  });
+
+  it('mailbox RPC idempotency returns only the creator source row', () => {
+    const sql = readFileSync(
+      join(process.cwd(), 'supabase/migrations/20260509140000_pdkt_mailbox_rpc_update.sql'),
+      'utf8',
+    );
+
+    expect(sql).toContain('AND user_id = v_creator_id');
+    expect(sql).toContain('AND is_shared_copy = false');
   });
 
   it('processPdktEvaluation reclaims stale rows', async () => {

@@ -73,6 +73,21 @@ function parseJsonFromModelText(raw: string): any {
   throw new Error('Tidak ada data JSON valid dari model.');
 }
 
+function isTransientAiError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const message = error.message.toLowerCase();
+  return (
+    message.includes('429') ||
+    message.includes('500') ||
+    message.includes('503') ||
+    message.includes('timeout') ||
+    message.includes('fetch failed') ||
+    message.includes('sedang sibuk') ||
+    message.includes('kesalahan koneksi') ||
+    message.includes('temporarily unavailable')
+  );
+}
+
 /**
  * Helper to render template with name placement.
  */
@@ -327,28 +342,42 @@ export const evaluateAgentResponse = async (
     { "score": number, "typos": string[], "clarityIssues": string[], "contentGaps": string[], "feedback": string }
   `;
 
-  const response = await callAI({
-    model: modelId,
-    prompt: evaluationPrompt,
-    systemInstruction: "Anda adalah supervisor QA yang memberikan penilaian objektif dalam format JSON.",
-    responseMimeType: "application/json",
-    temperature: 0.2,
-    usageContext: { module: 'pdkt', action: 'evaluate_response' },
-    userId,
-  });
+  let lastError: unknown;
+  const retryDelaysMs = [250, 500];
 
-  if (!response.success) throw new Error(response.error || "Gagal mendapatkan respons AI.");
-  
-  const evalText = typeof response.text === 'string' ? response.text : "{}";
-  const result = parseJsonFromModelText(evalText);
+  for (let attempt = 0; attempt <= retryDelaysMs.length; attempt++) {
+    try {
+      const response = await callAI({
+        model: modelId,
+        prompt: evaluationPrompt,
+        systemInstruction: "Anda adalah supervisor QA yang memberikan penilaian objektif dalam format JSON.",
+        responseMimeType: "application/json",
+        temperature: 0.2,
+        usageContext: { module: 'pdkt', action: 'evaluate_response' },
+        userId,
+      });
 
-  return {
-    score: result.score ?? 0,
-    typos: result.typos || [],
-    clarityIssues: result.clarityIssues || [],
-    contentGaps: result.contentGaps || [],
-    feedback: result.feedback || "Tidak ada masukan."
-  };
+      if (!response.success) throw new Error(response.error || "Gagal mendapatkan respons AI.");
+      
+      const evalText = typeof response.text === 'string' ? response.text : "{}";
+      const result = parseJsonFromModelText(evalText);
+
+      return {
+        score: result.score ?? 0,
+        typos: result.typos || [],
+        clarityIssues: result.clarityIssues || [],
+        contentGaps: result.contentGaps || [],
+        feedback: result.feedback || "Tidak ada masukan."
+      };
+    } catch (error) {
+      lastError = error;
+      if (!isTransientAiError(error) || attempt === retryDelaysMs.length) break;
+
+      await new Promise(resolve => setTimeout(resolve, retryDelaysMs[attempt]));
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Gagal mendapatkan respons AI.");
 };
 
 export const replyToEmail = async (): Promise<EmailMessage> => {

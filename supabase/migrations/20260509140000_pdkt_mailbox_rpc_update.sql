@@ -1,6 +1,8 @@
 -- Update submit_pdkt_mailbox_batch to return ID and handle idempotency gracefully
 -- Date: 2026-05-09
 
+DROP FUNCTION IF EXISTS public.submit_pdkt_mailbox_batch(text, text, text, text, text, jsonb, jsonb, jsonb);
+
 CREATE OR REPLACE FUNCTION public.submit_pdkt_mailbox_batch(
     p_client_request_id text,
     p_sender_name text,
@@ -39,6 +41,8 @@ BEGIN
         FROM public.pdkt_mailbox_items
         WHERE created_by_user_id = v_creator_id
           AND client_request_id = p_client_request_id
+          AND user_id = v_creator_id
+          AND is_shared_copy = false
         LIMIT 1;
 
         IF v_existing_id IS NOT NULL THEN
@@ -127,3 +131,6 @@ BEGIN
     RETURN v_source_item_id;
 END;
 $$;
+
+REVOKE EXECUTE ON FUNCTION public.submit_pdkt_mailbox_batch(text, text, text, text, text, jsonb, jsonb, jsonb) FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.submit_pdkt_mailbox_batch(text, text, text, text, text, jsonb, jsonb, jsonb) TO authenticated;

@@ -81,3 +81,16 @@ Jika update mengembalikan 0 row (tidak ada yang diklaim), pemanggil akan mengece
 ### Verifikasi
 - [x] 16 test KETIK existing tetap pass
 - [x] Lint dan type-check bersih
+
+---
+
+## Patch 2026-05-11: Lease Fencing Sebelum Persist Review
+
+### Masalah
+Atomic claim mencegah dua worker mengklaim job pada saat yang sama, tetapi worker lama masih bisa melanjutkan setelah lease kedaluwarsa. Jika worker kedua mengambil lease dan menyelesaikan review, worker lama yang resume belakangan dapat menjalankan `DELETE + INSERT` dan menimpa hasil review yang lebih baru.
+
+### Perbaikan
+Sebelum menulis `ketik_session_reviews`, `ketik_typo_findings`, dan skor di `ketik_history`, worker memperbarui lease dengan filter `session_id`, `status='processing'`, dan `lease_owner` yang sama. Jika update tersebut tidak mengembalikan row, worker dianggap stale dan berhenti tanpa melakukan write destruktif.
+
+### Verifikasi
+- [x] Regression test `tests/ketik/ketik-ai-review-fencing.test.ts` memastikan worker stale tidak menghapus row review.

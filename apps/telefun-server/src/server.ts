@@ -138,18 +138,24 @@ wss.on('connection', async (ws, req) => {
       closePath = 'client';
       logTimeline('close_path', { path: closePath });
       console.log('[Telefun] Client connection closed');
+      // Close Gemini first; its close handler will flush complete usage snapshot
       if (geminiWs && (geminiWs.readyState === WebSocket.OPEN || geminiWs.readyState === WebSocket.CONNECTING)) {
         geminiWs.close();
       }
+      // Safety net: if Gemini close never fires, flush after grace period
+      setTimeout(() => void flushUsage(), 2000);
     });
 
     ws.on('error', (err) => {
       closePath = 'server';
       logTimeline('close_path', { path: closePath, error: err.message });
       console.error('[Telefun] Client WS Error:', err);
+      // Close Gemini first; its close handler will flush complete usage snapshot
       if (geminiWs && (geminiWs.readyState === WebSocket.OPEN || geminiWs.readyState === WebSocket.CONNECTING)) {
         geminiWs.close();
       }
+      // Safety net: if Gemini close never fires, flush after grace period
+      setTimeout(() => void flushUsage(), 2000);
     });
 
     // --- Synchronous validation (no await, safe before message handler) ---
@@ -276,6 +282,7 @@ wss.on('connection', async (ws, req) => {
       closePath = 'gemini';
       logTimeline('gemini_error', { message: err.message || 'unknown' });
       console.error('[Telefun] Gemini WS Error:', err.message || err);
+      void flushUsage();
       if (ws.readyState === WebSocket.OPEN) {
         ws.close(1011, 'Gemini API Error');
       }

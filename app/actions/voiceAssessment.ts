@@ -7,6 +7,8 @@ import { Type } from '@google/genai';
 import { VoiceQualityAssessment } from '@/app/types/voiceAssessment';
 import { VOICE_ASSESSMENT_MODEL } from '@/app/lib/ai-models';
 import { validateAssessment } from '@/app/lib/voiceAssessmentUtils';
+import { isValidRecordingPath } from '@/app/(main)/telefun/recordingPath';
+import { runWithVoiceAssessmentTimeout } from '@/app/actions/voiceAssessmentTimeout';
 
 const VOICE_ASSESSMENT_SCHEMA = {
   type: Type.OBJECT,
@@ -103,14 +105,20 @@ export async function analyzeVoiceQuality(sessionId: string): Promise<{
     });
   }
 
-  if (!row.agent_recording_path) {
+  const agentPath = row.agent_recording_path;
+  if (!agentPath) {
     return { success: false, error: 'No agent audio available for assessment' };
+  }
+
+  // Validate path ownership before admin download
+  if (!isValidRecordingPath(agentPath, user.id, sessionId, 'agent_only')) {
+    return { success: false, error: 'Invalid recording path for this session' };
   }
 
   // 3. Get audio from storage
   const { data: audioData, error: downloadError } = await admin.storage
     .from('telefun-recordings')
-    .download(row.agent_recording_path);
+    .download(agentPath);
 
   if (downloadError || !audioData) {
     return { success: false, error: 'Failed to download audio: ' + downloadError?.message };
@@ -118,7 +126,7 @@ export async function analyzeVoiceQuality(sessionId: string): Promise<{
 
   const base64Audio = Buffer.from(await audioData.arrayBuffer()).toString('base64');
 
-  // 4. Call Gemini
+  // 4. Call Gemini with transient retries
   const prompt = `
     Lakukan analisis pada kualitas suara agen dalam simulasi telemarketing/customer service berikut.
     Skenario: ${row.scenario_title}
@@ -138,52 +146,89 @@ export async function analyzeVoiceQuality(sessionId: string): Promise<{
     4. Nilai 0 berarti sangat buruk, 10 berarti sangat luar biasa. Jangan ragu untuk memberi skor sedang/rendah jika memang banyak ruang untuk perbaikan.
   `;
 
-  const response = await generateGeminiContent({
-    model: VOICE_ASSESSMENT_MODEL,
-    systemInstruction: 'Anda adalah pelatih vokal profesional dan analis wicara yang tegas dan objektif. Semua balasan WAJIB sepenuhnya dalam Bahasa Indonesia.',
-    contents: [
-      {
-        role: 'user',
-        parts: [
-          { text: prompt },
-          { inlineData: { mimeType: 'audio/webm', data: base64Audio } }
-        ]
+  const MAX_RETRIES = 4;
+  const RETRY_DELAYS = [0, 1000, 2000, 4000];
+  let lastError: string | undefined;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]));
+    }
+
+    let response: Awaited<ReturnType<typeof generateGeminiContent>> | undefined;
+    let attemptError: string | undefined;
+    try {
+      response = await runWithVoiceAssessmentTimeout(signal => generateGeminiContent({
+        model: VOICE_ASSESSMENT_MODEL,
+        systemInstruction: 'Anda adalah pelatih vokal profesional dan analis wicara yang tegas dan objektif. Semua balasan WAJIB sepenuhnya dalam Bahasa Indonesia.',
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { text: prompt },
+              { inlineData: { mimeType: 'audio/webm', data: base64Audio } }
+            ]
+          }
+        ],
+        responseMimeType: 'application/json',
+        responseSchema: VOICE_ASSESSMENT_SCHEMA as any,
+        usageContext: { module: 'telefun', action: 'voice_assessment' },
+        abortSignal: signal,
+      }));
+    } catch (err) {
+      attemptError = err instanceof Error ? err.message : 'Gemini assessment failed';
+    }
+
+    if (response?.success && response.text) {
+      try {
+        const rawAssessment = JSON.parse(response.text);
+        const assessment = validateAssessment(rawAssessment);
+
+        if (assessment) {
+          // 5. Save to DB
+          const { error: saveError } = await admin.from('telefun_history')
+            .update({ voice_assessment: assessment })
+            .eq('id', sessionId)
+            .eq('user_id', user.id);
+
+          if (saveError) {
+            console.warn('[Telefun] Failed to save assessment to DB:', saveError);
+          }
+
+          return { success: true, assessment };
+        }
+
+        console.warn('[Telefun] Invalid assessment payload from model', {
+          sessionId,
+          userId: user.id,
+          attempt,
+        });
+        return { success: false, error: 'Format hasil analisis tidak valid. Silakan coba lagi.' };
+      } catch (err) {
+        console.error('[Telefun] Parse error for assessment:', err);
+        return { success: false, error: 'Format hasil analisis tidak valid. Silakan coba lagi.' };
       }
-    ],
-    responseMimeType: 'application/json',
-    responseSchema: VOICE_ASSESSMENT_SCHEMA as any,
-    usageContext: { module: 'telefun', action: 'voice_assessment' }
-  });
-
-  if (!response.success || !response.text) {
-    return { success: false, error: response.error || 'Gemini assessment failed' };
-  }
-
-  try {
-    const rawAssessment = JSON.parse(response.text);
-    const assessment = validateAssessment(rawAssessment);
-
-    if (!assessment) {
-      console.warn('[Telefun] Invalid assessment payload from model', {
-        sessionId,
-        userId: user.id,
-      });
-      return { success: false, error: 'Format hasil analisis tidak valid. Silakan coba lagi.' };
     }
 
-    // 5. Save to DB
-    const { error: saveError } = await admin.from('telefun_history')
-      .update({ voice_assessment: assessment })
-      .eq('id', sessionId)
-      .eq('user_id', user.id);
+    // Only retry on transient errors, not parse/validation errors
+    attemptError = attemptError || response?.error || 'Gemini assessment failed';
+    lastError = attemptError;
+    const errLower = lastError.toLowerCase();
+    const isTransient = errLower.includes('429') ||
+                        errLower.includes('500') ||
+                        errLower.includes('502') ||
+                        errLower.includes('503') ||
+                        errLower.includes('504') ||
+                        errLower.includes('econnreset') ||
+                        errLower.includes('econnrefused') ||
+                        errLower.includes('etimedout') ||
+                        errLower.includes('timeout') ||
+                        errLower.includes('fetch failed');
 
-    if (saveError) {
-      console.warn('[Telefun] Failed to save assessment to DB:', saveError);
-    }
+    if (!isTransient) break;
 
-    return { success: true, assessment };
-  } catch (err) {
-    console.error('[Telefun] Parse error for assessment:', err, response.text);
-    return { success: false, error: 'Format hasil analisis tidak valid. Silakan coba lagi.' };
+    console.warn(`[Telefun] Voice assessment transient error (attempt ${attempt + 1}/${MAX_RETRIES}):`, lastError);
   }
+
+  return { success: false, error: lastError || 'Gemini assessment failed' };
 }

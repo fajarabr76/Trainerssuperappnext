@@ -10,7 +10,7 @@ Penyimpanan utama inbound email berada pada tabel `pdkt_mailbox_items`.
 1. **Pemicuan (Creation)**: User memilih skenario secara manual.
     - Jika user adalah **Admin/Trainer**, email yang dihasilkan akan otomatis di-*fanout* (disalin) ke semua akun Leader dan Agent yang aktif dan disetujui.
     - Jika user adalah **Leader/Agent**, email hanya dibuat untuk akun mereka sendiri.
-    - Idempotensi dijaga menggunakan `client_request_id` yang dibuat oleh UI; RPC `submit_pdkt_mailbox_batch` akan mengembalikan ID yang sudah ada jika terdeteksi duplikasi, mencegah duplikasi row namun tetap mengembalikan hasil yang sukses.
+    - Idempotensi dijaga menggunakan `client_request_id` yang dibuat oleh UI; RPC `submit_pdkt_mailbox_batch` akan mengembalikan ID source row milik creator (`user_id = created_by_user_id`, bukan shared copy) jika terdeteksi duplikasi, mencegah duplikasi row namun tetap mengembalikan hasil yang sukses.
     - Batch fanout bersifat **atomic**: transaksi dibatalkan jika terjadi kegagalan sistem tanpa menyisakan row parsial.
 2. **Interaksi**: Email yang berstatus `open` tampil di sidebar mailbox. User dapat memilih email untuk melihat detail dan menulis balasan.
 3. **Penyelesaian (Submission)**: Saat user mengirim balasan, sistem memanggil RPC `submit_pdkt_mailbox_reply`. 
@@ -44,6 +44,7 @@ Skenario sekarang mendukung **Sample Email Template**:
 ## Keandalan Evaluasi (Async Recovery)
 - **Atomic Claim**: `processPdktEvaluation` menggunakan *atomic conditional update* saat mengklaim row untuk evaluasi. Sistem hanya men-stamp `evaluation_started_at` jika kolom tersebut masih `NULL` atau sudah *stale* (> 5 menit). Ini mencegah **duplicate evaluation** — dua pemanggil konkuren (misal auto-evaluation setelah reply + manual retry) tidak akan bisa memproses row yang sama. Jika klaim gagal, pemanggil akan mengecek status terkini dan mengembalikan hasil yang sudah ada atau melempar error "Evaluation is already in progress".
 - **Stale Recovery**: Jika proses evaluasi macet (> 5 menit), sistem akan mengizinkan proses tersebut untuk di-*claim* ulang.
+- **Transient AI Retry**: Evaluasi PDKT melakukan retry terbatas untuk error provider sementara (`429`, `500`, `503`, timeout, atau koneksi gagal) sebelum row ditandai `failed`.
 - User juga dapat memicu retry manual melalui tombol "Coba Lagi" pada UI jika evaluasi gagal.
 
 ## Usage Tracking Accuracy

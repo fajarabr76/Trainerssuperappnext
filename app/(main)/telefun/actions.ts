@@ -228,6 +228,11 @@ export async function persistTelefunSession(params: {
 }): Promise<PersistTelefunSessionResult> {
   const supabase = await createClient();
 
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.id !== params.userId) {
+    return { success: false, error: 'Auth mismatch or not authenticated.' };
+  }
+
   const sessionData: any = {
     user_id: params.userId,
     date: new Date().toISOString(),

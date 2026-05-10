@@ -101,7 +101,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, recor
                 onClick={() => setActiveTab('assessment')}
                 className={`pb-3 px-2 text-sm font-bold tracking-tight transition-all relative ${activeTab === 'assessment' ? 'text-emerald-500' : 'text-muted-foreground hover:text-foreground'}`}
               >
-                Kualitas Suara AI
+                Kualitas Suara Agen
                 {activeTab === 'assessment' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500 rounded-t-full" />}
               </button>
             </div>
@@ -117,7 +117,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, recor
                     className="space-y-6"
                   >
                     {/* Metadata Grid */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="bg-foreground/[0.02] border border-border rounded-2xl p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <User className="w-4 h-4 text-emerald-600/60 dark:text-emerald-400/60" />

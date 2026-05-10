@@ -49,6 +49,7 @@ export async function generateGeminiContent(options: {
   speechConfig?: SpeechConfig;
   usageContext?: UsageContext;
   userId?: string;
+  abortSignal?: AbortSignal;
 }): Promise<GeminiResponse> {
   try {
     const supabase = await createClient();
@@ -103,6 +104,7 @@ export async function generateGeminiContent(options: {
         temperature: options.temperature ?? 0.7,
         responseModalities: options.responseModalities as string[],
         speechConfig: options.speechConfig,
+        abortSignal: options.abortSignal,
       }
     });
 
