@@ -17,6 +17,7 @@ Penyimpanan utama inbound email berada pada tabel `pdkt_mailbox_items`.
     - Row baru di `pdkt_history` dibuat untuk menyimpan riwayat sesi dan memicu evaluasi.
     - Status item di `pdkt_mailbox_items` berubah menjadi `replied` dan `history_id` dihubungkan ke row riwayat tersebut.
 4. **Evaluasi**: Hasil evaluasi AI diproses secara asinkron menggunakan helper internal `processPdktEvaluation`. UI melakukan polling status hingga selesai atau gagal.
+    - Row `pdkt_history` dari `submit_pdkt_mailbox_reply` memakai `evaluation_status = 'processing'` dengan `evaluation_started_at` awalnya **NULL** sampai worker evaluasi mengisi timestamp tersebut. Guard “sudah berjalan” di `processPdktEvaluation` hanya memblokir jika `evaluation_started_at` sudah terisi dan masih segar (bukan stale), agar evaluasi pertama tidak ditolak secara keliru.
 
 ## Shared Scenario Templates
 Skenario sekarang mendukung **Sample Email Template**:

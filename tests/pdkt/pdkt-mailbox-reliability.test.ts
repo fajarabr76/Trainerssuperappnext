@@ -135,4 +135,26 @@ describe('PDKT Mailbox Reliability', () => {
     
     await expect(processPdktEvaluation('h2', 'test-user')).rejects.toThrow('Evaluation is already in progress');
   });
+
+  it('processPdktEvaluation runs for mailbox-created history (processing, no started_at)', async () => {
+    mocks.chain.single.mockResolvedValue({
+      data: {
+        id: 'h-mailbox',
+        user_id: 'test-user',
+        evaluation_status: 'processing',
+        evaluation_started_at: null,
+        emails: [{ isAgent: false, body: 'Q' }, { isAgent: true, body: 'A' }],
+        config: {},
+      },
+      error: null,
+    });
+
+    await processPdktEvaluation('h-mailbox', 'test-user');
+
+    expect(mocks.chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        evaluation_status: 'completed',
+      }),
+    );
+  });
 });

@@ -23,16 +23,23 @@ export async function processPdktEvaluation(historyId: string, userId: string) {
   }
 
   // 2. Check if already completed or stale
-  // We allow retrying if it's 'failed' or if it's 'processing' but stale (> 5 mins)
-  const isStale = history.evaluation_status === 'processing' && 
-                 history.evaluation_started_at && 
-                 (new Date().getTime() - new Date(history.evaluation_started_at).getTime() > 5 * 60 * 1000);
+  // Mailbox RPC creates rows with evaluation_status='processing' but evaluation_started_at=NULL
+  // until this worker stamps started_at — those must not be treated as "already running".
+  // We only block when another run has already set evaluation_started_at and it is fresh.
+  const isStale =
+    history.evaluation_status === 'processing' &&
+    history.evaluation_started_at != null &&
+    new Date().getTime() - new Date(history.evaluation_started_at).getTime() > 5 * 60 * 1000;
 
   if (history.evaluation_status === 'completed' && history.evaluation) {
     return history.evaluation as EvaluationResult;
   }
 
-  if (history.evaluation_status === 'processing' && !isStale) {
+  if (
+    history.evaluation_status === 'processing' &&
+    history.evaluation_started_at != null &&
+    !isStale
+  ) {
     throw new Error('Evaluation is already in progress');
   }
 
