@@ -6,6 +6,7 @@ This document provides context and working instructions for AI assistants operat
 
 - **context7** - Always use context7 MCP for documentation lookup and code search before executing tasks
 - **supabase-mcp-server** - Use for Supabase data queries and database operations
+- **shadcn** - Use for browsing, searching, and installing shadcn/ui components from registries. Gunakan sebelum membuat komponen UI baru untuk cek apakah sudah ada komponen yang sesuai di registry.
 
 ## Subagent Usage
 
@@ -116,7 +117,7 @@ Telefun live simulation runs as a standalone Node.js service (in `apps/telefun-s
 - **Type Safety:** Avoid `any`. Use `unknown` and proper type casting. Leverage centralized types (e.g., `app/types/auth.ts`)
 - **Supabase Data Handling**: Use unwrap helpers (like `unwrapIndicator`, `unwrapPeriod`) for type safety when dealing with dynamic data
 - **KETIK Manual Review**: Review AI pada modul KETIK bersifat **manual-only**. Endpoint `POST /api/ketik/review` hanya memasukkan job ke antrean; pemrosesan sebenarnya tidak boleh otomatis dipicu segera setelah sesi selesai untuk menjaga kontrol penuh di tangan user.
-- **UI/UX**: Use Tailwind CSS and existing UI components. Consult `docs/design-guidelines.md`
+- **UI/UX**: Use Tailwind CSS and existing UI components. Consult `docs/design-guidelines.md`. Untuk komponen UI baru, **selalu cek shadcn MCP terlebih dahulu** (`search_items_in_registries` atau `view_items_in_registries`) sebelum membuat custom component. Prioritaskan penggunaan shadcn/ui components yang sudah ada di registry untuk konsistensi dan maintainability.
 
 - **Dependency Management:** Do not add new dependencies without explicit instruction
 - **State Management:** Be cautious with `useEffect` dependency arrays to avoid infinite loops
