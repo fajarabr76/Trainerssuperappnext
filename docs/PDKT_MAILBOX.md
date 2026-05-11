@@ -44,6 +44,8 @@ Skenario sekarang mendukung **Sample Email Template**:
 ## Keandalan Evaluasi (Async Recovery)
 - **Atomic Claim**: `processPdktEvaluation` menggunakan *atomic conditional update* saat mengklaim row untuk evaluasi. Sistem hanya men-stamp `evaluation_started_at` jika kolom tersebut masih `NULL` atau sudah *stale* (> 5 menit). Ini mencegah **duplicate evaluation** — dua pemanggil konkuren (misal auto-evaluation setelah reply + manual retry) tidak akan bisa memproses row yang sama. Jika klaim gagal, pemanggil akan mengecek status terkini dan mengembalikan hasil yang sudah ada atau melempar error "Evaluation is already in progress".
 - **Stale Recovery**: Jika proses evaluasi macet (> 5 menit), sistem akan mengizinkan proses tersebut untuk di-*claim* ulang.
+- **Save Fencing**: Setelah evaluasi AI selesai, penyimpanan hasil juga difencing dengan `evaluation_started_at`. Worker hanya boleh menyimpan hasil jika nilai `evaluation_started_at` masih sesuai dengan timestamp yang di-claim-nya. Jika worker lain telah meng-claim ulang row tersebut (karena stale), penyimpanan akan ditolak — data yang dihitung tetap dikembalikan ke pemanggil tetapi tidak dipersist ke database, mencegah overwrite data worker yang lebih baru.
+- **Failure Fencing**: Pencatatan kegagalan juga menggunakan filter `evaluation_started_at` yang sama, sehingga worker yang kehilangan lease tidak akan menimpa status row yang sudah di-claim ulang.
 - **Transient AI Retry**: Evaluasi PDKT melakukan retry terbatas untuk error provider sementara (`429`, `500`, `503`, timeout, atau koneksi gagal) sebelum row ditandai `failed`.
 - User juga dapat memicu retry manual melalui tombol "Coba Lagi" pada UI jika evaluasi gagal.
 

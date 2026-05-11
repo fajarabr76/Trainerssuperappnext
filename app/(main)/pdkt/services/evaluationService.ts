@@ -75,32 +75,43 @@ export async function processPdktEvaluation(historyId: string, userId: string) {
     // 4. Run AI Evaluation
     const evaluation = await evaluateAgentResponse(history.emails, history.config);
 
-    // 5. Save results
-    const { error: updateEndError } = await supabase
+    // 5. Save results — fenced by evaluation_started_at to prevent a stale
+    //    worker from overwriting a newer claim's results.
+    const { data: saved, error: updateEndError } = await supabase
       .from('pdkt_history')
       .update({
         evaluation_status: 'completed',
         evaluation: evaluation,
         evaluation_completed_at: new Date().toISOString()
       })
-      .eq('id', historyId);
+      .eq('id', historyId)
+      .eq('evaluation_started_at', nowIso)
+      .select('id');
 
     if (updateEndError) {
       throw new Error('Failed to save evaluation results');
+    }
+
+    if (!saved || saved.length === 0) {
+      // Another worker claimed and may have already completed — do not overwrite.
+      console.warn(`[processPdktEvaluation] Lease lost before save for history: ${historyId}`);
+      return evaluation; // Return the computed result but don't persist stale data
     }
 
     return evaluation;
   } catch (error: any) {
     console.error('[processPdktEvaluation] Error:', error);
     
-    // 6. Record failure
+    // 6. Record failure — only if we still own the lease (evaluation_started_at matches).
+    //    If another worker has claimed, let them handle the outcome.
     await supabase
       .from('pdkt_history')
       .update({
         evaluation_status: 'failed',
         evaluation_error: error.message || 'Unknown error during evaluation'
       })
-      .eq('id', historyId);
+      .eq('id', historyId)
+      .eq('evaluation_started_at', nowIso);
 
     throw error;
   }
