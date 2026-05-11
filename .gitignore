@@ -57,6 +57,9 @@ supabase_rbac_setup.sql
 .agents/plugins/marketplace.json
 plugins/trainers-superapp-next/.codex-plugin/plugin.json
 
+# Kiro local settings (contains API tokens)
+.kiro/settings/
+
 # Local Supabase backups
 local-backups/
 
