@@ -21,6 +21,7 @@ export const DEFAULT_SCENARIOS: Scenario[] = [
     title: 'Pengecekan SLIK',
     description: 'Konsumen ingin mengecek status BI Checking / SLIK karena pengajuan KPR ditolak.',
     isActive: true,
+    isLicensed: true,
   },
   {
     id: 'asuransi',
@@ -28,6 +29,7 @@ export const DEFAULT_SCENARIOS: Scenario[] = [
     title: 'Klaim Asuransi Ditolak',
     description: 'Konsumen mengeluh karena klaim asuransi kesehatannya ditolak dengan alasan yang tidak jelas.',
     isActive: true,
+    isLicensed: true,
   },
   {
     id: 'investasi',
@@ -42,8 +44,49 @@ export const DEFAULT_SCENARIOS: Scenario[] = [
     title: 'Tagihan Kartu Kredit',
     description: 'Konsumen keberatan dengan adanya biaya administrasi atau tagihan yang tidak dikenal di kartu kreditnya.',
     isActive: true,
+    isLicensed: true,
   }
 ];
+
+export const LICENSED_COMPANY_NAMES: Record<string, string[]> = {
+  Perbankan: [
+    'Bank Central Asia (BCA)',
+    'Bank Mandiri',
+    'Bank Rakyat Indonesia (BRI)',
+    'Bank Negara Indonesia (BNI)',
+    'Bank Tabungan Negara (BTN)',
+    'Bank CIMB Niaga',
+    'Bank Danamon Indonesia',
+    'Bank Permata',
+    'Bank Maybank Indonesia',
+    'Bank Panin',
+    'Bank OCBC NISP',
+    'Bank Syariah Indonesia (BSI)',
+    'Bank Mega',
+    'Bank UOB Indonesia',
+    'Bank Sinarmas',
+  ],
+  Asuransi: [
+    'Prudential Indonesia',
+    'Allianz Life Indonesia',
+    'AXA Mandiri Financial Services',
+    'Manulife Indonesia',
+    'AIA Financial',
+    'BNI Life Insurance',
+    'BRI Life',
+    'Sinarmas MSIG Life',
+    'Sequis Life',
+    'FWD Insurance Indonesia',
+    'Great Eastern Life Indonesia',
+    'Sun Life Financial Indonesia',
+  ],
+};
+
+export const SCENARIO_COMPANY_CATEGORY_MAP: Record<string, string> = {
+  'Pengecekan SLIK': 'Perbankan',
+  'Tagihan Kartu Kredit': 'Perbankan',
+  'Klaim Asuransi Ditolak': 'Asuransi',
+};
 
 export const DEFAULT_CONSUMER_TYPES: ConsumerType[] = [
   { 

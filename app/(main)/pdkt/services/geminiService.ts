@@ -3,7 +3,7 @@ import { generateGeminiContent } from '@/app/actions/gemini';
 import { generateOpenRouterContent } from '@/app/actions/openrouter';
 import { normalizeModelId, resolveModelProvider } from '@/app/lib/ai-models';
 import type { UsageContext } from '@/app/lib/ai-usage';
-import { getConsumerNameMentionInstruction } from './promptHelpers';
+import { getConsumerNameMentionInstruction, getCompanyNameInstruction } from './promptHelpers';
 
 /**
  * Helper to call the appropriate AI provider based on model ID.
@@ -114,7 +114,20 @@ function renderTemplate(body: string, identity: Identity, pattern: ResolvedConsu
   }
 }
 
-const getSystemInstruction = (config: SessionConfig, hasCustomImages: boolean) => {
+function getRealisticWritingInstruction(mode: string): string {
+  if (mode !== 'realistic') return "";
+
+  return `
+    GAYA PENULISAN REALISTIS (WAJIB):
+    - Tambahkan minimal 2 dan maksimal 5 typo (salah ketik) acak pada kata-kata di dalam email.
+    - Gunakan CAPSLOCK pada 1 hingga 3 kata atau frasa pendek untuk menunjukkan penekanan emosi atau kebingungan.
+    - Gunakan minimal 3 kata atau ungkapan bahasa informal/bahasa sehari-hari yang tidak baku.
+    - Sertakan minimal 1 bagian di mana Anda menjelaskan masalah secara sedikit berbelit-belit atau mengulang poin yang sama untuk menunjukkan kesulitan dalam menjelaskan masalah.
+    - Meskipun gaya penulisan tidak sempurna, pastikan informasi inti keluhan (jenis masalah, nama LJK, dan dampak) tetap dapat diidentifikasi.
+  `;
+}
+
+export const getSystemInstruction = (config: SessionConfig, hasCustomImages: boolean) => {
   const scenario = config.scenarios[0];
   const scenarioDescription = scenario 
     ? `[${scenario.category}] ${scenario.title}: ${scenario.description}`
@@ -132,6 +145,8 @@ const getSystemInstruction = (config: SessionConfig, hasCustomImages: boolean) =
   } else {
     imageInstruction = "JANGAN membuat prompt gambar visual apapun.";
   }
+
+  const writingStyleMode = config.writingStyleMode || 'training';
 
   return `
     Anda adalah Simulator Konsumen untuk pelatihan Agen Email Kontak OJK 157.
@@ -151,9 +166,10 @@ const getSystemInstruction = (config: SessionConfig, hasCustomImages: boolean) =
     MASALAH: ${scenarioDescription}
     ${templateGuidance}
     ${imageInstruction}
+    ${getRealisticWritingInstruction(writingStyleMode)}
     
     ATURAN WAJIB:
-    1. PENAMAAN PERUSAHAAN: WAJIB mengarang NAMA SPESIFIK untuk perusahaan yang diadukan (LJK). Contoh: "Bank Nusantara Sentosa", "Sekuritas Jaya".
+    ${getCompanyNameInstruction(scenario)}
     2. GAYA PENULISAN: Buatlah isi email yang SANGAT PANJANG (500-1000 kata), BERTELE-TELE, dan PENUH DETAIL curhatan tidak relevan. Jangan gunakan bullet points. Gunakan 5-8 paragraf yang dipisahkan dengan baris kosong (\n\n). JANGAN menulis dalam 1 paragraf saja — setiap paragraf harus membahas aspek berbeda (kronologi, detail masalah, dampak emosional, harapan, dll).
     3. FORMAT OUTPUT: HANYA JSON.
     { 
@@ -189,6 +205,7 @@ export async function generateScenarioEmailTemplate(
     3. GAYA BAHASA: Sangat PANJANG (500-1000 kata), natural, bertele-tele, penuh detail kronologi curhatan, tanpa bullet points. Wajib 5-8 paragraf yang dipisahkan dengan baris kosong (\n\n). JANGAN menulis dalam 1 paragraf saja — setiap paragraf harus membahas aspek berbeda (kronologi awal, detail masalah, upaya yang sudah dilakukan, dampak emosional/finansial, harapan penyelesaian, dll).
     4. JANGAN menyertakan prompt gambar.
     5. JANGAN menyertakan identitas spesifik (kota, email asli) selain placeholder.
+    6. ${scenario.isLicensed ? 'PENAMAAN PERUSAHAAN: WAJIB menggunakan NAMA RESMI perusahaan untuk LJK yang diadukan. Pilih nama bank atau perusahaan asuransi yang benar-benar ada di Indonesia (misalnya: Bank Mandiri, BCA, BRI, Prudential, Allianz, dll).' : 'PENAMAAN PERUSAHAAN: WAJIB mengarang NAMA SPESIFIK untuk perusahaan yang diadukan (LJK). Contoh: "Bank Nusantara Sentosa", "Sekuritas Jaya".'}
     
     FORMAT OUTPUT JSON:
     { "subject": "...", "body": "Paragraf 1...\n\nParagraf 2...\n\nParagraf 3...\n\nParagraf 4...\n\nParagraf 5..." }
@@ -273,7 +290,7 @@ export const initializeEmailSession = async (
   const hasCustomImages = customAttachments.length > 0;
   const model = normalizeModelId(config.selectedModel || "gemini-3.1-flash-lite");
 
-  const prompt = `Tulis email pengaduan pertama Anda sekarang. Sebutkan NAMA LJK secara spesifik. Masalah: ${scenario.title}. Karakter: ${config.consumerType.name}. PENTING: Email harus 500-1000 kata, terdiri dari 5-8 paragraf terpisah (gunakan \\n\\n antar paragraf). Jangan tulis dalam 1 paragraf saja.`;
+  const prompt = `Tulis email pengaduan pertama Anda sekarang. Masalah: ${scenario.title}. Karakter: ${config.consumerType.name}. PENTING: Email harus 500-1000 kata, terdiri dari 5-8 paragraf terpisah (gunakan \\n\\n antar paragraf). Jangan tulis dalam 1 paragraf saja.`;
 
   try {
     const response = await callAI({

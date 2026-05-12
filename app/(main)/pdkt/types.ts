@@ -11,6 +11,8 @@ export type ResolvedConsumerNameMentionPattern =
   | 'late'
   | 'none';
 
+export type WritingStyleMode = 'realistic' | 'training';
+
 export interface AppSettings {
   scenarios: Scenario[];
   consumerTypes: ConsumerType[];
@@ -18,6 +20,7 @@ export interface AppSettings {
   globalConsumerTypeId: string;
   selectedModel?: string;
   consumerNameMentionPattern?: ConsumerNameMentionPattern;
+  writingStyleMode?: WritingStyleMode;
   customIdentity?: {
     senderName?: string;
     bodyName?: string;
@@ -38,6 +41,8 @@ export interface Scenario {
   };
   alwaysUseSampleEmail?: boolean;
   isActive: boolean;
+  // true = perusahaan berizin resmi, gunakan nama asli
+  isLicensed?: boolean;
   attachmentImages?: string[];
 }
 
@@ -64,6 +69,7 @@ export interface SessionConfig {
   enableImageGeneration: boolean;
   selectedModel: string;
   resolvedConsumerNameMentionPattern: ResolvedConsumerNameMentionPattern;
+  writingStyleMode: WritingStyleMode;
 }
 
 export interface Identity {
