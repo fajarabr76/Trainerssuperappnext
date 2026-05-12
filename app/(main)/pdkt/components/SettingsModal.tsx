@@ -62,6 +62,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   const [consumerNameMentionPattern, setConsumerNameMentionPattern] = useState(
     localSettings.consumerNameMentionPattern || 'random'
   );
+  const [writingStyleMode, setWritingStyleMode] = useState<'realistic' | 'training'>(
+    localSettings.writingStyleMode || 'training'
+  );
 
   // Sync state when modal opens to ensure fresh data
   useEffect(() => {
@@ -79,6 +82,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
         setGlobalConsumerTypeId(settings.globalConsumerTypeId || 'random');
         setSelectedModel(nextSelectedModel);
         setConsumerNameMentionPattern(settings.consumerNameMentionPattern || 'random');
+        setWritingStyleMode(settings.writingStyleMode || 'training');
 
         // Reset forms
         setEditingScenarioId(null);
@@ -508,6 +512,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
         globalConsumerTypeId,
         selectedModel,
         consumerNameMentionPattern,
+        writingStyleMode,
         customIdentity: {
           senderName: customSenderName,
           bodyName: customBodyName,
@@ -538,6 +543,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
               globalConsumerTypeId: 'random',
               selectedModel: defaultModelId,
               consumerNameMentionPattern: 'random',
+              writingStyleMode: 'training',
               customIdentity: {
                 senderName: '',
                 email: '',
@@ -552,6 +558,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
           setGlobalConsumerTypeId('random');
           setSelectedModel(defaultModelId);
           setConsumerNameMentionPattern('random');
+          setWritingStyleMode('training');
           setCustomSenderName('');
           setCustomBodyName('');
           setCustomEmail('');
@@ -1330,13 +1337,86 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                       <div>
                         <h3 className="font-semibold text-foreground text-xl tracking-tight">Pengaturan Sistem</h3>
                         <p className="text-sm text-muted-foreground mt-1 font-medium leading-relaxed">
-                          Pilih model AI yang akan menggerakkan simulasi email ini.
+                          Pilih model AI dan mode penulisan yang akan menggerakkan simulasi email ini.
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4 mb-2 ml-2">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                          <Edit2 className="w-5 h-5 text-primary" />
+                        </div>
+                        <h4 className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Mode Penulisan</h4>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div 
+                          onClick={() => setWritingStyleMode('realistic')}
+                          className={`cursor-pointer p-6 rounded-xl border transition-all relative overflow-hidden group ${
+                            writingStyleMode === 'realistic' 
+                              ? 'bg-primary border-primary/30 shadow-xl shadow-primary/10' 
+                              : 'bg-card/40 border-white/5 hover:border-primary/20 hover:bg-card/60'
+                          }`}
+                        >
+                            {writingStyleMode === 'realistic' && (
+                              <div className="absolute inset-y-0 left-0 w-1 bg-primary-foreground/50" />
+                            )}
+                            <div className="flex justify-between items-start mb-4">
+                              <h4 className={`font-semibold text-lg tracking-tight flex items-center gap-3 ${writingStyleMode === 'realistic' ? 'text-primary-foreground' : 'text-foreground'}`}>
+                                <div className={`w-2.5 h-2.5 rounded-full ${writingStyleMode === 'realistic' ? 'bg-primary-foreground animate-pulse' : 'bg-foreground/20'}`} />
+                                Realistis
+                              </h4>
+                              {writingStyleMode === 'realistic' && (
+                                <div className="bg-primary-foreground/20 text-primary-foreground p-1.5 rounded-xl backdrop-blur-md">
+                                    <Check className="w-4 h-4 stroke-[3px]" />
+                                </div>
+                              )}
+                            </div>
+                            <p className={`text-xs font-medium leading-relaxed ${writingStyleMode === 'realistic' ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
+                              Email mengandung typo, capslock, dan bahasa informal/kurang berpendidikan untuk simulasi yang lebih nyata.
+                            </p>
+                        </div>
+
+                        <div 
+                          onClick={() => setWritingStyleMode('training')}
+                          className={`cursor-pointer p-6 rounded-xl border transition-all relative overflow-hidden group ${
+                            writingStyleMode === 'training' 
+                              ? 'bg-primary border-primary/30 shadow-xl shadow-primary/10' 
+                              : 'bg-card/40 border-white/5 hover:border-primary/20 hover:bg-card/60'
+                          }`}
+                        >
+                            {writingStyleMode === 'training' && (
+                              <div className="absolute inset-y-0 left-0 w-1 bg-primary-foreground/50" />
+                            )}
+                            <div className="flex justify-between items-start mb-4">
+                              <h4 className={`font-semibold text-lg tracking-tight flex items-center gap-3 ${writingStyleMode === 'training' ? 'text-primary-foreground' : 'text-foreground'}`}>
+                                <div className={`w-2.5 h-2.5 rounded-full ${writingStyleMode === 'training' ? 'bg-primary-foreground' : 'bg-foreground/20'}`} />
+                                Latihan
+                              </h4>
+                              {writingStyleMode === 'training' && (
+                                <div className="bg-primary-foreground/20 text-primary-foreground p-1.5 rounded-xl backdrop-blur-md">
+                                    <Check className="w-4 h-4 stroke-[3px]" />
+                                </div>
+                              )}
+                            </div>
+                            <p className={`text-xs font-medium leading-relaxed ${writingStyleMode === 'training' ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
+                              Email menggunakan bahasa yang rapi, terstruktur, dan formal untuk tahap awal pelatihan.
+                            </p>
+                        </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4 mb-2 ml-2">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                          <Sparkles className="w-5 h-5 text-primary" />
+                        </div>
+                        <h4 className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Model AI</h4>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4">
                     {TEXT_MODELS.map(model => {
                       const isSelected = selectedModel === model.id;
                       return (
@@ -1378,7 +1458,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                     })}
                   </div>
                 </div>
-              )}
+              </div>
+            )}
             </div>
           </motion.div>
         </div>

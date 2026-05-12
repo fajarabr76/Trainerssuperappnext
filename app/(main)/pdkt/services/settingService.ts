@@ -15,6 +15,8 @@ const CONSUMER_NAME_MENTION_PATTERNS = [
   'none',
 ] as const;
 
+const WRITING_STYLE_MODES = ['realistic', 'training'] as const;
+
 const RESOLVED_CONSUMER_NAME_MENTION_PATTERNS = [
   'upfront',
   'middle',
@@ -43,6 +45,14 @@ export function coerceConsumerNameMentionPattern(
     : 'random';
 }
 
+export function coerceWritingStyleMode(
+  value?: string | null
+): 'realistic' | 'training' {
+  return WRITING_STYLE_MODES.includes(value as any)
+    ? (value as 'realistic' | 'training')
+    : 'training';
+}
+
 export function resolveConsumerNameMentionPattern(
   value?: string | null
 ): ResolvedConsumerNameMentionPattern {
@@ -66,6 +76,7 @@ export const defaultPdktSettings: AppSettings = {
   globalConsumerTypeId: 'random',
   selectedModel: DEFAULT_PDKT_MODEL_ID,
   consumerNameMentionPattern: 'random',
+  writingStyleMode: 'training',
 };
 
 export async function loadPdktSettings(): Promise<AppSettings> {
@@ -125,6 +136,7 @@ export async function loadPdktSettings(): Promise<AppSettings> {
   settings.consumerNameMentionPattern = coerceConsumerNameMentionPattern(
     settings.consumerNameMentionPattern
   );
+  settings.writingStyleMode = coerceWritingStyleMode(settings.writingStyleMode);
 
   return settings;
 }
@@ -134,6 +146,7 @@ export async function savePdktSettings(settings: AppSettings): Promise<void> {
   settings.consumerNameMentionPattern = coerceConsumerNameMentionPattern(
     settings.consumerNameMentionPattern
   );
+  settings.writingStyleMode = coerceWritingStyleMode(settings.writingStyleMode);
 
   // 1. Simpan ke localStorage
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(settings));
@@ -195,5 +208,6 @@ export function generateSessionConfig(settings: AppSettings, scenario?: Scenario
     enableImageGeneration: settings.enableImageGeneration ?? true,
     selectedModel: normalizeModelId(settings.selectedModel),
     resolvedConsumerNameMentionPattern,
+    writingStyleMode: coerceWritingStyleMode(settings.writingStyleMode),
   };
 }
