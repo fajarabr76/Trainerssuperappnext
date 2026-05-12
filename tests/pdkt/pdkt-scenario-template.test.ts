@@ -40,7 +40,7 @@ describe('PDKT Scenario Email Template', () => {
   };
 
   it('generateScenarioEmailTemplate calls AI and normalizes result', async () => {
-    const longBody = Array(320).fill('word').join(' ');
+    const longBody = Array(520).fill('word').join(' ');
     (generateGeminiContent as any).mockResolvedValue({
       success: true,
       text: JSON.stringify({
@@ -61,12 +61,12 @@ describe('PDKT Scenario Email Template', () => {
     expect(firstCallPrompt).toContain('Detail: User reported a wrong transaction of 1 million.');
     expect(firstCallPrompt).not.toContain('Other Active Scenario');
     const systemInstruction = (generateGeminiContent as any).mock.calls[0][0].systemInstruction;
-    expect(systemInstruction).toContain('300-400 kata');
+    expect(systemInstruction).toContain('500-1000 kata');
   });
 
   it('generateScenarioEmailTemplate retries if body is too short', async () => {
     const shortBody = 'Too short.';
-    const longBody = Array(320).fill('word').join(' ');
+    const longBody = Array(520).fill('word').join(' ');
 
     (generateGeminiContent as any)
       .mockResolvedValueOnce({
@@ -96,7 +96,7 @@ describe('PDKT Scenario Email Template', () => {
   });
 
   it('generateScenarioEmailTemplate throws if result remains too short after retry', async () => {
-    const stillShortBody = Array(220).fill('word').join(' ');
+    const stillShortBody = Array(420).fill('word').join(' ');
     (generateGeminiContent as any).mockResolvedValue({
       success: true,
       text: JSON.stringify({ subject: 'Short', body: stillShortBody })
@@ -109,7 +109,7 @@ describe('PDKT Scenario Email Template', () => {
   });
 
   it('generateScenarioEmailTemplate blocks leaky patterns in subject', async () => {
-    const longBody = Array(320).fill('word').join(' ');
+    const longBody = Array(520).fill('word').join(' ');
     (generateGeminiContent as any).mockResolvedValue({
       success: true,
       text: JSON.stringify({
@@ -126,7 +126,7 @@ describe('PDKT Scenario Email Template', () => {
 
   it('generateScenarioEmailTemplate uses OpenRouter if configured', async () => {
     const orSettings = { ...mockSettings, selectedModel: 'openai/gpt-4' };
-    const longBody = Array(320).fill('word').join(' ');
+    const longBody = Array(520).fill('word').join(' ');
     (generateOpenRouterContent as any).mockResolvedValue({
       success: true,
       text: JSON.stringify({

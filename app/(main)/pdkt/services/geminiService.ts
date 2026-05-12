@@ -154,11 +154,11 @@ const getSystemInstruction = (config: SessionConfig, hasCustomImages: boolean) =
     
     ATURAN WAJIB:
     1. PENAMAAN PERUSAHAAN: WAJIB mengarang NAMA SPESIFIK untuk perusahaan yang diadukan (LJK). Contoh: "Bank Nusantara Sentosa", "Sekuritas Jaya".
-    2. GAYA PENULISAN: Buatlah isi email yang SANGAT PANJANG (300-400 kata), BERTELE-TELE, dan PENUH DETAIL curhatan tidak relevan. Jangan gunakan bullet points. Gunakan 3-5 paragraf.
+    2. GAYA PENULISAN: Buatlah isi email yang SANGAT PANJANG (500-1000 kata), BERTELE-TELE, dan PENUH DETAIL curhatan tidak relevan. Jangan gunakan bullet points. Gunakan 5-8 paragraf yang dipisahkan dengan baris kosong (\n\n). JANGAN menulis dalam 1 paragraf saja — setiap paragraf harus membahas aspek berbeda (kronologi, detail masalah, dampak emosional, harapan, dll).
     3. FORMAT OUTPUT: HANYA JSON.
     { 
       "subject": "Subjek singkat & samar (maks 6 kata), atau kosong.", 
-      "body": "Isi Email Panjang...",
+      "body": "Paragraf 1...\n\nParagraf 2...\n\nParagraf 3...\n\nParagraf 4...\n\nParagraf 5...",
       "imagePrompts": ["Deskripsi gambar 1"]
     }
    `;
@@ -186,15 +186,15 @@ export async function generateScenarioEmailTemplate(
     ATURAN:
     1. SUBJECT: Singkat (maks 6 kata), samar, tidak mengandung kata terlarang (fraud, penipuan, pinjol, dll).
     2. BODY: Gunakan placeholder {{consumer_name}} jika ingin menyebut nama diri sendiri.
-    3. GAYA BAHASA: Sangat PANJANG (300-400 kata), natural, bertele-tele, penuh detail kronologi curhatan, tanpa bullet points. Wajib 3-5 paragraf.
+    3. GAYA BAHASA: Sangat PANJANG (500-1000 kata), natural, bertele-tele, penuh detail kronologi curhatan, tanpa bullet points. Wajib 5-8 paragraf yang dipisahkan dengan baris kosong (\n\n). JANGAN menulis dalam 1 paragraf saja — setiap paragraf harus membahas aspek berbeda (kronologi awal, detail masalah, upaya yang sudah dilakukan, dampak emosional/finansial, harapan penyelesaian, dll).
     4. JANGAN menyertakan prompt gambar.
     5. JANGAN menyertakan identitas spesifik (kota, email asli) selain placeholder.
     
     FORMAT OUTPUT JSON:
-    { "subject": "...", "body": "..." }
+    { "subject": "...", "body": "Paragraf 1...\n\nParagraf 2...\n\nParagraf 3...\n\nParagraf 4...\n\nParagraf 5..." }
   `;
 
-  const prompt = `Buat template email panjang dan natural untuk skenario: [${scenario.category}] ${scenario.title}. Detail: ${scenario.description}`;
+  const prompt = `Buat template email panjang dan natural untuk skenario: [${scenario.category}] ${scenario.title}. Detail: ${scenario.description}. PENTING: Email harus 500-1000 kata, terdiri dari 5-8 paragraf terpisah (gunakan \\n\\n antar paragraf). Jangan tulis dalam 1 paragraf saja.`;
 
   const executeGeneration = async (retryPrompt?: string) => {
     const finalPrompt = retryPrompt ? `${prompt}\n\nREVISI: ${retryPrompt}` : prompt;
@@ -224,12 +224,12 @@ export async function generateScenarioEmailTemplate(
   let result = await executeGeneration();
 
   // Retry once if body is shorter than requested minimum.
-  if (result.wordCount < 300) {
-    result = await executeGeneration("Hasil sebelumnya terlalu pendek. Tolong buat jauh lebih panjang, detail, dan bertele-tele (target 300-400 kata, minimal 300 kata, 3-5 paragraf, tanpa bullet points).");
+  if (result.wordCount < 500) {
+    result = await executeGeneration("Hasil sebelumnya terlalu pendek. Tolong buat jauh lebih panjang, detail, dan bertele-tele (target 500-1000 kata, minimal 500 kata, 5-8 paragraf terpisah dengan baris kosong, tanpa bullet points). Setiap paragraf harus membahas aspek berbeda.");
   }
 
   // Final validation after retry.
-  if (result.wordCount < 300) {
+  if (result.wordCount < 500) {
     throw new Error('Hasil template terlalu pendek. Silakan klik Generate ulang untuk mencoba lagi.');
   }
 
@@ -273,7 +273,7 @@ export const initializeEmailSession = async (
   const hasCustomImages = customAttachments.length > 0;
   const model = normalizeModelId(config.selectedModel || "gemini-3.1-flash-lite");
 
-  const prompt = `Tulis email pengaduan pertama Anda sekarang. Sebutkan NAMA LJK secara spesifik. Masalah: ${scenario.title}. Karakter: ${config.consumerType.name}.`;
+  const prompt = `Tulis email pengaduan pertama Anda sekarang. Sebutkan NAMA LJK secara spesifik. Masalah: ${scenario.title}. Karakter: ${config.consumerType.name}. PENTING: Email harus 500-1000 kata, terdiri dari 5-8 paragraf terpisah (gunakan \\n\\n antar paragraf). Jangan tulis dalam 1 paragraf saja.`;
 
   try {
     const response = await callAI({

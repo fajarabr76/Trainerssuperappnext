@@ -344,9 +344,13 @@ export const EmailDetailPane: React.FC<EmailDetailPaneProps> = ({
                                 {formatEmailDate(email.timestamp.toString())}
                               </span>
                             </div>
-                            <p className="text-xs text-muted-foreground font-medium leading-relaxed">
-                              {email.body}
-                            </p>
+                            <div className="text-xs text-muted-foreground font-medium leading-relaxed space-y-2">
+                              {email.body.split(/\n\s*\n/).map((paragraph, pIdx) => (
+                                <p key={pIdx} className="whitespace-pre-wrap">
+                                  {paragraph.trim()}
+                                </p>
+                              ))}
+                            </div>
                           </div>
                         ))}
                       </motion.div>

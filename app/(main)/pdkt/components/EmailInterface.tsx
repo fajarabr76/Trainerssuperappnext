@@ -299,8 +299,12 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
                               {formatEmailDate(email.timestamp)}
                             </div>
                           </div>
-                          <div className="text-xs text-muted-foreground whitespace-pre-wrap text-justify">
-                            {email.body}
+                          <div className="text-xs text-muted-foreground leading-relaxed space-y-2">
+                            {email.body.split(/\n\s*\n/).map((paragraph, pIdx) => (
+                              <p key={pIdx} className="whitespace-pre-wrap text-justify">
+                                {paragraph.trim()}
+                              </p>
+                            ))}
                           </div>
                           {email.attachments && email.attachments.length > 0 && (
                             <div className="flex items-center gap-1 mt-2 text-[10px] text-muted-foreground">
