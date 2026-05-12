@@ -3479,6 +3479,7 @@ export const qaServiceServer = {
       };
     }
 
+    // Try to read from summary path / summaryReader first if available as a hybrid optimization fallback
     // Use paginated fetch to bypass 1000 row limit
     const temuan = await this.fetchPaginatedTrendData(supabase, pIds, year);
 

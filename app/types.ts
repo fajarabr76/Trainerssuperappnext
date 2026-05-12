@@ -10,6 +10,7 @@ export interface Identity {
   phone: string;
   signatureName?: string;
   gender?: 'male' | 'female';
+  voiceName?: string;
 }
 
 export interface ConsumerIdentitySettings {
@@ -18,6 +19,7 @@ export interface ConsumerIdentitySettings {
   phoneNumber: string;
   city: string;
   gender?: 'male' | 'female' | 'random';
+  voiceName?: string;
 }
 
 export interface ConsumerType {

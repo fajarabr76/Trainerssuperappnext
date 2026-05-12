@@ -6,6 +6,7 @@ import { TELEFUN_AUDIO_MODELS } from '@/app/lib/ai-models';
 import { Clock, Trash2, X, Plus, Check, Edit2, User, Settings, FileText, Users, Save, Zap, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { DurationSelector } from '@/app/components/DurationSelector';
+import { MALE_VOICES, FEMALE_VOICES } from '../constants';
 
 
 interface SettingsModalProps {
@@ -47,13 +48,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
 
   // Identity Form State
   const handleIdentityChange = (field: keyof ConsumerIdentitySettings, value: string) => {
-    setLocalSettings(prev => ({
+    setLocalSettings(prev => {
+      const updatedSettings = {
+        ...prev.identitySettings,
+        [field]: value
+      };
+      if (field === 'gender') {
+        updatedSettings.voiceName = '';
+      }
+      return {
         ...prev,
-        identitySettings: {
-            ...prev.identitySettings,
-            [field]: value
-        }
-    }));
+        identitySettings: updatedSettings
+      };
+    });
   };
 
   // Reset local state when modal opens
@@ -925,6 +932,34 @@ Akhir:
                                     <svg width="12" height="8" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                                 </div>
                             </div>
+                        </div>
+                        <div className="col-span-1">
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-3 ml-1">Pilihan Suara</label>
+                            <div className="relative">
+                                <select 
+                                    className={`w-full rounded-2xl border-gray-200 dark:border-white/10 p-4 text-base outline-none appearance-none transition-all ${
+                                        (!localSettings.identitySettings?.gender || localSettings.identitySettings?.gender === 'random')
+                                        ? 'bg-gray-100 dark:bg-[#1C1C1E]/50 text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                                        : 'bg-gray-50 dark:bg-[#2C2C2E] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500'
+                                    }`}
+                                    value={localSettings.identitySettings?.voiceName || ''}
+                                    onChange={(e) => handleIdentityChange('voiceName', e.target.value)}
+                                    disabled={!localSettings.identitySettings?.gender || localSettings.identitySettings?.gender === 'random'}
+                                >
+                                    <option value="">Acak (Sesuai Gender)</option>
+                                    {(localSettings.identitySettings?.gender === 'male' ? MALE_VOICES : localSettings.identitySettings?.gender === 'female' ? FEMALE_VOICES : []).map((v) => (
+                                        <option key={v} value={v}>{v}</option>
+                                    ))}
+                                </select>
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                                    <svg width="12" height="8" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                </div>
+                            </div>
+                            {(!localSettings.identitySettings?.gender || localSettings.identitySettings?.gender === 'random') && (
+                                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 ml-1">
+                                    Suara akan diacak otomatis sesuai hasil penentuan gender saat simulasi.
+                                </p>
+                            )}
                         </div>
                         <div className="col-span-1">
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-3 ml-1">Nomor Telepon Konsumen</label>

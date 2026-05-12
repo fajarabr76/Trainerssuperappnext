@@ -1,6 +1,7 @@
 import { LiveServerMessage } from "@google/genai";
 import { generateGeminiContent } from '@/app/actions/gemini';
 import { SessionConfig, Scenario } from '@/app/types';
+import { resolveVoiceForGender } from '../constants';
 import { updateTelefunLongSpeechState } from './timingGuards';
 import type { TelefunSessionState, TelefunTimelineEvent, TelefunTimelineEventName } from '../types';
 import { reduceSessionState } from './sessionStateMachine';
@@ -13,11 +14,6 @@ import {
   type StalledResponseState,
 } from './stalledResponseGuards';
 import { getProviderFromModelId, normalizeModelId } from '@/app/lib/ai-models';
-
-const _STABLE_VOICE_MAP = {
-  male: 'Fenrir',
-  female: 'Kore'
-};
 
 interface LiveSessionTransport {
   sendRealtimeInput: (params: { media: { mimeType: string, data: string } }) => void;
@@ -545,7 +541,10 @@ export class LiveSession {
         this.emitTimeline('ws_open');
 
         // Send Setup
-        const voiceName = this.config.identity.gender === 'male' ? 'Fenrir' : 'Kore';
+        const voiceName = resolveVoiceForGender(
+          this.config.identity.voiceName,
+          this.config.identity.gender === 'male' ? 'male' : 'female'
+        );
 
         const telefunTransport = this.config.telefunTransport || 'gemini-live';
         const telefunModelId = this.config.telefunModelId || 'gemini-3.1-flash-live-preview';
@@ -1455,7 +1454,10 @@ export const generateConsumerVoice = async (
   userId?: string
 ): Promise<string | undefined> => {
   try {
-    const voiceName = config.identity.gender === 'male' ? 'Fenrir' : 'Kore';
+    const voiceName = resolveVoiceForGender(
+      config.identity.voiceName,
+      config.identity.gender === 'male' ? 'male' : 'female'
+    );
 
     const response = await generateGeminiContent({
       model: "gemini-2.0-flash-preview-tts",

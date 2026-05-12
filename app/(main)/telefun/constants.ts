@@ -2,6 +2,30 @@ import { AppSettings, Scenario, ConsumerType, ConsumerDifficulty, Identity, Cons
 import { normalizeModelId, TELEFUN_AUDIO_MODELS } from '@/app/lib/ai-models';
 import { coerceDuration } from '@/app/lib/duration-validation';
 
+export const MALE_VOICES = ['Fenrir', 'Charon', 'Dipper', 'Puck', 'Ursa'] as const;
+export const FEMALE_VOICES = ['Kore', 'Aoede', 'Capella', 'Lyra', 'Vega'] as const;
+export type MaleVoice = typeof MALE_VOICES[number];
+export type FemaleVoice = typeof FEMALE_VOICES[number];
+export type GeminiVoice = MaleVoice | FemaleVoice;
+
+/** Pilih satu voice acak dari array gender yang benar */
+export function pickRandomVoiceForGender(gender: 'male' | 'female'): string {
+  const pool = gender === 'male' ? MALE_VOICES : FEMALE_VOICES;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+/** Validasi apakah voice cocok dengan gender; jika tidak, pilih acak */
+export function resolveVoiceForGender(
+  requestedVoice: string | undefined,
+  gender: 'male' | 'female'
+): string {
+  const pool = gender === 'male' ? MALE_VOICES : FEMALE_VOICES;
+  if (requestedVoice && (pool as readonly string[]).includes(requestedVoice)) {
+    return requestedVoice;
+  }
+  return pickRandomVoiceForGender(gender);
+}
+
 const mergeWithDefaults = <T extends { id: string; isCustom?: boolean; description?: string }>(
   stored: T[],
   defaults: T[]
@@ -40,6 +64,7 @@ export const parseTelefunSettings = (parsed: Record<string, unknown>): AppSettin
     phoneNumber: (parsed.identitySettings as Record<string, unknown>)?.phoneNumber as string || '',
     city: (parsed.identitySettings as Record<string, unknown>)?.city as string || '',
     signatureName: (parsed.identitySettings as Record<string, unknown>)?.signatureName as string || '',
+    voiceName: ((parsed.identitySettings as Record<string, unknown>)?.voiceName as string) || '',
   },
   selectedModel: normalizeModelId((parsed.selectedModel as string) || 'gemini-3.1-flash-lite'),
   telefunModelId: TELEFUN_AUDIO_MODELS.some((m) => m.id === (parsed.telefunModelId as string))
@@ -144,21 +169,22 @@ export interface DefaultProfile {
   phone: string;
   city: string;
   gender: 'male' | 'female';
+  voiceName: string;
 }
 
 export const DEFAULT_IDENTITY_POOL: DefaultProfile[] = [
-  { name: 'Agus Setiawan', phone: '0812-3456-7890', city: 'Jakarta', gender: 'male' },
-  { name: 'Siti Rahayu', phone: '0813-4567-8901', city: 'Bandung', gender: 'female' },
-  { name: 'Budi Hartono', phone: '0814-5678-9012', city: 'Surabaya', gender: 'male' },
-  { name: 'Dewi Lestari', phone: '0815-6789-0123', city: 'Medan', gender: 'female' },
-  { name: 'Hendra Wijaya', phone: '0816-7890-1234', city: 'Semarang', gender: 'male' },
-  { name: 'Rina Marlina', phone: '0817-8901-2345', city: 'Yogyakarta', gender: 'female' },
-  { name: 'Andi Pratama', phone: '0818-9012-3456', city: 'Makassar', gender: 'male' },
-  { name: 'Fitri Handayani', phone: '0819-0123-4567', city: 'Palembang', gender: 'female' },
-  { name: 'Rudi Hermawan', phone: '0821-1234-5678', city: 'Tangerang', gender: 'male' },
-  { name: 'Mega Ayuningtyas', phone: '0822-2345-6789', city: 'Bekasi', gender: 'female' },
-  { name: 'Dian Permana', phone: '0823-3456-7890', city: 'Depok', gender: 'male' },
-  { name: 'Lina Kusuma', phone: '0824-4567-8901', city: 'Bogor', gender: 'female' },
+  { name: 'Agus Setiawan', phone: '0812-3456-7890', city: 'Jakarta', gender: 'male', voiceName: 'Fenrir' },
+  { name: 'Siti Rahayu', phone: '0813-4567-8901', city: 'Bandung', gender: 'female', voiceName: 'Kore' },
+  { name: 'Budi Hartono', phone: '0814-5678-9012', city: 'Surabaya', gender: 'male', voiceName: 'Charon' },
+  { name: 'Dewi Lestari', phone: '0815-6789-0123', city: 'Medan', gender: 'female', voiceName: 'Aoede' },
+  { name: 'Hendra Wijaya', phone: '0816-7890-1234', city: 'Semarang', gender: 'male', voiceName: 'Dipper' },
+  { name: 'Rina Marlina', phone: '0817-8901-2345', city: 'Yogyakarta', gender: 'female', voiceName: 'Capella' },
+  { name: 'Andi Pratama', phone: '0818-9012-3456', city: 'Makassar', gender: 'male', voiceName: 'Puck' },
+  { name: 'Fitri Handayani', phone: '0819-0123-4567', city: 'Palembang', gender: 'female', voiceName: 'Lyra' },
+  { name: 'Rudi Hermawan', phone: '0821-1234-5678', city: 'Tangerang', gender: 'male', voiceName: 'Ursa' },
+  { name: 'Mega Ayuningtyas', phone: '0822-2345-6789', city: 'Bekasi', gender: 'female', voiceName: 'Vega' },
+  { name: 'Dian Permana', phone: '0823-3456-7890', city: 'Depok', gender: 'male', voiceName: 'Fenrir' },
+  { name: 'Lina Kusuma', phone: '0824-4567-8901', city: 'Bogor', gender: 'female', voiceName: 'Kore' },
 ];
 
 export function resolveFinalIdentity(identitySettings: ConsumerIdentitySettings): Identity {
@@ -181,26 +207,33 @@ export function resolveFinalIdentity(identitySettings: ConsumerIdentitySettings)
       phone: profile.phone,
       city: profile.city,
       gender: profile.gender,
+      voiceName: profile.voiceName,
       signatureName: identitySettings.signatureName,
     };
   }
 
   if (allFilled) {
+    const resolvedGender = resolveGender(identitySettings.gender);
     return {
       name: identitySettings.displayName,
       phone: identitySettings.phoneNumber,
       city: identitySettings.city,
-      gender: resolveGender(identitySettings.gender),
+      gender: resolvedGender,
+      voiceName: resolveVoiceForGender(identitySettings.voiceName || undefined, resolvedGender),
       signatureName: identitySettings.signatureName,
     };
   }
 
   const profile = DEFAULT_IDENTITY_POOL[Math.floor(Math.random() * DEFAULT_IDENTITY_POOL.length)];
+  const resolvedGender = hasName ? resolveGender(identitySettings.gender) : profile.gender;
   return {
     name: hasName ? identitySettings.displayName : profile.name,
     phone: hasPhone ? identitySettings.phoneNumber : profile.phone,
     city: hasCity ? identitySettings.city : profile.city,
-    gender: hasName ? resolveGender(identitySettings.gender) : profile.gender,
+    gender: resolvedGender,
+    voiceName: hasName
+      ? resolveVoiceForGender(identitySettings.voiceName || undefined, resolvedGender)
+      : profile.voiceName,
     signatureName: identitySettings.signatureName,
   };
 }

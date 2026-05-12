@@ -11,6 +11,7 @@ export const defaultTelefunSettings: AppSettings = {
     phoneNumber: '',
     city: '',
     signatureName: '',
+    voiceName: '',
   },
   selectedModel: 'gemini-3.1-flash-lite',
   telefunModelId: 'gemini-3.1-flash-live-preview',

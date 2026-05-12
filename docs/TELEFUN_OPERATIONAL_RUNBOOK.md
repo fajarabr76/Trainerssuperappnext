@@ -41,11 +41,11 @@ Fungsi `resolveFinalIdentity(identitySettings)` diterapkan di `startCall` sebelu
 
 - `PhoneInterface` (nama, nomor, kota, inisial avatar)
 - Gemini Live prompt (`buildSystemInstruction`) — NAMA, LOKASI/DOMISILI, NOMOR HP, gender
-- Gemini Live voice selection (`Fenrir` untuk laki-laki, `Kore` untuk perempuan)
+- Gemini Live voice selection (Mendukung 10 pilihan suara dinamis: 5 Laki-laki: `Fenrir`, `Charon`, `Dipper`, `Puck`, `Ursa`; 5 Perempuan: `Kore`, `Aoede`, `Capella`, `Lyra`, `Vega`)
 - Scoring (`generateScore`)
 - Recording callback dan histori (`persistTelefunSession`, `telefun_history`)
 
-Voice Gemini Live sekarang dipilih berdasarkan `config.identity.gender`, bukan berdasarkan `consumerType.id`.
+Voice Gemini Live sekarang dipilih berdasarkan `config.identity.gender` dan `config.identity.voiceName`. Sistem menerapkan validasi *cross-gender* yang ketat via `resolveVoiceForGender()`: jika suara yang dipilih tidak sesuai dengan kelompok gender yang aktif (misalnya akibat *fallback* penentuan acak), sistem akan memilih satu suara secara acak dari kelompok gender yang benar, mencegah kebocoran/ketidaksesuaian suara dengan profil konsumen.
 
 ## Tempo Respons Konsumen
 
@@ -365,7 +365,7 @@ Checklist manual setelah deploy:
 2. Pastikan browser meminta izin mikrofon.
 3. **Identitas default**: Kosongkan semua field identitas di Settings → Identitas, mulai panggilan, dan pastikan UI menampilkan nama, nomor, dan kota nyata dari pool default (bukan `Konsumen Simulasi`).
 4. **Identitas custom**: Isi identitas custom lengkap, mulai panggilan, dan pastikan UI menampilkan identitas custom tersebut.
-5. **Konsistensi gender & suara**: Dengan identitas perempuan, pastikan suara Gemini Live keluar dalam nada perempuan (`Kore`); dengan laki-laki, nada laki-laki (`Fenrir`).
+5. **Konsistensi gender & suara**: Dengan identitas perempuan, pastikan suara Gemini Live keluar dalam nada dari kelompok perempuan (misal: `Kore`, `Aoede`, `Capella`, `Lyra`, `Vega`); dengan laki-laki, dari kelompok laki-laki (misal: `Fenrir`, `Charon`, `Dipper`, `Puck`, `Ursa`). Pilihan suara kustom di SettingsModal wajib dihormati selama konsisten dengan gender.
 6. Mulai panggilan dan cek UI berpindah dari `Memanggil...` ke `Menghubungkan...` lalu `Tersambung`.
 7. Di Railway, pastikan log healthy call berurutan sampai `Gemini setupComplete received`.
 8. Uji mute dan hold, lalu resume panggilan. Pastikan **mute tidak me-restart call atau memutar ringtone ulang**.
