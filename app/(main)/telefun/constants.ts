@@ -36,7 +36,7 @@ export const parseTelefunSettings = (parsed: Record<string, unknown>): AppSettin
   preferredConsumerTypeId: (parsed.preferredConsumerTypeId as string) || 'random',
   identitySettings: {
     displayName: (parsed.identitySettings as Record<string, unknown>)?.displayName as string || '',
-    gender: (parsed.identitySettings as Record<string, unknown>)?.gender as 'male' | 'female' || 'male',
+    gender: (parsed.identitySettings as Record<string, unknown>)?.gender as 'male' | 'female' | 'random' || 'random',
     phoneNumber: (parsed.identitySettings as Record<string, unknown>)?.phoneNumber as string || '',
     city: (parsed.identitySettings as Record<string, unknown>)?.city as string || '',
     signatureName: (parsed.identitySettings as Record<string, unknown>)?.signatureName as string || '',
@@ -169,6 +169,11 @@ export function resolveFinalIdentity(identitySettings: ConsumerIdentitySettings)
   const allEmpty = !hasName && !hasPhone && !hasCity;
   const allFilled = hasName && hasPhone && hasCity;
 
+  const resolveGender = (g?: 'male' | 'female' | 'random') => {
+    if (g === 'random' || !g) return Math.random() > 0.5 ? 'male' : 'female';
+    return g;
+  };
+
   if (allEmpty) {
     const profile = DEFAULT_IDENTITY_POOL[Math.floor(Math.random() * DEFAULT_IDENTITY_POOL.length)];
     return {
@@ -185,7 +190,7 @@ export function resolveFinalIdentity(identitySettings: ConsumerIdentitySettings)
       name: identitySettings.displayName,
       phone: identitySettings.phoneNumber,
       city: identitySettings.city,
-      gender: identitySettings.gender ?? 'male',
+      gender: resolveGender(identitySettings.gender),
       signatureName: identitySettings.signatureName,
     };
   }
@@ -195,7 +200,7 @@ export function resolveFinalIdentity(identitySettings: ConsumerIdentitySettings)
     name: hasName ? identitySettings.displayName : profile.name,
     phone: hasPhone ? identitySettings.phoneNumber : profile.phone,
     city: hasCity ? identitySettings.city : profile.city,
-    gender: hasName ? (identitySettings.gender ?? 'male') : profile.gender,
+    gender: hasName ? resolveGender(identitySettings.gender) : profile.gender,
     signatureName: identitySettings.signatureName,
   };
 }

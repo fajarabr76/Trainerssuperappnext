@@ -7,7 +7,7 @@ export const defaultTelefunSettings: AppSettings = {
   preferredConsumerTypeId: 'random',
   identitySettings: {
     displayName: '',
-    gender: 'male',
+    gender: 'random',
     phoneNumber: '',
     city: '',
     signatureName: '',

@@ -17,7 +17,7 @@ export interface ConsumerIdentitySettings {
   signatureName: string;
   phoneNumber: string;
   city: string;
-  gender?: 'male' | 'female';
+  gender?: 'male' | 'female' | 'random';
 }
 
 export interface ConsumerType {

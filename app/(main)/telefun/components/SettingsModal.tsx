@@ -914,9 +914,10 @@ Akhir:
                             <div className="relative">
                                 <select 
                                     className="w-full rounded-2xl border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#2C2C2E] p-4 text-base text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
-                                    value={localSettings.identitySettings?.gender || 'male'}
-                                    onChange={(e) => handleIdentityChange('gender', e.target.value as 'male' | 'female')}
+                                    value={localSettings.identitySettings?.gender || 'random'}
+                                    onChange={(e) => handleIdentityChange('gender', e.target.value as 'male' | 'female' | 'random')}
                                 >
+                                    <option value="random">Acak</option>
                                     <option value="male">Laki-laki</option>
                                     <option value="female">Perempuan</option>
                                 </select>

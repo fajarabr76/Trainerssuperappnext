@@ -1,6 +1,6 @@
 # Telefun Operational Runbook
 
-Dokumen ini adalah sumber operasional untuk Telefun pada snapshot sekarang. Gunakan bersama `docs/modules.md` untuk gambaran fitur, `docs/TELEFUN_MUTE_VAD_RESPONSE_HANDOFF_CHANGELOG_2026-05-07.md` untuk ringkasan perubahan user-facing terbaru, `docs/TELEFUN_KNOWN_ISSUE_RAILWAY_STALE_DIST.md` untuk regresi Railway stale build, dan `docs/TELEFUN_SMOKE_TEST_CHECKLIST.md` untuk uji manual pasca-perubahan runtime.
+Dokumen ini adalah sumber operasional untuk Telefun pada snapshot sekarang. Gunakan bersama `docs/modules.md` untuk gambaran fitur, `docs/TELEFUN_RANDOM_GENDER_CHANGELOG_2026-05-12.md` dan `docs/TELEFUN_MUTE_VAD_RESPONSE_HANDOFF_CHANGELOG_2026-05-07.md` untuk ringkasan perubahan user-facing terbaru, `docs/TELEFUN_KNOWN_ISSUE_RAILWAY_STALE_DIST.md` untuk regresi Railway stale build, dan `docs/TELEFUN_SMOKE_TEST_CHECKLIST.md` untuk uji manual pasca-perubahan runtime.
 
 ## Ringkasan Runtime
 
@@ -32,8 +32,8 @@ File `app/(main)/telefun/constants.ts` menyimpan `DEFAULT_IDENTITY_POOL` berisi 
 Fungsi `resolveFinalIdentity(identitySettings)` diterapkan di `startCall` sebelum layar panggilan muncul:
 
 - **Semua field kosong** → pilih satu profil acak dari pool; semua atribut (nama, nomor, kota, gender) diambil dari profil yang sama.
-- **Semua field terisi** → gunakan identitas custom trainer apa adanya.
-- **Sebagian terisi** → isi bagian yang kosong dari satu profil default acak, sehingga identitas tetap lengkap dan konsisten dalam satu sesi.
+- **Semua field terisi** → gunakan identitas custom trainer apa adanya. Jika field *gender* di-set ke **Acak (`random`)**, ia akan dievaluasi secara on-the-fly (`Math.random() > 0.5`) menjadi Laki-laki atau Perempuan sebelum sesi dimulai.
+- **Sebagian terisi** → isi bagian yang kosong dari satu profil default acak, sehingga identitas tetap lengkap dan konsisten dalam satu sesi. Masing-masing diisikan secara berimbang sesuai atribut default.
 
 ### Konsistensi Identitas Final
 
