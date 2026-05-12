@@ -20,3 +20,8 @@ Modul **Telefun** dan **Ketik** telah diperbarui untuk mendukung pelacakan, pers
 4. **Pengujian Validasi Properti (`duration-validation.property.test.ts`):**
    - Menambahkan Property 8 (`Session persistence options retain custom simulated limits exactly as configured`) menggunakan framework `fast-check` untuk memverifikasi integritas parameter durasi yang disimpan dan dihidrasi ulang.
    - Menjalankan seluruh 10 test properti kustom dengan tingkat kelulusan 100% tanpa regresi.
+
+## Update Stabilitas & Skala (Critical Fix)
+- **Penyelarasan Urutan Riwayat:** Menambahkan `.order('created_at', { ascending: false })` pada kueri tabel `results` di `loadTelefunHistory`. Hal ini memastikan data metadata kustom tetap sinkron dengan urutan kronologis `telefun_history`, mencegah hilangnya data durasi kustom pada sesi terbaru bagi pengguna dengan >1000 rekaman (melewati batas `max_rows` default API).
+- **Pencegahan Leak Storage:** Mengimplementasikan *stable pagination* menggunakan `.order('id').range()` pada `clearTelefunHistory`. Perbaikan ini menjamin seluruh *path* rekaman audio diidentifikasi dengan benar untuk dihapus dari storage sebelum databasenya dihapus, mencegah kebocoran resource file audio yang ter-orphan untuk riwayat sesi berskala besar.
+

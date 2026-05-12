@@ -61,7 +61,8 @@ export async function loadTelefunHistory(): Promise<{ success: boolean; records?
     .from('results')
     .select('details')
     .eq('user_id', user.id)
-    .eq('module', 'telefun');
+    .eq('module', 'telefun')
+    .order('created_at', { ascending: false });
 
   const configuredDurationMap: Record<string, number> = {};
   if (resultsRows) {
@@ -195,11 +196,25 @@ export async function clearTelefunHistory(): Promise<{ success: boolean; error?:
 
   // Batch storage cleanup
   const admin = createAdminClient();
-  const { data: records } = await admin.from('telefun_history')
-    .select('recording_path, agent_recording_path')
-    .eq('user_id', user.id);
+  let allPaths: string[] = [];
+  let page = 0;
+  const pageSize = 1000;
 
-  const allPaths = (records || []).flatMap(r => [r.recording_path, r.agent_recording_path]).filter(Boolean) as string[];
+  while (true) {
+    const { data: records, error } = await admin.from('telefun_history')
+      .select('recording_path, agent_recording_path')
+      .eq('user_id', user.id)
+      .order('id') // Stable pagination
+      .range(page * pageSize, (page + 1) * pageSize - 1);
+
+    if (error || !records || records.length === 0) break;
+
+    const paths = records.flatMap(r => [r.recording_path, r.agent_recording_path]).filter(Boolean) as string[];
+    allPaths = allPaths.concat(paths);
+
+    if (records.length < pageSize) break;
+    page++;
+  }
   if (allPaths.length > 0) {
     // Supabase storage.remove() has a 1000 file limit. Batch in chunks of 500 for safety.
     const chunkSize = 500;
