@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
+import ScenarioImage from './ScenarioImage';
+import { getImageDataUri } from '../utils/detectMimeType';
+import { ReplyComposer } from './ReplyComposer';
 import { 
-  Send, 
   Reply, 
   ArrowLeft,
   Clock,
@@ -40,7 +41,6 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
   evaluationError,
   timeTaken 
 }) => {
-  const [replyText, setReplyText] = useState('');
   const [isDrafting, setIsDrafting] = useState(false);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
@@ -49,13 +49,6 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [emails, isDrafting, evaluation]);
-
-  const handleSend = () => {
-    if (!replyText.trim()) return;
-    onSendReply(replyText);
-    setReplyText('');
-    setIsDrafting(false);
-  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -171,8 +164,8 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
           {firstInboundEmail && (
             <div className="border-b border-border/50">
               {/* Subject Header */}
-              <div className="px-4 md:px-6 pt-5 pb-4">
-                <h2 className={`text-xl md:text-2xl leading-tight ${firstInboundEmail.subject ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground/60'}`}>
+              <div className="px-4 md:px-6 pt-4 pb-3">
+                <h2 className={`text-base md:text-lg leading-snug ${firstInboundEmail.subject ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground/60'}`}>
                   {firstInboundEmail.subject || 'Tanpa Subjek'}
                 </h2>
               </div>
@@ -219,8 +212,12 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
 
               {/* Email Body */}
               <div className="px-4 md:px-6 pb-5">
-                <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed text-justify">
-                  {firstInboundEmail.body}
+                <div className="text-[13px] text-foreground leading-relaxed space-y-3">
+                  {firstInboundEmail.body.split(/\n\s*\n/).map((paragraph, idx) => (
+                    <p key={idx} className="whitespace-pre-wrap text-justify">
+                      {paragraph.trim()}
+                    </p>
+                  ))}
                 </div>
               </div>
 
@@ -235,20 +232,14 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {firstInboundEmail.attachments.map((base64, i) => (
-                      <motion.div 
+                      <ScenarioImage
                         key={i}
-                        whileHover={{ scale: 1.02 }}
-                        className="relative aspect-square rounded-lg overflow-hidden border border-border bg-foreground/5 cursor-pointer"
-                        onClick={() => setZoomedImage(`data:image/png;base64,${base64}`)}
-                      >
-                        <Image 
-                          src={`data:image/png;base64,${base64}`} 
-                          alt={`Attachment ${i + 1}`}
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
-                      </motion.div>
+                        variant="grid"
+                        base64={base64}
+                        alt={`Attachment ${i + 1}`}
+                        onClick={() => setZoomedImage(getImageDataUri(base64))}
+                        className="cursor-pointer"
+                      />
                     ))}
                   </div>
                 </div>
@@ -256,14 +247,14 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
 
               {/* Reply Action */}
               {!hasAgentReplied && !evaluation && (
-                <div className="px-4 md:px-6 pb-5">
+                <div className="px-4 md:px-6 pb-4">
                   <button 
                     onClick={() => setIsDrafting(true)}
                     disabled={isLoading}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border hover:border-module-pdkt/50 hover:bg-module-pdkt/5 text-muted-foreground hover:text-module-pdkt transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border hover:border-module-pdkt/50 hover:bg-module-pdkt/5 text-muted-foreground hover:text-module-pdkt transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Reply className="w-4 h-4" />
-                    <span className="text-sm font-medium">Balas</span>
+                    <Reply className="w-3.5 h-3.5" />
+                    <span className="text-xs font-medium">Balas</span>
                   </button>
                 </div>
               )}
@@ -308,7 +299,7 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
                               {formatEmailDate(email.timestamp)}
                             </div>
                           </div>
-                          <div className="text-xs text-muted-foreground whitespace-pre-wrap">
+                          <div className="text-xs text-muted-foreground whitespace-pre-wrap text-justify">
                             {email.body}
                           </div>
                           {email.attachments && email.attachments.length > 0 && (
@@ -465,85 +456,29 @@ export const EmailInterface: React.FC<EmailInterfaceProps> = ({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="module-clean-toolbar border-t z-30 shrink-0"
+            className="z-30 shrink-0"
           >
-            <div className="max-w-3xl mx-auto">
-              {/* Composer Header */}
-              <div className="flex items-center justify-between px-4 md:px-6 py-2.5 border-b border-border/50">
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-module-pdkt rounded-full" />
-                  <span className="text-[9px] font-medium text-muted-foreground uppercase tracking-wide">
-                    Balas
-                  </span>
-                </div>
-                <button 
-                  onClick={() => setIsDrafting(false)} 
-                  className="w-7 h-7 flex items-center justify-center hover:bg-foreground/5 rounded-lg transition-all"
-                >
-                  <X className="w-4 h-4 text-muted-foreground" />
-                </button>
-              </div>
-
-              {/* Composer Fields */}
-              <div className="px-4 md:px-6 py-2 space-y-1.5 border-b border-border/50">
-                <div className="flex items-center text-xs">
-                  <span className="text-muted-foreground/60 w-12 shrink-0">Kepada</span>
-                  <span className="text-foreground truncate">{firstInboundEmail?.from || '-'}</span>
-                </div>
-                <div className="flex items-center text-xs">
-                  <span className="text-muted-foreground/60 w-12 shrink-0">Cc</span>
-                  <span className="text-muted-foreground truncate">-</span>
-                </div>
-                <div className="flex items-center text-xs">
-                  <span className="text-muted-foreground/60 w-12 shrink-0">Subjek</span>
-                  <span className={firstInboundEmail?.subject ? 'text-foreground truncate' : 'text-muted-foreground/60 truncate'}>{firstInboundEmail?.subject || 'Tanpa Subjek'}</span>
-                </div>
-              </div>
-
-              {/* Textarea */}
-              <textarea
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                className="w-full h-40 md:h-48 p-4 md:p-5 outline-none text-foreground bg-transparent resize-none font-sans text-sm leading-relaxed placeholder:text-muted-foreground/40"
-                placeholder="Tulis balasan Anda..."
-                autoFocus
-              />
-
-              {/* Send Button */}
-              <div className="px-4 md:px-6 py-3 flex justify-end items-center border-t border-border/50">
-                <button 
-                  onClick={handleSend}
-                  disabled={!replyText.trim() || isLoading}
-                  className="bg-module-pdkt hover:bg-module-pdkt/90 text-white px-5 py-2.5 rounded-lg font-medium text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Mengirim...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4" />
-                      <span>Kirim</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
+            <ReplyComposer
+              recipient={firstInboundEmail?.from || '-'}
+              subject={firstInboundEmail?.subject || ''}
+              onSend={(text) => { onSendReply(text); setIsDrafting(false); }}
+              onClose={() => setIsDrafting(false)}
+              isLoading={isLoading}
+            />
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Reply Prompt (when not drafting) */}
       {!isDrafting && !hasAgentReplied && !evaluation && !isLoading && (
-        <div className="module-clean-toolbar border-t z-30 shrink-0 px-4 md:px-6 py-4">
+        <div className="module-clean-toolbar border-t z-30 shrink-0 px-4 md:px-6 py-3">
           <button 
             onClick={() => setIsDrafting(true)}
             disabled={isLoading}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-dashed border-border/60 hover:border-module-pdkt/50 hover:bg-module-pdkt/5 text-muted-foreground hover:text-module-pdkt transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/60 hover:border-module-pdkt/50 hover:bg-module-pdkt/5 text-muted-foreground hover:text-module-pdkt transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Reply className="w-4 h-4" />
-            <span className="text-sm font-medium">Balas Email Ini...</span>
+            <Reply className="w-3.5 h-3.5" />
+            <span className="text-xs font-medium">Balas</span>
           </button>
         </div>
       )}

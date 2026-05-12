@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
+import ScenarioImage from './ScenarioImage';
+import { getImageDataUri } from '../utils/detectMimeType';
 import { 
   Reply, 
   Trash2, 
@@ -26,6 +27,7 @@ interface EmailDetailPaneProps {
   evaluationError: string | null;
   timeTaken: number | null;
   isLoading: boolean;
+  isComposerOpen?: boolean;
 }
 
 export const EmailDetailPane: React.FC<EmailDetailPaneProps> = ({
@@ -37,7 +39,8 @@ export const EmailDetailPane: React.FC<EmailDetailPaneProps> = ({
   evaluationStatus,
   evaluationError,
   timeTaken,
-  isLoading
+  isLoading,
+  isComposerOpen = false
 }) => {
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
@@ -102,13 +105,13 @@ export const EmailDetailPane: React.FC<EmailDetailPaneProps> = ({
       <div className="px-6 py-3 border-b border-border/50 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex flex-col">
-            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
               Detail Email
             </span>
             {item.status === 'replied' && (
               <div className="flex items-center gap-1.5 mt-0.5">
                 <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-                <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-wide">
+                <span className="font-medium text-xs text-emerald-500">
                   Telah Dibalas
                 </span>
               </div>
@@ -138,21 +141,21 @@ export const EmailDetailPane: React.FC<EmailDetailPaneProps> = ({
 
       {/* Pane Content */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
-        <div className="max-w-3xl mx-auto px-6 py-8">
+        <div className="px-5 py-5">
           {/* Subject */}
-          <h2 className={`text-2xl md:text-3xl leading-tight mb-8 ${item.subject ? 'font-black text-foreground' : 'font-bold text-muted-foreground/40'}`}>
+          <h2 className={`text-lg md:text-xl leading-snug mb-5 ${item.subject ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground/40'}`}>
             {item.subject || '(Tanpa Subjek)'}
           </h2>
 
           {/* Sender Info */}
-          <div className="flex items-start gap-4 mb-8">
-            <div className="shrink-0 w-12 h-12 rounded-2xl bg-module-pdkt/10 border border-module-pdkt/20 flex items-center justify-center text-sm font-black text-module-pdkt shadow-sm">
+          <div className="flex items-start gap-3 mb-6">
+            <div className="shrink-0 w-9 h-9 rounded-full bg-module-pdkt/10 border border-module-pdkt/20 flex items-center justify-center text-xs font-semibold text-module-pdkt">
               {getInitials(item.sender_name)}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-4 mb-1">
                 <div className="min-w-0">
-                  <div className="text-sm font-black text-foreground truncate">
+                  <div className="text-sm font-semibold text-foreground truncate">
                     {item.sender_name}
                   </div>
                   <div className="text-xs text-muted-foreground truncate opacity-70">
@@ -170,35 +173,33 @@ export const EmailDetailPane: React.FC<EmailDetailPaneProps> = ({
           </div>
 
           {/* Email Body */}
-          <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed text-justify mb-8 font-medium">
-            {item.inbound_email.body}
+          <div className="text-[13px] text-foreground leading-relaxed mb-6 space-y-3">
+            {item.inbound_email.body.split(/\n\s*\n/).map((paragraph, idx) => (
+              <p key={idx} className="whitespace-pre-wrap text-justify">
+                {paragraph.trim()}
+              </p>
+            ))}
           </div>
 
           {/* Attachments */}
           {item.inbound_email.attachments && item.inbound_email.attachments.length > 0 && (
-            <div className="mb-8 p-4 rounded-2xl border border-border bg-foreground/[0.02]">
-              <div className="flex items-center gap-2 mb-4">
-                <Paperclip className="w-4 h-4 text-muted-foreground" />
-                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+            <div className="mb-6 p-3 rounded-lg border border-border bg-foreground/[0.02]">
+              <div className="flex items-center gap-2 mb-3">
+                <Paperclip className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
                   Lampiran ({item.inbound_email.attachments.length})
                 </span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {item.inbound_email.attachments.map((base64, i) => (
-                  <motion.div 
+                  <ScenarioImage
                     key={i}
-                    whileHover={{ scale: 1.02 }}
-                    className="relative aspect-square rounded-xl overflow-hidden border border-border bg-foreground/5 cursor-pointer shadow-sm group"
-                    onClick={() => setZoomedImage(`data:image/png;base64,${base64}`)}
-                  >
-                    <Image 
-                      src={`data:image/png;base64,${base64}`} 
-                      alt={`Attachment ${i + 1}`}
-                      fill
-                      className="object-cover group-hover:opacity-90 transition-opacity"
-                      unoptimized
-                    />
-                  </motion.div>
+                    base64={base64}
+                    alt={`Attachment ${i + 1}`}
+                    variant="grid"
+                    onClick={() => setZoomedImage(getImageDataUri(base64))}
+                    className="cursor-pointer"
+                  />
                 ))}
               </div>
             </div>
@@ -206,24 +207,24 @@ export const EmailDetailPane: React.FC<EmailDetailPaneProps> = ({
 
           {/* Evaluation Results (if replied) */}
           {item.status === 'replied' && (
-            <div className="mt-12 pt-8 border-t border-border/50">
+            <div className="mt-8 pt-5 border-t border-border/50">
               {isLoading || isEvaluationProcessing ? (
-                <div className="flex flex-col items-center justify-center p-8 bg-module-pdkt/5 rounded-2xl border border-module-pdkt/10">
+                <div className="flex flex-col items-center justify-center p-8 bg-module-pdkt/5 rounded-xl border border-module-pdkt/10">
                   <Loader2 className="w-8 h-8 text-module-pdkt animate-spin mb-3" />
                   <p className="text-xs font-black text-module-pdkt uppercase tracking-widest animate-pulse">
                     Menganalisis Jawaban...
                   </p>
                 </div>
               ) : isEvaluationFailed ? (
-                <div className="p-6 rounded-2xl border border-destructive/20 bg-destructive/5">
+                <div className="p-6 rounded-xl border border-destructive/20 bg-destructive/5">
                   <div className="flex items-center justify-between gap-4 mb-2">
                     <div className="flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 text-destructive" />
-                      <h3 className="text-xs font-black text-destructive uppercase tracking-widest">Evaluasi Gagal</h3>
+                      <h3 className="text-xs font-medium text-destructive uppercase tracking-wide">Evaluasi Gagal</h3>
                     </div>
                     <button 
                       onClick={onRetryEval}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/10 text-destructive text-[9px] font-black uppercase tracking-widest hover:bg-destructive/20 transition-all"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/10 text-destructive text-[9px] font-medium hover:bg-destructive/20 transition-all"
                     >
                       <RotateCcw className="w-3 h-3" />
                       Coba Lagi
@@ -241,20 +242,20 @@ export const EmailDetailPane: React.FC<EmailDetailPaneProps> = ({
                 >
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-sm font-black text-foreground uppercase tracking-widest">Hasil Evaluasi</h3>
+                      <h3 className="text-sm font-semibold text-foreground">Hasil Evaluasi</h3>
                       <p className="text-[10px] text-muted-foreground font-bold mt-1">
                         Selesai dikerjakan dalam <span className="text-foreground">{timeTaken ? formatTime(timeTaken) : '-'}</span>
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-module-pdkt/10 border border-module-pdkt/20">
-                      <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Skor</span>
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-module-pdkt/10 border border-module-pdkt/20">
+                      <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Skor</span>
                       <span className="text-2xl font-black text-module-pdkt">{evaluation.score}%</span>
                     </div>
                   </div>
 
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="p-5 rounded-2xl border border-destructive/10 bg-destructive/5">
-                      <h4 className="text-[9px] font-black text-destructive uppercase tracking-widest mb-3">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="p-4 rounded-xl border border-destructive/10 bg-destructive/5">
+                      <h4 className="text-[9px] font-medium text-destructive uppercase tracking-wide mb-3">
                         Typo / Salah Ketik
                       </h4>
                       {evaluation.typos.length > 0 ? (
@@ -270,8 +271,8 @@ export const EmailDetailPane: React.FC<EmailDetailPaneProps> = ({
                       )}
                     </div>
 
-                    <div className="p-5 rounded-2xl border border-border bg-foreground/[0.02]">
-                      <h4 className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-3">
+                    <div className="p-4 rounded-xl border border-border bg-foreground/[0.02]">
+                      <h4 className="text-[9px] font-medium text-muted-foreground uppercase tracking-wide mb-3">
                         Kejelasan Kalimat
                       </h4>
                       {evaluation.clarityIssues.length > 0 ? (
@@ -287,8 +288,8 @@ export const EmailDetailPane: React.FC<EmailDetailPaneProps> = ({
                       )}
                     </div>
 
-                    <div className="p-5 rounded-2xl border border-module-pdkt/10 bg-module-pdkt/5">
-                      <h4 className="text-[9px] font-black text-module-pdkt uppercase tracking-widest mb-3">
+                    <div className="p-4 rounded-xl border border-module-pdkt/10 bg-module-pdkt/5">
+                      <h4 className="text-[9px] font-medium text-module-pdkt uppercase tracking-wide mb-3">
                         Relevansi Solusi
                       </h4>
                       {evaluation.contentGaps.length > 0 ? (
@@ -304,8 +305,8 @@ export const EmailDetailPane: React.FC<EmailDetailPaneProps> = ({
                       )}
                     </div>
 
-                    <div className="p-5 rounded-2xl border border-border bg-foreground/[0.02]">
-                      <h4 className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-3">Masukan</h4>
+                    <div className="p-4 rounded-xl border border-border bg-foreground/[0.02]">
+                      <h4 className="text-[9px] font-medium text-muted-foreground uppercase tracking-wide mb-3">Masukan</h4>
                       <p className="text-xs text-muted-foreground italic font-medium leading-relaxed opacity-80">
                         &quot;{evaluation.feedback}&quot;
                       </p>
@@ -319,7 +320,7 @@ export const EmailDetailPane: React.FC<EmailDetailPaneProps> = ({
                 <div className="mt-8">
                   <button
                     onClick={() => setShowHistory(!showHistory)}
-                    className="flex items-center gap-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest hover:text-foreground transition-colors mb-4"
+                    className="flex items-center gap-2 text-[10px] font-medium text-muted-foreground uppercase tracking-wide hover:text-foreground transition-colors mb-4"
                   >
                     Riwayat Percakapan ({historyEmails.length})
                     {showHistory ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -358,15 +359,15 @@ export const EmailDetailPane: React.FC<EmailDetailPaneProps> = ({
         </div>
       </div>
 
-      {/* Reply Button (Floating or Bottom) */}
-      {item.status === 'open' && !isLoading && (
-        <div className="p-6 border-t border-border/50 shrink-0 bg-background">
+      {/* Reply Button */}
+      {item.status === 'open' && !isLoading && !isComposerOpen && (
+        <div className="px-6 py-3 border-t border-border/50 shrink-0 bg-background">
           <button
             onClick={onReply}
-            className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-module-pdkt text-white font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-module-pdkt/20 hover:bg-module-pdkt/90 transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-module-pdkt text-white font-medium text-xs hover:bg-module-pdkt/90 transition-all"
           >
-            <Reply className="w-4 h-4" />
-            Tulis Balasan
+            <Reply className="w-3.5 h-3.5" />
+            Balas
           </button>
         </div>
       )}

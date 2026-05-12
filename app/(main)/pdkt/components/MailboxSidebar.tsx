@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Mail, Search, Inbox, Send, Trash2, Plus, Clock } from 'lucide-react';
+import { Mail, Search, Inbox, Send, Trash2, Plus } from 'lucide-react';
 import { PdktMailboxItem } from '../types';
 
 interface MailboxSidebarProps {
@@ -55,7 +55,7 @@ export const MailboxSidebar: React.FC<MailboxSidebarProps> = ({
       {/* Sidebar Header */}
       <div className="p-4 border-b border-border/50 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-black text-foreground uppercase tracking-widest flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Inbox className="w-4 h-4 text-module-pdkt" />
             Mailbox
           </h2>
@@ -63,7 +63,7 @@ export const MailboxSidebar: React.FC<MailboxSidebarProps> = ({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={onNew}
-            className="w-8 h-8 rounded-full bg-module-pdkt text-white flex items-center justify-center shadow-lg shadow-module-pdkt/20 transition-all hover:bg-module-pdkt/90"
+            className="w-8 h-8 rounded-lg bg-module-pdkt text-white flex items-center justify-center transition-all hover:bg-module-pdkt/90"
           >
             <Plus className="w-4 h-4" />
           </motion.button>
@@ -90,7 +90,7 @@ export const MailboxSidebar: React.FC<MailboxSidebarProps> = ({
             <button
               key={tab.id}
               onClick={() => setFilter(tab.id as any)}
-              className={`flex-1 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all ${
+              className={`flex-1 py-1.5 text-[9px] font-medium uppercase tracking-wide rounded-lg transition-all ${
                 filter === tab.id 
                   ? 'bg-background text-module-pdkt shadow-sm ring-1 ring-black/5' 
                   : 'text-muted-foreground hover:text-foreground'
@@ -107,13 +107,13 @@ export const MailboxSidebar: React.FC<MailboxSidebarProps> = ({
         {filteredItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
             <Mail className="w-10 h-10 text-muted-foreground/20 mb-3" />
-            <p className="text-[11px] font-bold text-muted-foreground/60 uppercase tracking-widest leading-loose">
+            <p className="text-[11px] font-medium text-muted-foreground/60 leading-loose">
               {search || filter !== 'all' ? 'Hasil Tidak Ditemukan' : 'Kotak Masuk Kosong'}
             </p>
             {!(search || filter !== 'all') && (
               <button 
                 onClick={onNew}
-                className="mt-4 text-[10px] font-black text-module-pdkt uppercase tracking-widest hover:underline"
+                className="mt-4 text-[10px] font-medium text-module-pdkt hover:underline"
               >
                 Buat Email Pertama
               </button>
@@ -157,12 +157,12 @@ export const MailboxSidebar: React.FC<MailboxSidebarProps> = ({
 
                   <div className="mt-2 flex items-center gap-2">
                     {item.status === 'open' ? (
-                      <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-wider text-module-pdkt bg-module-pdkt/10 px-1.5 py-0.5 rounded-full">
-                        <Clock className="w-2 h-2" /> Menunggu Balasan
+                      <span className="inline-flex items-center gap-1 font-medium text-[9px] text-module-pdkt">
+                        <span className="w-1.5 h-1.5 rounded-full bg-module-pdkt" /> Menunggu Balasan
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-wider text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-full">
-                        <Inbox className="w-2 h-2" /> Terbalas
+                      <span className="inline-flex items-center gap-1 font-medium text-[9px] text-emerald-500">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Terbalas
                       </span>
                     )}
                   </div>

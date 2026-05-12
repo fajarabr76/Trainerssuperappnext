@@ -37,7 +37,7 @@ export const CreateEmailModal: React.FC<CreateEmailModalProps> = ({
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            className="relative w-full max-w-lg bg-background rounded-3xl shadow-2xl overflow-hidden border border-border"
+            className="relative w-full max-w-lg bg-background rounded-xl shadow-2xl overflow-hidden border border-border"
           >
             <div className="flex items-center justify-between px-6 py-5 border-b border-border/50">
               <h3 className="text-lg font-bold text-foreground">Buat Email Baru</h3>
@@ -60,39 +60,37 @@ export const CreateEmailModal: React.FC<CreateEmailModalProps> = ({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.1em] mb-4">
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-4">
                     Pilih Skenario Sesuai Masalah
                   </p>
                   <p className="text-[10px] text-muted-foreground/70 mb-3">
                     Setiap skenario aktif dibuat sebagai email terpisah. Pilih satu skenario saat Create Email.
                   </p>
                   {activeScenarios.map((scenario) => (
-                    <motion.button
+                    <button
                       key={scenario.id}
-                      whileHover={{ scale: 1.01, x: 2 }}
-                      whileTap={{ scale: 0.99 }}
                       onClick={() => onCreate(scenario)}
                       disabled={isLoading}
-                      className="w-full flex items-start gap-4 p-4 rounded-2xl border border-border hover:border-module-pdkt/50 hover:bg-module-pdkt/5 text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+                      className="w-full flex items-start gap-4 p-4 rounded-lg border border-border hover:border-module-pdkt/50 hover:bg-module-pdkt/5 text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
                     >
                       <div className="shrink-0 w-10 h-10 rounded-xl bg-module-pdkt/10 flex items-center justify-center text-module-pdkt group-hover:bg-module-pdkt group-hover:text-white transition-colors">
                         <Play className="w-4 h-4 fill-current" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <div className="text-xs font-black text-foreground uppercase tracking-wide truncate">
+                          <div className="text-xs font-semibold text-foreground truncate">
                             {scenario.title}
                           </div>
                           {scenario.alwaysUseSampleEmail && scenario.sampleEmailTemplate?.body ? (
-                            <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[7px] font-black uppercase tracking-widest shrink-0">
+                            <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[7px] font-medium uppercase tracking-wide shrink-0">
                               Always use
                             </span>
                           ) : scenario.sampleEmailTemplate?.body ? (
-                            <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 border border-blue-500/20 text-[7px] font-black uppercase tracking-widest shrink-0">
+                            <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 border border-blue-500/20 text-[7px] font-medium uppercase tracking-wide shrink-0">
                               Template tersedia
                             </span>
                           ) : (
-                            <span className="px-1.5 py-0.5 rounded bg-green-500/10 text-green-500 border border-green-500/20 text-[7px] font-black uppercase tracking-widest shrink-0">
+                            <span className="px-1.5 py-0.5 rounded bg-green-500/10 text-green-500 border border-green-500/20 text-[7px] font-medium uppercase tracking-wide shrink-0">
                               AI generated
                             </span>
                           )}
@@ -101,7 +99,7 @@ export const CreateEmailModal: React.FC<CreateEmailModalProps> = ({
                           {scenario.description}
                         </div>
                       </div>
-                    </motion.button>
+                    </button>
                   ))}
                 </div>
               )}
@@ -110,7 +108,7 @@ export const CreateEmailModal: React.FC<CreateEmailModalProps> = ({
             <div className="px-6 py-5 bg-foreground/5 border-t border-border/50 flex justify-end">
               <button
                 onClick={onClose}
-                className="px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-all"
+                className="px-6 py-2.5 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground transition-all"
               >
                 Batal
               </button>

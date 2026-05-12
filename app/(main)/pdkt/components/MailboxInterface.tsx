@@ -263,17 +263,17 @@ export const MailboxInterface: React.FC<MailboxInterfaceProps> = ({
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="flex flex-col">
-            <h1 className="text-sm font-black text-foreground uppercase tracking-widest flex items-center gap-2">
+            <h1 className="text-sm font-semibold text-foreground flex items-center gap-2">
               Workspace PDKT
             </h1>
-            <span className="text-[9px] font-bold text-muted-foreground uppercase opacity-60">Manual Mailbox Flow</span>
+            <span className="text-xs font-medium text-muted-foreground">Manual Mailbox Flow</span>
           </div>
         </div>
         
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="module-clean-button-primary px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2"
+            className="module-clean-button-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             <span>Buat Email</span>
@@ -312,6 +312,7 @@ export const MailboxInterface: React.FC<MailboxInterfaceProps> = ({
                   evaluationError={currentEval?.error || null}
                   timeTaken={currentEval?.timeTaken || null}
                   isLoading={isLoading}
+                  isComposerOpen={isComposerOpen}
                 />
               </motion.div>
             ) : (
@@ -324,7 +325,7 @@ export const MailboxInterface: React.FC<MailboxInterfaceProps> = ({
                 <div className="w-20 h-20 rounded-3xl bg-foreground/5 flex items-center justify-center mb-6">
                   <Inbox className="w-10 h-10 text-muted-foreground/20" />
                 </div>
-                <h3 className="text-sm font-black text-foreground uppercase tracking-widest mb-2">Pilih Email</h3>
+                <h3 className="text-sm font-semibold text-foreground mb-2">Pilih Email</h3>
                 <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">
                   Pilih email dari daftar di samping untuk mulai menelaah masalah konsumen dan memberikan tanggapan.
                 </p>

@@ -2,8 +2,9 @@
 
 ## Status
 
-- Status: `resolved in worktree, pending commit`
+- Status: `committed`
 - Fokus: refresh UI workspace email PDKT tanpa mengubah flow, schema, atau business logic inti.
+- **v2 (Reply UI Improvement)**: Refactoring reply composer menjadi shared component, penambahan ScenarioImage component, dan deteksi MIME type otomatis.
 
 ## Ringkasan
 
@@ -31,6 +32,29 @@ Addon yang menyertai refresh ini adalah hardening realism untuk subject email aw
 - `app/(main)/pdkt/PdktClient.tsx` menjaga reply flow tetap aman:
   - jika inbound subject kosong, reply subject juga kosong
   - tidak ada fallback `Re: Ticket` yang memaksa clue baru
+
+### v2: Reply UI Improvement & Component Extraction
+
+- **Shared ReplyComposer** (`ReplyComposer.tsx`):
+  - Reply form di-extract dari `EmailInterface.tsx` dan `EmailComposer.tsx` menjadi satu komponen shared
+  - Konsistensi visual terjamin: header dengan ikon Reply + label "Balas", border-left accent `module-pdkt`, field section (Kepada/Cc/Subjek), textarea, dan tombol kirim
+  - Responsive: padding dan tinggi textarea menyesuaikan viewport (mobile vs desktop)
+  - Aksesibilitas: tombol close 32x32px, aria-label, disabled state pada tombol kirim
+- **ScenarioImage** (`ScenarioImage.tsx`):
+  - Komponen shared untuk rendering gambar skenario (base64) secara konsisten
+  - Mendukung 3 variant: `grid`, `thumbnail`, `fullscreen`
+  - Menggunakan `next/image` dengan `unoptimized` untuk base64
+  - Keyboard accessible (Enter/Space) pada variant yang clickable
+- **detectMimeType utility** (`utils/detectMimeType.ts`):
+  - Deteksi MIME type otomatis dari magic bytes (JPEG, PNG, WebP, GIF)
+  - Menggantikan hardcoded `data:image/png;base64,` yang sebelumnya salah untuk non-PNG
+  - Fallback ke `image/png` jika tidak terdeteksi
+- **UI Polish pada komponen existing**:
+  - `EmailDetailPane.tsx`: menggunakan ScenarioImage, layout lebih compact
+  - `MailboxSidebar.tsx`: penyesuaian spacing dan visual
+  - `SettingsModal.tsx`: menggunakan ScenarioImage untuk preview template
+  - `CreateEmailModal.tsx`: penyesuaian minor
+  - `EmailInterface.tsx`: body email di-split per paragraf, subject font-size lebih compact, attachment menggunakan ScenarioImage
 
 ## Subject Realism
 
@@ -67,5 +91,14 @@ Addon yang menyertai refresh ini adalah hardening realism untuk subject email aw
 ## Referensi File
 
 - `app/(main)/pdkt/components/EmailInterface.tsx`
+- `app/(main)/pdkt/components/EmailComposer.tsx`
+- `app/(main)/pdkt/components/ReplyComposer.tsx` — shared reply composer component
+- `app/(main)/pdkt/components/ScenarioImage.tsx` — shared scenario image renderer
+- `app/(main)/pdkt/components/EmailDetailPane.tsx`
+- `app/(main)/pdkt/components/MailboxInterface.tsx`
+- `app/(main)/pdkt/components/MailboxSidebar.tsx`
+- `app/(main)/pdkt/components/CreateEmailModal.tsx`
+- `app/(main)/pdkt/components/SettingsModal.tsx`
+- `app/(main)/pdkt/utils/detectMimeType.ts` — MIME type detection dari magic bytes
 - `app/(main)/pdkt/services/geminiService.ts`
 - `app/(main)/pdkt/PdktClient.tsx`
