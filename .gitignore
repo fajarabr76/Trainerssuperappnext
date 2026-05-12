@@ -69,6 +69,9 @@ local-backups/
 # OpenCode local config (contains API tokens)
 opencode.json
 
+# Superpowers agent temporary artifacts
+.superpowers/
+
 # TestSprite temporary artifacts
 testsprite_tests/tmp/
 
