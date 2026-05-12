@@ -62,6 +62,7 @@ plugins/trainers-superapp-next/.codex-plugin/plugin.json
 
 # Kiro local settings (contains API tokens)
 .kiro/settings/
+.kiro/specs/
 
 # Local Supabase backups
 local-backups/

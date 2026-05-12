@@ -129,6 +129,12 @@ export async function loadPdktSettings(): Promise<AppSettings> {
       }
       return s;
     });
+
+    // Merge saved scenarios with defaults to pick up new fields (e.g. isLicensed)
+    settings.scenarios = settings.scenarios.map(saved => {
+      const defaultScenario = DEFAULT_SCENARIOS.find(d => d.id === saved.id);
+      return defaultScenario ? { ...defaultScenario, ...saved } : saved;
+    });
   }
 
   if (!settings.consumerTypes || settings.consumerTypes.length === 0) settings.consumerTypes = DEFAULT_CONSUMER_TYPES;
