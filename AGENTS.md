@@ -135,6 +135,19 @@ Kode tanpa dokumentasi yang sinkron adalah technical debt yang tersembunyi. Agen
 | Env var baru | Environment docs, setup guide |
 | Konvensi baru | AGENTS.md, GEMINI.md |
 
+## Golden Rule: Dokumentasi Harus Ramah Awam (Human-Readable)
+
+Setiap pembuatan atau pembaruan dokumentasi utama (seperti `README.md`, panduan modul, atau berkas panduan lainnya) **wajib** dirancang agar tidak hanya terstruktur untuk kemudahan ekstraksi konteks oleh AI Agent, tetapi juga harus **mudah dipahami oleh pembaca manusia, terutama orang awam (non-teknis)**.
+
+### Kenapa aturan ini penting
+Dokumentasi proyek sering kali menjadi titik masuk pertama bagi pemangku kepentingan (*stakeholders*), manajer, maupun pengguna akhir (*end-users*) yang tidak berlatar belakang teknis. Jika dokumentasi terlalu kaku, dipenuhi istilah teknis mendalam tanpa penjelasan, atau hanya berupa sekumpulan poin instruksi untuk AI, maka nilai komunikasi dan adopsi proyek akan menurun drastis.
+
+### Aturan wajib
+1. **Gunakan bahasa sehari-hari yang mudah dicerna** pada bagian pengantar dan penjelasan fitur utama. Hindari langsung menyodorkan jargon teknis tanpa konteks yang jelas.
+2. **Pemisahan struktur yang tegas:** Pisahkan antara bagian informasi fungsional untuk pengguna umum (*human/non-technical reader*) dan bagian instruksi tingkat rendah/konfigurasi untuk tim pengembang atau AI Agent.
+3. **Jelaskan "Apa" dan "Kegunaan":** Untuk setiap modul atau fitur, selalu berikan ringkasan singkat mengenai apa bentuk fitur tersebut dan apa manfaat langsungnya bagi pengguna.
+4. **Keseimbangan Konteks:** Pastikan format *markdown* tetap rapi dan terstandarisasi agar tetap optimal diindeks oleh AI (seperti penggunaan *headings*, daftar peluru, dan tabel yang konsisten), namun gaya bahasanya tetap memikat, empatik, dan profesional bagi pembaca manusia.
+
 ## Golden Rule: File Editing Harus Pakai Unified Diff
 
 Saat mendesain agent, prioritaskan pembuatan fungsi tool untuk editing file menggunakan metode patch dengan format **unified diff**.

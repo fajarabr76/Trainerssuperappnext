@@ -5,27 +5,52 @@
 [![Supabase](https://img.shields.io/badge/Supabase-Backend-green?logo=supabase)](https://supabase.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
 
-**Trainers SuperApp** adalah platform internal untuk operasional contact center: simulasi kerja berbasis AI, database peserta/agen, monitoring aktivitas dan usage AI, serta quality assurance SIDAK.
+**Trainers SuperApp** adalah aplikasi serba ada (*SuperApp*) yang dirancang khusus untuk mempermudah tugas tim pelatih (*trainers*) dan operasional *contact center*.
 
-Nama modul yang dipakai di repo ini adalah:
-- **KETIK**: Kelas Etika & Trik Komunikasi
-- **PDKT**: Paham Dulu Kasih Tanggapan
-- **TELEFUN**: Telephone Fun
-- **KTP**: Kotak Tool Profil
-- **SIDAK**: Sistem Informasi Data Analisis Kualitas
+Aplikasi ini berfungsi sebagai **pusat latihan simulasi kerja cerdas berbasis AI** bagi para agen layanan pelanggan, sekaligus menyediakan sistem pencatatan data agen, pemantauan penggunaan AI, serta penilaian kualitas layanan (*Quality Assurance*). Dengan antarmuka yang ramah dan terintegrasi, siapa saja dapat menggunakannya untuk meningkatkan keterampilan komunikasi tim tanpa takut salah di dunia nyata.
 
-## Status Aplikasi Saat Ini
+---
 
-- **Unified Dashboard**: Pusat kendali protected app dengan shortcut modul, aktivitas, monitoring lintas akun, dan manajemen user.
-- **KETIK**: Simulasi chat layanan berbasis AI, history tersimpan di Supabase, settings local-first plus sync akun, serta quick-view `Usage Bulan Ini`.
-- **PDKT**: Simulasi email dengan sistem persistent *manual mailbox*, seleksi skenario manual, evaluasi async, history Supabase, quick-view usage, status evaluasi `processing/completed/failed`, dan filtering status email.
-- **TELEFUN**: Simulasi percakapan telepon berbasis Gemini Live melalui WebSocket proxy, history `telefun_history`, quick-view `Usage`, monitoring pusat, dan tuning deteksi bicara agar respons singkat tidak memutus sesi terlalu cepat.
-- **Profiler / KTP**: Database peserta dan agen dengan folder bertingkat, import/export, slides, tim, foto, dan workflow export.
-- **SIDAK / QA Analyzer**: Dashboard kualitas, input temuan, ranking, laporan data/AI, aturan clean-session, dan guardrail scoring versioned rules.
-- **Monitoring Usage & Billing**: Rekap token dan biaya AI bulanan berbasis WIB, editor harga/kurs untuk role yang diizinkan, dan snapshot biaya per request sukses.
-- **Supabase Local Backup**: Script backup database dan Storage lokal untuk snapshot manual operasional.
+## 📦 Modul Utama Aplikasi
 
-## Tech Stack
+Agar lebih mudah dipahami dan menyenangkan, fitur-fitur di aplikasi ini dibagi menjadi beberapa modul dengan nama yang akrab di telinga:
+
+### 💬 KETIK (Kelas Etika & Trik Komunikasi)
+- **Apa itu?** Tempat latihan membalas *chat* pelanggan.
+- **Kegunaan:** Agen dapat berlatih melayani pelanggan tiruan (AI) melalui obrolan teks. Dilengkapi dengan pengaturan waktu kustom (*custom duration timer*), riwayat obrolan yang tersimpan otomatis, serta ringkasan penggunaan kuota AI bulanan.
+
+### 📧 PDKT (Paham Dulu Kasih Tanggapan)
+- **Apa itu?** Latihan menangani *email* pelanggan.
+- **Kegunaan:** Menyediakan simulasi kotak masuk (*mailbox*) interaktif tempat agen memilih skenario kasus, menyusun draf balasan, dan mendapatkan evaluasi. Status draf dipantau secara transparan (*processing / completed / failed*) dengan dukungan penyaringan (*filtering*) yang rapi.
+
+### 📞 TELEFUN (Telephone Fun)
+- **Apa itu?** Simulasi panggilan telepon langsung dengan AI.
+- **Kegunaan:** Menggunakan teknologi suara canggih (**Gemini Live** via *WebSocket*), agen dapat berlatih berbicara langsung layaknya menerima telepon dari pelanggan. Mendukung **10 pilihan karakter suara AI** yang konsisten dengan gender, opsi gender acak (*random*), pengaturan durasi kustom, serta deteksi bicara cerdas agar percakapan terasa sangat alami.
+
+### 🗂️ KTP (Kotak Tool Profil)
+- **Apa itu?** Buku induk atau basis data (*database*) keagenan.
+- **Kegunaan:** Tempat menyimpan data lengkap para peserta pelatihan dan agen. Mendukung pengelompokan folder bertingkat, manajemen tim, penyimpanan foto, materi presentasi (*slides*), hingga kemudahan ekspor/impor data.
+
+### 📊 SIDAK (Sistem Informasi Data Analisis Kualitas)
+- **Apa itu?** Pusat analisis dan rapor kualitas (*QA Analyzer*).
+- **Kegunaan:** Membantu tim penilai/auditor memantau kualitas kerja, mencatat temuan kesalahan, melihat grafik peringkat performa, serta menghasilkan laporan akhir yang mendalam guna menjaga standar layanan.
+
+---
+
+## ✨ Fitur Unggulan & Kondisi Terkini
+
+- **Dashboard Terpusat (Unified Dashboard):** Halaman beranda utama yang menyajikan pintasan cepat ke semua modul, ringkasan aktivitas terkini, serta pengelolaan pengguna.
+- **Transparansi Pemakaian & Biaya (Monitoring Usage & Billing):** Fitur untuk melacak secara langsung berapa banyak token AI yang telah digunakan beserta perkiraan biayanya dalam Rupiah (berbasis waktu WIB). Admin juga dapat menyesuaikan tarif atau kurs yang berlaku.
+- **Ekspor Formulir & Laporan Fleksibel:** Mendukung pembuatan dan unduhan formulir evaluasi dalam format siap pakai seperti Excel, Word, PDF, hingga file presentasi.
+- **Pencadangan Mandiri (Local Backup):** Dilengkapi skrip otomatis untuk mengamankan salinan cadangan basis data dan berkas operasional secara lokal kapan pun dibutuhkan.
+
+---
+
+## 🛠️ Informasi Teknis & Panduan Pengembang
+
+Bagian di bawah ini ditujukan bagi tim pengembang (*developers*) atau teknisi yang ingin melakukan instalasi, konfigurasi, dan pengembangan kode lebih lanjut.
+
+### Tech Stack
 
 - **Frontend**: Next.js 15 (App Router), React 19, TypeScript.
 - **Styling**: Tailwind CSS 4, Motion/React (Framer Motion).
