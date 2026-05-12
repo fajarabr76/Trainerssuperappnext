@@ -5,6 +5,7 @@ import { SessionConfig } from '@/app/types';
 import { LiveSession } from '../services/geminiService';
 import { getTelefunTimeCueThreshold } from '../services/timingGuards';
 import { Clock3, Mic, MicOff, Pause, PhoneOff, Play, UserRound } from 'lucide-react';
+import { coerceDuration } from '@/app/lib/duration-validation';
 
 import { SessionMetrics } from '@/app/types/voiceAssessment';
 
@@ -354,15 +355,17 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
 
   // Auto Hangup on Timeout
   useEffect(() => {
-      if (config.maxCallDuration > 0 && callDuration >= config.maxCallDuration * 60) {
+      const durationMinutes = coerceDuration(config.maxCallDuration);
+      if (config.maxCallDuration > 0 && callDuration >= durationMinutes * 60) {
           handleEndCall('timeout');
       }
   }, [callDuration, config.maxCallDuration, handleEndCall]);
 
   // Pre-timeout natural closing cues
   useEffect(() => {
+    const durationMinutes = coerceDuration(config.maxCallDuration);
     if (config.maxCallDuration > 0 && connectionState === 'Tersambung') {
-      const totalSeconds = config.maxCallDuration * 60;
+      const totalSeconds = durationMinutes * 60;
       const elapsed = callDuration;
       const remaining = totalSeconds - elapsed;
 

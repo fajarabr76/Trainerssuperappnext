@@ -5,6 +5,8 @@ import { AppSettings, ConsumerIdentitySettings, Scenario, ConsumerType, Consumer
 import { TELEFUN_AUDIO_MODELS } from '@/app/lib/ai-models';
 import { Clock, Trash2, X, Plus, Check, Edit2, User, Settings, FileText, Users, Save, Zap, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
+import { DurationSelector } from '@/app/components/DurationSelector';
+
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -1017,27 +1019,10 @@ Akhir:
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
-                        {[5, 10, 15].map(duration => {
-                            const isSelected = (localSettings.maxCallDuration || 5) === duration;
-                            return (
-                                <div 
-                                    key={duration}
-                                    onClick={() => setLocalSettings(prev => ({ ...prev, maxCallDuration: duration }))}
-                                    className={`cursor-pointer p-6 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 text-center relative group ${
-                                        isSelected 
-                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10' 
-                                        : 'border-transparent bg-white dark:bg-[#1C1C1E] hover:bg-gray-50 dark:hover:bg-[#2C2C2E]'
-                                    }`}
-                                >
-                                    <span className={`text-xl font-bold ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>
-                                        {duration} Menit
-                                    </span>
-                                    {isSelected && <div className="absolute top-3 right-3 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center"><Check className="w-3 h-3 text-white" /></div>}
-                                </div>
-                            );
-                        })}
-                     </div>
+                    <DurationSelector
+                      value={localSettings.maxCallDuration || 5}
+                      onChange={(val) => setLocalSettings(prev => ({ ...prev, maxCallDuration: val }))}
+                    />
                   </section>
 
                   {/* Tempo Respons Konsumen */}

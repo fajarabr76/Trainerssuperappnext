@@ -1,5 +1,6 @@
 import { Scenario, ConsumerType, ConsumerDifficulty } from '@/app/types';
 import { TEXT_SIMULATION_MODELS, normalizeModelId } from '@/app/lib/ai-models';
+import { coerceDuration } from '@/app/lib/duration-validation';
 
 const mergeWithDefaults = <T extends { id: string; isCustom?: boolean; description?: string }>(
   stored: T[],
@@ -57,7 +58,7 @@ export const parseSettings = (parsed: any): any => ({
     city: parsed.identitySettings?.city || '',
   },
   selectedModel: coerceKetikModelId(parsed.selectedModel),
-  simulationDuration: parsed.simulationDuration || 5,
+  simulationDuration: coerceDuration(parsed.simulationDuration),
 });
 
 export const DEFAULT_QUICK_TEMPLATES: any[] = [

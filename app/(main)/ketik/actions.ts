@@ -14,6 +14,7 @@ export interface PersistKetikSessionResult {
     consumer_phone: string;
     consumer_city: string;
     messages: ChatMessage[];
+    simulation_duration?: number;
     review_status?: 'pending' | 'processing' | 'completed' | 'failed';
   };
   warning?: string;
@@ -27,6 +28,7 @@ export async function persistKetikSession(params: {
   consumerPhone: string;
   consumerCity: string;
   messages: ChatMessage[];
+  simulationDuration?: number;
 }): Promise<PersistKetikSessionResult> {
   const supabase = await createClient();
 
@@ -66,6 +68,7 @@ export async function persistKetikSession(params: {
       consumer_phone: params.consumerPhone,
       consumer_city: params.consumerCity,
       messages: params.messages,
+      simulation_duration: params.simulationDuration,
     },
   };
 
@@ -87,6 +90,7 @@ export async function persistKetikSession(params: {
       consumer_phone: historyData.consumer_phone,
       consumer_city: historyData.consumer_city,
       messages: historyData.messages,
+      simulation_duration: params.simulationDuration,
       review_status: historyData.review_status ?? 'pending',
     },
     warning: resultsWarning,

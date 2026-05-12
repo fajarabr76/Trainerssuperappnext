@@ -140,6 +140,15 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, his
                            {session.messages.length} Chat
                         </div>
                       </div>
+                      {session.simulationDuration && (
+                        <div className="space-y-1.5">
+                          <div className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-black">Durasi</div>
+                          <div className="text-xs font-bold text-foreground flex items-center gap-2">
+                             <div className="w-4 h-4 rounded-full bg-foreground/10 flex items-center justify-center text-[8px]">⏱️</div>
+                             {session.simulationDuration} Menit
+                          </div>
+                        </div>
+                      )}
                       {session.reviewStatus && (
                         <div className="space-y-1.5">
                           <div className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground font-black">Review AI</div>

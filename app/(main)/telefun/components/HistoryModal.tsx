@@ -16,12 +16,12 @@ interface HistoryModalProps {
 }
 
 function exportToCSV(history: CallRecord[]) {
-  const headers = ['Tanggal', 'Skenario', 'Nama Konsumen', 'Durasi (menit)', 'Skor', 'Feedback', 'URL Rekaman'];
+  const headers = ['Tanggal', 'Skenario', 'Nama Konsumen', 'Durasi', 'Skor', 'Feedback', 'URL Rekaman'];
   const rows = history.map(r => [
     new Date(r.date).toLocaleDateString('id-ID'),
     r.scenarioTitle,
     r.consumerName,
-    String(Math.round(r.duration / 60)),
+    r.configuredDuration ? `${r.configuredDuration}m (aktual: ${Math.round(r.duration)}s)` : `${Math.round(r.duration)}s`,
     r.score ?? '-',
     (r.feedback ?? '').replace(/\n/g, ' '),
     r.url,
@@ -184,6 +184,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                             <h4 className="text-sm font-bold text-foreground leading-tight">{rec.scenarioTitle}</h4>
                             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1">
                               {rec.consumerName} · {new Date(rec.date).toLocaleDateString('id-ID')}
+                              {rec.configuredDuration ? ` · Limit: ${rec.configuredDuration}m` : ''}
                             </p>
                           </div>
                         </div>

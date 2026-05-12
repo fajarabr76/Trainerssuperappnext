@@ -90,7 +90,7 @@ Collected client-side during live calls and persisted alongside the history reco
 
 Recording persistence uses a **two-step pattern** to handle the async nature of browser MediaRecorder:
 
-1. `persistTelefunSession()` — inserts the history row immediately at call end (no recording paths yet).
+1. `persistTelefunSession()` — inserts the history row immediately at call end (no recording paths yet). It also captures `configuredDuration` and persists it within the associated `results` table row's `details` JSON field, ensuring the custom simulation time limit is decoupled from legacy `telefun_history` schema boundaries.
 2. After blobs are uploaded to Supabase Storage, `finalizeTelefunRecording()` updates `recording_path` and `agent_recording_path` via Admin Client.
 
 Path validation is enforced by `recordingPath.ts` — only exact `{userId}/{sessionId}/{type}.webm` patterns are accepted, preventing directory traversal and cross-user access.

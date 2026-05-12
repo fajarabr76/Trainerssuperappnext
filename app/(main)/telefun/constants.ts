@@ -1,5 +1,6 @@
 import { AppSettings, Scenario, ConsumerType, ConsumerDifficulty, Identity, ConsumerIdentitySettings } from '@/app/types';
 import { normalizeModelId, TELEFUN_AUDIO_MODELS } from '@/app/lib/ai-models';
+import { coerceDuration } from '@/app/lib/duration-validation';
 
 const mergeWithDefaults = <T extends { id: string; isCustom?: boolean; description?: string }>(
   stored: T[],
@@ -47,7 +48,7 @@ export const parseTelefunSettings = (parsed: Record<string, unknown>): AppSettin
   telefunTransport: (parsed.telefunTransport === 'gemini-live' || parsed.telefunTransport === 'openai-audio')
     ? (parsed.telefunTransport as 'gemini-live' | 'openai-audio')
     : 'gemini-live',
-  maxCallDuration: (parsed.maxCallDuration as number) || 5,
+  maxCallDuration: coerceDuration(parsed.maxCallDuration),
   responsePacingMode:
     (parsed.responsePacingMode === 'realistic' || parsed.responsePacingMode === 'training_fast')
       ? parsed.responsePacingMode

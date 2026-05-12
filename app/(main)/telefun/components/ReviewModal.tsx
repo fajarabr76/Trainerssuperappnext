@@ -144,7 +144,10 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, recor
                           <Clock className="w-4 h-4 text-emerald-600/60 dark:text-emerald-400/60" />
                           <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Durasi</span>
                         </div>
-                        <p className="text-sm font-bold text-foreground">{formatDuration(record.duration)}</p>
+                        <p className="text-sm font-bold text-foreground">
+                          {formatDuration(record.duration)}
+                          {record.configuredDuration ? <span className="text-xs text-muted-foreground font-normal ml-1">/ limit {record.configuredDuration}m</span> : ''}
+                        </p>
                       </div>
 
                       <div className="bg-foreground/[0.02] border border-border rounded-2xl p-4">

@@ -96,6 +96,7 @@ export interface ChatSession {
   consumerPhone?: string;
   consumerCity?: string;
   messages: ChatMessage[];
+  simulationDuration?: number;
   // New score fields
   finalScore?: number;
   empathyScore?: number;

@@ -71,6 +71,7 @@ export default function TelefunClient() {
           consumerName: r.consumer_name,
           scenarioTitle: r.scenario_title,
           duration: r.duration,
+          configuredDuration: r.configured_duration,
           recordingPath: r.recording_path,
           agentRecordingPath: r.agent_recording_path,
           score: r.score,
@@ -217,6 +218,7 @@ export default function TelefunClient() {
         consumerName: finalConsumerName,
         scenarioTitle: selectedScenario?.title || 'Telepon Umum',
         duration: callDurationSeconds,
+        configuredDuration: sessionConfig.simulationDuration,
       };
       const updatedHistory = [newRecord, ...recordings];
       setRecordings(updatedHistory);
@@ -235,6 +237,7 @@ export default function TelefunClient() {
           consumerPhone: sessionConfig.identity.phone,
           consumerCity: sessionConfig.identity.city,
           duration: callDurationSeconds,
+          configuredDuration: sessionConfig.simulationDuration,
           recordingUrl: getPersistableRecordingUrl(recordingUrl),
           score,
           feedback,
@@ -315,6 +318,7 @@ export default function TelefunClient() {
             consumerName: result.session!.consumer_name,
             scenarioTitle: result.session!.scenario_title,
             duration: result.session!.duration,
+            configuredDuration: result.session!.configured_duration,
             recordingPath,
             agentRecordingPath,
             score: result.session!.score,
@@ -354,6 +358,7 @@ export default function TelefunClient() {
             consumerName: finalConsumerName,
             scenarioTitle: selectedScenario?.title || 'Telepon Umum',
             duration: callDurationSeconds,
+            configuredDuration: sessionConfig.simulationDuration,
           };
           setReviewRecord(fallbackRecord);
           setIsReviewOpen(true);
@@ -368,6 +373,7 @@ export default function TelefunClient() {
           consumerName: finalConsumerName,
           scenarioTitle: selectedScenario?.title || 'Telepon Umum',
           duration: callDurationSeconds,
+          configuredDuration: sessionConfig.simulationDuration,
         };
         setReviewRecord(fallbackRecord);
         setIsReviewOpen(true);

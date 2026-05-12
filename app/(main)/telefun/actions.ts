@@ -14,6 +14,7 @@ export interface TelefunHistoryRecord {
   consumer_phone: string | null;
   consumer_city: string | null;
   duration: number;
+  configured_duration?: number;
   recording_url: string;
   recording_path?: string;
   agent_recording_path?: string;
@@ -34,6 +35,7 @@ export interface PersistTelefunSessionResult {
     consumer_phone: string;
     consumer_city: string;
     duration: number;
+    configured_duration?: number;
     recording_url: string;
     recording_path?: string | null;
     agent_recording_path?: string | null;
@@ -52,6 +54,23 @@ export async function loadTelefunHistory(): Promise<{ success: boolean; records?
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return { success: false, error: 'Tidak dapat memverifikasi pengguna.' };
+  }
+
+  // Load extra details from results table to hydrate configured_duration if present
+  const { data: resultsRows } = await supabase
+    .from('results')
+    .select('details')
+    .eq('user_id', user.id)
+    .eq('module', 'telefun');
+
+  const configuredDurationMap: Record<string, number> = {};
+  if (resultsRows) {
+    for (const r of resultsRows) {
+      const details = r.details as any;
+      if (details && details.legacy_history_id && typeof details.configured_duration === 'number') {
+        configuredDurationMap[details.legacy_history_id] = details.configured_duration;
+      }
+    }
   }
 
   // Try selecting all columns first
@@ -85,6 +104,7 @@ export async function loadTelefunHistory(): Promise<{ success: boolean; records?
         consumer_phone: row.consumer_phone,
         consumer_city: row.consumer_city,
         duration: row.duration,
+        configured_duration: configuredDurationMap[row.id],
         recording_url: row.recording_url,
         score: row.score,
         feedback: row.feedback,
@@ -103,6 +123,7 @@ export async function loadTelefunHistory(): Promise<{ success: boolean; records?
       consumer_phone: row.consumer_phone,
       consumer_city: row.consumer_city,
       duration: row.duration,
+      configured_duration: configuredDurationMap[row.id],
       recording_url: row.recording_url,
       recording_path: row.recording_path,
       agent_recording_path: row.agent_recording_path,
@@ -221,6 +242,7 @@ export async function persistTelefunSession(params: {
   consumerPhone: string;
   consumerCity: string;
   duration: number;
+  configuredDuration?: number;
   recordingUrl: string;
   score: number;
   feedback: string;
@@ -285,6 +307,7 @@ export async function persistTelefunSession(params: {
       consumer_phone: params.consumerPhone,
       consumer_city: params.consumerCity,
       duration: params.duration,
+      configured_duration: params.configuredDuration,
       recording_url: params.recordingUrl,
       feedback: params.feedback,
     },
@@ -308,6 +331,7 @@ export async function persistTelefunSession(params: {
       consumer_phone: historyData.consumer_phone,
       consumer_city: historyData.consumer_city,
       duration: historyData.duration,
+      configured_duration: params.configuredDuration,
       recording_url: historyData.recording_url,
       recording_path: historyData.recording_path,
       agent_recording_path: historyData.agent_recording_path,

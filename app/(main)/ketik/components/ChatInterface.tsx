@@ -8,6 +8,8 @@ import { ChatMessage, SessionConfig, Scenario, PacingMeta } from '@/app/types';
 import { generateConsumerResponse } from '../services/geminiService';
 import DiceBearAvatar from '@/app/components/DiceBearAvatar';
 import { classifyTextBand, isSlowEligible, calculatePacingDelay, calculateFollowUpDelay, isAgentGivingSolution } from '../services/responsePacing';
+import { coerceDuration } from '@/app/lib/duration-validation';
+
 
 
 interface ChatInterfaceProps {
@@ -164,11 +166,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   authReady = true,
   currentUserId,
 }: ChatInterfaceProps) => {
+  const durationMinutes = coerceDuration(config.simulationDuration);
   const [messages, setMessages] = useState<ChatMessage[]>(() => normalizeMessagesForDisplay(initialMessages));
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sessionPhase, setSessionPhase] = useState<SessionPhase>(isReviewMode ? 'closed' : 'active');
-  const [timeLeft, setTimeLeft] = useState(config.simulationDuration * 60);
+  const [timeLeft, setTimeLeft] = useState(durationMinutes * 60);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -422,7 +425,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         {
           remainingSeconds: timeLeft,
           elapsedSeconds,
-          totalDurationSeconds: config.simulationDuration * 60,
+          totalDurationSeconds: durationMinutes * 60,
         },
         { module: 'ketik', action: 'chat_response' },
         currentUserId
@@ -476,10 +479,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             consumerTurnIndex: currentConsumerTurn,
             consecutiveSlowCount: consecutiveSlowCountRef.current,
             totalSlowCount: totalSlowCountRef.current,
-            sessionDurationMinutes: config.simulationDuration,
+            sessionDurationMinutes: durationMinutes,
             remainingSeconds: remaining,
             elapsedSeconds,
-            totalDurationSeconds: config.simulationDuration * 60,
+            totalDurationSeconds: durationMinutes * 60,
           });
 
         if (shouldUseSlow) {

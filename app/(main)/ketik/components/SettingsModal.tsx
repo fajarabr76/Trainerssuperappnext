@@ -6,6 +6,7 @@ import { getModelsForModule } from '@/app/lib/ai-models';
 import { defaultSettings } from '../data';
 import { Clock, Trash2, X, Plus, Check, Edit2, RotateCcw, Save, Image as ImageIcon, Settings, FileText, Users, Fingerprint, Zap, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { DurationSelector } from '@/app/components/DurationSelector';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -1225,32 +1226,10 @@ Akhir:
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-6">
-                        {[5, 10, 15].map(duration => {
-                            const isSelected = (localSettings.simulationDuration || 5) === duration;
-                            return (
-                                <div
-                                    key={duration}
-                                    onClick={() => setLocalSettings(prev => ({ ...prev, simulationDuration: duration }))}
-                                    className={`cursor-pointer p-8 rounded-[2.5rem] border-2 transition-all flex flex-col items-center justify-center gap-3 text-center relative group ${
-                                        isSelected
-                                        ? 'border-primary bg-primary/5 shadow-2xl shadow-primary/5'
-                                        : 'border-transparent bg-card border-border/50 hover:bg-foreground/5'
-                                    }`}
-                                >
-                                    <span className={`text-4xl font-black tracking-tighter ${isSelected ? 'text-primary' : 'text-foreground/20'}`}>
-                                      {duration}
-                                    </span>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Menit</span>
-                                    {isSelected && (
-                                      <div className="absolute -top-3 -right-3 w-8 h-8 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 z-10">
-                                        <Check className="w-4 h-4 text-white" />
-                                      </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
+                    <DurationSelector
+                      value={localSettings.simulationDuration || 5}
+                      onChange={(val) => setLocalSettings(prev => ({ ...prev, simulationDuration: val }))}
+                    />
                   </section>
 
                   {/* Response Pacing Selection */}

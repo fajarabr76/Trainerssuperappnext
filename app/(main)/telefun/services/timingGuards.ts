@@ -77,7 +77,7 @@ export function getTelefunTimeCueThreshold({
   if (totalSeconds <= 0) return null;
 
   const remaining = totalSeconds - elapsedSeconds;
-  if (remaining <= 30 && remaining > 20 && !cue30Sent) return '30s';
-  if (remaining <= 20 && remaining > 0 && !cue20Sent) return '20s';
+  if (totalSeconds > 50 && remaining <= 30 && remaining > 20 && !cue30Sent) return '30s';
+  if (totalSeconds > 20 && remaining <= 20 && remaining > 0 && !cue20Sent) return '20s';
   return null;
 }

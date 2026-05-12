@@ -7,6 +7,7 @@ export interface CallRecord {
   consumerName: string;
   scenarioTitle: string;
   duration: number;
+  configuredDuration?: number;
   recordingPath?: string;
   agentRecordingPath?: string;
   score?: number;
