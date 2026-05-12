@@ -29,6 +29,8 @@ Dokumen ini adalah peta baca untuk kondisi aplikasi Trainers SuperApp saat ini. 
 - `docs/PDKT_COMPANY_NAME_LICENSED_CHANGELOG_2026-05-12.md`: Catatan kepatuhan regulasi LJK OJK, pengetatan prompt entitas ilegal, dan implementasi Toggle UI Manual untuk status berizin.
 - `docs/superpowers/specs/2026-05-05-pdkt-consumer-name-mention-pattern-design.md`: Spec desain setting PDKT untuk pola penyebutan nama konsumen.
 - `docs/superpowers/plans/2026-05-05-pdkt-consumer-name-mention-pattern.md`: Rencana implementasi task-by-task untuk setting pola penyebutan nama konsumen di PDKT.
+- `docs/master-backlog.md`: Master Backlog untuk SIDAK Regression Audit dan panduan verifikasi.
+- `docs/qa_report_guidelines.md`: Panduan standar untuk pelaporan AI QA Analyzer (Path to Zero).
 
 ## Catatan Regresi Penting
 

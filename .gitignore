@@ -31,26 +31,25 @@ tsconfig.tsbuildinfo
 *.tsbuildinfo
 
 # Redundant Documentation (Consolidated in /docs)
-agent.md
-design.md
-handover.md
-prd.md
+docs/archive/agent.md
+docs/archive/design.md
+docs/archive/handover.md
+docs/archive/prd.md
 
 # Reference Materials (Non-Runtime)
 reference-old-app/
-SKOR/
-trainers-superapp/
+docs/SKOR/
 metadata.json
 
 # Local SQL Scripts
-add_pencatatan_indicators.sql
-add_performance_indexes.sql
-add_profiler_photo_frame_column.sql
-add_qa_rpc_functions.sql
-add_qa_temuan_indexes.sql
-qa_temuan_rls_update.sql
-supabase-profiler-schema.sql
-supabase_rbac_setup.sql
+supabase/scripts/add_pencatatan_indicators.sql
+supabase/scripts/add_performance_indexes.sql
+supabase/scripts/add_profiler_photo_frame_column.sql
+supabase/scripts/add_qa_rpc_functions.sql
+supabase/scripts/add_qa_temuan_indexes.sql
+supabase/scripts/qa_temuan_rls_update.sql
+supabase/scripts/supabase-profiler-schema.sql
+supabase/scripts/supabase_rbac_setup.sql
 
 # Local Codex plugin config
 .codex-plugin/.mcp.json
