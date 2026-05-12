@@ -18,7 +18,7 @@ export function getConsumerNameMentionInstruction(
 
 export function getCompanyNameInstruction(scenario: Scenario | undefined): string {
   if (!scenario?.isLicensed) {
-    return `1. PENAMAAN PERUSAHAAN: WAJIB mengarang NAMA SPESIFIK untuk perusahaan yang diadukan (LJK). Contoh: "Bank Nusantara Sentosa", "Sekuritas Jaya".`;
+    return `1. PENAMAAN PERUSAHAAN: WAJIB mengarang NAMA entitas/perusahaan fiktif yang diadukan. JANGAN menggunakan kata "Bank", "Asuransi", atau "Sekuritas" karena entitas ilegal tidak berhak menggunakan nama tersebut. Contoh: "Pinjaman Kilat Nusantara", "Dana Cepat 88", "Investasi Cuan Jaya".`;
   }
 
   const category = SCENARIO_COMPANY_CATEGORY_MAP[scenario.title] || 'Perbankan';

@@ -32,6 +32,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
   const [newScenarioTemplateSubject, setNewScenarioTemplateSubject] = useState('');
   const [newScenarioTemplateBody, setNewScenarioTemplateBody] = useState('');
   const [newScenarioAlwaysUseTemplate, setNewScenarioAlwaysUseTemplate] = useState(false);
+  const [newScenarioIsLicensed, setNewScenarioIsLicensed] = useState(false);
   const [isGeneratingTemplate, setIsGeneratingTemplate] = useState(false);
   const templateGenerationTokenRef = useRef<string | null>(null);
   
@@ -120,6 +121,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     setNewScenarioTemplateSubject('');
     setNewScenarioTemplateBody('');
     setNewScenarioAlwaysUseTemplate(false);
+    setNewScenarioIsLicensed(false);
     setNewScenarioImages([]);
     setIsNewCategoryInput(false);
     
@@ -141,6 +143,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     setNewScenarioTemplateSubject(scenario.sampleEmailTemplate?.subject || '');
     setNewScenarioTemplateBody(scenario.sampleEmailTemplate?.body || '');
     setNewScenarioAlwaysUseTemplate(scenario.alwaysUseSampleEmail || false);
+    setNewScenarioIsLicensed(scenario.isLicensed || false);
     
     // Handle migration: Check for attachmentImages (new) or attachmentImage (old legacy data)
     let images: string[] = [];
@@ -169,6 +172,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     setNewScenarioTemplateSubject('');
     setNewScenarioTemplateBody('');
     setNewScenarioAlwaysUseTemplate(false);
+    setNewScenarioIsLicensed(false);
     setNewScenarioCategory('');
     setNewScenarioImages([]);
     setIsNewCategoryInput(false);
@@ -230,6 +234,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                   body: newScenarioTemplateBody
                 },
                 alwaysUseSampleEmail: newScenarioAlwaysUseTemplate,
+                isLicensed: newScenarioIsLicensed,
                 attachmentImages: newScenarioImages
               }
             : s
@@ -246,6 +251,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
           body: newScenarioTemplateBody
         },
         alwaysUseSampleEmail: newScenarioAlwaysUseTemplate,
+        isLicensed: newScenarioIsLicensed,
         isActive: true,
         attachmentImages: newScenarioImages
       };
@@ -274,6 +280,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
         title: newScenarioTitle,
         description: newScenarioDesc,
         isActive: true,
+        isLicensed: newScenarioIsLicensed,
         sampleEmailTemplate: {
           subject: newScenarioTemplateSubject,
           body: newScenarioTemplateBody
@@ -900,6 +907,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
                             value={newScenarioDesc}
                             onChange={(e) => setNewScenarioDesc(e.target.value)}
                           />
+                        </div>
+
+                        <div className="col-span-2 p-5 rounded-2xl border border-white/5 bg-foreground/5 flex items-center justify-between gap-4">
+                          <div>
+                            <label className="block text-xs font-semibold text-foreground tracking-wide">Entitas Berizin OJK (LJK Resmi)</label>
+                            <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
+                              Aktifkan jika skenario ini ditujukan untuk entitas legal berizin (Bank, Asuransi resmi) agar AI memakai nama asli.
+                            </p>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                            <input
+                              type="checkbox"
+                              className="sr-only peer"
+                              checked={newScenarioIsLicensed}
+                              onChange={(e) => setNewScenarioIsLicensed(e.target.checked)}
+                            />
+                            <div className="w-10 h-5 bg-foreground/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                          </label>
                         </div>
                         
                         <div className="col-span-2 space-y-4 pt-2">

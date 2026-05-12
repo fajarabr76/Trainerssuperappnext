@@ -200,12 +200,12 @@ export async function generateScenarioEmailTemplate(
     Tugas Anda adalah membuat SATU CONTOH TEMPLATE EMAIL pengaduan berdasarkan skenario yang diberikan.
     
     ATURAN:
-    1. SUBJECT: Singkat (maks 6 kata), samar, tidak mengandung kata terlarang (fraud, penipuan, pinjol, dll).
-    2. BODY: Gunakan placeholder {{consumer_name}} jika ingin menyebut nama diri sendiri.
-    3. GAYA BAHASA: Sangat PANJANG (500-1000 kata), natural, bertele-tele, penuh detail kronologi curhatan, tanpa bullet points. Wajib 5-8 paragraf yang dipisahkan dengan baris kosong (\n\n). JANGAN menulis dalam 1 paragraf saja — setiap paragraf harus membahas aspek berbeda (kronologi awal, detail masalah, upaya yang sudah dilakukan, dampak emosional/finansial, harapan penyelesaian, dll).
-    4. JANGAN menyertakan prompt gambar.
-    5. JANGAN menyertakan identitas spesifik (kota, email asli) selain placeholder.
-    6. ${scenario.isLicensed ? 'PENAMAAN PERUSAHAAN: WAJIB menggunakan NAMA RESMI perusahaan untuk LJK yang diadukan. Pilih nama bank atau perusahaan asuransi yang benar-benar ada di Indonesia (misalnya: Bank Mandiri, BCA, BRI, Prudential, Allianz, dll).' : 'PENAMAAN PERUSAHAAN: WAJIB mengarang NAMA SPESIFIK untuk perusahaan yang diadukan (LJK). Contoh: "Bank Nusantara Sentosa", "Sekuritas Jaya".'}
+    ${getCompanyNameInstruction(scenario)}
+    2. SUBJECT: Singkat (maks 6 kata), samar, tidak mengandung kata terlarang (fraud, penipuan, pinjol, dll).
+    3. BODY: Gunakan placeholder {{consumer_name}} jika ingin menyebut nama diri sendiri.
+    4. GAYA BAHASA: Sangat PANJANG (500-1000 kata), natural, bertele-tele, penuh detail kronologi curhatan, tanpa bullet points. Wajib 5-8 paragraf yang dipisahkan dengan baris kosong (\n\n). JANGAN menulis dalam 1 paragraf saja — setiap paragraf harus membahas aspek berbeda (kronologi awal, detail masalah, upaya yang sudah dilakukan, dampak emosional/finansial, harapan penyelesaian, dll).
+    5. JANGAN menyertakan prompt gambar.
+    6. JANGAN menyertakan identitas spesifik (kota, email asli) selain placeholder.
     
     FORMAT OUTPUT JSON:
     { "subject": "...", "body": "Paragraf 1...\n\nParagraf 2...\n\nParagraf 3...\n\nParagraf 4...\n\nParagraf 5..." }

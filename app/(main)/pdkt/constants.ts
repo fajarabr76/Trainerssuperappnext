@@ -7,6 +7,7 @@ export const DEFAULT_SCENARIOS: Scenario[] = [
     title: 'Pinjol Ilegal',
     description: 'Konsumen diteror oleh pinjol ilegal padahal tidak pernah meminjam.',
     isActive: true,
+    isLicensed: false,
   },
   {
     id: 'penipuan',
@@ -14,6 +15,7 @@ export const DEFAULT_SCENARIOS: Scenario[] = [
     title: 'Penipuan Undian',
     description: 'Konsumen menerima pesan menang undian dan diminta transfer pajak pemenang.',
     isActive: true,
+    isLicensed: false,
   },
   {
     id: 'slik',
@@ -37,6 +39,7 @@ export const DEFAULT_SCENARIOS: Scenario[] = [
     title: 'Investasi Bodong',
     description: 'Konsumen melaporkan adanya tawaran investasi dengan imbal hasil tidak wajar (ponzi).',
     isActive: true,
+    isLicensed: false,
   },
   {
     id: 'kartu-kredit',

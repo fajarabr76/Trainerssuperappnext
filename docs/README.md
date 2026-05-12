@@ -25,6 +25,8 @@ Dokumen ini adalah peta baca untuk kondisi aplikasi Trainers SuperApp saat ini. 
 - `docs/PDKT_CONSUMER_NAME_MENTION_PATTERN_CHANGELOG_2026-05-05.md`: Ringkasan perubahan user-facing untuk setting pola penyebutan nama konsumen di PDKT.
 - `docs/TELEFUN_MUTE_VAD_RESPONSE_HANDOFF_CHANGELOG_2026-05-07.md`: Ringkasan perubahan user-facing untuk semantik mute, VAD, dan handoff respons di Telefun Live.
 - `docs/TELEFUN_VOICE_ASSESSMENT_CHANGELOG_2026-05-07.md`: Ringkasan perubahan user-facing untuk validasi hasil analisis suara dan konsistensi skor Telefun.
+- `docs/OPENCODE_MCP_CONFIG_FIX_CHANGELOG_2026-05-12.md`: Catatan perbaikan argumen eksekusi dan penonaktifan MCP server IDE pada `opencode.json`.
+- `docs/PDKT_COMPANY_NAME_LICENSED_CHANGELOG_2026-05-12.md`: Catatan kepatuhan regulasi LJK OJK, pengetatan prompt entitas ilegal, dan implementasi Toggle UI Manual untuk status berizin.
 - `docs/superpowers/specs/2026-05-05-pdkt-consumer-name-mention-pattern-design.md`: Spec desain setting PDKT untuk pola penyebutan nama konsumen.
 - `docs/superpowers/plans/2026-05-05-pdkt-consumer-name-mention-pattern.md`: Rencana implementasi task-by-task untuk setting pola penyebutan nama konsumen di PDKT.
 
