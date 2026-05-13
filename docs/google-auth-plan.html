@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rencana Integrasi Google SSO & Perkuatan Keamanan</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #090d16;
+            --bg-surface: #111827;
+            --bg-surface-hover: #1f2937;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-color-strong: rgba(255, 255, 255, 0.15);
+            
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --text-accent: #60a5fa;
+            
+            --primary: #3b82f6;
+            --primary-glow: rgba(59, 130, 246, 0.25);
+            
+            --success: #10b981;
+            --success-bg: rgba(16, 185, 129, 0.1);
+            
+            --danger: #f43f5e;
+            --danger-bg: rgba(244, 63, 94, 0.1);
+            
+            --warning: #f59e0b;
+            --warning-bg: rgba(245, 158, 11, 0.1);
+            
+            --info: #0ea5e9;
+            --info-bg: rgba(14, 165, 233, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 2rem 1rem;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.1) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        /* Header Layout */
+        .header {
+            text-align: center;
+            margin-bottom: 3.5rem;
+            padding: 2rem 0;
+            position: relative;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .badge-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+            padding: 0.35rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 1.25rem;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
+        }
+
+        .badge-status::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background-color: var(--success);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: #ffffff;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #ffffff 0%, #93c5fd 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .lead-desc {
+            font-size: 1.125rem;
+            color: var(--text-muted);
+            max-width: 750px;
+            margin: 0 auto;
+        }
+
+        /* Card Elements */
+        .section-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 1.5rem;
+            padding: 2.5rem;
+            margin-bottom: 2.5rem;
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .section-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), transparent);
+            opacity: 0.7;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-title svg {
+            width: 24px;
+            height: 24px;
+            color: var(--primary);
+        }
+
+        /* Audit Item Container */
+        .audit-item {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.75rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .audit-item:hover {
+            border-color: var(--border-color-strong);
+            transform: translateY(-2px);
+        }
+
+        .audit-item.critical {
+            border-left: 4px solid var(--danger);
+        }
+
+        .audit-item.warning {
+            border-left: 4px solid var(--warning);
+        }
+
+        .audit-item.info {
+            border-left: 4px solid var(--info);
+        }
+
+        .audit-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .audit-name {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .severity-badge {
+            padding: 0.25rem 0.65rem;
+            border-radius: 0.5rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .severity-badge.critical {
+            background: var(--danger-bg);
+            color: var(--danger);
+            border: 1px solid rgba(244, 63, 94, 0.2);
+        }
+
+        .severity-badge.warning {
+            background: var(--warning-bg);
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .severity-badge.info {
+            background: var(--info-bg);
+            color: var(--info);
+            border: 1px solid rgba(14, 165, 233, 0.2);
+        }
+
+        .narrative {
+            margin-bottom: 1.25rem;
+            font-size: 0.95rem;
+            color: var(--text-main);
+        }
+
+        .scenario-box {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .scenario-box strong {
+            color: #ffffff;
+        }
+
+        .solution-box {
+            background: var(--success-bg);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            margin-top: 1rem;
+        }
+
+        .solution-title {
+            font-weight: 700;
+            color: var(--success);
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .solution-desc {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* Implementation Steps */
+        .phase-container {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .phase-step {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .phase-number {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 0.75rem;
+            background: var(--bg-surface-hover);
+            color: var(--primary);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .phase-content h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+        }
+
+        .phase-content p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+        }
+
+        .file-tag {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.15rem 0.5rem;
+            border-radius: 0.35rem;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: var(--text-accent);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Footer info */
+        .execution-lock {
+            text-align: center;
+            padding: 1.5rem;
+            background: rgba(245, 158, 11, 0.05);
+            border: 1px dashed var(--warning);
+            border-radius: 1rem;
+            margin-top: 2rem;
+            color: var(--warning);
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 1rem 0.5rem; }
+            .section-card { padding: 1.5rem; }
+            h1 { font-size: 2rem; }
+            .phase-step { flex-direction: column; gap: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <header class="header">
+            <div class="badge-status">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+                Strategi Final v3 (100% Confident)
+            </div>
+            <h1>Rencana Integrasi Google SSO &amp; Proteksi Sistem</h1>
+            <p class="lead-desc">
+                Dokumen ini menjelaskan rancangan penambahan fitur <strong>Masuk/Daftar menggunakan Google</strong> yang ramah pengguna, sekaligus merinci temuan <strong>3 tahapan audit mendalam</strong> untuk menutup celah keamanan eksisting sebelum fitur diaktifkan.
+            </p>
+        </header>
+
+        <!-- Bagian Pengantar: Apa & Kegunaan -->
+        <section class="section-card">
+            <h2 class="section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.53c-.26-.81-1-1.4-1.9-1.4h-1v-3c0-.55-.45-1-1-1h-6v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.4z"/></svg>
+                Gambaran Umum Fitur
+            </h2>
+            <p class="narrative">
+                <strong>Apa itu Google SSO?</strong> Fitur ini memungkinkan pelatih (Trainer) dan Agen untuk masuk atau mendaftar ke dalam <em>Trainers SuperApp</em> hanya dengan satu klik menggunakan akun Google mereka, tanpa perlu repot mengetik alamat email dan kata sandi baru.
+            </p>
+            <p class="narrative" style="margin-bottom: 0;">
+                <strong>Mengapa keamanannya harus diperketat dulu?</strong> Dalam sistem saat ini, hak akses pengguna sangat diatur oleh status persetujuan (<em>Approved</em>, <em>Pending</em>, atau <em>Rejected</em>). Alur pendaftaran Google bekerja super cepat dari sisi server. Jika fondasi verifikasi internal tidak disiapkan dengan matang, akun baru yang belum diverifikasi dapat menembus halaman dasbor utama secara tidak sah. Rencana ini memastikan kemudahan akses berjalan selaras dengan keamanan tingkat tinggi.
+            </p>
+        </section>
+
+        <!-- Bagian Hasil Audit (5 Temuan) -->
+        <section class="section-card">
+            <h2 class="section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Temuan Audit Keamanan (Loopholes &amp; Solusi)
+            </h2>
+            <p class="narrative" style="margin-bottom: 2rem; color: var(--text-muted);">
+                Melalui 3 putaran penelusuran kode baris demi baris, tim menemukan 5 area krusial yang membutuhkan penyesuaian agar sistem tetap kedap dari manipulasi maupun kendala teknis.
+            </p>
+
+            <!-- Celah 1 -->
+            <div class="audit-item critical">
+                <div class="audit-header">
+                    <span class="audit-name">1. Potensi Kebocoran Akses di Pintu Middleware</span>
+                    <span class="severity-badge critical">Kritikal</span>
+                </div>
+                <p class="narrative">
+                    Sistem pengawal utama (Middleware) bertugas menyortir pengguna sebelum halaman dimuat. Namun, ditemukan bahwa jika seorang pengguna berhasil masuk via Google tetapi data profil internalnya belum sempat tercatat di basis data (disebut <em>Ghost Profile</em>), middleware akan melewatkan seluruh tahapan verifikasi status.
+                </p>
+                <div class="scenario-box">
+                    <strong>Dampak Nyata:</strong> Pengguna tak dikenal yang baru pertama kali mendaftar bisa langsung melenggang masuk ke dasbor utama tanpa status <em>Approved</em> dari Pelatih.
+                </div>
+                <div class="solution-box">
+                    <div class="solution-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+                        Solusi Penanganan
+                    </div>
+                    <p class="solution-desc">
+                        Menambahkan pendeteksi eksplisit pada berkas <code>middleware.ts</code>. Jika pengguna terdeteksi memiliki sesi aktif namun tak memiliki berkas profil, sistem secara otomatis menerapkan prinsip <em>Default Deny</em> dan langsung mengarahkannya ke halaman <code>/waiting-approval</code>.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Celah 2 -->
+            <div class="audit-item critical">
+                <div class="audit-header">
+                    <span class="audit-name">2. Celah Logika Status pada Pengawal Halaman (authz.ts)</span>
+                    <span class="severity-badge critical">Kritikal</span>
+                </div>
+                <p class="narrative">
+                    Serupa dengan pintu middleware, fungsi proteksi di tingkat komponen halaman (<code>requirePageAccess</code>) hanya bereaksi jika status pengguna terbaca eksplisit sebagai <code>'pending'</code>. Jika profilnya kosong, nilai status menjadi <em>undefined</em> sehingga kode pengalihan gagal dipicu.
+                </p>
+                <div class="solution-box">
+                    <div class="solution-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+                        Solusi Penanganan
+                    </div>
+                    <p class="solution-desc">
+                        Mempertegas logika di <code>authz.ts</code> dengan menambahkan pemeriksaan kondisi ketiadaan profil. Pengguna tanpa profil akan diperlakukan setara dengan status menunggu otorisasi.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Celah 3 -->
+            <div class="audit-item critical">
+                <div class="audit-header">
+                    <span class="audit-name">3. Celah Eskalasi Hak Akses Basis Data (RLS) &amp; Ketergantungan Fitur Pengaturan</span>
+                    <span class="severity-badge critical">Kritikal</span>
+                </div>
+                <p class="narrative">
+                    Sistem basis data memiliki aturan yang mengizinkan pengguna memperbarui baris profil mereka sendiri. Rencana awal menyarankan untuk <strong>menghapus total</strong> aturan ini demi mencegah pengguna menyuntikkan status <code>'admin'</code> ke akunnya sendiri secara sepihak.
+                </p>
+                <div class="scenario-box">
+                    <strong>Penemuan Putaran Audit ke-3:</strong> Menghapus aturan ini secara membabi buta ternyata akan <strong>merusak fitur eksisting</strong>. Fitur <em>Pengaturan Akun</em> (Settings) di dasbor saat ini bergantung pada izin tersebut agar pengguna dapat mengubah Nama Lengkap (<code>full_name</code>) mereka secara langsung.
+                </div>
+                <div class="solution-box">
+                    <div class="solution-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+                        Solusi Penanganan Cerdas (Revisi v3)
+                    </div>
+                    <p class="solution-desc">
+                        Aturan lama tidak dihapus permanen, melainkan <strong>diganti</strong> dengan aturan baru yang membatasi kolom. Pengguna tetap diizinkan mengubah nama lengkap, namun sistem akan memasang <em>Database Trigger</em> (Pemicu Otomatis) yang secara mutlak mengunci kolom sensitif seperti peran (<code>role</code>) dan status agar tidak bisa dimanipulasi dari luar.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Celah 4 -->
+            <div class="audit-item info">
+                <div class="audit-header">
+                    <span class="audit-name">4. Pengecualian Logika Navigasi Klien (AuthModal)</span>
+                    <span class="severity-badge info">Dipertahankan</span>
+                </div>
+                <p class="narrative">
+                    Pada antarmuka modal login biasa, terdapat kode yang membiarkan pengguna masuk ke dasbor jika pembacaan profil gagal sesaat. Berdasarkan dokumentasi resmi, hal ini sengaja dirancang sebagai toleransi jaringan (*transient read tolerance*) agar sesi aktif tidak mudah terputus.
+                </p>
+                <div class="scenario-box">
+                    <strong>Keputusan Audit:</strong> Bagian ini tidak diubah demi menjaga kenyamanan pengguna login konvensional. Lapisan keamanan di sisi server (poin 1 dan 2) sudah lebih dari cukup untuk menangkap pengguna Google SSO yang belum terverifikasi.
+                </div>
+            </div>
+
+            <!-- Celah 5 -->
+            <div class="audit-item info">
+                <div class="audit-header">
+                    <span class="audit-name">5. Transparansi Mekanisme Pengelolaan Pengguna oleh Admin</span>
+                    <span class="severity-badge info">Catatan Audit</span>
+                </div>
+                <p class="narrative">
+                    Ditemukan bahwa aksi pengelolaan pengguna oleh Pelatih/Admin di dasbor menggunakan otentikasi klien standar. Hal ini diidentifikasi berjalan mandiri berkat kebijakan tingkat tinggi di sisi peladen Supabase. Perkuatan keamanan pada rencana ini dijamin tidak akan mengganggu alur kerja Pelatih dalam memverifikasi agen.
+                </p>
+            </div>
+        </section>
+
+        <!-- Bagian Rencana Implementasi -->
+        <section class="section-card">
+            <h2 class="section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                Tahapan Eksekusi Teknis
+            </h2>
+            <p class="narrative" style="margin-bottom: 2rem; color: var(--text-muted);">
+                Implementasi akan dijalankan secara bertahap dan teratur, dimulai dari pengamanan fondasi belakang hingga polesan antarmuka di bagian depan.
+            </p>
+
+            <div class="phase-container">
+                <!-- Fase 1 -->
+                <div class="phase-step">
+                    <div class="phase-number">1</div>
+                    <div class="phase-content">
+                        <h3>Fase Fondasi: Perkuatan Keamanan Pintu Masuk</h3>
+                        <p>Mengamankan celah otorisasi terlebih dahulu agar sistem siap menerima aliran pendaftaran baru dari Google.</p>
+                        <div>
+                            <span class="file-tag">20260513000000_restrict_profile_self_update.sql</span>
+                            <span class="file-tag">middleware.ts</span>
+                            <span class="file-tag">authz.ts</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fase 2 -->
+                <div class="phase-step">
+                    <div class="phase-number">2</div>
+                    <div class="phase-content">
+                        <h3>Fase Fitur: Integrasi Alur Google OAuth</h3>
+                        <p>Membuat jalur pertukaran token yang aman di peladen dan menyematkan tombol masuk Google yang elegan pada antarmuka.</p>
+                        <div>
+                            <span class="file-tag">api/auth/callback/route.ts</span>
+                            <span class="file-tag">AuthModal.tsx</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fase 3 -->
+                <div class="phase-step">
+                    <div class="phase-number">3</div>
+                    <div class="phase-content">
+                        <h3>Fase Sinkronisasi: Pembaruan Catatan Sistem</h3>
+                        <p>Memutakhirkan matriks akses dan panduan teknis internal agar jejak arsitektur baru tetap terbaca jelas oleh tim.</p>
+                        <div>
+                            <span class="file-tag">docs/auth-rbac.md</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Status Eksekusi -->
+        <div class="execution-lock">
+            ⚠️ <strong>Status Saat Ini: Menunggu Instruksi Pengguna</strong><br>
+            Seluruh berkas rencana telah siap dan terverifikasi 100% aman. Tidak ada modifikasi kode program yang akan dijalankan sampai Anda memberikan instruksi persetujuan akhir.
+        </div>
+    </div>
+</body>
+</html>

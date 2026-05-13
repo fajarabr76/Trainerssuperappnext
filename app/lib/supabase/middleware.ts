@@ -141,6 +141,12 @@ export async function updateSession(request: NextRequest) {
             return NextResponse.redirect(new URL('/dashboard', request.url));
           }
         }
+      } else if (!profile && !profileError) {
+        // Ghost Profile: user punya sesi tapi tidak punya profil di DB
+        // Default Deny — arahkan ke waiting-approval
+        console.warn('[middleware] Ghost profile detected for user:', user.id);
+        const url = new URL('/waiting-approval', request.url);
+        return NextResponse.redirect(url);
       } else if (profileError) {
         console.warn('[middleware] Failed to read profile during auth check:', profileError?.message);
       }

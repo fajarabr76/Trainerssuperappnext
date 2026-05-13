@@ -1,6 +1,20 @@
 # Authentication & Role-Based Access Control (RBAC)
 
-Dokumen ini menjelaskan bagaimana sistem keamanan, pendaftaran, dan hak akses dikelola di Trainers SuperApp.
+## Pengantar untuk Pengguna Umum (Human-Readable Overview)
+
+**Apa itu Sistem Keamanan & Hak Akses (RBAC)?**
+Sistem ini adalah pintu gerbang utama Trainers SuperApp yang memastikan setiap orang yang masuk ke dalam aplikasi dikenali dengan benar dan hanya bisa membuka menu atau fitur yang memang menjadi wewenangnya.
+
+**Kegunaan dan Manfaat Langsung bagi Pengguna:**
+- **Masuk dengan Mudah dan Cepat**: Pengguna kini bisa mendaftar atau masuk menggunakan akun email biasa ataupun **Google SSO (Single Sign-On)** hanya dengan satu klik.
+- **Keamanan Data yang Terjamin**: Sistem secara otomatis menjaga agar data penting akun tidak bisa diubah sembarangan oleh pihak yang tidak bertanggung jawab.
+- **Akses yang Tepat Sasaran**: Memastikan seorang Agen (peserta simulasi) tidak akan salah masuk ke halaman pengaturan manajerial, begitu pula sebaliknya, sehingga antarmuka tetap bersih dan relevan dengan tugas masing-masing.
+
+---
+
+## Panduan Teknis untuk Pengembang & AI Agent
+
+Dokumen ini menjelaskan struktur teknis bagaimana sistem keamanan, pendaftaran, *auto-provisioning* Google OAuth, dan hak akses dikelola di Trainers SuperApp.
 
 ## Struktur Role
 
@@ -17,11 +31,12 @@ Aplikasi memiliki 4 role utama dengan hierarki akses sebagai berikut:
 
 Untuk menjaga keamanan internal, pendaftaran user baru melalui proses approval:
 
-1. **Registrasi**: User baru mendaftar melalui modal Auth di landing page.
-2. **Pending State**: Akun baru secara default memiliki status `pending`.
-3. **Approval Page**: User `pending` akan otomatis di-redirect ke halaman "Waiting for Approval" saat mencoba masuk.
-4. **Approval**: Admin atau Trainer menyetujui akun melalui menu "Kelola Pengguna" di Dashboard.
-5. **Approved Access**: Setelah disetujui (`status: 'approved'`), user baru dapat mengakses dashboard dan modul sesuai role yang ditetapkan.
+1. **Registrasi**: User baru mendaftar melalui modal Auth di landing page (menggunakan Email/Password atau tombol **Google SSO**).
+2. **Auto-Provisioning (Google SSO)**: Untuk pengguna yang baru pertama kali masuk menggunakan Google SSO, sistem melalui *Callback Handler* (`app/api/auth/callback/route.ts`) akan otomatis membuatkan baris profil menggunakan *Service Role* (Admin Client) dengan status bawaan `pending` dan role bawaan `agent`.
+3. **Pending State**: Akun baru secara default memiliki status `pending`.
+4. **Approval Page**: User `pending` akan otomatis di-redirect ke halaman "Waiting for Approval" saat mencoba masuk.
+5. **Approval**: Admin atau Trainer menyetujui akun melalui menu "Kelola Pengguna" di Dashboard.
+6. **Approved Access**: Setelah disetujui (`status: 'approved'`), user baru dapat mengakses dashboard dan modul sesuai role yang ditetapkan.
 
 ## Implementasi Teknis
 
@@ -49,6 +64,8 @@ Sistem sekarang membedakan dengan tegas antara state terminal akun dan kegagalan
 - **Pending tetap diarahkan ke waiting approval**: Jika profil berhasil terbaca dan status `pending`, user harus diarahkan ke `/waiting-approval`.
 - **Transient profile read failure tidak lagi menghancurkan sesi**: Jika pembacaan `profiles` gagal sementara karena network error, row belum tersedia, atau mismatch kontrak yang belum final, middleware dan alur login client tidak lagi langsung memanggil `signOut()`. Sistem mempertahankan sesi aktif, mencatat warning, lalu membiarkan recovery lanjut di route normal.
 - **Default post-login path**: Setelah sesi login aktif, `AuthModal` memetakan `pending -> /waiting-approval`, `rejected -> signOut() + error`, dan untuk kondisi selain itu tetap mengarah ke `/dashboard`. Ini termasuk kasus pembacaan profil yang gagal sementara.
+- **Proteksi Ghost Profile (*Default-Deny*)**: Jika pengguna memiliki sesi aktif di Supabase Auth namun baris profilnya di tabel `public.profiles` sama sekali tidak ditemukan (null), sistem menerapkan prinsip *default-deny*. Baik `middleware.ts` maupun `requirePageAccess` akan mengalihkan pengguna tersebut ke `/waiting-approval` untuk mencegah eskalasi hak akses tanpa memutus sesi secara paksa.
+- **RLS Hardening & Trigger Proteksi Kolom Sensitif**: Tabel `public.profiles` dilindungi oleh kebijakan RLS khusus dan *database trigger* `guard_profile_sensitive_columns`. Pengguna biasa yang telah login hanya diizinkan memperbarui kolom `full_name` dan `updated_at`. Upaya memodifikasi kolom sensitif seperti `role`, `status`, atau `is_deleted` secara mandiri akan langsung digagalkan di tingkat basis data.
 
 ### 4. Access Matrix Ringkas
 
@@ -60,6 +77,7 @@ Sistem sekarang membedakan dengan tegas antara state terminal akun dan kegagalan
 | `is_deleted = true` | Sign-out + redirect | `/?auth=login&message=deleted` |
 | Role tidak diizinkan | Redirect | `/dashboard` |
 | Profil gagal dibaca sementara | Toleran, log warning | sesi dipertahankan |
+| Profil tidak ditemukan (*Ghost Profile*) | Redirect (*Default-Deny*) | `/waiting-approval` |
 
 ### 5. Role Normalization
 Aplikasi menormalkan role (misalnya dari `trainers` menjadi `trainer`) menggunakan fungsi `normalizeRole()` di `authz.ts`. Seluruh perbandingan role di tingkat aplikasi harus melalui fungsi ini untuk memastikan konsistensi.

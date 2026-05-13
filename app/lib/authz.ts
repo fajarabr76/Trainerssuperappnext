@@ -90,6 +90,11 @@ export async function requirePageAccess(options?: {
     redirect('/?auth=login&message=rejected');
   }
 
+  // 3. Ghost Profile — no profile row found, treat as pending (Default Deny)
+  if (!profile && !options?.allowPending) {
+    redirect('/waiting-approval');
+  }
+
   // 4. Pending flow
   if (status === 'pending' && !options?.allowPending) {
     redirect('/waiting-approval');
