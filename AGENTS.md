@@ -111,6 +111,11 @@ Superpowers skills menentukan **process dan workflow** yang wajib diikuti sebelu
 
 - **Dependency Management:** Do not add new dependencies without explicit instruction
 - **State Management:** Be cautious with `useEffect` dependency arrays to avoid infinite loops
+- **Error Handling:** Don't fight errors! Whenever you encounter the same error twice, research the web and find 3-5 possible ways to fix it. Then choose the most efficient solution and implement it.
+
+## Conventions: HTML Plan Cleanup
+
+Jika user meminta dibuatkan plan dalam format HTML (`.html`), itu hanya untuk kemudahan membaca plan. Setelah plan selesai dieksekusi, **hapus file HTML plan tersebut sebelum commit**.
 
 ## Golden Rule: Dokumentasi Wajib Update Sebelum Commit
 
