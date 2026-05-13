@@ -170,7 +170,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', init
       }
 
       if (data.user) {
-        const { error: profileError } = await supabase.from('profiles').upsert(
+        const { error: profileError } = await supabase.from('profiles').insert(
           [
             {
               id: data.user.id,
@@ -178,8 +178,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', init
               role,
               status: 'pending',
             },
-          ],
-          { onConflict: 'id' }
+          ]
         );
 
         if (profileError) {

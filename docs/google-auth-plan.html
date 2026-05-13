@@ -440,7 +440,7 @@
                         Solusi Penanganan Cerdas (Revisi v3)
                     </div>
                     <p class="solution-desc">
-                        Aturan lama tidak dihapus permanen, melainkan <strong>diganti</strong> dengan aturan baru yang membatasi kolom. Pengguna tetap diizinkan mengubah nama lengkap, namun sistem akan memasang <em>Database Trigger</em> (Pemicu Otomatis) yang secara mutlak mengunci kolom sensitif seperti peran (<code>role</code>) dan status agar tidak bisa dimanipulasi dari luar.
+                        Aturan lama tidak dihapus permanen, melainkan <strong>diganti</strong> dengan aturan baru yang membatasi kolom melalui privilege database. Pengguna tetap diizinkan mengubah nama lengkap, profil baru dari klien biasa wajib berstatus <em>pending</em> dan bukan <em>admin</em>, sementara mutasi sensitif seperti peran (<code>role</code>) dan status hanya boleh dilakukan lewat Server Action yang sudah memvalidasi kewenangan pengelola.
                     </p>
                 </div>
             </div>

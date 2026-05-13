@@ -95,10 +95,15 @@ RLS diaktifkan di seluruh tabel untuk memastikan isolasi data antar user.
 
 | Tabel | Role: Agent | Role: Leader | Role: Trainer/Admin |
 |---|---|---|---|
-| `profiles` | Read (Own) | Read (All) | Read/Write (All) |
+| `profiles` | Insert (Own Pending), Update (full_name only), Read (Own) | Read (All), Update (full_name only) | Mutasi via Admin Client (service role) |
 | `results` | Read/Write (Own) | Read (Team) | Read/Update (All) |
 | `profiler_*` | No Access | Read (All) | Full CRUD Access |
 | `qa_*` | Read (Own/Summary) | Read (Team) | Full CRUD Access |
+
+**Catatan Proteksi `profiles`:**
+- Self-insert dibatasi ke profil sendiri dengan `status = 'pending'` dan `role != 'admin'`.
+- Self-update dibatasi ke kolom `full_name` melalui `REVOKE`/`GRANT` column privilege dan trigger `guard_profile_sensitive_columns` yang mengunci `role`, `status`, dan `is_deleted`.
+- Mutasi manajerial (change status/role/soft-delete) memakai `createAdminClient()` yang bypass RLS via service role, setelah validasi caller di server.
 
 **Catatan Monitoring AI Usage:**
 - `leader` hanya mendapatkan visibilitas usage monitoring dari server action yang sudah di-gate role.

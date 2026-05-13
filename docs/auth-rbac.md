@@ -31,7 +31,7 @@ Aplikasi memiliki 4 role utama dengan hierarki akses sebagai berikut:
 
 Untuk menjaga keamanan internal, pendaftaran user baru melalui proses approval:
 
-1. **Registrasi**: User baru mendaftar melalui modal Auth di landing page (menggunakan Email/Password atau tombol **Google SSO**).
+1. **Registrasi**: User baru mendaftar melalui modal Auth di landing page (menggunakan Email/Password atau tombol **Google SSO**). Registrasi email menggunakan `insert()` langsung ke `profiles` dengan status `pending`; `upsert()` tidak dipakai karena kolom update privilege regular user dibatasi.
 2. **Auto-Provisioning (Google SSO)**: Untuk pengguna yang baru pertama kali masuk menggunakan Google SSO, sistem melalui *Callback Handler* (`app/api/auth/callback/route.ts`) akan otomatis membuatkan baris profil menggunakan *Service Role* (Admin Client) dengan status bawaan `pending` dan role bawaan `agent`.
 3. **Pending State**: Akun baru secara default memiliki status `pending`.
 4. **Approval Page**: User `pending` akan otomatis di-redirect ke halaman "Waiting for Approval" saat mencoba masuk.
@@ -65,7 +65,8 @@ Sistem sekarang membedakan dengan tegas antara state terminal akun dan kegagalan
 - **Transient profile read failure tidak lagi menghancurkan sesi**: Jika pembacaan `profiles` gagal sementara karena network error, row belum tersedia, atau mismatch kontrak yang belum final, middleware dan alur login client tidak lagi langsung memanggil `signOut()`. Sistem mempertahankan sesi aktif, mencatat warning, lalu membiarkan recovery lanjut di route normal.
 - **Default post-login path**: Setelah sesi login aktif, `AuthModal` memetakan `pending -> /waiting-approval`, `rejected -> signOut() + error`, dan untuk kondisi selain itu tetap mengarah ke `/dashboard`. Ini termasuk kasus pembacaan profil yang gagal sementara.
 - **Proteksi Ghost Profile (*Default-Deny*)**: Jika pengguna memiliki sesi aktif di Supabase Auth namun baris profilnya di tabel `public.profiles` sama sekali tidak ditemukan (null), sistem menerapkan prinsip *default-deny*. Baik `middleware.ts` maupun `requirePageAccess` akan mengalihkan pengguna tersebut ke `/waiting-approval` untuk mencegah eskalasi hak akses tanpa memutus sesi secara paksa.
-- **RLS Hardening & Trigger Proteksi Kolom Sensitif**: Tabel `public.profiles` dilindungi oleh kebijakan RLS khusus dan *database trigger* `guard_profile_sensitive_columns`. Pengguna biasa yang telah login hanya diizinkan memperbarui kolom `full_name` dan `updated_at`. Upaya memodifikasi kolom sensitif seperti `role`, `status`, atau `is_deleted` secara mandiri akan langsung digagalkan di tingkat basis data.
+- **RLS Hardening & Trigger Proteksi Kolom Sensitif**: Tabel `public.profiles` dilindungi oleh kebijakan RLS khusus, pembatasan privilege kolom, dan *database trigger* `guard_profile_sensitive_columns`. Pengguna biasa yang telah login hanya diizinkan membuat profil miliknya sendiri dalam status `pending`, tanpa role `admin`, dan hanya dapat memperbarui kolom `full_name`. Upaya memodifikasi kolom sensitif seperti `role`, `status`, atau `is_deleted` secara mandiri akan ditahan di tingkat basis data.
+- **Mutasi Manajerial via Server Action Terotorisasi**: Perubahan status, role, dan soft-delete pengguna dari halaman `Kelola Pengguna` harus memvalidasi caller dengan session client terlebih dahulu, lalu melakukan mutasi sensitif menggunakan `createAdminClient()` di server. Trainer tidak boleh mengubah target admin, dan semua manager dilarang mengubah status/role/delete akun sendiri melalui action langsung.
 
 ### 4. Access Matrix Ringkas
 
