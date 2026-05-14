@@ -105,3 +105,26 @@ Hasil live audit: ✅ `security_definer = true` terverifikasi.
 3. Empat SELECT policies dibuat di `profiles`: own-profile, admin-all, trainer-all, leader-all, semuanya scoped `TO authenticated`.
 
 **Detail selengkapnya:** `docs/AUTH_KNOWN_ISSUE_PROFILES_SELECT_RLS_AFTER_EXPLICIT_GRANTS.md`
+
+### 8. Follow-up: Stale RLS Policy — Legacy `get_my_role()` Function
+
+**Migrasi:** `20260515000000_drop_stale_rls_policies_and_legacy_functions.sql`
+
+**Masalah:** Meskipun fix round 1 (`20260514230000`) sudah membuat SELECT policies yang benar, semua user masih stuck di `/waiting-approval`. Penyebabnya adalah stale RLS policy `profiles_select_policy` yang masih mereferensikan legacy function `get_my_role()` di USING clause. Karena migration `20260514000000` merevoke EXECUTE dari semua public functions untuk `authenticated`, `get_my_role()` tidak bisa dijalankan. PostgreSQL mengevaluasi SEMUA RLS policies — jika SATU policy error, SELURUH query gagal.
+
+**Akar Masalah:**
+1. Stale policy `profiles_select_policy` menggunakan `get_my_role()` — legacy function yang tidak ada di migration files.
+2. `get_my_role()` kehilangan EXECUTE permission (direvoke oleh `20260514000000`).
+3. PostgreSQL OR logic: error propagasi dari satu policy membatalkan seluruh query.
+
+**Perbaikan:**
+1. DROP stale policy `profiles_select_policy` dan 12 stale policies lain di berbagai tabel yang juga mereferensikan `get_my_role()`.
+2. DROP legacy functions `get_my_role()` dan `get_my_status()` — tidak digunakan di codebase.
+3. Verifikasi 6 valid policies (SELECT/INSERT/UPDATE) tetap intact.
+4. Verifikasi `get_auth_role()` EXECUTE untuk authenticated tetap ada.
+
+**Pencegahan ke depan:**
+- Setiap migrasi yang merevoke function EXECUTE harus memeriksa apakah ada stale policies yang mereferensikan fungsi tersebut.
+- Safety sweep query `pg_policies` sebelum deployment migration permission changes.
+
+**Detail selengkapnya:** `docs/AUTH_KNOWN_ISSUE_PROFILES_SELECT_RLS_AFTER_EXPLICIT_GRANTS.md`
