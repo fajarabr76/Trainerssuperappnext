@@ -20,6 +20,7 @@ Dashboard tunggal yang berfungsi sebagai pusat informasi bagi semua tingkatan us
   - **Monitoring**: (Trainer/Leader/Admin) Memantau histori simulasi lintas akun, agregasi penggunaan token bulanan, dan editor harga/kurs untuk role yang diizinkan.
   - **User Management**: (Hanya Admin) Menyetujui pendaftaran, mengubah role, atau menghapus akun.
 - **Catatan Teknis**: Halaman `/dashboard/monitoring` tetap menjadi permukaan terproteksi utama untuk histori simulasi dan usage billing bulanan. Periode default penggunaan token selalu mengikuti WIB / `Asia/Jakarta`, bukan timezone browser.
+- **Error Boundaries**: Dashboard memiliki tiga lapisan penanganan error: (1) `app/(main)/dashboard/error.tsx` untuk error spesifik dashboard dengan tombol "Coba Lagi", (2) `app/(main)/error.tsx` untuk error layout utama dengan opsi muat ulang atau logout, dan (3) `app/global-error.tsx` untuk error tak terduga di akar aplikasi dengan tombol muat ulang halaman.
 - **Dokumen Terkait**: `docs/MONITORING_TOKEN_USAGE_BILLING.md`, `docs/auth-rbac.md`.
 
 ## 2. KETIK (Kelas Etika & Trik Komunikasi)

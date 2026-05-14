@@ -47,12 +47,15 @@ Struktur folder proyek mengikuti konvensi Next.js App Router:
 ```text
 ├── app/                  # Direktori utama Next.js
 │   ├── (main)/           # Modul aplikasi (protected routes)
+│   │   ├── error.tsx     # Error boundary layout utama (logout/reload)
 │   │   ├── dashboard/    # Unified Dashboard & User Management
+│   │   │   └── error.tsx # Error boundary spesifik dashboard (retry)
 │   │   ├── ketik/        # Simulasi Chat
 │   │   ├── pdkt/         # Simulasi Email
 │   │   ├── profiler/     # Database Peserta (KTP)
 │   │   ├── qa-analyzer/  # SIDAK (QA Analytics)
 │   │   └── telefun/      # Simulasi Telepon
+│   ├── global-error.tsx  # Root error boundary (reload halaman)
 │   ├── api/              # Route Handlers untuk flow server-only
 │   ├── components/       # Shared UI Components (Card, Button, Sidebar, dll)
 │   ├── lib/              # Core logic, services, hooks, & Supabase client

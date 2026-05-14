@@ -24,7 +24,7 @@ Gunakan dokumen spesifik di bawah ini saat memodifikasi modul untuk memastikan k
 
 ## Operasional
 
-- `docs/SUPABASE_DATA_API_GRANTS_CHANGELOG_2026-05-14.md`: Catatan perubahan hardening keamanan database ke model hak akses data eksplisit (Deny-by-Default).
+- `docs/SUPABASE_DATA_API_GRANTS_CHANGELOG_2026-05-14.md`: Catatan perubahan hardening keamanan database ke model hak akses data eksplisit (Deny-by-Default) termasuk mitigasi login regression RLS, penambahan 11 kebijakan RLS yang hilang, pembersihan policy basi, dan audit stray policy Telefun.
 - `docs/MONITORING_TOKEN_USAGE_BILLING.md`: Kontrak usage AI bulanan, billing Rupiah, pricing/kurs, quick-view modul, dan smoke test.
 - `docs/TELEFUN_OPERATIONAL_RUNBOOK.md`: Kontrak runtime Telefun, WebSocket proxy Railway, env, storage rekaman, usage, dan smoke test.
 - `docs/SUPABASE_LOCAL_BACKUP.md`: Backup lokal Supabase database dan Storage.
@@ -39,8 +39,6 @@ Gunakan dokumen spesifik di bawah ini saat memodifikasi modul untuk memastikan k
 - `docs/TELEFUN_VOICE_ASSESSMENT_CHANGELOG_2026-05-07.md`: Ringkasan perubahan user-facing untuk validasi hasil analisis suara dan konsistensi skor Telefun.
 - `docs/OPENCODE_MCP_CONFIG_FIX_CHANGELOG_2026-05-12.md`: Catatan perbaikan argumen eksekusi dan penonaktifan MCP server IDE pada `opencode.json`.
 - `docs/PDKT_COMPANY_NAME_LICENSED_CHANGELOG_2026-05-12.md`: Catatan kepatuhan regulasi LJK OJK, pengetatan prompt entitas ilegal, dan implementasi Toggle UI Manual untuk status berizin.
-- `docs/superpowers/specs/2026-05-05-pdkt-consumer-name-mention-pattern-design.md`: Spec desain setting PDKT untuk pola penyebutan nama konsumen.
-- `docs/superpowers/plans/2026-05-05-pdkt-consumer-name-mention-pattern.md`: Rencana implementasi task-by-task untuk setting pola penyebutan nama konsumen di PDKT.
 - `docs/master-backlog.md`: Master Backlog untuk SIDAK Regression Audit dan panduan verifikasi.
 - `docs/qa_report_guidelines.md`: Panduan standar untuk pelaporan AI QA Analyzer (Path to Zero).
 
@@ -64,4 +62,6 @@ Gunakan dokumen spesifik di bawah ini saat memodifikasi modul untuk memastikan k
 - Jalankan `npm run type-check` saat perubahan menyentuh kontrak lintas modul atau build integration.
 - Jalankan `npm run test:sidak` untuk perubahan SIDAK yang menyentuh service resolution, scoring, atau regresi fixture.
 - Jalankan `npx vitest run tests/audit` untuk verifikasi keamanan dan keandalan pasca audit SIDAK/Telefun. Suite ini mengimpor langsung dari `.worktrees/` untuk validasi isolasi branch.
+- Jalankan `npx vitest run tests/access-control` untuk verifikasi kontrak keamanan auth hardening dan profil akses.
+- Jalankan `npx vitest run tests/supabase` untuk verifikasi kontrak grants Data API, kebijakan RLS pasca migrasi, dan pembersihan policy basi.
 - Jalankan `git diff --check` sebelum commit untuk memastikan tidak ada whitespace error.
