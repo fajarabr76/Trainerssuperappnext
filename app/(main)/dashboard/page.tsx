@@ -16,14 +16,18 @@ export default async function DashboardPage() {
   const { user, profile, role } = await requirePageAccess();
 
   // 1. Fetch base data
-  const periods = await qaServiceServer.getPeriods();
+  const periods = await qaServiceServer.getPeriods().catch(() => [] as Awaited<ReturnType<typeof qaServiceServer.getPeriods>>);
   const periodIds = periods.slice(0, 12).map(p => p.id); 
 
   // Parallel fetch: Trends (RPC with legacy fallback) + Recent Activities
+  const emptyTrend = { labels: [], totalData: [], serviceData: {}, activeServices: [], serviceSummary: {}, totalSummary: { totalDefects: 0, auditedAgents: 0, activeServiceCount: 0 }, periodStats: [] };
   const [trendResult, activities] = await Promise.all([
     qaServiceServer.getServiceTrendDashboard(periodIds).catch(err => {
       console.warn('[Dashboard] RPC failed, using fallback:', err);
-      return qaServiceServer.getServiceTrendForDashboard('all');
+      return qaServiceServer.getServiceTrendForDashboard('all').catch(fallbackErr => {
+        console.error('[Dashboard] Fallback also failed:', fallbackErr);
+        return emptyTrend;
+      });
     }),
     activityServiceServer.getRecentActivities(5)
   ]);
