@@ -143,27 +143,20 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', init
       }
 
       const role = formData.get('role') as string;
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id, status')
-        .eq('email', email)
-        .maybeSingle();
-
-      if (existingProfile?.status === 'pending') {
-        setError('Pengajuan Anda telah kami terima dan saat ini sedang menunggu persetujuan administrator.');
-        setLoading(false);
-        return;
-      }
-
-      if (existingProfile?.status === 'rejected') {
-        setError('Pengajuan Anda sebelumnya belum dapat disetujui. Silakan hubungi administrator Anda.');
-        setLoading(false);
-        return;
-      }
-
       const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
 
       if (signUpError) {
+        const isDuplicate = 
+          (signUpError as any).code === 'user_already_exists' || 
+          signUpError.message?.toLowerCase().includes('already registered') ||
+          signUpError.message?.toLowerCase().includes('already exists') ||
+          signUpError.message?.toLowerCase().includes('user already');
+
+        if (isDuplicate) {
+          setSuccessMessage('Permintaan akses berhasil dikirim! Anda bisa masuk setelah akun Anda disetujui.');
+          setLoading(false);
+          return;
+        }
         setError(signUpError.message);
         setLoading(false);
         return;
@@ -182,6 +175,11 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', init
         );
 
         if (profileError) {
+          if (profileError.code === '23505' || profileError.message?.toLowerCase().includes('duplicate')) {
+            setSuccessMessage('Permintaan akses berhasil dikirim! Anda bisa masuk setelah akun Anda disetujui.');
+            setLoading(false);
+            return;
+          }
           setError('Terjadi masalah jaringan saat mendaftar. Silakan coba lagi.');
           setLoading(false);
           return;
@@ -440,6 +438,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', init
                             type="password"
                             name="password"
                             required
+                            minLength={6}
                             disabled={loading}
                             autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                             placeholder="••••••••"

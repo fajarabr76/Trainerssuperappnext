@@ -1,6 +1,22 @@
 # Database Schema & Security
 
-Dokumen ini menjelaskan struktur tabel PostgreSQL di Supabase dan kebijakan Row Level Security (RLS) yang diterapkan.
+Dokumen ini menjelaskan struktur tabel PostgreSQL di Supabase dan kebijakan Row Level Security (RLS) yang diterapkan, serta model hak akses eksplisit (Explicit Data API Grants) untuk keamanan maksimal.
+
+---
+
+## 🌟 Pengantar untuk Pengguna Umum (Human-Readable Overview)
+
+### Apa itu Struktur Database dan Keamanan Ini?
+Database Supabase bertindak sebagai brankas utama tempat seluruh data aplikasi Trainers SuperApp disimpan—mulai dari informasi akun pengguna, hasil simulasi pelatihan, hingga temuan audit kualitas.
+
+Sistem keamanan database kami dirancang dengan prinsip **"Tolak Akses Sejak Awal" (Deny-by-Default)**. Artinya, secara bawaan, tidak ada satu pun orang atau program luar yang diizinkan mengintip atau mengubah isi tabel apa pun, kecuali mereka memiliki kunci atau izin khusus yang secara eksplisit diberikan oleh sistem.
+
+### Manfaat Langsung bagi Pengguna:
+1. **Privasi Data Terjamin:** Data pribadi, nilai simulasi, dan rekaman suara Anda sepenuhnya terisolasi. Pengguna lain tidak akan bisa melihat data Anda tanpa otorisasi yang sah.
+2. **Perlindungan dari Pihak Luar:** Pihak yang tidak masuk log (*unauthenticated/anon*) tidak memiliki celah untuk menebak-nebak daftar email pengguna atau mengakses fitur apa pun di latar belakang.
+3. **Keteraturan Kerja:** Setiap peran (Agent, Leader, dan Trainer) memiliki jalur atau pintu khusus. Hal ini mencegah kekeliruan, seperti Agent tanpa sengaja mengubah pengaturan harga atau menghapus rekaman orang lain.
+
+---
 
 ## ER Diagram (Overview)
 
@@ -89,9 +105,18 @@ Menyimpan hasil simulasi legacy/kompatibilitas dari modul Ketik dan Telefun, ser
 - Jika provider tidak mengembalikan metadata token atau pricing model belum tersedia, flow user tetap lanjut tetapi usage tidak dicatat.
 - Akses monitoring lintas akun dilakukan server-side dengan `createAdminClient()`, bukan direct browser read.
 
-## Keamanan Data (RLS Policies)
+## Keamanan Data (Explicit Grants & RLS Policies)
 
-RLS diaktifkan di seluruh tabel untuk memastikan isolasi data antar user.
+Sistem otorisasi data kami menggabungkan dua lapisan pertahanan utama: **Explicit Data API Grants** pada tingkat tabel/fungsi dan **Row Level Security (RLS)** pada tingkat baris.
+
+### 🔒 Lapisan 1: Hak Akses Eksplisit (Explicit Data API Grants)
+Berdasarkan mitigasi keamanan terbaru, seluruh hak akses bawaan yang luas (`GRANT ALL ON ... TO anon, public`) telah **dicabut secara permanen**.
+- **Peran `anon` dan `public`:** Tidak memiliki akses `SELECT`, `INSERT`, `UPDATE`, atau `DELETE` pada tabel aplikasi apa pun.
+- **Peran `authenticated`:** Diberikan hak akses secara terperinci (granular) hanya pada tabel-tabel yang berinteraksi dengan pengguna aktif. Tabel internal tingkat sistem seperti `ai_usage_logs`, `ai_pricing_settings`, dan `ai_billing_settings` sepenuhnya **tertutup** dari akses client (*zero client-side grants*) dan hanya dapat dimanipulasi melalui klien admin di sisi server.
+- **Remote Procedure Calls (RPC):** Hak eksekusi (`EXECUTE`) fungsi dibatasi secara ketat ke peran `authenticated` atau `service_role`.
+
+### 🛡️ Lapisan 2: Row Level Security (RLS)
+Setelah pengguna lolos dari lapisan hak akses tabel, RLS memastikan mereka hanya dapat melihat atau memodifikasi baris data yang menjadi haknya. RLS diaktifkan di seluruh tabel tanpa terkecuali.
 
 | Tabel | Role: Agent | Role: Leader | Role: Trainer/Admin |
 |---|---|---|---|

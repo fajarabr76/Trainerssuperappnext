@@ -1,18 +1,30 @@
-# Documentation Index
+# 📚 Indeks Dokumentasi Trainers SuperApp
 
-Dokumen ini adalah peta baca untuk kondisi aplikasi Trainers SuperApp saat ini. Gunakan dokumen paling spesifik saat mengubah modul agar konteks teknis, guardrail, dan smoke test tidak tercampur.
+Selamat datang di pusat panduan Trainers SuperApp! Dokumen ini dirancang sebagai peta navigasi utama untuk membantu seluruh anggota tim—baik manajemen, perancang antarmuka, hingga pengembang teknis—memahami cara kerja dan aturan sistem kami.
 
-## Mulai Dari Sini
+---
 
+## 🌟 Panduan Cepat untuk Pengguna Umum (Human-Readable Reader)
+Jika Anda baru mengenal proyek ini atau ingin memahami gambaran besar tanpa pusing dengan kode, silakan mulai dari sini:
+- **[README.md](../README.md):** Pengenalan produk, fungsi utama aplikasi, dan cara menjalankan aplikasi di komputer Anda.
+- **[docs/modules.md](modules.md):** Penjelasan fungsional dari masing-masing modul pelatihan (Ketik, PDKT, Telefun, Profiler, dan SIDAK) beserta manfaat nyata bagi pelatih dan peserta.
+
+---
+
+## 🛠️ Panduan Teknis untuk Pengembang (Developer & Agent Reader)
+Gunakan dokumen spesifik di bawah ini saat memodifikasi modul untuk memastikan kepatuhan terhadap aturan sistem (*guardrails*) dan prosedur pengujian:
+
+### Mulai Dari Sini
 - `README.md`: Ringkasan produk, setup lokal, env, dan command operasional.
 - `docs/architecture.md`: Arsitektur Next.js/Supabase/AI, struktur folder, pola data flow, dan workflow verifikasi.
 - `docs/modules.md`: Status fitur per modul: Dashboard, KETIK, PDKT, TELEFUN, Profiler/KTP, dan SIDAK.
 - `docs/auth-rbac.md`: Role, approval akun, route guard, dan kontrak `profiles`.
-- `docs/database.md`: Tabel utama, RLS, storage bucket, usage billing, dan catatan backup data.
+- `docs/database.md`: Tabel utama, RLS, hak akses eksplisit (Explicit Grants), storage bucket, usage billing, dan catatan backup data.
 - `docs/design-guidelines.md`: Prinsip visual dan UI yang harus dipakai untuk perubahan frontend.
 
 ## Operasional
 
+- `docs/SUPABASE_DATA_API_GRANTS_CHANGELOG_2026-05-14.md`: Catatan perubahan hardening keamanan database ke model hak akses data eksplisit (Deny-by-Default).
 - `docs/MONITORING_TOKEN_USAGE_BILLING.md`: Kontrak usage AI bulanan, billing Rupiah, pricing/kurs, quick-view modul, dan smoke test.
 - `docs/TELEFUN_OPERATIONAL_RUNBOOK.md`: Kontrak runtime Telefun, WebSocket proxy Railway, env, storage rekaman, usage, dan smoke test.
 - `docs/SUPABASE_LOCAL_BACKUP.md`: Backup lokal Supabase database dan Storage.

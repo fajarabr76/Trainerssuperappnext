@@ -29,11 +29,13 @@ describe('profile auth hardening contracts', () => {
     expect(profileHardeningMigration).toContain('GRANT UPDATE (full_name) ON public.profiles TO authenticated');
   });
 
-  it('registers new email users with insert instead of upsert after profile update privileges are narrowed', () => {
+  it('registers new email users with insert instead of upsert after profile update privileges are narrowed, without unauthenticated profile lookups', () => {
     const registrationBlock = extractFunction(authModalSource, 'handleSubmit');
 
     expect(registrationBlock).toContain(".from('profiles').insert(");
     expect(registrationBlock).not.toContain('.upsert(');
+    // Ensure no unauthenticated pre-check lookup on profiles table before signUp
+    expect(registrationBlock).not.toContain(".from('profiles').select(");
   });
 
   it('performs manager profile mutations with the admin client after caller validation', () => {
@@ -68,6 +70,16 @@ describe('profile auth hardening contracts', () => {
 
     expect(roleBlock).toContain("callerRole === 'trainer'");
     expect(roleBlock).toContain("normalizeRole(targetProfile.role) === 'admin'");
+  });
+
+  it('ensures signup error handling does not rely on broad 422 status and checks for specific duplicate signals', () => {
+    const registrationBlock = extractFunction(authModalSource, 'handleSubmit');
+
+    expect(registrationBlock).not.toContain('signUpError.status === 422');
+    expect(registrationBlock).toContain("'user_already_exists'");
+    expect(registrationBlock).toContain("'already registered'");
+    expect(registrationBlock).toContain("'already exists'");
+    expect(registrationBlock).toContain("'user already'");
   });
 });
 

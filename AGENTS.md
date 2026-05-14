@@ -105,7 +105,13 @@ Superpowers skills menentukan **process dan workflow** yang wajib diikuti sebelu
 
 - **Architecture:** Follows Next.js App Router paradigm
 - **Type Safety:** Avoid `any`. Use `unknown` and proper type casting. Leverage centralized types (e.g., `app/types/auth.ts`)
-- **Supabase Data Handling**: Use unwrap helpers (like `unwrapIndicator`, `unwrapPeriod`) for type safety when dealing with dynamic data
+- **Supabase Data Handling**: Use unwrap helpers (like `unwrapIndicator`, `unwrapPeriod`) for type safety when dealing with dynamic data. **Security Baseline:** Gunakan explicit least-privilege grants per role/table; jangan default ke full CRUD. Selalu hindari broad `anon`/`public` grants. Pengecualian wajib:
+  - `profiles` update hanya untuk kolom `full_name` oleh `authenticated`.
+  - Service-only tables (e.g., `ai_usage_logs`, billing settings, rate limits) maintain zero client access.
+  - Summary tables hanya menerima grant minimal yang dibutuhkan flow (misal `SELECT, DELETE` untuk cache invalidation), bukan full `INSERT/UPDATE`.
+  - Gunakan `SECURITY DEFINER` pada RPC yang butuh menulis ke restricted tables, **Wajib** disertai guard internal:
+    - Validasi `auth.role()` atau cek role via `public.profiles` (trainer/admin).
+    - Validasi input parameter untuk mencegah modifikasi data di luar scope (misal: lock `folder_key`).
 - **KETIK Manual Review**: Review AI pada modul KETIK bersifat **manual-only**. Endpoint `POST /api/ketik/review` hanya memasukkan job ke antrean; pemrosesan sebenarnya tidak boleh otomatis dipicu segera setelah sesi selesai untuk menjaga kontrol penuh di tangan user.
 - **UI/UX**: Use Tailwind CSS and existing UI components. Consult `docs/design-guidelines.md`. Untuk komponen UI baru, **selalu cek shadcn MCP terlebih dahulu** (`search_items_in_registries` atau `view_items_in_registries`) sebelum membuat custom component. Prioritaskan penggunaan shadcn/ui components yang sudah ada di registry untuk konsistensi dan maintainability.
 

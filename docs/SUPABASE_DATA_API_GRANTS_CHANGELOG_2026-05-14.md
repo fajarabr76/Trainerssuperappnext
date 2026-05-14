@@ -1,0 +1,88 @@
+# Catatan Perubahan Keamanan Database: Hak Akses Data API Eksplisit (14 Mei 2026)
+
+Dokumen ini mendokumentasikan pembaruan penting pada arsitektur keamanan database Trainers SuperApp untuk beralih dari model hak akses bawaan yang terbuka ke model akses eksplisit (Deny-by-Default).
+
+---
+
+## 🌟 Ringkasan untuk Pengguna Umum dan Manajemen (Human-Readable Summary)
+
+### Apa Perubahan yang Terjadi?
+Sebelumnya, sistem database kami memiliki pintu depan yang cukup terbuka bagi siapa saja yang mengetahui alamat Supabase kami, meskipun mereka masih harus melewati verifikasi data di setiap barisnya. Kini, kami telah memasang **gerbang pengaman berlapis** di depan seluruh tabel dan fungsi. Tanpa otentikasi (masuk akun) yang sah, pihak luar bahkan tidak dapat mencoba mengetuk atau melihat keberadaan tabel aplikasi.
+
+### Kegunaan dan Manfaat Utama:
+1. **Pencegahan Penyalahgunaan Akses:** Mencegah program otomatis (*bots*) atau pihak tak bertanggung jawab memanfaatkan hak akses publik untuk memindai, menebak, atau menarik data sensitif dari sistem.
+2. **Kerahasiaan Alamat Email Pengguna:** Alur pendaftaran akun kini menggunakan respons standar yang seragam untuk semua skenario. Hal ini menutup celah bagi pihak luar yang mencoba mencari tahu apakah email tertentu sudah terdaftar di Trainers SuperApp.
+3. **Pemisahan Jalur Komunikasi:** Data internal untuk pemantauan sistem (seperti log penggunaan AI dan pengaturan tarif) kini ditempatkan di ruang kedap yang hanya dapat diakses langsung oleh server kami. Klien di peramban web sama sekali tidak memiliki akses ke ruang tersebut.
+
+---
+
+## 🛠️ Rincian Teknis untuk Pengembang dan Agen AI (Technical Implementation Details)
+
+### 1. Hardening Alur Otentikasi (Auth Modal)
+- **Penghapusan Kueri Profil Klien:** Menghapus pengecekan keberadaan profil (`from('profiles').select()`) yang dijalankan sebelum proses pendaftaran di `AuthModal.tsx`.
+- **Mitigasi Enumerasi Email:** Mengubah pesan umpan balik pada saat pendaftaran menjadi pesan sukses generik, baik saat pendaftaran baru berhasil, profil duplikat dengan status *pending/rejected*, maupun kegagalan pengiriman email konfirmasi.
+
+### 2. Pencabutan Hak Akses Luas (Revocation of Broad Grants)
+Menjalankan migrasi SQL `20260514000000_explicit_public_data_api_grants.sql` untuk:
+- Mencabut seluruh hak akses bawaan (`REVOKE ALL ON ... FROM authenticated, anon, public`) di semua tabel aplikasi utama untuk memastikan status bersih dari kebocoran hak akses.
+- Mencabut secara eksplisit akses peran `authenticated` pada tabel-tabel khusus layanan internal (seperti `ai_usage_logs`, `ai_billing_settings`, dan tabel *backup*) guna mencegah eskalasi hak akses.
+- Menutup celah eksekusi fungsi jarak jauh (`REVOKE EXECUTE ON FUNCTION ... FROM authenticated, public, anon`) pada seluruh fungsi publik internal dan hanya membuka akses pada daftar spesifik Remote Procedure Call (RPC) klien.
+
+### 3. Pemberian Hak Akses Terperinci (Granular Explicit Grants)
+- **Tabel Aplikasi Klien:** Memberikan izin `SELECT`, `INSERT`, `UPDATE`, atau `DELETE` secara ketat kepada peran `authenticated` sesuai dengan kebutuhan fungsional.
+- **Kolom Sensitif:** Membatasi pembaruan profil di sisi klien hanya pada kolom `full_name`.
+- **Tabel Ringkasan Dasbor:** Memberikan hak akses `SELECT` dan `DELETE` kepada peran `authenticated` pada tabel ringkasan dasbor SIDAK (`qa_dashboard_*_summary`) untuk mendukung alur invalidasi *cache* di lapisan logika aplikasi.
+- **Tabel Tertutup (Zero Client Access):** Tabel layanan seperti `ai_usage_logs` dan sejenisnya tidak memiliki *grant* apa pun untuk peran `authenticated` maupun `anon` (hanya `service_role`).
+
+### 4. Pelengkap Kebijakan RLS (RLS Coverage Completion)
+Menambahkan kebijakan RLS yang aman secara idempoten (menggunakan mekanisme `DROP POLICY IF EXISTS` dan `to_regclass`) pada tabel ringkasan dasbor:
+- `qa_dashboard_period_summary` (mendukung `SELECT` dan `DELETE` untuk pengguna terotentikasi)
+- `qa_dashboard_indicator_period_summary` (mendukung `SELECT` dan `DELETE` untuk pengguna terotentikasi)
+- `qa_dashboard_agent_period_summary` (mendukung `SELECT` dan `DELETE` untuk pengguna terotentikasi)
+
+### 5. Follow-up: SIDAK Summary Refresh RPC Guard
+
+Migration lanjutan `20260514120000_fix_qa_summary_refresh_security_definer.sql` disiapkan untuk membuat RPC `refresh_qa_dashboard_summary_for_period` berjalan sebagai `SECURITY DEFINER`, tanpa membuka `INSERT` langsung ke tabel `qa_dashboard_*_summary`.
+
+Guard yang wajib ada:
+- `SET search_path = public, pg_temp`.
+- `p_folder_key` dikunci ke `__ALL__`.
+- Caller non-`service_role` harus memiliki profil aktif dengan role `trainer`, `trainers`, atau `admin`.
+- Profil caller harus `status = approved` dan `is_deleted = false`.
+
+Status saat ini: migration sudah diterapkan ke remote Supabase pada 14 Mei 2026, dengan `security_definer = true` terverifikasi via live query (`pg_proc.prosecdef`).
+
+#### Deployment ke Remote
+
+Gunakan `supabase db push`, bukan `supabase migration up` (yang default ke local database tanpa `--linked`):
+
+```bash
+# Dry-run untuk review
+npx supabase db push --dry-run
+
+# Apply ke linked Supabase project
+npx supabase db push
+```
+
+> **Catatan:** Jika ada migrasi lokal yang belum tercatat di remote, gunakan `supabase migration repair --status applied <version>` untuk menandainya sebagai sudah dijalankan sebelum `supabase db push`.
+
+#### Audit Post-Deploy
+
+Setelah apply, verifikasi dengan query berikut:
+
+```sql
+select p.proname, p.prosecdef as security_definer
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and p.proname = 'refresh_qa_dashboard_summary_for_period';
+```
+
+Expected: `security_definer = true`.
+
+Hasil live audit: ✅ `security_definer = true` terverifikasi.
+
+### 6. Kontrak Pengujian Otomatis (Static Security Contracts)
+- Mengembangkan `tests/access-control/profile-auth-hardening-contracts.test.ts` untuk memverifikasi secara statis bahwa komponen UI dan API tidak lagi melakukan pembacaan tabel `profiles` secara tidak terotentikasi atau tanpa perlindungan.
+- Mengembangkan `tests/supabase/public-data-api-grants.test.ts` untuk memastikan tidak ada tabel baru yang terbuka tanpa disengaja di masa depan.
+- Contract test untuk `20260514120000` memverifikasi adanya guard folder key, auth.role() bypass, profile role/status/is_deleted checks, dan tidak adanya INSERT grant untuk authenticated.
