@@ -129,6 +129,7 @@ Setelah pengguna lolos dari lapisan hak akses tabel, RLS memastikan mereka hanya
 - Self-insert dibatasi ke profil sendiri dengan `status = 'pending'` dan `role != 'admin'`.
 - Self-update dibatasi ke kolom `full_name` melalui `REVOKE`/`GRANT` column privilege dan trigger `guard_profile_sensitive_columns` yang mengunci `role`, `status`, dan `is_deleted`.
 - Mutasi manajerial (change status/role/soft-delete) memakai `createAdminClient()` yang bypass RLS via service role, setelah validasi caller di server.
+- **SELECT membutuhkan RLS policies** — table grant `SELECT` saja tidak cukup. Tanpa policy SELECT yang cocok, RLS mengembalikan 0 baris. Policies wajib: own-profile, admin-all, trainer-all, leader-all. Lihat `docs/AUTH_KNOWN_ISSUE_PROFILES_SELECT_RLS_AFTER_EXPLICIT_GRANTS.md`.
 
 **Catatan Monitoring AI Usage:**
 - `leader` hanya mendapatkan visibilitas usage monitoring dari server action yang sudah di-gate role.

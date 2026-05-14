@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
@@ -6,6 +6,11 @@ const profileHardeningMigration = readFileSync(
   'supabase/migrations/20260513000000_restrict_profile_self_update.sql',
   'utf8'
 );
+const profilesRlsFixMigration = readFileSync(
+  'supabase/migrations/20260514230000_fix_profiles_select_rls_policies.sql',
+  'utf8'
+);
+const rbacSetupScript = readFileSync('supabase/scripts/supabase_rbac_setup.sql', 'utf8');
 const userManagementActions = readFileSync('app/(main)/dashboard/users/actions.ts', 'utf8');
 const authModalSource = readFileSync('app/components/AuthModal.tsx', 'utf8');
 
@@ -82,6 +87,80 @@ describe('profile auth hardening contracts', () => {
     expect(registrationBlock).toContain("'user already'");
   });
 });
+
+  describe('corrective migration: profiles SELECT RLS after explicit grants', () => {
+    it('exists as the May 14 corrective migration file', () => {
+      expect(existsSync('supabase/migrations/20260514230000_fix_profiles_select_rls_policies.sql')).toBe(true);
+    });
+
+    it('recreates get_auth_role() with lowercase normalization, SECURITY DEFINER, and search_path isolation', () => {
+      expect(profilesRlsFixMigration).toContain('lower(coalesce(role, \'\'))');
+      expect(profilesRlsFixMigration).toContain('SECURITY DEFINER');
+      expect(profilesRlsFixMigration).toContain('STABLE');
+      expect(profilesRlsFixMigration).toContain('SET search_path = public, pg_temp');
+    });
+
+    it('explicitly revokes get_auth_role() EXECUTE from PUBLIC and anon', () => {
+      expect(profilesRlsFixMigration).toContain('REVOKE ALL ON FUNCTION public.get_auth_role() FROM PUBLIC, anon');
+    });
+
+    it('grants get_auth_role() EXECUTE to authenticated and service_role', () => {
+      expect(profilesRlsFixMigration).toContain('GRANT EXECUTE ON FUNCTION public.get_auth_role() TO authenticated');
+      expect(profilesRlsFixMigration).toContain('GRANT EXECUTE ON FUNCTION public.get_auth_role() TO service_role');
+    });
+
+    it('creates all four profiles SELECT policies scoped TO authenticated', () => {
+      expect(profilesRlsFixMigration).toContain('CREATE POLICY "Users can view own profile"\nON public.profiles FOR SELECT\nTO authenticated');
+      expect(profilesRlsFixMigration).toContain('CREATE POLICY "Admins can view all profiles"\nON public.profiles FOR SELECT\nTO authenticated');
+      expect(profilesRlsFixMigration).toContain('CREATE POLICY "Trainers can view all profiles"\nON public.profiles FOR SELECT\nTO authenticated');
+      expect(profilesRlsFixMigration).toContain('CREATE POLICY "Leaders can view all profiles"\nON public.profiles FOR SELECT\nTO authenticated');
+    });
+
+    it('does not modify INSERT/UPDATE policies from 20260513000000', () => {
+      expect(profilesRlsFixMigration).not.toContain('CREATE POLICY "Users can insert');
+      expect(profilesRlsFixMigration).not.toContain('CREATE POLICY "Users can update');
+    });
+
+    it('keeps anon denied on profiles and full_name as only client-updatable column', () => {
+      expect(profilesRlsFixMigration).not.toContain('GRANT INSERT ON public.profiles TO anon');
+      expect(profilesRlsFixMigration).not.toContain('GRANT UPDATE (role) ON public.profiles TO authenticated');
+    });
+  });
+
+  describe('setup script lowercase normalization', () => {
+    it('does not contain exact capitalized role comparisons for get_auth_role()', () => {
+      expect(rbacSetupScript).not.toContain("get_auth_role() = 'Trainer'");
+      expect(rbacSetupScript).not.toContain("get_auth_role() = 'Leader'");
+    });
+
+    it('uses lowercase-compatible role comparisons in profiles policies', () => {
+      expect(rbacSetupScript).toContain("get_auth_role() IN ('trainer', 'trainers')");
+      expect(rbacSetupScript).toContain("get_auth_role() = 'leader'");
+      expect(rbacSetupScript).toContain("get_auth_role() = 'admin'");
+    });
+
+    it('uses lowercase-compatible role comparisons in results policies', () => {
+      expect(rbacSetupScript).toContain("public.get_auth_role() IN ('trainer', 'trainers')");
+      expect(rbacSetupScript).toContain("public.get_auth_role() = 'leader'");
+    });
+
+    it('recreates get_auth_role() with lower() normalization, SECURITY DEFINER, and STABLE', () => {
+      expect(rbacSetupScript).toContain('lower(coalesce(role, \'\'))');
+      expect(rbacSetupScript).toContain('SECURITY DEFINER');
+      expect(rbacSetupScript).toContain('STABLE');
+      expect(rbacSetupScript).toContain('SET search_path = public, pg_temp');
+    });
+
+    it('revokes get_auth_role() EXECUTE from PUBLIC and anon, and grants to authenticated and service_role', () => {
+      expect(rbacSetupScript).toContain('REVOKE ALL ON FUNCTION public.get_auth_role() FROM PUBLIC, anon');
+      expect(rbacSetupScript).toContain('GRANT EXECUTE ON FUNCTION public.get_auth_role() TO authenticated');
+      expect(rbacSetupScript).toContain('GRANT EXECUTE ON FUNCTION public.get_auth_role() TO service_role');
+    });
+
+    it('adds admin profile SELECT policy', () => {
+      expect(rbacSetupScript).toContain('CREATE POLICY "Admins can view all profiles"');
+    });
+  });
 
 function extractSqlBlock(source: string, startNeedle: string, endNeedle: string) {
   const start = source.indexOf(startNeedle);

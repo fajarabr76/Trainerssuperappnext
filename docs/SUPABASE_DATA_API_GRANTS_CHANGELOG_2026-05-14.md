@@ -86,3 +86,22 @@ Hasil live audit: ✅ `security_definer = true` terverifikasi.
 - Mengembangkan `tests/access-control/profile-auth-hardening-contracts.test.ts` untuk memverifikasi secara statis bahwa komponen UI dan API tidak lagi melakukan pembacaan tabel `profiles` secara tidak terotentikasi atau tanpa perlindungan.
 - Mengembangkan `tests/supabase/public-data-api-grants.test.ts` untuk memastikan tidak ada tabel baru yang terbuka tanpa disengaja di masa depan.
 - Contract test untuk `20260514120000` memverifikasi adanya guard folder key, auth.role() bypass, profile role/status/is_deleted checks, dan tidak adanya INSERT grant untuk authenticated.
+
+### 7. Follow-up: Login Regression — Missing Profiles SELECT RLS Policies
+
+**Migrasi:** `20260514230000_fix_profiles_select_rls_policies.sql`
+
+**Masalah:** Migrasi `20260514000000` melakukan `REVOKE ALL ON public.profiles FROM authenticated, anon, public` lalu `GRANT SELECT, INSERT ON public.profiles TO authenticated`. Namun, setelah RLS diaktifkan, **table grant SELECT saja tidak cukup** — PostgreSQL RLS membutuhkan policy SELECT yang eksplisit agar baris dapat dibaca. Tanpa policy SELECT, semua query authenticated ke `profiles` mengembalikan 0 baris, menyebabkan middleware mendeteksi "Ghost Profile" dan me-redirect semua user ke `/waiting-approval`.
+
+**Akar Masalah:**
+1. SELECT policies untuk `profiles` hanya ada di `supabase/scripts/supabase_rbac_setup.sql` (setup script), bukan di migrasi mana pun.
+2. `get_auth_role()` menggunakan perbandingan case-sensitive ('Trainer' vs 'trainer').
+3. `get_auth_role()` EXECUTE direvoke dari `authenticated` oleh migrasi `20260514000000`.
+4. Tidak ada admin-specific SELECT policy yang pernah ada.
+
+**Perbaikan:**
+1. `get_auth_role()` direcreate dengan `SECURITY DEFINER STABLE SET search_path = public, pg_temp` dan mengembalikan `lower(coalesce(role, ''))`.
+2. `REVOKE ALL ON FUNCTION public.get_auth_role() FROM PUBLIC, anon` lalu `GRANT EXECUTE` ke `authenticated` dan `service_role`.
+3. Empat SELECT policies dibuat di `profiles`: own-profile, admin-all, trainer-all, leader-all, semuanya scoped `TO authenticated`.
+
+**Detail selengkapnya:** `docs/AUTH_KNOWN_ISSUE_PROFILES_SELECT_RLS_AFTER_EXPLICIT_GRANTS.md`

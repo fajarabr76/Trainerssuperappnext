@@ -47,6 +47,7 @@ Gunakan dokumen spesifik di bawah ini saat memodifikasi modul untuk memastikan k
 ## Catatan Regresi Penting
 
 - `docs/AUTH_KNOWN_ISSUE_TRANSIENT_PROFILE_READS.md`: Perlakuan transient profile read agar sesi tidak dihancurkan.
+- `docs/AUTH_KNOWN_ISSUE_PROFILES_SELECT_RLS_AFTER_EXPLICIT_GRANTS.md`: Profil SELECT RLS blocking setelah explicit grants migration — login regression dan fix.
 - `docs/KETIK_KNOWN_ISSUE_TIMEOUT_CONTEXT_HISTORY.md`: Timeout, konteks chat, dan history KETIK.
 - `docs/KETIK_PDKT_SETTINGS_DRAFT_AUTOCOMMIT.md`: Draft settings modal KETIK/PDKT/TELEFUN yang harus ikut tersimpan saat `Simpan Perubahan`.
 - `docs/PDKT_MAILBOX.md`: Panduan teknis sistem persistent mailbox PDKT, manual scenario selection, dan async evaluation auto-recovery.

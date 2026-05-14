@@ -108,7 +108,29 @@ File terkait:
 - `app/components/IdleWarningModal.tsx`
 - `app/constants.ts` (`AUTH_SESSION_TIMEOUT`, `AUTH_GRACE_PERIOD_SEC`, `AUTH_MAX_LIFETIME`)
 
-### 8. Smoke Test Wajib Setelah Auth/Profile Refactor
+### 8. Profil SELECT Bergantung pada RLS Policies, Bukan Hanya Table Grants
+
+Setelah migrasi `20260514000000_explicit_public_data_api_grants.sql`, akses baca ke tabel `public.profiles` membutuhkan **dua lapisan izin**:
+
+1. **Table-level grant**: `GRANT SELECT ON public.profiles TO authenticated` — ini memungkinkan koneksi Data API masuk ke tabel.
+2. **Row-Level Security policy**: Policy SELECT scoped `TO authenticated` yang mendefinisikan baris mana yang boleh dibaca.
+
+Tanpa lapisan kedua (RLS policy), user `authenticated` akan mendapatkan 0 baris meskipun table grant sudah diberikan. Ini adalah desain default-deny dari PostgreSQL RLS.
+
+**Policies SELECT yang wajib ada di `profiles`:**
+- `"Users can view own profile"`: `auth.uid() = id` — semua user authenticated
+- `"Admins can view all profiles"`: `get_auth_role() = 'admin'`
+- `"Trainers can view all profiles"`: `get_auth_role() IN ('trainer', 'trainers')`
+- `"Leaders can view all profiles"`: `get_auth_role() = 'leader'`
+
+Policies ini didefinisikan di migrasi `20260514230000_fix_profiles_select_rls_policies.sql` dan juga di `supabase/scripts/supabase_rbac_setup.sql`.
+
+**Fungsi pembantu `get_auth_role()`:**
+- Didefinisikan sebagai `SECURITY DEFINER STABLE SET search_path = public, pg_temp` untuk menghindari rekursi RLS dan memastikan path pencarian aman.
+- Mengembalikan `lower(coalesce(role, ''))` — selalu lowercase untuk kompatibilitas dengan perbandingan policy.
+- Hanya `authenticated` dan `service_role` yang memiliki `EXECUTE` privilege; `PUBLIC` dan `anon` direvoke secara eksplisit.
+
+### 9. Smoke Test Wajib Setelah Auth/Profile Refactor
 
 - Login akun `approved` role `agent` harus berhasil dan mendarat di `/dashboard`.
 - Login akun `pending` harus selalu berakhir di `/waiting-approval`.
@@ -148,6 +170,7 @@ Catatan:
 - `app/lib/supabase/middleware.ts`
 - `app/lib/authz.ts`
 - `docs/AUTH_KNOWN_ISSUE_TRANSIENT_PROFILE_READS.md`
+- `docs/AUTH_KNOWN_ISSUE_PROFILES_SELECT_RLS_AFTER_EXPLICIT_GRANTS.md`
 - `app/context/SessionTimeoutContext.tsx`
 - `app/lib/hooks/useIdleTimeout.ts`
 - `app/components/IdleWarningModal.tsx`
