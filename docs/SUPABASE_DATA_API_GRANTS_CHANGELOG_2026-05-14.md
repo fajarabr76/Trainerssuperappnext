@@ -200,3 +200,15 @@ DROP POLICY IF EXISTS "Nobody can update telefun history" ON public.telefun_hist
 - ✅ SQL smoke test `T1 PASS: telefun_history has NO authenticated UPDATE policy (per contract)`
 - ✅ TypeScript contract test `rls-policies-after-explicit-grants-contracts.test.ts`: 28/28 passed
 - Policy ini TIDAK ditambahkan ke migration file mana pun (bukan bagian dari migration yang perlu di-replay).
+
+### 11. Follow-up: Stale Legacy Helper Policies (`is_approved_trainer` / `is_super_admin`)
+
+**Tanggal:** 15 Mei 2026
+
+**Gejala:** User berhasil login, tetapi surface dashboard/SIDAK sering kosong atau fallback karena query authenticated gagal diam-diam.
+
+**Root cause:** Masih ada policy legacy yang memanggil helper lama (`is_approved_trainer()` / `is_super_admin()`) di beberapa tabel seperti `profiler_*`, `qa_periods`, `qa_indicators`, `qa_findings`, dan `profiles`. Setelah hardening explicit grants, helper legacy tidak lagi bisa dieksekusi oleh `authenticated`, sehingga evaluasi policy melempar error permission.
+
+**Perbaikan:** Migration `20260515020000_drop_stale_legacy_helper_policies.sql` melakukan sweep `pg_policies` lalu drop semua policy yang masih mereferensikan helper legacy (`is_approved_trainer`, `is_super_admin`, `get_my_role`, `get_my_status`) dan menambahkan fail-fast guard jika referensi tersisa.
+
+**Catatan rollback:** `20260515020000` sengaja no-op; policy legacy tidak boleh direcreate karena bisa mengaktifkan regresi runtime yang sama.
