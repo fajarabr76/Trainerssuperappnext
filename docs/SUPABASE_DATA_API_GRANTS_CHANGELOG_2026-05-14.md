@@ -162,3 +162,41 @@ Hasil live audit: ✅ `security_definer = true` terverifikasi.
 - Safety sweep query `pg_policies` sebelum deployment migration permission changes.
 
 **Detail selengkapnya:** `docs/AUTH_KNOWN_ISSUE_PROFILES_SELECT_RLS_AFTER_EXPLICIT_GRANTS.md`
+
+### 10. Audit: Stray Policy `Nobody can update telefun history` — Direct Drop on Remote
+
+**Tanggal:** 14 Mei 2026
+
+**Konteks:** Saat menjalankan SQL smoke test `test_remaining_rls_policies_after_explicit_grants.sql` untuk memverifikasi migrasi `20260515010000`, test ke-11 (T1 — telefun_history NO authenticated UPDATE policy) gagal dengan pesan:
+
+```
+ERROR: P0001: T1 FAIL: telefun_history has UPDATE policy — per contract, should NOT exist
+```
+
+**Investigasi — Policy di Remote (sebelum drop):**
+
+| schemaname | tablename | policyname | cmd | roles | qual |
+|---|---|---|---|---|---|
+| public | telefun_history | Nobody can update telefun history | UPDATE | {authenticated} | false |
+| public | telefun_history | Users can delete their own telefun history | DELETE | {public} | (auth.uid() = user_id) |
+| public | telefun_history | Users can delete their own telefun history. | DELETE | {public} | (auth.uid() = user_id) |
+| public | telefun_history | Users can insert their own telefun history | INSERT | {public} | NULL → (auth.uid() = user_id) |
+| public | telefun_history | Users can insert their own telefun history. | INSERT | {public} | NULL → (auth.uid() = user_id) |
+| public | telefun_history | Users can view their own telefun history | SELECT | {public} | (auth.uid() = user_id) |
+| public | telefun_history | Users can view their own telefun history. | SELECT | {public} | (auth.uid() = user_id) |
+
+**Temuan:**
+- Policy `Nobody can update telefun history` (UPDATE, `authenticated`, USING false) tidak ada di file migrasi mana pun di repo ini — merupakan *stray policy* dari deployment terdahulu.
+- AGENTS.md menyatakan: *"Jangan menambahkan UPDATE RLS policy pada telefun_history untuk kolom assessment."*
+- Policy ini redundan: tanpa UPDATE grant untuk `authenticated`, user tetap tidak bisa update.
+
+**Tindakan — Drop langsung di remote (14 Mei 2026):**
+
+```sql
+DROP POLICY IF EXISTS "Nobody can update telefun history" ON public.telefun_history;
+```
+
+**Verifikasi Post-Drop:**
+- ✅ SQL smoke test `T1 PASS: telefun_history has NO authenticated UPDATE policy (per contract)`
+- ✅ TypeScript contract test `rls-policies-after-explicit-grants-contracts.test.ts`: 28/28 passed
+- Policy ini TIDAK ditambahkan ke migration file mana pun (bukan bagian dari migration yang perlu di-replay).
