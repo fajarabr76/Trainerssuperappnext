@@ -106,6 +106,40 @@ Hasil live audit: ✅ `security_definer = true` terverifikasi.
 
 **Detail selengkapnya:** `docs/AUTH_KNOWN_ISSUE_PROFILES_SELECT_RLS_AFTER_EXPLICIT_GRANTS.md`
 
+### 9. Follow-up: Remaining RLS Policies for 11 Tables Missing After Grant Migration
+
+**Migrasi:** `20260515010000_fix_remaining_rls_policies_after_explicit_grants.sql`
+
+**Masalah:** Migration `20260514000000` mengaktifkan RLS pada 33+ tabel dan merevoke semua grants, namun 11 tabel aplikasi tidak memiliki satupun `CREATE POLICY` di migrasi mana pun. Tanpa RLS policy, semua query authenticated ke tabel-tabel ini mengembalikan 0 baris (RLS default-deny). Termasuk `ketik_history` yang merupakan transitive dependency bagi `ketik_session_reviews`, `ketik_typo_findings`, dan `ketik_review_jobs`.
+
+**Perbaikan:**
+1. Membuat 3 fungsi helper SECURITY DEFINER untuk RLS-scoped leader access:
+   - `leader_has_scope_value(p_module, p_field_name, p_field_value)` — cek scope item via `get_leader_approved_scope_items`
+   - `leader_can_access_peserta(p_peserta_id, p_module)` — cek akses peserta via scope (peserta_id, batch_name, tim)
+   - `leader_can_access_sidak_temuan(p_peserta_id, p_service_type)` — cek akses temuan SIDAK via peserta + optional service_type scope
+2. Menambahkan RLS policies ke 11 tabel sesuai role contract:
+   - `activity_logs`: all authenticated INSERT, trainer/admin SELECT/DELETE
+   - `ketik_history`: user SELECT/INSERT/UPDATE/DELETE own, service_role ALL
+   - `pdkt_history`: user SELECT/INSERT/UPDATE/DELETE own, service_role ALL
+   - `user_settings`: user ALL own
+   - `profiler_years`: trainer/admin ALL, leader SELECT with approved KTP scope
+   - `profiler_folders`: trainer/admin ALL, leader SELECT via `leader_has_scope_value('ktp', 'batch_name', name)`
+   - `profiler_tim_list`: trainer/admin ALL, leader SELECT via `leader_has_scope_value('ktp', 'tim', nama)`
+   - `profiler_peserta`: trainer/admin ALL, leader SELECT via `leader_can_access_peserta(id, 'ktp')`
+   - `qa_periods`: all authenticated SELECT, trainer/admin INSERT/UPDATE/DELETE
+   - `qa_indicators`: all authenticated SELECT, trainer/admin INSERT/UPDATE/DELETE
+   - `qa_temuan`: trainer/admin ALL, leader SELECT via `leader_can_access_sidak_temuan(peserta_id, service_type)`, agent SELECT own via `profiler_peserta.email_ojk = profiles.email`
+
+**Tabel yang TIDAK disentuh (policies sudah ada di migrasi sebelumnya):**
+`profiles`, `results`, `telefun_history`, `pdkt_mailbox_items`, `ketik_review_jobs`, `ketik_session_reviews`, `ketik_typo_findings`, `access_groups`, `access_group_items`, `leader_access_requests`, `leader_access_request_groups`, dashboard summary, reports, AI billing/usage, storage.
+
+**Perbedaan dari versi sebelumnya (v2 plan):**
+- `qa_temuan` agent policy menggunakan `peserta_id`, bukan `agent_id`
+- `ketik_history` dan `pdkt_history` mendapat DELETE own policy (UI punya clear/delete history)
+- `qa_periods` dan `qa_indicators` mendapat trainer INSERT/UPDATE/DELETE (tidak hanya SELECT)
+- Access-group tables TIDAK dibuat ulang (policies sudah ada di `20260502133224`)
+- Leader policies menggunakan RLS-scoped helper, bukan SELECT-all
+
 ### 8. Follow-up: Stale RLS Policy — Legacy `get_my_role()` Function
 
 **Migrasi:** `20260515000000_drop_stale_rls_policies_and_legacy_functions.sql`

@@ -122,8 +122,17 @@ Setelah pengguna lolos dari lapisan hak akses tabel, RLS memastikan mereka hanya
 |---|---|---|---|
 | `profiles` | Insert (Own Pending), Update (full_name only), Read (Own) | Read (All), Update (full_name only) | Mutasi via Admin Client (service role) |
 | `results` | Read/Write (Own) | Read (Team) | Read/Update (All) |
-| `profiler_*` | No Access | Read (All) | Full CRUD Access |
-| `qa_*` | Read (Own/Summary) | Read (Team) | Full CRUD Access |
+| `profiler_years` | No Access | Read (Approved KTP scope only) | Full CRUD Access |
+| `profiler_folders` | No Access | Read (Scoped via `batch_name`) | Full CRUD Access |
+| `profiler_tim_list` | No Access | Read (Scoped via `tim`) | Full CRUD Access |
+| `profiler_peserta` | No Access | Read (Scoped via `leader_can_access_peserta`) | Full CRUD Access |
+| `qa_periods` | Read (All) | Read (All) | Full CRUD Access |
+| `qa_indicators` | Read (All) | Read (All) | Full CRUD Access |
+| `qa_temuan` | Read (Own via email_ojk match) | Read (Scoped via `leader_can_access_sidak_temuan`) | Full CRUD Access |
+| `ketik_history` | Read/Write/Delete (Own) | No Access | No Access |
+| `pdkt_history` | Read/Write/Delete (Own) | No Access | No Access |
+| `activity_logs` | Insert Only | No Access | Read/Delete |
+| `user_settings` | Full CRUD (Own) | Full CRUD (Own) | Full CRUD (Own) |
 
 **Catatan Proteksi `profiles`:**
 - Self-insert dibatasi ke profil sendiri dengan `status = 'pending'` dan `role != 'admin'`.
