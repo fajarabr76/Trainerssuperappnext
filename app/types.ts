@@ -67,6 +67,10 @@ export interface SessionConfig {
   telefunTransport?: 'gemini-live' | 'openai-audio';
   telefunModelId?: string;
   quickTemplates?: QuickTemplate[];
+  /** Whether realistic mode is enabled for this session */
+  realisticModeEnabled?: boolean;
+  /** Disruption types enabled for this session (1-3 types) */
+  realisticModeDisruptionTypes?: string[];
 }
 
 export interface QuickTemplate {
@@ -88,6 +92,10 @@ export interface AppSettings {
   responsePacingMode?: 'realistic' | 'training_fast';
   telefunTransport?: 'gemini-live' | 'openai-audio';
   telefunModelId?: string;
+  /** Whether realistic mode is enabled for Telefun sessions */
+  realisticModeEnabled?: boolean;
+  /** Disruption types enabled for realistic mode (1-3 types) */
+  realisticModeDisruptionTypes?: string[];
 }
 
 export interface ChatSession {

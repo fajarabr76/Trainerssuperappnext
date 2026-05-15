@@ -1,12 +1,17 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Phone, Calendar, Clock, Star, MessageSquare, Download, User, Mic2 } from 'lucide-react';
 import { CallRecord } from '../types';
 import { getTelefunSignedUrl } from '../actions';
 import { VoiceAssessmentSection } from './VoiceAssessmentSection';
+import { VoiceEvaluationDashboard } from './VoiceEvaluationDashboard';
+import { ReplayAnnotator } from './ReplayAnnotator';
 import { VoiceQualityAssessment } from '@/app/types/voiceAssessment';
+import { computeVoiceDashboardMetrics } from '@/app/actions/voiceDashboard';
+import { generateReplayAnnotations, addManualAnnotation } from '@/app/actions/replayAnnotation';
+import type { VoiceDashboardMetrics, ReplayAnnotation, CoachingRecommendation } from '../services/realisticMode/types';
 
 interface ReviewModalProps {
   isOpen: boolean;
@@ -24,7 +29,18 @@ function formatDuration(seconds: number): string {
 export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, record, onAssessmentComplete }) => {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [isLoadingUrl, setIsLoadingUrl] = useState(false);
-  const [activeTab, setActiveTab] = useState<'details' | 'assessment'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'assessment' | 'voice_dashboard' | 'replay'>('details');
+
+  // Voice Dashboard state
+  const [voiceDashboardMetrics, setVoiceDashboardMetrics] = useState<VoiceDashboardMetrics | null>(null);
+  const [voiceDashboardLoading, setVoiceDashboardLoading] = useState(false);
+  const [voiceDashboardError, setVoiceDashboardError] = useState<string | undefined>();
+
+  // Replay Annotator state
+  const [replayAnnotations, setReplayAnnotations] = useState<ReplayAnnotation[]>([]);
+  const [replayRecommendations, setReplayRecommendations] = useState<CoachingRecommendation[]>([]);
+  const [replayLoading, setReplayLoading] = useState(false);
+  const [replayError, setReplayError] = useState<string | undefined>();
 
   useEffect(() => {
     if (isOpen && record && record.id && !record.url.startsWith('blob:')) {
@@ -42,11 +58,112 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, recor
     }
   }, [isOpen, record]);
 
+  // Reset state when modal opens with a new record
+  useEffect(() => {
+    if (isOpen && record) {
+      setVoiceDashboardMetrics(record.voiceDashboardMetrics ?? null);
+      setVoiceDashboardError(undefined);
+      setVoiceDashboardLoading(false);
+      setReplayAnnotations([]);
+      setReplayRecommendations([]);
+      setReplayError(undefined);
+      setReplayLoading(false);
+      setActiveTab('details');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, record?.id]);
+
+  // Load voice dashboard metrics when tab is selected
+  const loadVoiceDashboard = useCallback(async () => {
+    if (!record?.id || voiceDashboardMetrics || voiceDashboardLoading) return;
+    setVoiceDashboardLoading(true);
+    setVoiceDashboardError(undefined);
+    try {
+      const result = await computeVoiceDashboardMetrics(record.id);
+      if (result.success) {
+        setVoiceDashboardMetrics(result.metrics ?? null);
+        if (result.notice) setVoiceDashboardError(undefined); // notice is handled by empty state
+      } else {
+        setVoiceDashboardError(result.error || 'Gagal memuat metrik suara.');
+      }
+    } catch (_err) {
+      setVoiceDashboardError('Gagal memuat metrik suara. Silakan coba lagi.');
+    } finally {
+      setVoiceDashboardLoading(false);
+    }
+  }, [record?.id, voiceDashboardMetrics, voiceDashboardLoading]);
+
+  // Load replay annotations when tab is selected
+  const loadReplayAnnotations = useCallback(async () => {
+    if (!record?.id || replayAnnotations.length > 0 || replayLoading) return;
+    setReplayLoading(true);
+    setReplayError(undefined);
+    try {
+      const result = await generateReplayAnnotations(record.id);
+      if (result.success && result.result) {
+        setReplayAnnotations(result.result.annotations);
+        setReplayRecommendations(result.result.summary);
+      } else {
+        setReplayError(result.error || 'Gagal menghasilkan anotasi.');
+      }
+    } catch (_err) {
+      setReplayError('Gagal menghasilkan anotasi. Silakan coba lagi.');
+    } finally {
+      setReplayLoading(false);
+    }
+  }, [record?.id, replayAnnotations.length, replayLoading]);
+
+  // Trigger loading when switching to voice_dashboard or replay tab
+  useEffect(() => {
+    if (activeTab === 'voice_dashboard' && record?.realisticModeEnabled) {
+      loadVoiceDashboard();
+    }
+    if (activeTab === 'replay' && record?.realisticModeEnabled) {
+      loadReplayAnnotations();
+    }
+  }, [activeTab, record?.realisticModeEnabled, loadVoiceDashboard, loadReplayAnnotations]);
+
+  const handleRetryVoiceDashboard = useCallback(() => {
+    setVoiceDashboardMetrics(null);
+    setVoiceDashboardError(undefined);
+    setVoiceDashboardLoading(false);
+    // Will re-trigger via useEffect
+    setTimeout(() => loadVoiceDashboard(), 0);
+  }, [loadVoiceDashboard]);
+
+  const handleRetryReplay = useCallback(() => {
+    setReplayAnnotations([]);
+    setReplayRecommendations([]);
+    setReplayError(undefined);
+    setReplayLoading(false);
+    setTimeout(() => loadReplayAnnotations(), 0);
+  }, [loadReplayAnnotations]);
+
+  const handleAddAnnotation = useCallback(async (
+    annotation: Omit<ReplayAnnotation, 'id' | 'isManual' | 'createdBy'>
+  ) => {
+    if (!record?.id) return;
+    const result = await addManualAnnotation(record.id, annotation);
+    if (result.success) {
+      // Add to local state optimistically
+      const newAnnotation: ReplayAnnotation = {
+        id: crypto.randomUUID(),
+        ...annotation,
+        isManual: true,
+      };
+      setReplayAnnotations(prev => [...prev, newAnnotation]);
+    } else {
+      throw new Error(result.error || 'Gagal menyimpan anotasi.');
+    }
+  }, [record?.id]);
+
   const handleAssessmentUpdate = (newAssessment: VoiceQualityAssessment) => {
     if (record && onAssessmentComplete) {
       onAssessmentComplete(record.id, newAssessment);
     }
   };
+
+  const showRealisticTabs = record?.realisticModeEnabled;
 
   return (
     <AnimatePresence>
@@ -89,26 +206,44 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, recor
             </div>
 
             {/* Tab Navigation */}
-            <div className="px-6 pt-4 flex gap-4 border-b border-border bg-foreground/[0.01]">
+            <div className="px-6 pt-4 flex gap-4 border-b border-border bg-foreground/[0.01] overflow-x-auto">
               <button
                 onClick={() => setActiveTab('details')}
-                className={`pb-3 px-2 text-sm font-bold tracking-tight transition-all relative ${activeTab === 'details' ? 'text-emerald-500' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`pb-3 px-2 text-sm font-bold tracking-tight transition-all relative whitespace-nowrap ${activeTab === 'details' ? 'text-emerald-500' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 Detail Sesi
                 {activeTab === 'details' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500 rounded-t-full" />}
               </button>
               <button
                 onClick={() => setActiveTab('assessment')}
-                className={`pb-3 px-2 text-sm font-bold tracking-tight transition-all relative ${activeTab === 'assessment' ? 'text-emerald-500' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`pb-3 px-2 text-sm font-bold tracking-tight transition-all relative whitespace-nowrap ${activeTab === 'assessment' ? 'text-emerald-500' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 Kualitas Suara Agen
                 {activeTab === 'assessment' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500 rounded-t-full" />}
               </button>
+              {showRealisticTabs && (
+                <>
+                  <button
+                    onClick={() => setActiveTab('voice_dashboard')}
+                    className={`pb-3 px-2 text-sm font-bold tracking-tight transition-all relative whitespace-nowrap ${activeTab === 'voice_dashboard' ? 'text-emerald-500' : 'text-muted-foreground hover:text-foreground'}`}
+                  >
+                    Evaluasi Suara
+                    {activeTab === 'voice_dashboard' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500 rounded-t-full" />}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('replay')}
+                    className={`pb-3 px-2 text-sm font-bold tracking-tight transition-all relative whitespace-nowrap ${activeTab === 'replay' ? 'text-emerald-500' : 'text-muted-foreground hover:text-foreground'}`}
+                  >
+                    Anotasi Replay
+                    {activeTab === 'replay' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500 rounded-t-full" />}
+                  </button>
+                </>
+              )}
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
               <AnimatePresence mode="wait">
-                {activeTab === 'details' ? (
+                {activeTab === 'details' && (
                   <motion.div
                     key="details"
                     initial={{ opacity: 0, x: -10 }}
@@ -207,7 +342,9 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, recor
                       )}
                     </div>
                   </motion.div>
-                ) : (
+                )}
+
+                {activeTab === 'assessment' && (
                   <motion.div
                     key="assessment"
                     initial={{ opacity: 0, x: 10 }}
@@ -219,6 +356,43 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, recor
                       initialAssessment={record.voiceAssessment}
                       hasAgentRecording={Boolean(record.agentRecordingPath)}
                       onAssessmentUpdate={handleAssessmentUpdate}
+                    />
+                  </motion.div>
+                )}
+
+                {activeTab === 'voice_dashboard' && showRealisticTabs && (
+                  <motion.div
+                    key="voice_dashboard"
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                  >
+                    <VoiceEvaluationDashboard
+                      sessionId={record.id}
+                      metrics={voiceDashboardMetrics}
+                      isLoading={voiceDashboardLoading}
+                      error={voiceDashboardError}
+                      onRetry={handleRetryVoiceDashboard}
+                    />
+                  </motion.div>
+                )}
+
+                {activeTab === 'replay' && showRealisticTabs && (
+                  <motion.div
+                    key="replay"
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                  >
+                    <ReplayAnnotator
+                      sessionId={record.id}
+                      annotations={replayAnnotations}
+                      recommendations={replayRecommendations}
+                      isLoading={replayLoading}
+                      error={replayError}
+                      onRetry={handleRetryReplay}
+                      onAddAnnotation={handleAddAnnotation}
+                      sessionDurationMs={record.duration * 1000}
                     />
                   </motion.div>
                 )}

@@ -1123,6 +1123,101 @@ Akhir:
                          </div>
                      </div>
                   </section>
+
+                  {/* Realistic Mode */}
+                  <section className="space-y-4">
+                     <div className="bg-white dark:bg-[#1C1C1E] p-6 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm">
+                       <div className="flex items-start gap-4">
+                         <div className="w-12 h-12 rounded-2xl bg-violet-500/10 flex items-center justify-center shrink-0">
+                           <Zap className="w-6 h-6 text-violet-500" />
+                         </div>
+                         <div className="flex-1">
+                            <h3 className="font-bold text-gray-900 dark:text-white text-lg">Mode Realistis</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                                Aktifkan fitur simulasi realistis: turn-taking kontekstual, backchannel, persona konsisten, dan skenario gangguan.
+                            </p>
+                         </div>
+                         <button
+                           type="button"
+                           onClick={() => setLocalSettings(prev => ({ ...prev, realisticModeEnabled: !prev.realisticModeEnabled }))}
+                           className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 ${
+                             localSettings.realisticModeEnabled ? 'bg-violet-500' : 'bg-gray-200 dark:bg-gray-700'
+                           }`}
+                           role="switch"
+                           aria-checked={localSettings.realisticModeEnabled || false}
+                           aria-label="Toggle mode realistis"
+                         >
+                           <span
+                             className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                               localSettings.realisticModeEnabled ? 'translate-x-5' : 'translate-x-0'
+                             }`}
+                           />
+                         </button>
+                       </div>
+                     </div>
+
+                     {/* Disruption Type Configuration - only shown when realistic mode is enabled */}
+                     {localSettings.realisticModeEnabled && (
+                       <div className="bg-white dark:bg-[#1C1C1E] p-6 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm">
+                         <h4 className="font-bold text-gray-900 dark:text-white text-base mb-2">Skenario Gangguan</h4>
+                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                           Pilih 1-3 tipe gangguan yang akan muncul selama simulasi.
+                         </p>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                           {[
+                             { id: 'technical_term_confusion', label: 'Bingung Istilah Teknis' },
+                             { id: 'repeated_question', label: 'Pertanyaan Berulang' },
+                             { id: 'misunderstanding', label: 'Salah Paham' },
+                             { id: 'interruption', label: 'Interupsi' },
+                             { id: 'incomplete_data', label: 'Data Tidak Lengkap' },
+                             { id: 'unclear_voice', label: 'Suara Tidak Jelas' },
+                             { id: 'emotional_escalation', label: 'Eskalasi Emosional' },
+                           ].map(disruption => {
+                             const currentTypes = localSettings.realisticModeDisruptionTypes || [];
+                             const isSelected = currentTypes.includes(disruption.id);
+                             const isDisabled = !isSelected && currentTypes.length >= 3;
+                             return (
+                               <button
+                                 key={disruption.id}
+                                 type="button"
+                                 disabled={isDisabled}
+                                 onClick={() => {
+                                   setLocalSettings(prev => {
+                                     const current = prev.realisticModeDisruptionTypes || [];
+                                     const updated = isSelected
+                                       ? current.filter(t => t !== disruption.id)
+                                       : [...current, disruption.id];
+                                     return { ...prev, realisticModeDisruptionTypes: updated };
+                                   });
+                                 }}
+                                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all text-left ${
+                                   isSelected
+                                     ? 'border-violet-500/30 bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300'
+                                     : isDisabled
+                                     ? 'border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-[#1C1C1E]/50 text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50'
+                                     : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#2C2C2E] text-gray-700 dark:text-gray-300 hover:border-violet-300 dark:hover:border-violet-500/30'
+                                 }`}
+                               >
+                                 <span
+                                   className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${
+                                     isSelected
+                                       ? 'bg-violet-500 border-violet-500 text-white'
+                                       : 'border-gray-300 dark:border-gray-600 bg-transparent'
+                                   }`}
+                                 >
+                                   {isSelected && <Check className="w-3 h-3" />}
+                                 </span>
+                                 {disruption.label}
+                               </button>
+                             );
+                           })}
+                         </div>
+                         <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                           {(localSettings.realisticModeDisruptionTypes || []).length}/3 tipe dipilih
+                         </p>
+                       </div>
+                     )}
+                  </section>
                </div>
            )}
 

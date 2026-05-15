@@ -1,4 +1,5 @@
 import { SessionMetrics, VoiceQualityAssessment } from '@/app/types/voiceAssessment';
+import type { VoiceDashboardMetrics, DisruptionInstance, PersonaConfig } from './services/realisticMode/types';
 
 export interface CallRecord {
   id: string;
@@ -14,6 +15,12 @@ export interface CallRecord {
   feedback?: string;
   voiceAssessment?: VoiceQualityAssessment | null;
   sessionMetrics?: SessionMetrics | null;
+  /** Realistic mode fields */
+  realisticModeEnabled?: boolean;
+  voiceDashboardMetrics?: VoiceDashboardMetrics | null;
+  personaConfig?: PersonaConfig | null;
+  disruptionConfig?: string[] | null;
+  disruptionResults?: DisruptionInstance[] | null;
 }
 
 export type TelefunSessionState =
@@ -50,7 +57,11 @@ export type TelefunTimelineEventName =
   | 'stalled_response_detected'
   | 'no_model_response_after_audio_end'
   | 'recovering'
-  | 'disconnect';
+  | 'disconnect'
+  | 'realistic_mode_prompt'
+  | 'realistic_mode_session_recovery'
+  | 'realistic_mode_end_session'
+  | 'hold_state_changed';
 
 export interface TelefunTimelineEvent {
   event: TelefunTimelineEventName;

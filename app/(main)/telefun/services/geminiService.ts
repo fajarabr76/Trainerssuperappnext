@@ -14,6 +14,11 @@ import {
   type StalledResponseState,
 } from './stalledResponseGuards';
 import { getProviderFromModelId, normalizeModelId } from '@/app/lib/ai-models';
+import {
+  RealisticModeOrchestrator,
+  type RealisticModeConfig,
+  type OrchestratorAction,
+} from './realisticMode/RealisticModeOrchestrator';
 
 interface LiveSessionTransport {
   sendRealtimeInput: (params: { media: { mimeType: string, data: string } }) => void;
@@ -150,6 +155,12 @@ export class LiveSession {
   private pendingAudioResumeLog: boolean = false;
   private audioStreamEndSentAt: number | null = null;
 
+  // Realistic Mode Orchestrator
+  private realisticMode: RealisticModeOrchestrator | null = null;
+  private realisticModeConfig: RealisticModeConfig | null = null;
+  private realisticFallbackTimer: ReturnType<typeof setInterval> | null = null;
+  private realisticBackchannelTimer: ReturnType<typeof setInterval> | null = null;
+
   // Calibration parameters for volume indicator
   private readonly VOLUME_NOISE_FLOOR = 0.005;
   private readonly VOLUME_SMOOTHING_ALPHA = 0.3; // Lower = smoother, higher = more responsive
@@ -213,6 +224,187 @@ export class LiveSession {
 
   constructor(config: SessionConfig) {
     this.config = config;
+  }
+
+  /**
+   * Enables realistic mode with the given configuration.
+   * Must be called before connect() for the engines to be active during the session.
+   */
+  public setRealisticMode(config: RealisticModeConfig): void {
+    if (!config.enabled) {
+      this.realisticMode = null;
+      this.realisticModeConfig = null;
+      return;
+    }
+
+    try {
+      this.realisticModeConfig = config;
+      this.realisticMode = new RealisticModeOrchestrator(config);
+    } catch (e) {
+      console.warn('[Telefun] Failed to initialize realistic mode, falling back to standard:', e);
+      this.realisticMode = null;
+      this.realisticModeConfig = null;
+    }
+  }
+
+  /**
+   * Returns realistic mode metrics for session persistence.
+   * Returns null if realistic mode is not active.
+   */
+  public getRealisticModeMetrics() {
+    return this.realisticMode?.getMetrics() ?? null;
+  }
+
+  /**
+   * Returns persona config for session persistence.
+   * Returns null if realistic mode is not active.
+   */
+  public getRealisticModePersonaConfig() {
+    return this.realisticMode?.getPersonaConfig() ?? null;
+  }
+
+  /**
+   * Returns disruption config for session persistence.
+   * Returns null if realistic mode is not active.
+   */
+  public getRealisticModeDisruptionConfig() {
+    return this.realisticMode?.getDisruptionConfig() ?? null;
+  }
+
+  /**
+   * Handles an orchestrator action by sending the appropriate clientContent
+   * message or triggering session-level actions.
+   */
+  private handleOrchestratorAction(action: OrchestratorAction): void {
+    if (action.type === 'none') return;
+
+    switch (action.type) {
+      case 'inject_prompt': {
+        if (!this.session || this.isDisconnected) return;
+        this.emitTimeline('realistic_mode_prompt', { source: action.source });
+        const payload = {
+          clientContent: {
+            turns: [
+              {
+                role: 'user',
+                parts: [{ text: action.text }],
+              },
+            ],
+            turnComplete: true,
+          },
+        };
+        this.session.sendClientMessage(JSON.stringify(payload));
+        break;
+      }
+
+      case 'session_recovery': {
+        this.emitTimeline('realistic_mode_session_recovery');
+        // Use existing stalled response recovery pattern
+        this.transition('stalled');
+        break;
+      }
+
+      case 'end_session': {
+        this.emitTimeline('realistic_mode_end_session', { source: action.source });
+        this.disconnect('realistic_mode_silence_end');
+        break;
+      }
+
+      case 'hold_state_changed': {
+        // Hold state flags are already propagated via the orchestrator's
+        // public accessors (suppressMicAudio, suppressGeminiAudio, suspendEngines).
+        // Update the local isHeld flag for backward compatibility with existing guards.
+        this.isHeld = action.suppressMicAudio || action.suppressGeminiAudio;
+        this.emitTimeline('hold_state_changed', {
+          suppressMicAudio: action.suppressMicAudio,
+          suppressGeminiAudio: action.suppressGeminiAudio,
+          suspendEngines: action.suspendEngines,
+        });
+        if (action.suppressGeminiAudio) {
+          this.stopAllAudio();
+          this.isAiSpeaking = false;
+          this.onAiSpeaking?.(false);
+        }
+        break;
+      }
+
+      default:
+        break;
+    }
+  }
+
+  /**
+   * Starts the realistic mode fallback watchdog timer.
+   * Evaluates fallback response every 1s when in ai_thinking state.
+   * Respects Hold State Manager: skips evaluation when engines are suspended.
+   */
+  private startRealisticFallbackWatchdog(): void {
+    if (this.realisticFallbackTimer || !this.realisticMode) return;
+
+    this.realisticFallbackTimer = setInterval(() => {
+      if (this.isDisconnected || !this.session || !this.realisticMode) return;
+      if (this.currentState !== 'ai_thinking') return;
+      // Hold State Manager: suspend fallback timeout detection during hold
+      if (this.realisticMode.suspendEngines) return;
+
+      const action = this.realisticMode.evaluateFallbackResponse({
+        now: Date.now(),
+        sessionState: this.currentState,
+      });
+
+      this.handleOrchestratorAction(action);
+    }, 1000);
+  }
+
+  /**
+   * Starts the realistic mode backchannel watchdog timer.
+   * Evaluates backchannel signals every 500ms when agent is speaking.
+   * Respects Hold State Manager: skips evaluation when engines are suspended.
+   */
+  private startRealisticBackchannelWatchdog(): void {
+    if (this.realisticBackchannelTimer || !this.realisticMode) return;
+
+    this.realisticBackchannelTimer = setInterval(() => {
+      if (this.isDisconnected || !this.session || !this.realisticMode) return;
+      if (!this.userSpeechActive) return;
+      // Hold State Manager: suppress backchannel signal production during hold
+      if (this.realisticMode.suspendEngines) return;
+
+      const now = Date.now();
+      const speakingDuration = this.userSpeechStartedAt
+        ? now - this.userSpeechStartedAt
+        : 0;
+
+      // Only evaluate backchannel when agent has been speaking > 5s
+      if (speakingDuration < 5000) return;
+
+      // Detect micro-pause: brief silence within speech
+      const isMicroPause = this.previousSmoothedVolume < 0.01 && this.userSpeechActive;
+
+      const action = this.realisticMode.evaluateBackchannel({
+        now,
+        agentSpeaking: this.userSpeechActive,
+        agentSpeakingDurationMs: speakingDuration,
+        isMicroPause,
+        sessionState: this.currentState,
+      });
+
+      this.handleOrchestratorAction(action);
+    }, 500);
+  }
+
+  /**
+   * Stops all realistic mode timers.
+   */
+  private stopRealisticModeTimers(): void {
+    if (this.realisticFallbackTimer) {
+      clearInterval(this.realisticFallbackTimer);
+      this.realisticFallbackTimer = null;
+    }
+    if (this.realisticBackchannelTimer) {
+      clearInterval(this.realisticBackchannelTimer);
+      this.realisticBackchannelTimer = null;
+    }
   }
 
   private emitTimeline(event: TelefunTimelineEventName, meta?: Record<string, unknown>) {
@@ -354,11 +546,74 @@ export class LiveSession {
 
   public setHold(active: boolean) {
     console.log(`[Telefun] setHold: ${active}`);
+
+    // Route through Hold State Manager if realistic mode is active
+    if (this.realisticMode?.isEnabled) {
+      try {
+        const holdAction = this.realisticMode.evaluateHoldStateInput({
+          now: Date.now(),
+          uiButtonPressed: active,
+          uiButtonReleased: !active && this.isHeld,
+          currentHoldActive: this.isHeld,
+          uiTimerExpired: false,
+        });
+
+        if (holdAction.type === 'hold_state_changed') {
+          // Propagate Hold State Manager flags to LiveSession
+          this.isHeld = holdAction.suppressMicAudio || holdAction.suppressGeminiAudio;
+          if (holdAction.suppressGeminiAudio) {
+            this.isAiSpeaking = false;
+            this.stopAllAudio();
+            this.onAiSpeaking?.(false);
+          }
+          return;
+        }
+        // If Hold State Manager returned 'none' (graceful degradation), fall through
+      } catch (e) {
+        console.warn('[Telefun] Hold State Manager failed, falling back to isHeld boolean:', e);
+        // Graceful degradation: fall through to existing behavior
+      }
+    }
+
+    // Existing behavior (fallback or non-realistic mode)
     this.isHeld = active;
     if (active) {
       this.isAiSpeaking = false;
       this.stopAllAudio();
       this.onAiSpeaking?.(false);
+    }
+  }
+
+  /**
+   * Notifies the Hold State Manager that the UI hold timer has expired.
+   * Called from the UI when the hold countdown reaches zero.
+   * This auto-releases the hold state and resumes normal session flow.
+   *
+   * Graceful degradation: if Hold State Manager fails, falls back to
+   * releasing hold via the existing setHold(false) path.
+   */
+  public notifyHoldTimerExpired(): void {
+    if (!this.realisticMode?.isEnabled) {
+      // Fallback: just release hold
+      this.setHold(false);
+      return;
+    }
+
+    try {
+      const holdAction = this.realisticMode.evaluateHoldStateInput({
+        now: Date.now(),
+        uiButtonPressed: false,
+        uiButtonReleased: false,
+        currentHoldActive: this.isHeld,
+        uiTimerExpired: true,
+      });
+
+      if (holdAction.type === 'hold_state_changed') {
+        this.isHeld = holdAction.suppressMicAudio || holdAction.suppressGeminiAudio;
+      }
+    } catch (e) {
+      console.warn('[Telefun] Hold State Manager timer expiry failed, falling back:', e);
+      this.setHold(false);
     }
   }
 
@@ -577,6 +832,11 @@ export class LiveSession {
             this.onConnect?.();
             this.onStatusChange?.("Tersambung");
             this.startAudioInput();
+            // Start realistic mode watchdogs after connection is established
+            if (this.realisticMode?.isEnabled) {
+              this.startRealisticFallbackWatchdog();
+              this.startRealisticBackchannelWatchdog();
+            }
           }
 
           this.handleMessage(message);
@@ -635,6 +895,9 @@ export class LiveSession {
 
     this.processor.onaudioprocess = (e) => {
       if (this.isDisconnected || this.isHeld || this.isMuted || !this.session) return;
+
+      // Hold State Manager: suppress mic audio when hold is active
+      if (this.realisticMode?.isEnabled && this.realisticMode.suppressMicAudio) return;
 
       const inputData = e.inputBuffer.getChannelData(0);
       const downsampledData = this.downsampleTo16k(inputData, this.inputAudioContext!.sampleRate);
@@ -715,6 +978,10 @@ export class LiveSession {
     if (!this.isAiSpeaking && rawRms >= this.DEAD_AIR_RMS_THRESHOLD) {
       if (!this.userSpeechActive) {
         this.userSpeechStartedAt = now;
+        // Notify realistic mode that agent started speaking
+        if (this.realisticMode?.isEnabled) {
+          this.realisticMode.onAgentStartSpeaking(now);
+        }
       }
       this.userSpeechActive = true;
       this.lastUserNonSilentAt = now;
@@ -738,7 +1005,29 @@ export class LiveSession {
       this.currentState === 'user_speaking' &&
       !this.waitingForModelArmed
     ) {
-      this.completeLocalUserTurn(now, 'silence', now - this.lastUserNonSilentAt);
+      // Route through Turn-Taking Engine if realistic mode is active
+      if (this.realisticMode?.isEnabled) {
+        try {
+          const ttResult = this.realisticMode.evaluateAudioFrame({
+            now,
+            isSilent: rawRms < this.DEAD_AIR_RMS_THRESHOLD,
+            rms: rawRms,
+            sessionState: this.currentState,
+          });
+
+          // Only complete turn if Turn-Taking Engine confirms end-of-turn
+          if (ttResult.action === 'end_of_turn') {
+            this.completeLocalUserTurn(now, 'silence', now - this.lastUserNonSilentAt);
+          }
+          // If suppress_non_speech or extend_threshold, don't complete turn
+        } catch (e) {
+          // Graceful degradation: fall back to existing behavior
+          console.warn('[Telefun] Turn-Taking Engine error, using fallback:', e);
+          this.completeLocalUserTurn(now, 'silence', now - this.lastUserNonSilentAt);
+        }
+      } else {
+        this.completeLocalUserTurn(now, 'silence', now - this.lastUserNonSilentAt);
+      }
     }
 
     const interruption = updateInterruptionGuard(this.interruptionGuardState, {
@@ -768,10 +1057,29 @@ export class LiveSession {
       return;
     }
 
+    // Hold State Manager: skip dead air tracking when engines are suspended
+    if (this.realisticMode?.isEnabled && this.realisticMode.suspendEngines) {
+      this.deadAirStartTime = null;
+      return;
+    }
+
     const now = Date.now();
 
     if (!isSilent) {
       this.deadAirStartTime = null;
+      // Notify realistic mode orchestrator that agent is speaking
+      if (this.realisticMode?.isEnabled && this.userSpeechActive) {
+        const speakingDuration = this.userSpeechStartedAt
+          ? now - this.userSpeechStartedAt
+          : 0;
+        const silenceAction = this.realisticMode.evaluateProlongedSilence({
+          now,
+          agentSpeaking: true,
+          agentAudioDurationMs: speakingDuration,
+          sessionState: this.currentState,
+        });
+        this.handleOrchestratorAction(silenceAction);
+      }
       return;
     }
 
@@ -781,6 +1089,32 @@ export class LiveSession {
     }
 
     const silentDuration = now - this.deadAirStartTime;
+
+    // Use Prolonged Silence Handler in realistic mode
+    if (this.realisticMode?.isEnabled) {
+      try {
+        const silenceAction = this.realisticMode.evaluateProlongedSilence({
+          now,
+          agentSpeaking: false,
+          agentAudioDurationMs: 0,
+          sessionState: this.currentState,
+        });
+        if (silenceAction.type !== 'none') {
+          this.handleOrchestratorAction(silenceAction);
+          if (silenceAction.type === 'inject_prompt') {
+            this.deadAirCount++;
+            this.lastDeadAirPromptTime = now;
+            this.deadAirStartTime = null;
+          }
+          return;
+        }
+      } catch (e) {
+        console.warn('[Telefun] Prolonged Silence Handler error, using fallback:', e);
+        // Fall through to existing behavior
+      }
+    }
+
+    // Existing dead air behavior (fallback or non-realistic mode)
     if (silentDuration >= this.DEAD_AIR_THRESHOLD_MS) {
       if (now - this.lastDeadAirPromptTime >= this.DEAD_AIR_COOLDOWN_MS) {
         this.sendDeadAirPrompt();
@@ -793,6 +1127,12 @@ export class LiveSession {
 
   private trackLongSpeech(isSilent: boolean) {
     if (this.isDisconnected || this.isHeld || this.isMuted || this.isAiSpeaking || !this.session) {
+      this.nonSilentStartTime = null;
+      return;
+    }
+
+    // Hold State Manager: skip long speech tracking when engines are suspended
+    if (this.realisticMode?.isEnabled && this.realisticMode.suspendEngines) {
       this.nonSilentStartTime = null;
       return;
     }
@@ -919,6 +1259,22 @@ export class LiveSession {
     if (inputTranscription?.text) {
       this.inputTranscriptionChunks.push(inputTranscription.text);
       this.emitTimeline('input_transcription_seen', { textLength: inputTranscription.text.length });
+
+      // Feed transcription to realistic mode Turn-Taking Engine for contextual signals
+      if (this.realisticMode?.isEnabled) {
+        try {
+          this.realisticMode.evaluateAudioFrame({
+            now: Date.now(),
+            isSilent: false,
+            rms: this.previousSmoothedVolume,
+            transcriptionChunk: inputTranscription.text,
+            sessionState: this.currentState,
+          });
+        } catch (e) {
+          // Graceful degradation: ignore transcription processing errors
+          console.warn('[Telefun] Realistic mode transcription processing error:', e);
+        }
+      }
     }
 
     const modelTurn = message.serverContent?.modelTurn;
@@ -933,6 +1289,15 @@ export class LiveSession {
         this.transition('recover');
       }
       this.transition('model_first_audio');
+      // Notify realistic mode that model responded
+      if (this.realisticMode?.isEnabled) {
+        this.realisticMode.onModelResponse();
+        // Record Consumer AI response timestamp for consent tracking
+        // when modelTurn contains audio parts (evidence of consumer response)
+        if (modelTurn.parts.some((part) => part.inlineData?.data)) {
+          this.realisticMode.onConsumerResponse(Date.now());
+        }
+      }
       // Process all parts as Gemini 3.1 Flash Live can return multiple parts in one event
       for (const part of modelTurn.parts) {
         if (part.inlineData?.data) {
@@ -957,9 +1322,21 @@ export class LiveSession {
         this.transition('user_turn_end');
         this.stalledResponseState = markWaitingForModel(this.stalledResponseState, Date.now());
         this.waitingForModelArmed = true;
+        // Notify realistic mode that agent stopped speaking
+        if (this.realisticMode?.isEnabled) {
+          this.realisticMode.onAgentStopSpeaking(Date.now());
+        }
       } else if (this.currentState === 'ai_speaking') {
         this.transition('model_turn_complete');
         this.waitingForModelArmed = false;
+        // Notify realistic mode that model turn completed (evaluate disruptions)
+        if (this.realisticMode?.isEnabled) {
+          const lastTranscription = this.inputTranscriptionChunks.length > 0
+            ? this.inputTranscriptionChunks[this.inputTranscriptionChunks.length - 1]
+            : undefined;
+          const disruptionAction = this.realisticMode.onModelTurnComplete(lastTranscription);
+          this.handleOrchestratorAction(disruptionAction);
+        }
       } else if (this.currentState === 'recovering') {
         this.transition('recover');
       }
@@ -970,6 +1347,9 @@ export class LiveSession {
 
   private async playAudioChunk(base64: string) {
     if (!this.outputAudioContext || this.isDisconnected || this.isHeld) return;
+
+    // Hold State Manager: suppress Gemini audio playback when hold is active
+    if (this.realisticMode?.isEnabled && this.realisticMode.suppressGeminiAudio) return;
 
     try {
       const pcmData = this.base64ToUint8Array(base64);
@@ -1035,6 +1415,7 @@ export class LiveSession {
     this.emitTimeline('disconnect', { reason });
     this.stopStalledWatchdog();
     this.clearSetupTimeout();
+    this.stopRealisticModeTimers();
 
     // === INSERT: Stop recorders FIRST (before any node/context teardown) ===
     try { if (this.mediaRecorder?.state === 'recording') this.mediaRecorder.stop(); } catch(_) {}

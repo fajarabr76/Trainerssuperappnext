@@ -22,6 +22,11 @@ export interface TelefunHistoryRecord {
   feedback: string | null;
   voice_assessment?: VoiceQualityAssessment | null;
   session_metrics?: SessionMetrics | null;
+  realistic_mode_enabled?: boolean;
+  voice_dashboard_metrics?: any;
+  persona_config?: any;
+  disruption_config?: any;
+  disruption_results?: any;
   created_at: string;
 }
 
@@ -77,7 +82,7 @@ export async function loadTelefunHistory(): Promise<{ success: boolean; records?
   // Try selecting all columns first
   const { data, error } = await supabase
     .from('telefun_history')
-    .select('id, date, scenario_title, consumer_name, consumer_phone, consumer_city, duration, recording_url, recording_path, agent_recording_path, score, feedback, voice_assessment, session_metrics, created_at')
+    .select('id, date, scenario_title, consumer_name, consumer_phone, consumer_city, duration, recording_url, recording_path, agent_recording_path, score, feedback, voice_assessment, session_metrics, realistic_mode_enabled, voice_dashboard_metrics, persona_config, disruption_config, disruption_results, created_at')
     .eq('user_id', user.id)
     .order('date', { ascending: false });
 
@@ -132,6 +137,11 @@ export async function loadTelefunHistory(): Promise<{ success: boolean; records?
       feedback: row.feedback,
       voice_assessment: row.voice_assessment,
       session_metrics: row.session_metrics,
+      realistic_mode_enabled: row.realistic_mode_enabled,
+      voice_dashboard_metrics: row.voice_dashboard_metrics,
+      persona_config: row.persona_config,
+      disruption_config: row.disruption_config,
+      disruption_results: row.disruption_results,
       created_at: row.created_at,
     })),
   };
@@ -262,6 +272,11 @@ export async function persistTelefunSession(params: {
   score: number;
   feedback: string;
   sessionMetrics?: SessionMetrics;
+  /** Realistic mode fields */
+  realisticModeEnabled?: boolean;
+  personaConfig?: Record<string, unknown> | null;
+  disruptionConfig?: string[] | null;
+  disruptionResults?: Record<string, unknown>[] | null;
 }): Promise<PersistTelefunSessionResult> {
   const supabase = await createClient();
 
@@ -283,6 +298,14 @@ export async function persistTelefunSession(params: {
     feedback: params.feedback,
     session_metrics: params.sessionMetrics || null,
   };
+
+  // Add realistic mode fields if enabled
+  if (params.realisticModeEnabled) {
+    sessionData.realistic_mode_enabled = true;
+    if (params.personaConfig) sessionData.persona_config = params.personaConfig;
+    if (params.disruptionConfig) sessionData.disruption_config = params.disruptionConfig;
+    if (params.disruptionResults) sessionData.disruption_results = params.disruptionResults;
+  }
 
   let { data: historyData, error: historyError } = await supabase
     .from('telefun_history')

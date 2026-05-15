@@ -78,6 +78,11 @@ export default function TelefunClient() {
           feedback: r.feedback ?? undefined,
           voiceAssessment: r.voice_assessment,
           sessionMetrics: r.session_metrics,
+          realisticModeEnabled: r.realistic_mode_enabled,
+          voiceDashboardMetrics: r.voice_dashboard_metrics,
+          personaConfig: r.persona_config,
+          disruptionConfig: r.disruption_config,
+          disruptionResults: r.disruption_results,
         }));
       }
 
@@ -153,6 +158,10 @@ export default function TelefunClient() {
       maxCallDuration: settings.maxCallDuration,
       telefunTransport: settings.telefunTransport,
       telefunModelId: settings.telefunModelId,
+      realisticModeEnabled: settings.realisticModeEnabled || false,
+      realisticModeDisruptionTypes: settings.realisticModeEnabled
+        ? (settings.realisticModeDisruptionTypes || [])
+        : undefined,
     };
     setActiveSessionConfig(sessionConfig);
 
@@ -242,6 +251,13 @@ export default function TelefunClient() {
           score,
           feedback,
           sessionMetrics: metrics,
+          realisticModeEnabled: sessionConfig.realisticModeEnabled,
+          personaConfig: sessionConfig.realisticModeEnabled
+            ? { personaType: sessionConfig.consumerType.name, initialIntensity: 5, finalIntensity: 5 }
+            : null,
+          disruptionConfig: sessionConfig.realisticModeEnabled
+            ? (sessionConfig.realisticModeDisruptionTypes || null)
+            : null,
         });
 
         if (result.success && result.session) {
@@ -325,6 +341,7 @@ export default function TelefunClient() {
             feedback: result.session!.feedback || undefined,
             voiceAssessment: result.session!.voice_assessment,
             sessionMetrics: result.session!.session_metrics,
+            realisticModeEnabled: sessionConfig.realisticModeEnabled,
           };
 
           setRecordings(prev => {
