@@ -82,6 +82,7 @@ describe('Public Data API Grants static contract tests', () => {
       'refresh_qa_dashboard_summary_for_period',
       'submit_pdkt_mailbox_batch',
       'submit_pdkt_mailbox_reply',
+      'upsert_telefun_coaching_summary',
     ].sort();
 
     expect(Array.from(rpcs).sort()).toEqual(expectedRpcs);

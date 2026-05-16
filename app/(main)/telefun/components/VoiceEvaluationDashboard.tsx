@@ -23,6 +23,7 @@ export interface VoiceDashboardProps {
   metrics: VoiceDashboardMetrics | null;
   isLoading: boolean;
   error?: string;
+  notice?: string;
   onRetry: () => void;
 }
 
@@ -196,7 +197,7 @@ function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) 
   );
 }
 
-function EmptyState() {
+function EmptyState({ notice }: { notice?: string }) {
   return (
     <div
       className="rounded-2xl border border-dashed border-slate-950/10 bg-slate-950/5 p-6 text-center dark:border-white/10 dark:bg-white/5"
@@ -207,7 +208,7 @@ function EmptyState() {
         Metrik Suara Tidak Tersedia
       </h3>
       <p className="text-sm text-slate-500 dark:text-white/55">
-        Metrik suara tidak dapat dihitung karena sesi terlalu singkat (kurang dari 15 detik) atau rekaman audio tidak tersedia.
+        {notice || 'Metrik suara tidak dapat dihitung karena sesi terlalu singkat (kurang dari 15 detik) atau rekaman audio tidak tersedia.'}
       </p>
     </div>
   );
@@ -222,6 +223,7 @@ export const VoiceEvaluationDashboard: React.FC<VoiceDashboardProps> = ({
   metrics,
   isLoading,
   error,
+  notice,
   onRetry,
 }) => {
   if (isLoading) {
@@ -233,7 +235,7 @@ export const VoiceEvaluationDashboard: React.FC<VoiceDashboardProps> = ({
   }
 
   if (!metrics) {
-    return <EmptyState />;
+    return <EmptyState notice={notice} />;
   }
 
   const clarityColor = getSpeechClarityColor(metrics.speechClarity);

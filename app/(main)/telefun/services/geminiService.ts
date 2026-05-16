@@ -160,6 +160,7 @@ export class LiveSession {
   private realisticModeConfig: RealisticModeConfig | null = null;
   private realisticFallbackTimer: ReturnType<typeof setInterval> | null = null;
   private realisticBackchannelTimer: ReturnType<typeof setInterval> | null = null;
+  private responseDelayTimerRef: ReturnType<typeof setTimeout> | null = null;
 
   // Calibration parameters for volume indicator
   private readonly VOLUME_NOISE_FLOOR = 0.005;
@@ -218,6 +219,7 @@ export class LiveSession {
   private interruptionCount = 0;
   private volumeSamples: number[] = [];
   private inputTranscriptionChunks: string[] = [];
+  private currentTurnTranscription: string | null = null;
   private sessionStartTime: number = 0;
   private readonly MAX_PERSISTED_VOLUME_SAMPLES = 600;
   private readonly MAX_PERSISTED_INPUT_TRANSCRIPTION_CHUNKS = 100;
@@ -404,6 +406,10 @@ export class LiveSession {
     if (this.realisticBackchannelTimer) {
       clearInterval(this.realisticBackchannelTimer);
       this.realisticBackchannelTimer = null;
+    }
+    if (this.responseDelayTimerRef) {
+      clearTimeout(this.responseDelayTimerRef);
+      this.responseDelayTimerRef = null;
     }
   }
 
@@ -985,6 +991,10 @@ export class LiveSession {
       }
       this.userSpeechActive = true;
       this.lastUserNonSilentAt = now;
+      if (this.responseDelayTimerRef) {
+        clearTimeout(this.responseDelayTimerRef);
+        this.responseDelayTimerRef = null;
+      }
       if (this.currentState === 'ready') {
         this.transition('user_audio_valid');
       }
@@ -1017,7 +1027,17 @@ export class LiveSession {
 
           // Only complete turn if Turn-Taking Engine confirms end-of-turn
           if (ttResult.action === 'end_of_turn') {
-            this.completeLocalUserTurn(now, 'silence', now - this.lastUserNonSilentAt);
+            // Enforce response delay if set
+            if (ttResult.responseDelayUntil && Date.now() < ttResult.responseDelayUntil) {
+              if (!this.responseDelayTimerRef) {
+                this.responseDelayTimerRef = setTimeout(() => {
+                  this.responseDelayTimerRef = null;
+                  this.completeLocalUserTurn(Date.now(), 'silence', Date.now() - this.lastUserNonSilentAt!);
+                }, ttResult.responseDelayUntil - Date.now());
+              }
+            } else {
+              this.completeLocalUserTurn(now, 'silence', now - this.lastUserNonSilentAt);
+            }
           }
           // If suppress_non_speech or extend_threshold, don't complete turn
         } catch (e) {
@@ -1258,6 +1278,9 @@ export class LiveSession {
     const inputTranscription = message.serverContent?.inputTranscription;
     if (inputTranscription?.text) {
       this.inputTranscriptionChunks.push(inputTranscription.text);
+      this.currentTurnTranscription = this.currentTurnTranscription
+        ? this.currentTurnTranscription + ' ' + inputTranscription.text
+        : inputTranscription.text;
       this.emitTimeline('input_transcription_seen', { textLength: inputTranscription.text.length });
 
       // Feed transcription to realistic mode Turn-Taking Engine for contextual signals
@@ -1279,6 +1302,8 @@ export class LiveSession {
 
     const modelTurn = message.serverContent?.modelTurn;
     if (modelTurn?.parts) {
+      this.isAiSpeaking = true;
+      this.onAiSpeaking?.(true);
       if (!this.hasSeenFirstModelAudio) {
         this.hasSeenFirstModelAudio = true;
         this.emitTimeline('first_model_audio_chunk');
@@ -1311,14 +1336,22 @@ export class LiveSession {
       this.stopAllAudio();
       this.isAiSpeaking = false;
       this.onAiSpeaking?.(false);
+      this.currentTurnTranscription = null;
     }
 
-    if (modelTurn) {
-      this.isAiSpeaking = true;
-      this.onAiSpeaking?.(true);
-    } else if (message.serverContent?.turnComplete) {
+    if (message.serverContent?.turnComplete) {
       this.emitTimeline('turn_complete_received');
+      const turnTranscription = this.currentTurnTranscription ?? undefined;
       if (this.currentState === 'user_speaking') {
+        // Classify agent's short response for hold-consent tracking
+        if (this.realisticMode?.isEnabled) {
+          const speakingMs = this.userSpeechStartedAt
+            ? Date.now() - this.userSpeechStartedAt
+            : 0;
+          if (turnTranscription && speakingMs < 3000) {
+            this.realisticMode.classifyAgentResponse(turnTranscription, speakingMs);
+          }
+        }
         this.transition('user_turn_end');
         this.stalledResponseState = markWaitingForModel(this.stalledResponseState, Date.now());
         this.waitingForModelArmed = true;
@@ -1331,14 +1364,13 @@ export class LiveSession {
         this.waitingForModelArmed = false;
         // Notify realistic mode that model turn completed (evaluate disruptions)
         if (this.realisticMode?.isEnabled) {
-          const lastTranscription = this.inputTranscriptionChunks.length > 0
-            ? this.inputTranscriptionChunks[this.inputTranscriptionChunks.length - 1]
-            : undefined;
-          const disruptionAction = this.realisticMode.onModelTurnComplete(lastTranscription);
+          const disruptionAction = this.realisticMode.onModelTurnComplete(turnTranscription);
           this.handleOrchestratorAction(disruptionAction);
         }
+        this.currentTurnTranscription = null;
       } else if (this.currentState === 'recovering') {
         this.transition('recover');
+        this.currentTurnTranscription = null;
       }
       this.isAiSpeaking = false;
       this.onAiSpeaking?.(false);
@@ -1512,6 +1544,7 @@ export class LiveSession {
     this.interruptionCount = 0;
     this.volumeSamples = [];
     this.inputTranscriptionChunks = [];
+    this.currentTurnTranscription = null;
     this.sessionStartTime = Date.now();
 
     // Hoist MIME type before both try blocks

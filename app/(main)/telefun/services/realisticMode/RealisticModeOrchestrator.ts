@@ -322,14 +322,14 @@ export class RealisticModeOrchestrator {
     transcriptionChunk?: string;
     pitchHz?: number;
     sessionState: TelefunSessionState;
-  }): { action: TurnTakingAction; silenceThresholdMs: number; confidence: number } {
+  }): { action: TurnTakingAction; silenceThresholdMs: number; confidence: number; responseDelayUntil: number | null } {
     if (!this.enabled) {
-      return { action: 'none', silenceThresholdMs: 1500, confidence: 0 };
+      return { action: 'none', silenceThresholdMs: 1500, confidence: 0, responseDelayUntil: null };
     }
 
     // Hold State Manager: suspend Turn-Taking Engine during hold
     if (this._suspendEngines) {
-      return { action: 'none', silenceThresholdMs: 1500, confidence: 0 };
+      return { action: 'none', silenceThresholdMs: 1500, confidence: 0, responseDelayUntil: null };
     }
 
     try {
@@ -359,11 +359,12 @@ export class RealisticModeOrchestrator {
         action: result.action,
         silenceThresholdMs: result.silenceThresholdMs,
         confidence: result.confidence,
+        responseDelayUntil: result.state.responseDelayUntil,
       };
     } catch (e) {
       console.warn('[RealisticMode] Turn-Taking Engine error:', e);
       // Graceful degradation: return no action, let existing behavior handle it
-      return { action: 'none', silenceThresholdMs: 1500, confidence: 0 };
+      return { action: 'none', silenceThresholdMs: 1500, confidence: 0, responseDelayUntil: null };
     }
   }
 

@@ -24,7 +24,7 @@ import {
   validateRecommendations,
   isValidAnnotation,
   isValidManualAnnotationText,
-} from '@/app/actions/replayAnnotation';
+} from '@/app/actions/replayAnnotationHelpers';
 import type {
   AnnotationCategory,
   AnnotationMoment,

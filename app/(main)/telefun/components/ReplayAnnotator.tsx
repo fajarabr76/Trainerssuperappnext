@@ -557,6 +557,9 @@ export const ReplayAnnotator: React.FC<ReplayAnnotatorProps> = ({
     return (
       <div className="space-y-4" aria-label="Replay Annotator">
         <ErrorState error={error} onRetry={onRetry} />
+        {recommendations.length > 0 && (
+          <CoachingRecommendationsSection recommendations={recommendations} />
+        )}
         {/* Still allow manual annotations even when AI fails */}
         <ManualAnnotationForm onSubmit={handleAddAnnotation} isSubmitting={isSubmitting} />
         {annotations.length > 0 && (
@@ -573,7 +576,7 @@ export const ReplayAnnotator: React.FC<ReplayAnnotatorProps> = ({
         <LoadingState />
         {/* Render annotations incrementally as they arrive */}
         <AnimatePresence>
-          {annotations.length > 0 && (
+          {(annotations.length > 0 || recommendations.length > 0) && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

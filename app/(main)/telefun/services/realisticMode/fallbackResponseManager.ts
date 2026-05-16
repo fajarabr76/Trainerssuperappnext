@@ -339,11 +339,6 @@ export function evaluateFallback(
   const cooldownMs = input.cooldownMs ?? DEFAULT_COOLDOWN_MS;
   const nextState = { ...state };
 
-  // Session is paused — do nothing
-  if (state.sessionPaused) {
-    return { state: nextState, action: 'none' };
-  }
-
   // If the model is now speaking (valid response received), reset counter
   if (
     input.sessionState === 'ai_speaking' &&
@@ -351,7 +346,13 @@ export function evaluateFallback(
   ) {
     nextState.consecutiveFailures = 0;
     nextState.waitingSince = null;
+    nextState.sessionPaused = false;
     return { state: nextState, action: 'reset_counter' };
+  }
+
+  // Session is paused — do nothing
+  if (state.sessionPaused) {
+    return { state: nextState, action: 'none' };
   }
 
   // Agent is currently speaking — no fallback

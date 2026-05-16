@@ -7,6 +7,13 @@ import { Type } from '@google/genai';
 import { VOICE_ASSESSMENT_MODEL } from '@/app/lib/ai-models';
 import { isValidRecordingPath } from '@/app/(main)/telefun/recordingPath';
 import { runWithVoiceAssessmentTimeout } from '@/app/actions/voiceAssessmentTimeout';
+import {
+  MAX_MANUAL_ANNOTATION_CHARS,
+  truncateAnnotationsByPriority,
+  validateRecommendations,
+  isValidAnnotation,
+  isValidManualAnnotationText,
+} from './replayAnnotationHelpers';
 import type {
   AnnotationCategory,
   AnnotationMoment,
@@ -15,140 +22,7 @@ import type {
   CoachingRecommendation,
 } from '@/app/(main)/telefun/services/realisticMode/types';
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const MAX_ANNOTATIONS = 30;
-const MAX_RECOMMENDATIONS = 5;
-const MAX_RECOMMENDATION_CHARS = 200;
-const MAX_MANUAL_ANNOTATION_CHARS = 500;
 const MAX_RETRIES = 3;
-
-/** Priority order for truncation: higher priority categories are kept first. */
-const CATEGORY_PRIORITY: AnnotationCategory[] = [
-  'critical_moment',
-  'improvement_area',
-  'strength',
-  'technique_used',
-];
-
-const VALID_CATEGORIES: AnnotationCategory[] = [
-  'strength',
-  'improvement_area',
-  'critical_moment',
-  'technique_used',
-];
-
-const VALID_MOMENTS: AnnotationMoment[] = [
-  'missed_empathy',
-  'good_de_escalation',
-  'long_pause',
-  'interruption',
-  'technique_usage',
-];
-
-// ---------------------------------------------------------------------------
-// Exported helper functions (for testing)
-// ---------------------------------------------------------------------------
-
-/**
- * Truncates annotations to MAX_ANNOTATIONS by priority.
- * Priority order: critical_moment > improvement_area > strength > technique_used.
- * Within the same category, earlier annotations (by timestampMs) are kept.
- */
-export async function truncateAnnotationsByPriority(
-  annotations: ReplayAnnotation[]
-): Promise<ReplayAnnotation[]> {
-  if (annotations.length <= MAX_ANNOTATIONS) return annotations;
-
-  // Group by category
-  const grouped = new Map<AnnotationCategory, ReplayAnnotation[]>();
-  for (const cat of CATEGORY_PRIORITY) {
-    grouped.set(cat, []);
-  }
-  for (const ann of annotations) {
-    const list = grouped.get(ann.category);
-    if (list) {
-      list.push(ann);
-    }
-  }
-
-  // Sort each group by timestampMs (ascending)
-  for (const cat of CATEGORY_PRIORITY) {
-    const list = grouped.get(cat);
-    if (list) {
-      list.sort((a, b) => a.timestampMs - b.timestampMs);
-    }
-  }
-
-  // Fill result in priority order until we reach MAX_ANNOTATIONS
-  const result: ReplayAnnotation[] = [];
-  for (const cat of CATEGORY_PRIORITY) {
-    const list = grouped.get(cat) ?? [];
-    for (const ann of list) {
-      if (result.length >= MAX_ANNOTATIONS) break;
-      result.push(ann);
-    }
-    if (result.length >= MAX_ANNOTATIONS) break;
-  }
-
-  // Sort final result by timestampMs for timeline display
-  return result.sort((a, b) => a.timestampMs - b.timestampMs);
-}
-
-/**
- * Validates and constrains coaching recommendations.
- * - Max 5 recommendations
- * - Each text max 200 chars (truncated if over)
- * - Priority clamped to 1-5
- */
-export async function validateRecommendations(
-  recommendations: CoachingRecommendation[]
-): Promise<CoachingRecommendation[]> {
-  return recommendations
-    .slice(0, MAX_RECOMMENDATIONS)
-    .map((rec) => {
-      const rounded = Math.round(rec.priority);
-      const safePriority = Number.isNaN(rounded) ? 1 : rounded;
-      return {
-        text: rec.text.slice(0, MAX_RECOMMENDATION_CHARS),
-        priority: Math.max(1, Math.min(5, safePriority)),
-      };
-    });
-}
-
-/**
- * Validates a single annotation's fields.
- * Returns true if the annotation has valid category, moment, and text length.
- */
-export async function isValidAnnotation(annotation: {
-  category?: string;
-  moment?: string;
-  text?: string;
-  timestampMs?: number;
-}): Promise<boolean> {
-  if (!annotation.category || !VALID_CATEGORIES.includes(annotation.category as AnnotationCategory)) {
-    return false;
-  }
-  if (!annotation.moment || !VALID_MOMENTS.includes(annotation.moment as AnnotationMoment)) {
-    return false;
-  }
-  if (!annotation.text || typeof annotation.text !== 'string') {
-    return false;
-  }
-  if (typeof annotation.timestampMs !== 'number' || annotation.timestampMs < 0) {
-    return false;
-  }
-  return true;
-}
-
-/**
- * Validates manual annotation text length constraint.
- */
-export async function isValidManualAnnotationText(text: string): Promise<boolean> {
-  return typeof text === 'string' && text.length > 0 && text.length <= MAX_MANUAL_ANNOTATION_CHARS;
-}
 
 // ---------------------------------------------------------------------------
 // Gemini response schema
@@ -216,29 +90,90 @@ export async function generateReplayAnnotations(
     return { success: false, error: 'Session not found' };
   }
 
-  // 3. Check recording availability
+  // 3. Return persisted replay data first to avoid duplicate generation
+  const { data: existingAnnotations, error: replayError } = await admin
+    .from('telefun_replay_annotations')
+    .select('id, session_id, user_id, timestamp_ms, category, moment, text, is_manual, created_at')
+    .eq('session_id', sessionId)
+    .eq('user_id', user.id);
+
+  if (replayError) {
+    console.error('[ReplayAnnotator] Failed to read persisted annotations:', replayError);
+    return { success: false, error: 'Gagal membaca data anotasi. Silakan coba lagi.' };
+  }
+
+  const { data: existingSummary, error: summaryReadError } = await admin
+    .from('telefun_coaching_summary')
+    .select('id, recommendations')
+    .eq('session_id', sessionId)
+    .maybeSingle();
+
+  if (summaryReadError) {
+    console.error('[ReplayAnnotator] Failed to read coaching summary:', summaryReadError);
+    return { success: false, error: 'Gagal membaca data rekomendasi. Silakan coba lagi.' };
+  }
+
+  const allPersistedAnnotations = (existingAnnotations ?? []).map((a) => ({
+    id: a.id,
+    timestampMs: a.timestamp_ms,
+    category: a.category as AnnotationCategory,
+    moment: a.moment as AnnotationMoment,
+    text: a.text,
+    isManual: a.is_manual,
+  }));
+  const persistedSummary = Array.isArray(existingSummary?.recommendations)
+    ? (existingSummary.recommendations as CoachingRecommendation[])
+    : null;
+
+  // Separate AI-generated from manual annotations for recovery logic
+  const aiAnnotations = allPersistedAnnotations.filter((a) => !a.isManual);
+  const manualAnnotations = allPersistedAnnotations.filter((a) => a.isManual);
+  const hasPersistedAIAnnotations = aiAnnotations.length > 0;
+  const hasPersistedSummary = persistedSummary !== null;
+  const hasAnyPersistedData = allPersistedAnnotations.length > 0 || hasPersistedSummary;
+
+  // Only short-circuit when BOTH AI annotations and summary are complete
+  if (hasPersistedAIAnnotations && hasPersistedSummary) {
+    return { success: true, result: { annotations: allPersistedAnnotations, summary: persistedSummary } };
+  }
+
+  // 4. Check recording availability
   const recordingPath = row.recording_path as string | null;
+
+  // If we have persisted AI annotations, fall back to them when regeneration is impossible
+  const fallbackOnRegenFailure = (regenError: string) => {
+    if (hasAnyPersistedData) {
+      console.warn('[ReplayAnnotator] Regeneration failed, returning persisted data:', regenError);
+      return {
+        success: false as const,
+        error: regenError,
+        result: { annotations: allPersistedAnnotations, summary: persistedSummary ?? [] },
+      };
+    }
+    return { success: false as const, error: regenError };
+  };
+
   if (!recordingPath) {
-    return { success: false, error: 'Rekaman sesi tidak tersedia untuk anotasi.' };
+    return fallbackOnRegenFailure('Rekaman sesi tidak tersedia untuk anotasi.');
   }
 
   // Validate path ownership
   if (!isValidRecordingPath(recordingPath, user.id, sessionId, 'full_call')) {
-    return { success: false, error: 'Invalid recording path for this session' };
+    return fallbackOnRegenFailure('Invalid recording path for this session');
   }
 
-  // 4. Download recording from Supabase storage
+  // 5. Download recording from Supabase storage
   const { data: audioData, error: downloadError } = await admin.storage
     .from('telefun-recordings')
     .download(recordingPath);
 
   if (downloadError || !audioData) {
-    return { success: false, error: 'Gagal mengunduh rekaman. Silakan coba lagi.' };
+    return fallbackOnRegenFailure('Gagal mengunduh rekaman. Silakan coba lagi.');
   }
 
   const base64Audio = Buffer.from(await audioData.arrayBuffer()).toString('base64');
 
-  // 5. Call Gemini with retry on invalid JSON (exponential backoff)
+  // 6. Call Gemini with retry on invalid JSON (exponential backoff)
   const prompt = `
     Analisis rekaman percakapan simulasi telemarketing/customer service berikut.
     Skenario: ${row.scenario_title ?? 'Simulasi Telefun'}
@@ -336,7 +271,7 @@ export async function generateReplayAnnotations(
           }));
 
         // Truncate by priority if exceeds max
-        const truncatedAnnotations = await truncateAnnotationsByPriority(validAnnotations);
+        const truncatedAnnotations = truncateAnnotationsByPriority(validAnnotations);
 
         // Validate recommendations
         const validRecommendations: CoachingRecommendation[] = parsed.recommendations
@@ -346,10 +281,16 @@ export async function generateReplayAnnotations(
             priority: rec.priority!,
           }));
 
-        const constrainedRecommendations = await validateRecommendations(validRecommendations);
+        const constrainedRecommendations = validateRecommendations(validRecommendations);
+
+        const finalAnnotations = hasPersistedAIAnnotations
+          ? [...manualAnnotations, ...aiAnnotations]
+          : [...manualAnnotations, ...truncatedAnnotations];
+        const finalSummary = hasPersistedSummary ? persistedSummary : constrainedRecommendations;
+        let persistenceFailed = false;
 
         // 6. Persist annotations to telefun_replay_annotations
-        if (truncatedAnnotations.length > 0) {
+        if (!hasPersistedAIAnnotations && truncatedAnnotations.length > 0) {
           const annotationRows = truncatedAnnotations.map((ann) => ({
             session_id: sessionId,
             user_id: user.id,
@@ -366,12 +307,12 @@ export async function generateReplayAnnotations(
 
           if (insertError) {
             console.warn('[ReplayAnnotator] Failed to persist annotations:', insertError);
-            // Continue - we can still return the result even if persistence fails
+            persistenceFailed = true;
           }
         }
 
         // 7. Persist recommendations via upsert_telefun_coaching_summary RPC
-        if (constrainedRecommendations.length > 0) {
+        if (!hasPersistedSummary) {
           const { error: rpcError } = await admin.rpc('upsert_telefun_coaching_summary', {
             p_session_id: sessionId,
             p_recommendations: constrainedRecommendations,
@@ -379,14 +320,23 @@ export async function generateReplayAnnotations(
 
           if (rpcError) {
             console.warn('[ReplayAnnotator] Failed to persist coaching summary:', rpcError);
+            persistenceFailed = true;
           }
         }
 
         // 8. Return result
         const result: ReplayAnnotationResult = {
-          annotations: truncatedAnnotations,
-          summary: constrainedRecommendations,
+          annotations: finalAnnotations,
+          summary: finalSummary,
         };
+
+        if (persistenceFailed) {
+          return {
+            success: false,
+            error: 'Sebagian hasil analisis gagal disimpan. Silakan coba lagi.',
+            result,
+          };
+        }
 
         return { success: true, result };
       } catch (err) {
@@ -424,10 +374,7 @@ export async function generateReplayAnnotations(
     );
   }
 
-  return {
-    success: false,
-    error: lastError || 'Gagal menghasilkan anotasi. Silakan coba lagi.',
-  };
+  return fallbackOnRegenFailure(lastError || 'Gagal menghasilkan anotasi. Silakan coba lagi.');
 }
 
 // ---------------------------------------------------------------------------
