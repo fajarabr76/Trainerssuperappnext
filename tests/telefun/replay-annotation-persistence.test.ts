@@ -44,6 +44,9 @@ function createEqChainBuilder(result: QueryResult) {
     eq() {
       return builder;
     },
+    order() {
+      return builder;
+    },
     maybeSingle() {
       return Promise.resolve(result);
     },
@@ -60,6 +63,9 @@ function createEqChainBuilder(result: QueryResult) {
 function createEqBuilder(result: QueryResult) {
   const builder = {
     eq() {
+      return builder;
+    },
+    order() {
       return builder;
     },
     then(onfulfilled?: (value: QueryResult) => any) {
@@ -776,5 +782,104 @@ describe('generateReplayAnnotations partial persistence recovery', () => {
       p_ai_annotation_count: null,
       p_ai_annotation_checksum: null,
     });
+  });
+
+  it('returns annotations sorted by timestampMs even if DB or Gemini returns them unsorted', async () => {
+    const unsortedAnnotations = [
+      {
+        id: 'ann-2',
+        timestamp_ms: 2000,
+        category: 'improvement_area',
+        moment: 'long_pause',
+        text: 'Later moment',
+        is_manual: false,
+      },
+      {
+        id: 'ann-1',
+        timestamp_ms: 500,
+        category: 'strength',
+        moment: 'good_de_escalation',
+        text: 'Earlier moment',
+        is_manual: false,
+      },
+    ];
+    const { admin } = createAdminClient({
+      sessionRow: {
+        id: 'session-1',
+        user_id: 'user-1',
+        scenario_title: 'Test scenario',
+        recording_path: 'telefun-recordings/user-1/session-1/full_call.webm',
+        session_metrics: null,
+      },
+      existingAnnotations: unsortedAnnotations,
+      existingSummary: {
+        id: 'summary-1',
+        recommendations: [],
+        ai_annotation_count: 2,
+        ai_annotation_checksum: createReplayAnnotationChecksum(
+          unsortedAnnotations.map((a) => ({
+            timestampMs: a.timestamp_ms,
+            category: a.category as any,
+            moment: a.moment as any,
+            text: a.text,
+            isManual: a.is_manual,
+          }))
+        ),
+      },
+    });
+    createAdminClientMock.mockReturnValue(admin);
+
+    const result = await generateReplayAnnotations('session-1');
+
+    expect(result.success).toBe(true);
+    expect(result.result?.annotations[0].timestampMs).toBe(500);
+    expect(result.result?.annotations[1].timestampMs).toBe(2000);
+  });
+
+  it('maintains stable sort for manual and AI annotations with same timestamp', async () => {
+    const existingAnnotations = [
+      {
+        id: 'manual-1',
+        timestamp_ms: 1000,
+        category: 'strength',
+        moment: 'good_de_escalation',
+        text: 'Manual note at 1s',
+        is_manual: true,
+      },
+    ];
+    const { admin } = createAdminClient({
+      sessionRow: {
+        id: 'session-1',
+        user_id: 'user-1',
+        scenario_title: 'Test scenario',
+        recording_path: 'telefun-recordings/user-1/session-1/full_call.webm',
+        session_metrics: null,
+      },
+      existingAnnotations,
+      existingSummary: null,
+    });
+    createAdminClientMock.mockReturnValue(admin);
+    generateGeminiContentMock.mockResolvedValue({
+      success: true,
+      text: JSON.stringify({
+        annotations: [
+          {
+            timestampMs: 1000,
+            category: 'critical_moment',
+            moment: 'interruption',
+            text: 'AI note at 1s',
+          },
+        ],
+        recommendations: [],
+      }),
+    });
+
+    const result = await generateReplayAnnotations('session-1');
+
+    expect(result.success).toBe(true);
+    // Manual first because finalAnnotations = [...manualAnnotations, ...truncatedAnnotations]
+    // and timestampMs is the same, so stable sort preserves original order.
+    expect(result.result?.annotations[0].isManual).toBe(true);
+    expect(result.result?.annotations[1].isManual).toBe(false);
   });
 });

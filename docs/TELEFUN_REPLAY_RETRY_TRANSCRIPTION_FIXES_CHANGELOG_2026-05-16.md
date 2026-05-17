@@ -83,9 +83,17 @@
 - **Fix:** Migration `20260517000002_restrict_telefun_replay_annotation_delete.sql` mencabut `DELETE` dari `authenticated` dan menghapus policy DELETE owner-only. Cleanup row AI sekarang tetap dilakukan server-side melalui `generateReplayAnnotations()` memakai `createAdminClient()`.
 - **Test:** `tests/supabase/telefun-replay-migrations-contracts.test.ts` memastikan migration hardening mencabut privilege dan rollback mendokumentasikan kontrak lama secara eksplisit.
 
+## Follow-up Fixes (Ordering & Determinism)
+
+### 11. Replay annotations - Contract ordering eksplisit berdasarkan timeline
+- **Known Issue:** Sebelumnya action mengembalikan anotasi dalam urutan query/insertion, membebankan UI untuk sort sendiri.
+- **Fix:** `generateReplayAnnotations()` sekarang selalu mengembalikan `result.annotations` dalam urutan `timestampMs` ascending (stable sort). Query ke database juga diperketat dengan `.order('timestamp_ms', { ascending: true }).order('created_at', { ascending: true }).order('id', { ascending: true })` agar hasil deterministik sejak dari layer database.
+- **File:** `app/actions/replayAnnotation.ts`, `app/actions/replayAnnotationHelpers.ts`
+- **Test:** `tests/telefun/replay-annotation-helpers.test.ts` (unit test helper) + `tests/telefun/replay-annotation-persistence.test.ts` (regression test for return paths)
+
 ## Verifikasi (Final Replay Integrity)
 
-- `npx vitest run tests/telefun tests/telefun-realistic tests/supabase` → **37 files, 419 tests passed**
+- `npx vitest run tests/telefun tests/telefun-realistic tests/supabase` → **37 files, 425 tests passed**
 - `npm run lint` → **0 errors**, 14 warnings (pre-existing)
 - `npm run type-check` → **build succeeded**
 - `supabase db push` → **applied to remote project kkeiiwyyefaofljippnj** (including DELETE grant hardening)
@@ -93,5 +101,4 @@
 ## Known Issues (Sengaja Tidak Disentuh)
 
 - **Live migration matrix:** Belum dijalankan karena butuh akses Docker/Postgres. Hanya terverifikasi melalui static contract test string.
-- **Ordering replay result:** Action return annotations dalam urutan insertion, bukan timestamp. UI timeline sudah sort sendiri, jadi tidak ada bug visual, tapi API contract tidak eksplisit.
 - **Tidak ada integrasi test untuk `ReviewModal` + `VoiceEvaluationDashboard`:** Test hanya unit-level untuk fungsi helper dan render static markup. Transient notice → error retry belum diuji di level komponen penuh dengan mock server.

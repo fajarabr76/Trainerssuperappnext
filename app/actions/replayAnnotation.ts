@@ -15,6 +15,7 @@ import {
   isValidManualAnnotationText,
   createReplayAnnotationChecksum,
   hasCompleteAiAnnotationSet,
+  sortReplayAnnotationsByTimestamp,
 } from './replayAnnotationHelpers';
 import type {
   AnnotationCategory,
@@ -97,7 +98,10 @@ export async function generateReplayAnnotations(
     .from('telefun_replay_annotations')
     .select('id, session_id, user_id, timestamp_ms, category, moment, text, is_manual, created_at')
     .eq('session_id', sessionId)
-    .eq('user_id', user.id);
+    .eq('user_id', user.id)
+    .order('timestamp_ms', { ascending: true })
+    .order('created_at', { ascending: true })
+    .order('id', { ascending: true });
 
   if (replayError) {
     console.error('[ReplayAnnotator] Failed to read persisted annotations:', replayError);
@@ -144,7 +148,13 @@ export async function generateReplayAnnotations(
 
   // Only short-circuit when BOTH AI annotations and summary are complete
   if (hasCompletePersistedAIAnnotations) {
-    return { success: true, result: { annotations: allPersistedAnnotations, summary: persistedSummary } };
+    return {
+      success: true,
+      result: {
+        annotations: sortReplayAnnotationsByTimestamp(allPersistedAnnotations),
+        summary: persistedSummary,
+      },
+    };
   }
 
   // 4. Check recording availability
@@ -157,7 +167,10 @@ export async function generateReplayAnnotations(
       return {
         success: false as const,
         error: regenError,
-        result: { annotations: allPersistedAnnotations, summary: persistedSummary ?? [] },
+        result: {
+          annotations: sortReplayAnnotationsByTimestamp(allPersistedAnnotations),
+          summary: persistedSummary ?? [],
+        },
       };
     }
     return { success: false as const, error: regenError };
@@ -355,7 +368,7 @@ export async function generateReplayAnnotations(
 
         // 9. Return result
         const result: ReplayAnnotationResult = {
-          annotations: finalAnnotations,
+          annotations: sortReplayAnnotationsByTimestamp(finalAnnotations),
           summary: finalSummary,
         };
 

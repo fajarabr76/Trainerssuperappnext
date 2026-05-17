@@ -33,6 +33,12 @@ export const VALID_MOMENTS: AnnotationMoment[] = [
   'technique_usage',
 ];
 
+export function sortReplayAnnotationsByTimestamp(
+  annotations: ReplayAnnotation[]
+): ReplayAnnotation[] {
+  return [...annotations].sort((a, b) => a.timestampMs - b.timestampMs);
+}
+
 export function truncateAnnotationsByPriority(
   annotations: ReplayAnnotation[]
 ): ReplayAnnotation[] {
