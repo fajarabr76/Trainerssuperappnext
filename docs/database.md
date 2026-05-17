@@ -32,11 +32,14 @@ erDiagram
     QA_PERIODS ||--o{ QA_SERVICE_RULE_VERSIONS : "defines"
     QA_SERVICE_RULE_VERSIONS ||--o{ QA_SERVICE_RULE_INDICATORS : "contains"
     QA_SERVICE_RULE_VERSIONS ||--o{ QA_SERVICE_RULE_VERSIONS : "supersedes"
-```
+---
 
 ## Tabel Utama
 
+**Catatan Migration Baseline:** Schema dasar aplikasi untuk fresh local reset dilacak di `supabase/migrations/20260401000000_create_initial_app_base_schema.sql`. File ini memastikan tabel dasar tersedia sebelum migration fitur seperti SIDAK service weights, PDKT async evaluation, dan KETIK review berjalan. Setup scripts di `supabase/scripts/` tetap dapat menjadi referensi manual, tetapi bukan sumber utama untuk reset lokal.
+
 ### 1. `public.profiles`
+
 Menyimpan data profil user yang terintegrasi dengan `auth.users`.
 - `id` (UUID, Primary Key): ID user dari Supabase Auth.
 - `email` (Text, Unique): Email user.
