@@ -63,17 +63,22 @@
 - **File:** `app/(main)/telefun/components/ReplayAnnotator.tsx`
 - **Test:** `tests/telefun/replay-annotator-error-state.test.tsx` (2 test baru untuk loading state)
 
+### 8. RPC `upsert_telefun_coaching_summary` — Validasi shape recommendation diperketat
+- **Bug:** Validasi hanya mencakup jumlah item (max 5), tetapi tidak memeriksa isi tiap item. Client bisa mengirim JSON malformed (misal: object kosong atau field priority di luar range).
+- **Fix:** Tambahkan loop validasi di RPC untuk memastikan tiap item adalah object dengan field `text` (string, max 200) dan `priority` (integer 1-5). Extra keys juga ditolak untuk menjaga integritas shape.
+- **File:** `supabase/migrations/20260517000000_enforce_telefun_coaching_summary_shape.sql`
+- **Test:** `tests/supabase/telefun-replay-migrations-contracts.test.ts` (assert validation logic di RPC)
+
+## Verifikasi (Batch 2)
+
+- `npx vitest run tests/telefun tests/telefun-realistic tests/supabase` → **35 files, 392 tests passed**
+- `npm run lint` → **0 errors**, 14 warnings (pre-existing)
+- `npm run type-check` → **build succeeded**
+
 ## Known Issues (Sengaja Tidak Disentuh)
 
 - **Live migration matrix:** Belum dijalankan karena butuh akses Docker/Postgres. Hanya terverifikasi melalui static contract test string.
-- **RPC `upsert_telefun_coaching_summary`:** Validasi hanya array length (≤ 5), bukan shape tiap item recommendation (validasi `text` length, `priority` range). Client authenticated bisa persist malformed JSON.
 - **AI annotation completeness heuristic:** `aiAnnotations.length > 0` = dianggap lengkap. Risk: partial corruption, forged row (sekarang sudah dicegah oleh fix RLS di atas), atau repaired DB bisa membuat set parsial tidak pernah diregenerasi.
 - **DELETE grant ke authenticated:** Client bisa hapus AI-generated annotations langsung via API tanpa guard — hanya pemeriksaan `user_id`.
 - **Ordering replay result:** Action return annotations dalam urutan insertion, bukan timestamp. UI timeline sudah sort sendiri, jadi tidak ada bug visual, tapi API contract tidak eksplisit.
 - **Tidak ada integrasi test untuk `ReviewModal` + `VoiceEvaluationDashboard`:** Test hanya unit-level untuk fungsi helper dan render static markup. Transient notice → error retry belum diuji di level komponen penuh dengan mock server.
-
-## Verifikasi (Batch 2)
-
-- `npx vitest run tests/telefun tests/telefun-realistic tests/supabase` → **35 files, 390 tests passed**
-- `npm run lint` → **0 errors**, 14 warnings (pre-existing)
-- `npm run type-check` → **build succeeded**

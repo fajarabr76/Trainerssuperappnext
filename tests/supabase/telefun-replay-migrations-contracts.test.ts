@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 const MERGED_MIGRATION_PATH = 'supabase/migrations/20260516000000_create_telefun_replay_support.sql';
 const REPAIR_MIGRATION_PATH = 'supabase/migrations/20260516000001_telefun_replay_rls_repair.sql';
+const ENFORCE_SHAPE_MIGRATION_PATH = 'supabase/migrations/20260517000000_enforce_telefun_coaching_summary_shape.sql';
 
 describe('Telefun replay migration contracts', () => {
   it('merged migration creates telefun_coaching_summary table', () => {
@@ -97,5 +98,23 @@ describe('Telefun replay migration contracts', () => {
     expect(repairSql).toContain('SELECT 1 FROM telefun_history');
     expect(repairSql).toContain('id = session_id AND user_id = auth.uid()');
     expect(repairSql).toContain('is_manual = true');
+  });
+
+  it('enforce shape migration adds strict object validation to upsert RPC', () => {
+    const sql = readFileSync(ENFORCE_SHAPE_MIGRATION_PATH, 'utf8');
+
+    expect(sql).toContain("jsonb_typeof(v_rec) <> 'object'");
+    expect(sql).toContain("k NOT IN ('text', 'priority')");
+    expect(sql).toContain("btrim(v_rec->>'text') = ''");
+    expect(sql).toContain("length(v_rec->>'text') > 200");
+    expect(sql).toContain('v_priority < 1 OR v_priority > 5');
+    expect(sql).toContain('GRANT EXECUTE ON FUNCTION public.upsert_telefun_coaching_summary(UUID, JSONB) TO authenticated, service_role;');
+  });
+
+  it('enforce shape migration ensures priority is an integer', () => {
+    const sql = readFileSync(ENFORCE_SHAPE_MIGRATION_PATH, 'utf8');
+
+    expect(sql).toContain('v_priority <> floor(v_priority)');
+    expect(sql).toContain('Invalid recommendation: "priority" must be an integer.');
   });
 });
