@@ -76,6 +76,13 @@
 - **Fix:** `telefun_coaching_summary` sekarang menyimpan metadata `ai_annotation_count`, `ai_annotation_checksum`, dan `ai_annotation_completed_at`. Action hanya short-circuit ketika metadata itu cocok dengan row AI non-manual saat ini. Jika tidak cocok, action regenerasi dari rekaman, mempertahankan anotasi manual, mengganti row AI lama, lalu menyimpan metadata baru.
 - **Test:** `tests/telefun/replay-annotation-completeness.test.ts`, `tests/telefun/replay-annotation-persistence.test.ts`, dan `tests/supabase/telefun-replay-migrations-contracts.test.ts`.
 
+## Follow-up Fixes (DELETE Grant Hardening)
+
+### 10. Replay annotations - direct client DELETE dinonaktifkan
+- **Bug:** `authenticated` sebelumnya mendapat `DELETE` grant pada `telefun_replay_annotations`, dan policy DELETE hanya memeriksa `user_id`. Pemilik sesi bisa menghapus row AI-generated langsung via Data API.
+- **Fix:** Migration `20260517000002_restrict_telefun_replay_annotation_delete.sql` mencabut `DELETE` dari `authenticated` dan menghapus policy DELETE owner-only. Cleanup row AI sekarang tetap dilakukan server-side melalui `generateReplayAnnotations()` memakai `createAdminClient()`.
+- **Test:** `tests/supabase/telefun-replay-migrations-contracts.test.ts` memastikan migration hardening mencabut privilege dan rollback mendokumentasikan kontrak lama secara eksplisit.
+
 ## Verifikasi (Final Replay Integrity)
 
 - `npx vitest run tests/telefun tests/telefun-realistic tests/supabase` → **37 files, 419 tests passed**
@@ -85,6 +92,5 @@
 ## Known Issues (Sengaja Tidak Disentuh)
 
 - **Live migration matrix:** Belum dijalankan karena butuh akses Docker/Postgres. Hanya terverifikasi melalui static contract test string.
-- **DELETE grant ke authenticated:** Client bisa hapus AI-generated annotations langsung via API tanpa guard — hanya pemeriksaan `user_id`.
 - **Ordering replay result:** Action return annotations dalam urutan insertion, bukan timestamp. UI timeline sudah sort sendiri, jadi tidak ada bug visual, tapi API contract tidak eksplisit.
 - **Tidak ada integrasi test untuk `ReviewModal` + `VoiceEvaluationDashboard`:** Test hanya unit-level untuk fungsi helper dan render static markup. Transient notice → error retry belum diuji di level komponen penuh dengan mock server.

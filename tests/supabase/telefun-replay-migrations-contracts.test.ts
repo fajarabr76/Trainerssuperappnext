@@ -8,6 +8,10 @@ const COMPLETION_METADATA_MIGRATION_PATH =
   'supabase/migrations/20260517000001_add_telefun_replay_completion_metadata.sql';
 const COMPLETION_METADATA_ROLLBACK_PATH =
   'supabase/rollback/20260517000001_add_telefun_replay_completion_metadata.down.sql';
+const DELETE_HARDENING_MIGRATION_PATH =
+  'supabase/migrations/20260517000002_restrict_telefun_replay_annotation_delete.sql';
+const DELETE_HARDENING_ROLLBACK_PATH =
+  'supabase/rollback/20260517000002_restrict_telefun_replay_annotation_delete.down.sql';
 
 describe('Telefun replay migration contracts', () => {
   it('merged migration creates telefun_coaching_summary table', () => {
@@ -147,5 +151,27 @@ describe('Telefun replay migration contracts', () => {
     expect(sql).toContain(
       'GRANT EXECUTE ON FUNCTION public.upsert_telefun_coaching_summary(UUID, JSONB) TO authenticated, service_role;'
     );
+  });
+
+  it('delete hardening migration removes direct authenticated replay annotation deletes', () => {
+    const sql = readFileSync(DELETE_HARDENING_MIGRATION_PATH, 'utf8');
+
+    expect(sql).toContain('DROP POLICY IF EXISTS "Users can delete their own replay annotations"');
+    expect(sql).toContain('REVOKE DELETE ON public.telefun_replay_annotations FROM authenticated;');
+    expect(sql).toContain(
+      "has_table_privilege('authenticated', 'public.telefun_replay_annotations', 'DELETE')"
+    );
+    expect(sql).toContain('authenticated must not have direct DELETE on telefun_replay_annotations');
+    expect(sql).not.toContain('CREATE POLICY "Users can delete their own replay annotations"');
+    expect(sql).not.toContain('GRANT SELECT, INSERT, DELETE ON public.telefun_replay_annotations TO authenticated;');
+  });
+
+  it('delete hardening rollback explicitly restores the previous owner-only delete contract', () => {
+    const sql = readFileSync(DELETE_HARDENING_ROLLBACK_PATH, 'utf8');
+
+    expect(sql).toContain('GRANT DELETE ON public.telefun_replay_annotations TO authenticated;');
+    expect(sql).toContain('CREATE POLICY "Users can delete their own replay annotations"');
+    expect(sql).toContain('FOR DELETE');
+    expect(sql).toContain('USING (auth.uid() = user_id);');
   });
 });

@@ -119,6 +119,10 @@ Replay AI cache tidak hanya dilihat dari jumlah row anotasi. `telefun_coaching_s
 
 Jika metadata kosong atau tidak cocok, sistem akan mencoba regenerasi dari `full_call.webm`, mempertahankan anotasi manual trainer, mengganti row AI lama, dan menyimpan checksum baru. Jika rekaman tidak tersedia atau proses AI gagal, UI tetap boleh menampilkan data parsial dengan status error agar trainer bisa retry.
 
+### Replay Annotation Delete Contract
+
+Client Supabase access tidak memiliki direct `DELETE` pada `telefun_replay_annotations`. User-facing flow hanya boleh membaca anotasi milik sesi sendiri dan menambah anotasi manual. Penghapusan row AI-generated untuk regenerasi replay dilakukan oleh server action `generateReplayAnnotations()` melalui `createAdminClient()`, sehingga cleanup tetap berjalan tanpa membuka delete API ke browser.
+
 ## Skrip Percakapan Skenario
 
 Settings skenario Telefun sekarang membedakan dua mode perilaku:
