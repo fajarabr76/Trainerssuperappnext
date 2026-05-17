@@ -13,6 +13,8 @@ import {
   validateRecommendations,
   isValidAnnotation,
   isValidManualAnnotationText,
+  createReplayAnnotationChecksum,
+  hasCompleteAiAnnotationSet,
 } from './replayAnnotationHelpers';
 import type {
   AnnotationCategory,
@@ -104,7 +106,7 @@ export async function generateReplayAnnotations(
 
   const { data: existingSummary, error: summaryReadError } = await admin
     .from('telefun_coaching_summary')
-    .select('id, recommendations')
+    .select('id, recommendations, ai_annotation_count, ai_annotation_checksum')
     .eq('session_id', sessionId)
     .maybeSingle();
 
@@ -128,12 +130,20 @@ export async function generateReplayAnnotations(
   // Separate AI-generated from manual annotations for recovery logic
   const aiAnnotations = allPersistedAnnotations.filter((a) => !a.isManual);
   const manualAnnotations = allPersistedAnnotations.filter((a) => a.isManual);
-  const hasPersistedAIAnnotations = aiAnnotations.length > 0;
+
+  const replayCompletionMetadata = {
+    aiAnnotationCount:
+      typeof existingSummary?.ai_annotation_count === 'number' ? existingSummary.ai_annotation_count : null,
+    aiAnnotationChecksum:
+      typeof existingSummary?.ai_annotation_checksum === 'string' ? existingSummary.ai_annotation_checksum : null,
+  };
   const hasPersistedSummary = persistedSummary !== null;
+  const hasCompletePersistedAIAnnotations =
+    hasPersistedSummary && hasCompleteAiAnnotationSet(allPersistedAnnotations, replayCompletionMetadata);
   const hasAnyPersistedData = allPersistedAnnotations.length > 0 || hasPersistedSummary;
 
   // Only short-circuit when BOTH AI annotations and summary are complete
-  if (hasPersistedAIAnnotations && hasPersistedSummary) {
+  if (hasCompletePersistedAIAnnotations) {
     return { success: true, result: { annotations: allPersistedAnnotations, summary: persistedSummary } };
   }
 
@@ -283,14 +293,29 @@ export async function generateReplayAnnotations(
 
         const constrainedRecommendations = validateRecommendations(validRecommendations);
 
-        const finalAnnotations = hasPersistedAIAnnotations
-          ? [...manualAnnotations, ...aiAnnotations]
-          : [...manualAnnotations, ...truncatedAnnotations];
-        const finalSummary = hasPersistedSummary ? persistedSummary : constrainedRecommendations;
+        const finalAnnotations = [...manualAnnotations, ...truncatedAnnotations];
+        const finalSummary = constrainedRecommendations;
+        const aiCompletionChecksum = createReplayAnnotationChecksum(truncatedAnnotations);
+        let aiPersistenceComplete = false;
         let persistenceFailed = false;
 
-        // 6. Persist annotations to telefun_replay_annotations
-        if (!hasPersistedAIAnnotations && truncatedAnnotations.length > 0) {
+        // 6. Delete stale non-manual rows when they exist
+        if (aiAnnotations.length > 0) {
+          const { error: deleteError } = await admin
+            .from('telefun_replay_annotations')
+            .delete()
+            .eq('session_id', sessionId)
+            .eq('user_id', user.id)
+            .eq('is_manual', false);
+
+          if (deleteError) {
+            console.warn('[ReplayAnnotator] Failed to delete stale AI annotations:', deleteError);
+            persistenceFailed = true;
+          }
+        }
+
+        // 7. Persist regenerated annotations to telefun_replay_annotations
+        if (!persistenceFailed && truncatedAnnotations.length > 0) {
           const annotationRows = truncatedAnnotations.map((ann) => ({
             session_id: sessionId,
             user_id: user.id,
@@ -308,23 +333,27 @@ export async function generateReplayAnnotations(
           if (insertError) {
             console.warn('[ReplayAnnotator] Failed to persist annotations:', insertError);
             persistenceFailed = true;
+          } else {
+            aiPersistenceComplete = true;
           }
+        } else if (!persistenceFailed && truncatedAnnotations.length === 0) {
+          aiPersistenceComplete = true;
         }
 
-        // 7. Persist recommendations via upsert_telefun_coaching_summary RPC
-        if (!hasPersistedSummary) {
-          const { error: rpcError } = await admin.rpc('upsert_telefun_coaching_summary', {
-            p_session_id: sessionId,
-            p_recommendations: constrainedRecommendations,
-          });
+        // 8. Persist recommendations via upsert_telefun_coaching_summary RPC
+        const { error: rpcError } = await admin.rpc('upsert_telefun_coaching_summary', {
+          p_session_id: sessionId,
+          p_recommendations: constrainedRecommendations,
+          p_ai_annotation_count: aiPersistenceComplete ? truncatedAnnotations.length : null,
+          p_ai_annotation_checksum: aiPersistenceComplete ? aiCompletionChecksum : null,
+        });
 
-          if (rpcError) {
-            console.warn('[ReplayAnnotator] Failed to persist coaching summary:', rpcError);
-            persistenceFailed = true;
-          }
+        if (rpcError) {
+          console.warn('[ReplayAnnotator] Failed to persist coaching summary:', rpcError);
+          persistenceFailed = true;
         }
 
-        // 8. Return result
+        // 9. Return result
         const result: ReplayAnnotationResult = {
           annotations: finalAnnotations,
           summary: finalSummary,
