@@ -97,8 +97,8 @@
 - `npm run lint` → **0 errors**, 14 warnings (pre-existing)
 - `npm run type-check` → **build succeeded**
 - `supabase db push` → **applied to remote project kkeiiwyyefaofljippnj** (including DELETE grant hardening)
+- **Live migration matrix:** Selesai diverifikasi via `npm run test:telefun:migration-matrix` pada local Supabase/Postgres. Matrix mencakup fresh full-chain reset, missing all replay support, coaching-summary-only, annotations-only-with-delete, realistic-columns-only, dan post-repair-pre-followups.
 
 ## Known Issues (Sengaja Tidak Disentuh)
 
-- **Live migration matrix:** Selesai diverifikasi via `npm run test:telefun:migration-matrix` pada local Supabase/Postgres. Matrix mencakup fresh full-chain reset, missing all replay support, coaching-summary-only, annotations-only-with-delete, realistic-columns-only, dan post-repair-pre-followups.
 - **Tidak ada integrasi test untuk `ReviewModal` + `VoiceEvaluationDashboard`:** Test hanya unit-level untuk fungsi helper dan render static markup. Transient notice → error retry belum diuji di level komponen penuh dengan mock server.
