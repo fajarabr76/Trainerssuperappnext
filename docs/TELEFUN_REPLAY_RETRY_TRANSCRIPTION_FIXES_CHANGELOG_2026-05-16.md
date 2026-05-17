@@ -78,7 +78,7 @@
 
 ## Verifikasi (Final Replay Integrity)
 
-- `npx vitest run tests/telefun tests/telefun-realistic tests/supabase` → **36 files, 409 tests passed**
+- `npx vitest run tests/telefun tests/telefun-realistic tests/supabase` → **37 files, 419 tests passed**
 - `npm run lint` → **0 errors**, 14 warnings (pre-existing)
 - `npm run type-check` → **build succeeded**
 
