@@ -52,13 +52,66 @@ Voice Gemini Live sekarang dipilih berdasarkan `config.identity.gender` dan `con
 Telefun sekarang membawa pengaturan tempo respons yang mengikuti pola settings KETIK:
 
 - `responsePacingMode: 'realistic' | 'training_fast'`
-- Default aktif untuk Telefun adalah `realistic`
+- Default aktif untuk Telefun adalah `realistic` (label UI: **Natural**)
 - Settings lama yang belum punya field ini akan dibaca sebagai `realistic`
 - Pengaturan ini memengaruhi tempo bicara konsumen di voice live, bukan isi skenario atau identitas
 - Mode `realistic` memakai pacing lebih natural dan instruksi prompt yang mendorong jeda, respons bertahap, dan interupsi yang tidak terlalu agresif
-- Mode `training_fast` mempertahankan tempo yang lebih cepat untuk latihan berulang
+- Mode `training_fast` (label UI: **Cepat**) mempertahankan tempo yang lebih cepat untuk latihan berulang
+- Pengaturan tempo **tidak memengaruhi** engine simulasi realistis. Keduanya independen dan bisa dikombinasikan.
 
 Implementasi runtime-nya berada di `app/(main)/telefun/components/SettingsModal.tsx`, `app/(main)/telefun/page.tsx`, dan `app/(main)/telefun/services/geminiService.ts`.
+
+## Mode Simulasi Realistis
+
+Telefun memiliki mode simulasi realistis yang terpisah dari pengaturan tempo bicara:
+
+- `realisticModeEnabled: boolean` — toggle untuk mengaktifkan engine simulasi realistis
+- Default: `false` (nonaktif)
+- Saat aktif, engine berikut dijalankan di `LiveSession`:
+  - **Turn-Taking Engine** — evaluasi kapan giliran bicara pengguna selesai
+  - **Backchannel Controller** — respons alami seperti "hmm", "oh begitu"
+  - **Persona State Machine** — intensitas emosi konsumen berdasarkan tipe persona
+  - **Disruption Scenario Engine** — gangguan terprogram (1-3 tipe per sesi)
+  - **Hold State Manager** — penanganan status hold dan consent
+  - **Fallback Response Manager** — respons cadangan saat AI diam
+  - **Prolonged Silence Handler** — penanganan keheningan panjang
+- Saat nonaktif, panggilan berjalan tanpa engine tambahan (hanya pacing tempo dasar)
+- Mode ini independen dari `responsePacingMode` — keempat kombinasi valid dan menghasilkan pengalaman berbeda
+
+### Persona Mapping
+
+Tipe konsumen di-mapping ke persona engine sebagai berikut:
+
+| Consumer Type ID | Persona Engine |
+|---|---|
+| `marah` | `angry` |
+| `bingung` | `confused` |
+| `kritis` | `critical` |
+| `ramah` | `cooperative` |
+| `terburu-buru` | `rushed` |
+| `pasrah` | `passive` |
+| (custom/unknown) | `cooperative` (fallback aman) |
+
+### Persistensi Histori
+
+Saat `realisticModeEnabled` aktif, `telefun_history` menyimpan data realistis melalui beberapa jalur:
+
+**Ditulis saat sesi berakhir** (di `TelefunClient.tsx` → `persistTelefunSession`):
+- `realistic_mode_enabled` (BOOLEAN) — indikator mode aktif
+- `persona_config` (JSONB) — konfigurasi persona dari consumer type session
+- `disruption_config` (JSONB) — tipe gangguan yang dipilih user
+
+**Ditulis pasca-sesi oleh engine** (dari `LiveSession` → action persist):
+- `disruption_results` (JSONB) — hasil gangguan yang benar-benar terjadi selama panggilan
+
+**Lazy-computed** (dari action voice dashboard, tidak ditulis langsung):
+- `voice_dashboard_metrics` (JSONB) — dihitung asinkron dari rekaman agen
+
+### Review Modal
+
+Tab **Voice Dashboard** dan **Replay** hanya muncul di Review Modal jika `realisticModeEnabled` aktif pada record sesi.
+
+Runtime wiring dilakukan di `app/(main)/telefun/components/PhoneInterface.tsx` dan `app/(main)/telefun/services/resolveRealisticModeConfig.ts`.
 
 ## Skrip Percakapan Skenario
 

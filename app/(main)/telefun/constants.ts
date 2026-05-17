@@ -54,6 +54,24 @@ const mergeWithDefaults = <T extends { id: string; isCustom?: boolean; descripti
   return merged;
 };
 
+const VALID_DISRUPTION_TYPES = [
+  'technical_term_confusion',
+  'repeated_question',
+  'misunderstanding',
+  'interruption',
+  'incomplete_data',
+  'unclear_voice',
+  'emotional_escalation',
+];
+
+function parseDisruptionTypes(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const valid = raw.filter((t): t is string =>
+    typeof t === 'string' && VALID_DISRUPTION_TYPES.includes(t)
+  );
+  return valid.slice(0, 3);
+}
+
 export const parseTelefunSettings = (parsed: Record<string, unknown>): AppSettings => ({
   scenarios: mergeWithDefaults(parsed.scenarios as Scenario[], DEFAULT_SCENARIOS),
   consumerTypes: mergeWithDefaults(parsed.consumerTypes as ConsumerType[], DEFAULT_CONSUMER_TYPES),
@@ -78,6 +96,8 @@ export const parseTelefunSettings = (parsed: Record<string, unknown>): AppSettin
     (parsed.responsePacingMode === 'realistic' || parsed.responsePacingMode === 'training_fast')
       ? parsed.responsePacingMode
       : 'realistic',
+  realisticModeEnabled: parsed.realisticModeEnabled === true,
+  realisticModeDisruptionTypes: parseDisruptionTypes(parsed.realisticModeDisruptionTypes),
 });
 
 export const DEFAULT_SCENARIOS: Scenario[] = [

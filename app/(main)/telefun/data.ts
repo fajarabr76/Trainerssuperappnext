@@ -17,4 +17,6 @@ export const defaultTelefunSettings: AppSettings = {
   telefunModelId: 'gemini-3.1-flash-live-preview',
   maxCallDuration: 5,
   responsePacingMode: 'realistic',
+  realisticModeEnabled: false,
+  realisticModeDisruptionTypes: [],
 };

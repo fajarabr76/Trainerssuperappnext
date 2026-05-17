@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { SessionConfig } from '@/app/types';
 import { LiveSession } from '../services/geminiService';
+import { resolveTelefunRealisticModeConfig } from '../services/resolveRealisticModeConfig';
 import { getTelefunTimeCueThreshold } from '../services/timingGuards';
 import { Clock3, Mic, MicOff, Pause, PhoneOff, Play, UserRound } from 'lucide-react';
 import { coerceDuration } from '@/app/lib/duration-validation';
@@ -228,6 +229,11 @@ export const PhoneInterface: React.FC<PhoneInterfaceProps> = ({
         try {
             const session = new LiveSession(config);
             sessionRef.current = session;
+
+            // Initialize realistic mode engine before connect
+            const realisticConfig = resolveTelefunRealisticModeConfig(config);
+            session.setRealisticMode(realisticConfig);
+
             // Apply initial mute state in case user clicked it during ringing
             session.setMute(isMutedRef.current);
 

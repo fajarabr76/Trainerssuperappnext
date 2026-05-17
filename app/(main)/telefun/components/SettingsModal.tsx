@@ -1070,9 +1070,9 @@ Akhir:
                          </div>
                          <div>
                             <h3 className="font-bold text-gray-900 dark:text-white text-lg">Tempo Respons Konsumen</h3>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                                Pengaturan ini memengaruhi kecepatan dan naturalitas respons konsumen. Tidak mengubah isi skenario atau karakter.
-                            </p>
+                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                                 Atur kecepatan bicara konsumen: Natural (tempo normal) atau Cepat (respons lebih cepat). Tidak memengaruhi fitur simulasi realistis di bawah.
+                             </p>
                          </div>
                        </div>
                      </div>
@@ -1087,12 +1087,12 @@ Akhir:
                              }`}
                          >
                              <Zap className={`w-8 h-8 ${(localSettings.responsePacingMode || 'realistic') === 'realistic' ? 'text-blue-500' : 'text-gray-300 dark:text-gray-600'}`} />
-                             <span className={`text-base font-bold tracking-tight ${(localSettings.responsePacingMode || 'realistic') === 'realistic' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>
-                               Realistis
-                             </span>
-                             <span className="text-xs text-gray-500 dark:text-gray-400 font-medium text-center leading-relaxed">
-                               Variasi tempo seperti manusia asli. Ada jeda pendek dan panjang yang natural.
-                             </span>
+                          <span className={`text-base font-bold tracking-tight ${(localSettings.responsePacingMode || 'realistic') === 'realistic' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>
+                                Natural
+                              </span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium text-center leading-relaxed">
+                                Kecepatan bicara normal dengan jeda natural. Tidak mengaktifkan fitur simulasi tambahan.
+                              </span>
                              {(localSettings.responsePacingMode || 'realistic') === 'realistic' && (
                                <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/20 z-10">
                                  <Check className="w-3.5 h-3.5 text-white" />
@@ -1109,12 +1109,12 @@ Akhir:
                              }`}
                          >
                              <Zap className={`w-8 h-8 ${(localSettings.responsePacingMode || 'realistic') === 'training_fast' ? 'text-blue-500' : 'text-gray-300 dark:text-gray-600'}`} />
-                             <span className={`text-base font-bold tracking-tight ${(localSettings.responsePacingMode || 'realistic') === 'training_fast' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>
-                               Cepat untuk Latihan
-                             </span>
-                             <span className="text-xs text-gray-500 dark:text-gray-400 font-medium text-center leading-relaxed">
-                               Respons lebih cepat. Cocok untuk latihan berulang tanpa menunggu lama.
-                             </span>
+                              <span className={`text-base font-bold tracking-tight ${(localSettings.responsePacingMode || 'realistic') === 'training_fast' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>
+                                Cepat
+                              </span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium text-center leading-relaxed">
+                                Respons lebih cepat tanpa jeda panjang. Cocok untuk latihan berulang secara efisien.
+                              </span>
                              {(localSettings.responsePacingMode || 'realistic') === 'training_fast' && (
                                <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/20 z-10">
                                  <Check className="w-3.5 h-3.5 text-white" />
@@ -1132,21 +1132,21 @@ Akhir:
                            <Zap className="w-6 h-6 text-violet-500" />
                          </div>
                          <div className="flex-1">
-                            <h3 className="font-bold text-gray-900 dark:text-white text-lg">Mode Realistis</h3>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                                Aktifkan fitur simulasi realistis: turn-taking kontekstual, backchannel, persona konsisten, dan skenario gangguan.
-                            </p>
-                         </div>
-                         <button
-                           type="button"
-                           onClick={() => setLocalSettings(prev => ({ ...prev, realisticModeEnabled: !prev.realisticModeEnabled }))}
-                           className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 ${
-                             localSettings.realisticModeEnabled ? 'bg-violet-500' : 'bg-gray-200 dark:bg-gray-700'
-                           }`}
-                           role="switch"
-                           aria-checked={localSettings.realisticModeEnabled || false}
-                           aria-label="Toggle mode realistis"
-                         >
+                             <h3 className="font-bold text-gray-900 dark:text-white text-lg">Mode Simulasi Realistis</h3>
+                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                                 Aktifkan simulasi percakapan tingkat lanjut: turn-taking kontekstual, backchannel alami, kepribadian konsisten, skenario gangguan, dan fitur hold. Atur tempo bicara secara terpisah di panel atas.
+                             </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setLocalSettings(prev => ({ ...prev, realisticModeEnabled: !prev.realisticModeEnabled }))}
+                            className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 ${
+                              localSettings.realisticModeEnabled ? 'bg-violet-500' : 'bg-gray-200 dark:bg-gray-700'
+                            }`}
+                            role="switch"
+                            aria-checked={localSettings.realisticModeEnabled || false}
+                            aria-label="Toggle mode simulasi realistis"
+                          >
                            <span
                              className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                                localSettings.realisticModeEnabled ? 'translate-x-5' : 'translate-x-0'
