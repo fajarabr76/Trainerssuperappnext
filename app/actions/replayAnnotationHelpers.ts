@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type {
   AnnotationCategory,
   AnnotationMoment,
@@ -106,4 +107,45 @@ export function isValidAnnotation(annotation: {
 
 export function isValidManualAnnotationText(text: string): boolean {
   return typeof text === 'string' && text.length > 0 && text.length <= MAX_MANUAL_ANNOTATION_CHARS;
+}
+
+export interface ReplayAnnotationCompletionMetadata {
+  aiAnnotationCount: number | null | undefined;
+  aiAnnotationChecksum: string | null | undefined;
+}
+
+type ChecksumAnnotation = Pick<
+  ReplayAnnotation,
+  'timestampMs' | 'category' | 'moment' | 'text' | 'isManual'
+>;
+
+export function createReplayAnnotationChecksum(annotations: ChecksumAnnotation[]): string {
+  const payload = annotations
+    .filter((annotation) => !annotation.isManual)
+    .map((annotation) => ({
+      timestampMs: annotation.timestampMs,
+      category: annotation.category,
+      moment: annotation.moment,
+      text: annotation.text,
+    }))
+    .sort((a, b) => {
+      if (a.timestampMs !== b.timestampMs) return a.timestampMs - b.timestampMs;
+      return `${a.category}:${a.moment}:${a.text}`.localeCompare(`${b.category}:${b.moment}:${b.text}`);
+    });
+
+  return createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+}
+
+export function hasCompleteAiAnnotationSet(
+  annotations: ReplayAnnotation[],
+  metadata: ReplayAnnotationCompletionMetadata
+): boolean {
+  if (metadata.aiAnnotationCount === null || metadata.aiAnnotationCount === undefined) return false;
+  if (!metadata.aiAnnotationChecksum) return false;
+
+  const aiAnnotations = annotations.filter((annotation) => !annotation.isManual);
+  if (metadata.aiAnnotationCount !== aiAnnotations.length) return false;
+  if (!aiAnnotations.every(isValidAnnotation)) return false;
+
+  return createReplayAnnotationChecksum(aiAnnotations) === metadata.aiAnnotationChecksum;
 }
