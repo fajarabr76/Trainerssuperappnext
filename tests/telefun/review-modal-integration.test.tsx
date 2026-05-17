@@ -53,10 +53,10 @@ describe('ReviewModal Integration', () => {
     });
 
     render(
-      <ReviewModal 
-        isOpen={true} 
-        onClose={vi.fn()} 
-        record={mockRecord as any} 
+      <ReviewModal
+        isOpen={true}
+        onClose={vi.fn()}
+        record={mockRecord as any}
       />
     );
 
@@ -106,10 +106,10 @@ describe('ReviewModal Integration', () => {
     } as any);
 
     render(
-      <ReviewModal 
-        isOpen={true} 
-        onClose={vi.fn()} 
-        record={mockRecord as any} 
+      <ReviewModal
+        isOpen={true}
+        onClose={vi.fn()}
+        record={mockRecord as any}
       />
     );
 
