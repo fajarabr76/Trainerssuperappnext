@@ -69,16 +69,22 @@
 - **File:** `supabase/migrations/20260517000000_enforce_telefun_coaching_summary_shape.sql`
 - **Test:** `tests/supabase/telefun-replay-migrations-contracts.test.ts` (assert validation logic di RPC)
 
-## Verifikasi (Batch 2)
+## Follow-up Fixes (AI Annotation Completeness)
 
-- `npx vitest run tests/telefun tests/telefun-realistic tests/supabase` → **35 files, 392 tests passed**
+### 9. Replay annotations - cache AI tidak lagi dianggap lengkap hanya karena ada 1 row
+- **Bug:** `generateReplayAnnotations()` sebelumnya menganggap cache AI lengkap ketika ada minimal satu row non-manual. Jika database pernah partial-apply, row AI terhapus sebagian, atau repair meninggalkan set parsial, replay tidak akan regenerasi walau datanya tidak lengkap.
+- **Fix:** `telefun_coaching_summary` sekarang menyimpan metadata `ai_annotation_count`, `ai_annotation_checksum`, dan `ai_annotation_completed_at`. Action hanya short-circuit ketika metadata itu cocok dengan row AI non-manual saat ini. Jika tidak cocok, action regenerasi dari rekaman, mempertahankan anotasi manual, mengganti row AI lama, lalu menyimpan metadata baru.
+- **Test:** `tests/telefun/replay-annotation-completeness.test.ts`, `tests/telefun/replay-annotation-persistence.test.ts`, dan `tests/supabase/telefun-replay-migrations-contracts.test.ts`.
+
+## Verifikasi (Final Replay Integrity)
+
+- `npx vitest run tests/telefun tests/telefun-realistic tests/supabase` → **36 files, 409 tests passed**
 - `npm run lint` → **0 errors**, 14 warnings (pre-existing)
 - `npm run type-check` → **build succeeded**
 
 ## Known Issues (Sengaja Tidak Disentuh)
 
 - **Live migration matrix:** Belum dijalankan karena butuh akses Docker/Postgres. Hanya terverifikasi melalui static contract test string.
-- **AI annotation completeness heuristic:** `aiAnnotations.length > 0` = dianggap lengkap. Risk: partial corruption, forged row (sekarang sudah dicegah oleh fix RLS di atas), atau repaired DB bisa membuat set parsial tidak pernah diregenerasi.
 - **DELETE grant ke authenticated:** Client bisa hapus AI-generated annotations langsung via API tanpa guard — hanya pemeriksaan `user_id`.
 - **Ordering replay result:** Action return annotations dalam urutan insertion, bukan timestamp. UI timeline sudah sort sendiri, jadi tidak ada bug visual, tapi API contract tidak eksplisit.
 - **Tidak ada integrasi test untuk `ReviewModal` + `VoiceEvaluationDashboard`:** Test hanya unit-level untuk fungsi helper dan render static markup. Transient notice → error retry belum diuji di level komponen penuh dengan mock server.

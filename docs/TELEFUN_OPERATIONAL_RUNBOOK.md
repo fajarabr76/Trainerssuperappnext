@@ -113,6 +113,12 @@ Tab **Voice Dashboard** dan **Replay** hanya muncul di Review Modal jika `realis
 
 Runtime wiring dilakukan di `app/(main)/telefun/components/PhoneInterface.tsx` dan `app/(main)/telefun/services/resolveRealisticModeConfig.ts`.
 
+### Replay Annotation Cache Integrity
+
+Replay AI cache tidak hanya dilihat dari jumlah row anotasi. `telefun_coaching_summary` menyimpan metadata `ai_annotation_count`, `ai_annotation_checksum`, dan `ai_annotation_completed_at`. Saat tab Replay dibuka, action hanya memakai cache jika metadata tersebut cocok dengan row `telefun_replay_annotations` non-manual untuk sesi yang sama.
+
+Jika metadata kosong atau tidak cocok, sistem akan mencoba regenerasi dari `full_call.webm`, mempertahankan anotasi manual trainer, mengganti row AI lama, dan menyimpan checksum baru. Jika rekaman tidak tersedia atau proses AI gagal, UI tetap boleh menampilkan data parsial dengan status error agar trainer bisa retry.
+
 ## Skrip Percakapan Skenario
 
 Settings skenario Telefun sekarang membedakan dua mode perilaku:
