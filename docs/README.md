@@ -28,7 +28,7 @@ Gunakan dokumen spesifik di bawah ini saat memodifikasi modul untuk memastikan k
 - `docs/MONITORING_TOKEN_USAGE_BILLING.md`: Kontrak usage AI bulanan, billing Rupiah, pricing/kurs, quick-view modul, dan smoke test.
 - `docs/TELEFUN_OPERATIONAL_RUNBOOK.md`: Kontrak runtime Telefun, WebSocket proxy Railway, env, storage rekaman, usage, dan smoke test.
 - `docs/SUPABASE_LOCAL_BACKUP.md`: Backup lokal Supabase database dan Storage.
-- `docs/SUPABASE_LOCAL_MIGRATION_RESET_RUNBOOK.md`: Panduan reset migration Supabase lokal dan kontrak baseline schema.
+- `docs/SUPABASE_LOCAL_MIGRATION_RESET_RUNBOOK.md`: Panduan reset migration Supabase lokal, kontrak baseline schema, dan Telefun replay live migration matrix.
 - `docs/VERCEL_RES_OPTIMIZATION.md`: Catatan optimasi Vercel RES, hasil Tahap 0-3, guardrail performa, dan gate persetujuan sebelum auth/cache/dependency cleanup.
 - `docs/QA_DASHBOARD_SUMMARY_ROLLUP_STAGING.md`: Scope commit, catatan file Supabase CLI, dan checklist testing staging untuk summary rollup dashboard SIDAK.
 - `docs/SIDAK_LOGIC_AND_SCORING.md`: Penjelasan logika bisnis SIDAK, rumus skor, clean-session, dan cara perhitungan.

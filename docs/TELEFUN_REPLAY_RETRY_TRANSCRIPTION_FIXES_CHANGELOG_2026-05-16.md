@@ -100,5 +100,5 @@
 
 ## Known Issues (Sengaja Tidak Disentuh)
 
-- **Live migration matrix:** Belum dijalankan karena butuh akses Docker/Postgres. Hanya terverifikasi melalui static contract test string.
+- **Live migration matrix:** Selesai diverifikasi via `npm run test:telefun:migration-matrix` pada local Supabase/Postgres. Matrix mencakup fresh full-chain reset, missing all replay support, coaching-summary-only, annotations-only-with-delete, realistic-columns-only, dan post-repair-pre-followups.
 - **Tidak ada integrasi test untuk `ReviewModal` + `VoiceEvaluationDashboard`:** Test hanya unit-level untuk fungsi helper dan render static markup. Transient notice → error retry belum diuji di level komponen penuh dengan mock server.

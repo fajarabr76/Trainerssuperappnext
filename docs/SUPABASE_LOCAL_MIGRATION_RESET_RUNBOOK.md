@@ -30,3 +30,13 @@ Reset dianggap sehat jika `20260401000000_create_initial_app_base_schema.sql` be
 5. Jalankan ulang `supabase db reset --debug`.
 
 Jangan menambahkan data produksi, backup lokal, atau data PII ke migration baseline.
+
+## Telefun Replay Live Migration Matrix
+
+Untuk perubahan migration Telefun replay, jalankan:
+
+```bash
+npm run test:telefun:migration-matrix
+```
+
+Command ini membutuhkan Docker, Supabase CLI, dan `psql` (didalam container). Matrix memverifikasi bahwa migration repair Telefun replay dapat converge dari fresh database dan beberapa state partial-apply legacy.

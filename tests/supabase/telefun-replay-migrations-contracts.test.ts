@@ -174,4 +174,19 @@ describe('Telefun replay migration contracts', () => {
     expect(sql).toContain('FOR DELETE');
     expect(sql).toContain('USING (auth.uid() = user_id);');
   });
+
+  it('live migration matrix harness is tracked for Telefun replay repair states', () => {
+    const files = [
+      'scripts/verify-telefun-replay-migration-matrix.mjs',
+      'supabase/tests/telefun_replay_live_matrix/reset_replay_support.sql',
+      'supabase/tests/telefun_replay_live_matrix/assert_final_contract.sql',
+      'supabase/tests/telefun_replay_live_matrix/scenario_coaching_summary_only.sql',
+      'supabase/tests/telefun_replay_live_matrix/scenario_annotations_only_with_delete.sql',
+      'supabase/tests/telefun_replay_live_matrix/scenario_realistic_columns_only.sql',
+    ];
+
+    for (const file of files) {
+      expect(readFileSync(file, 'utf8').trim().length).toBeGreaterThan(0);
+    }
+  });
 });

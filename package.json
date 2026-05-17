@@ -17,7 +17,8 @@
     "backup:supabase:all": "npm run backup:supabase && npm run backup:supabase:storage",
     "telefun:dev": "npm --prefix apps/telefun-server run dev",
     "telefun:build": "npm --prefix apps/telefun-server run build",
-    "telefun:start": "npm --prefix apps/telefun-server run start"
+    "telefun:start": "npm --prefix apps/telefun-server run start",
+    "test:telefun:migration-matrix": "node scripts/verify-telefun-replay-migration-matrix.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
