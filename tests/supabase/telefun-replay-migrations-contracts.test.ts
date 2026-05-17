@@ -4,6 +4,10 @@ import { describe, expect, it } from 'vitest';
 const MERGED_MIGRATION_PATH = 'supabase/migrations/20260516000000_create_telefun_replay_support.sql';
 const REPAIR_MIGRATION_PATH = 'supabase/migrations/20260516000001_telefun_replay_rls_repair.sql';
 const ENFORCE_SHAPE_MIGRATION_PATH = 'supabase/migrations/20260517000000_enforce_telefun_coaching_summary_shape.sql';
+const COMPLETION_METADATA_MIGRATION_PATH =
+  'supabase/migrations/20260517000001_add_telefun_replay_completion_metadata.sql';
+const COMPLETION_METADATA_ROLLBACK_PATH =
+  'supabase/rollback/20260517000001_add_telefun_replay_completion_metadata.down.sql';
 
 describe('Telefun replay migration contracts', () => {
   it('merged migration creates telefun_coaching_summary table', () => {
@@ -116,5 +120,32 @@ describe('Telefun replay migration contracts', () => {
 
     expect(sql).toContain('v_priority <> floor(v_priority)');
     expect(sql).toContain('Invalid recommendation: "priority" must be an integer.');
+  });
+
+  it('completion metadata migration adds replay annotation metadata columns', () => {
+    const sql = readFileSync(COMPLETION_METADATA_MIGRATION_PATH, 'utf8');
+
+    expect(sql).toContain('ADD COLUMN IF NOT EXISTS ai_annotation_count');
+    expect(sql).toContain('ADD COLUMN IF NOT EXISTS ai_annotation_checksum');
+    expect(sql).toContain('ADD COLUMN IF NOT EXISTS ai_annotation_completed_at');
+    expect(sql).toContain('DROP FUNCTION IF EXISTS public.upsert_telefun_coaching_summary(UUID, JSONB);');
+    expect(sql).toContain('p_ai_annotation_count INTEGER DEFAULT NULL');
+    expect(sql).toContain('p_ai_annotation_checksum TEXT DEFAULT NULL');
+    expect(sql).toContain('ai_annotation_count = EXCLUDED.ai_annotation_count');
+    expect(sql).toContain(
+      'GRANT EXECUTE ON FUNCTION public.upsert_telefun_coaching_summary(UUID, JSONB, INTEGER, TEXT) TO authenticated, service_role;'
+    );
+  });
+
+  it('completion metadata rollback restores the previous RPC signature', () => {
+    const sql = readFileSync(COMPLETION_METADATA_ROLLBACK_PATH, 'utf8');
+
+    expect(sql).toContain('DROP FUNCTION IF EXISTS public.upsert_telefun_coaching_summary(UUID, JSONB, INTEGER, TEXT);');
+    expect(sql).toContain('CREATE OR REPLACE FUNCTION public.upsert_telefun_coaching_summary(');
+    expect(sql).toContain('p_recommendations JSONB');
+    expect(sql).toContain('DROP COLUMN IF EXISTS ai_annotation_count');
+    expect(sql).toContain(
+      'GRANT EXECUTE ON FUNCTION public.upsert_telefun_coaching_summary(UUID, JSONB) TO authenticated, service_role;'
+    );
   });
 });
