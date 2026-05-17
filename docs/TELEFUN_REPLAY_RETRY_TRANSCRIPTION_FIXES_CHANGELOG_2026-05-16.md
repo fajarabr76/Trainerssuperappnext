@@ -91,9 +91,17 @@
 - **File:** `app/actions/replayAnnotation.ts`, `app/actions/replayAnnotationHelpers.ts`
 - **Test:** `tests/telefun/replay-annotation-helpers.test.ts` (unit test helper) + `tests/telefun/replay-annotation-persistence.test.ts` (regression test for return paths)
 
+## Follow-up Fixes (Integration Testing)
+
+### 12. ReviewModal + VoiceEvaluationDashboard — Integrasi test interaktif
+- **Bug:** Sebelumnya tidak ada pengujian level komponen untuk alur "transient notice -> error retry". Pengujian hanya terbatas pada helper murni.
+- **Fix:** Menambahkan environment pengujian DOM (`jsdom` + `@testing-library/react`) dan membuat integration test untuk memverifikasi behavior `ReviewModal`.
+- **File:** `tests/telefun/review-modal-integration.test.tsx`, `vitest.config.ts`, `tests/setup.ts`
+- **Test:** Memastikan Dashboard suara bisa pulih (retry) dari error download audio, dan Replay Annotator tetap menampilkan partial data (rekomendasi coaching) saat regenerasi anotasi gagal.
+
 ## Verifikasi (Final Replay Integrity)
 
-- `npx vitest run tests/telefun tests/telefun-realistic tests/supabase` → **37 files, 425 tests passed**
+- `npx vitest run tests/telefun tests/telefun-realistic tests/supabase` → **40 files, 434 tests passed**
 - `npm run lint` → **0 errors**, 14 warnings (pre-existing)
 - `npm run type-check` → **build succeeded**
 - `supabase db push` → **applied to remote project kkeiiwyyefaofljippnj** (including DELETE grant hardening)
@@ -101,4 +109,4 @@
 
 ## Known Issues (Sengaja Tidak Disentuh)
 
-- **Tidak ada integrasi test untuk `ReviewModal` + `VoiceEvaluationDashboard`:** Test hanya unit-level untuk fungsi helper dan render static markup. Transient notice → error retry belum diuji di level komponen penuh dengan mock server.
+- (Semua known issues kritis Batch 1 & 2 telah terselesaikan di level integrasi)
